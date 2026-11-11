@@ -274,30 +274,71 @@ export function setGear(m, weaponId, armorId) {
   } else m.weaponKind = null;
 }
 
-// ---------- animação procedural ----------
+// ---------- animação procedural humanizada ----------
+// marcha com fase contínua: joelho dobra na fase de balanço, quadril sobe/desce e gira,
+// ombros giram ao contrário do quadril, braços balançam opostos às pernas com cotovelo dobrando,
+// cabeça estabiliza o olhar; parado: respiração, troca de peso e olhar ao redor.
 export function animHumanoid(m, dt) {
   const A = m.anim, P = m.P; A.t += dt;
-  const t = A.t, st = A.state;
-  const lerp = (o, k, v, s = 12) => { o[k] += (v - o[k]) * Math.min(1, dt * s); };
-  let lx = 0, rx = 0, alx = 0, arx = 0, arz = 0, alz = 0, fl = 0, fr = 0, bob = 0, tx = 0, hy = 0;
-  if (st === 'run') { const s = Math.sin(t * 10); lx = s * 0.75; rx = -s * 0.75; alx = -s * 0.6; arx = s * 0.6; fl = Math.max(0, -s) * 0.9; fr = Math.max(0, s) * 0.9; bob = Math.abs(Math.cos(t * 10)) * 0.05; tx = 0.12; }
-  else if (st === 'idle') { const s = Math.sin(t * 1.8); arz = -0.1 - s * 0.02; alz = 0.1 + s * 0.02; bob = s * 0.008; hy = Math.sin(t * 0.4) * 0.15; }
+  const t = A.t, st = A.state, run = st === 'run';
+  const k = (o, key, v, s = 10) => { o[key] += (v - o[key]) * Math.min(1, dt * s); };
+  A.gw = (A.gw || 0) + ((run ? 1 : 0) - (A.gw || 0)) * Math.min(1, dt * 7); // peso da marcha (transição suave)
+  const w = A.gw; if (run) A.ph = (A.ph || 0) + dt * 9.2;
+  const ph = A.ph || 0, sL = Math.sin(ph), sR = Math.sin(ph + Math.PI), cL = Math.cos(ph), cR = Math.cos(ph + Math.PI);
+  // ---- pernas
+  let thL = sL * 0.62 * w, thR = sR * 0.62 * w;
+  let knL = (Math.max(0, -cL) * 1.15 + 0.08) * w, knR = (Math.max(0, -cR) * 1.15 + 0.08) * w;
+  // ---- parado: troca de peso entre as pernas
+  const idle = 1 - w, sway = Math.sin(t * 0.55);
+  knL += idle * (0.06 + Math.max(0, sway) * 0.12); knR += idle * (0.06 + Math.max(0, -sway) * 0.12);
+  thL += idle * -Math.max(0, sway) * 0.05; thR += idle * -Math.max(0, -sway) * 0.05;
+  // ---- braços opostos às pernas
+  let alx = -sL * 0.55 * w, arx = -sR * 0.55 * w, alz = 0.07 + idle * (0.06 + Math.sin(t * 1.6) * 0.012), arz = -0.07 - idle * (0.06 + Math.sin(t * 1.6) * 0.012);
+  let elL = -0.25 - Math.max(0, sL) * 0.65 * w - idle * 0.1, elR = -0.25 - Math.max(0, sR) * 0.65 * w - idle * 0.1;
+  // ---- tronco, quadril e cabeça
+  let bob = w * (0.035 * (1 - Math.abs(sL)) - 0.015) + idle * Math.sin(t * 1.6) * 0.004;
+  let hipX = w * Math.sin(ph) * 0.018 + idle * sway * 0.018, hipRz = w * -sL * 0.04 + idle * sway * 0.03, hipRy = w * -sL * 0.12;
+  let torY = w * sL * 0.16, torX = w * 0.13, torZ = -hipRz * 0.6;
+  // olhar ao redor quando parado (alvo muda de tempos em tempos)
+  if (!A.lookT || t > A.lookT) { A.lookT = t + 2.5 + Math.random() * 4; A.look = (Math.random() - 0.5) * 0.9; A.lookP = (Math.random() - 0.5) * 0.25; }
+  let headY = -torY * 0.85 + idle * A.look, headX = -torX * 0.6 + idle * A.lookP;
+  // ---- ataque: preparação → golpe com giro do corpo → recuperação
   if (A.atk >= 0) {
-    const p = Math.min(1, (performance.now() - A.atk) / 450);
-    if (A.kind === 'bow') { alx = -1.5; arx = -1.5; arz = 0.2 - Math.sin(p * Math.PI) * 0.4; }
-    else if (A.kind === 'cast') { alx = arx = -2.6 * Math.sin(p * Math.PI); alz = 0.3; arz = -0.3; }
-    else { arx = p < 0.35 ? -2.6 * (p / 0.35) : -2.6 + 3.4 * ((p - 0.35) / 0.65); tx = 0.2 * Math.sin(p * Math.PI); if (m.weaponKind === 'adaga' || m.weaponKind === 'punhos') alx = -1.4 * Math.sin(p * Math.PI * 2); }
+    const dur = A.kind === 'cast' ? 650 : 560, p = Math.min(1, (performance.now() - A.atk) / dur);
+    const ease = (x) => x * x * (3 - 2 * x);
+    if (A.kind === 'bow') {
+      const draw = p < 0.6 ? ease(p / 0.6) : 1 - ease((p - 0.6) / 0.4) * 0.3;
+      alx = -1.5; alz = 0.05; elL = -0.05; arx = -1.45; arz = 0.25 - draw * 0.55; elR = -1.6 * draw; torY = -0.45; headY = 0.4; thL = -0.15; thR = 0.12;
+    } else if (A.kind === 'cast') {
+      const up = Math.sin(p * Math.PI); alx = arx = -2.3 * up; alz = 0.35 * up; arz = -0.35 * up; elL = elR = -0.5 + up * 0.3; torX = -0.12 * up; headX = -0.3 * up; knL = knR = 0.15 * up;
+    } else {
+      const dual = m.weaponKind === 'adaga' || m.weaponKind === 'punhos';
+      let sw, twist;
+      if (p < 0.32) { const q = ease(p / 0.32); sw = -2.5 * q; twist = -0.45 * q; }            // prepara (arma para trás/cima)
+      else if (p < 0.55) { const q = ease((p - 0.32) / 0.23); sw = -2.5 + 3.3 * q; twist = -0.45 + 0.85 * q; } // golpe rápido
+      else { const q = ease((p - 0.55) / 0.45); sw = 0.8 * (1 - q); twist = 0.4 * (1 - q); }   // recupera
+      arx = sw; elR = -0.3 - Math.max(0, -sw) * 0.35; arz = -0.15; torY = twist; headY = -twist * 0.6;
+      const lunge = Math.sin(Math.min(1, p / 0.55) * Math.PI) * 0.6; thL = -0.35 * lunge; knL = 0.35 * lunge; thR = 0.25 * lunge; knR = 0.2 * lunge; bob -= 0.04 * lunge; torX = 0.18 * lunge;
+      if (dual) { alx = p < 0.5 ? -1.2 * Math.sin(p * Math.PI * 2) : -1.6 * Math.sin((p - 0.5) * Math.PI * 2); elL = -0.6; }
+      else alx = -0.35 * (1 - Math.abs(sw) / 2.5) - 0.2;
+    }
     if (p >= 1) A.atk = -1;
   }
-  lerp(P.legL.l.rotation, 'x', lx); lerp(P.legR.l.rotation, 'x', rx); lerp(P.legL.sh.rotation, 'x', fl); lerp(P.legR.sh.rotation, 'x', fr);
-  lerp(P.armL.s.rotation, 'x', alx, 18); lerp(P.armR.s.rotation, 'x', arx, 18); lerp(P.armL.s.rotation, 'z', alz); lerp(P.armR.s.rotation, 'z', arz);
-  lerp(P.armR.fa.rotation, 'x', -0.25); lerp(P.armL.fa.rotation, 'x', -0.25); lerp(P.torso.rotation, 'x', tx); lerp(P.head.rotation, 'y', hy, 3);
-  P.hips.position.y = 0.95 + bob;
-  if (P.tail) { P.tail.rotation.y = Math.sin(t * (st === 'run' ? 8 : 2)) * 0.35; }
-  if (P.wings) { const s = Math.sin(t * (st === 'run' ? 9 : 2.2)) * 0.25; P.wings.children[0].rotation.y = 0.5 + s; P.wings.children[1].rotation.y = -0.5 - s; }
-  if (m.cape) m.cape.rotation.x = 0.08 + (st === 'run' ? 0.5 : Math.sin(t * 1.5) * 0.04);
-  if (st === 'dead') { lerp(m.root.rotation, 'x', -Math.PI / 2, 6); lerp(m.body.position, 'y', 0.25, 6); }
-  else { lerp(m.root.rotation, 'x', 0, 10); lerp(m.body.position, 'y', 0, 10); }
+  // ---- aplica com suavização (sem estalos)
+  k(P.legL.l.rotation, 'x', thL, 14); k(P.legR.l.rotation, 'x', thR, 14); k(P.legL.sh.rotation, 'x', knL, 14); k(P.legR.sh.rotation, 'x', knR, 14);
+  k(P.armL.s.rotation, 'x', alx, 14); k(P.armR.s.rotation, 'x', arx, 16); k(P.armL.s.rotation, 'z', alz); k(P.armR.s.rotation, 'z', arz);
+  k(P.armL.fa.rotation, 'x', elL, 12); k(P.armR.fa.rotation, 'x', elR, 12);
+  k(P.torso.rotation, 'x', torX, 8); k(P.torso.rotation, 'y', torY, 12); k(P.torso.rotation, 'z', torZ, 8);
+  k(P.hips.rotation, 'y', hipRy, 10); k(P.hips.rotation, 'z', hipRz, 8); k(P.hips.position, 'x', hipX, 8);
+  k(P.head.rotation, 'y', headY, 4); k(P.head.rotation, 'x', headX, 4);
+  P.hips.position.y = 0.95 + bob - (knL + knR) * 0.018;
+  P.chest.scale.z = 0.72 * (1 + Math.sin(t * 1.6) * 0.018); // respiração
+  if (P.tail) { P.tail.rotation.y = Math.sin(t * (run ? 8 : 2)) * 0.35; P.tail.rotation.x = run ? -0.2 : 0; }
+  if (P.wings) { const s = Math.sin(t * (run ? 9 : 2.2)) * 0.25; P.wings.children[0].rotation.y = 0.5 + s; P.wings.children[1].rotation.y = -0.5 - s; }
+  if (m.cape) m.cape.rotation.x = 0.08 + (run ? 0.5 + Math.sin(t * 9) * 0.05 : Math.sin(t * 1.5) * 0.04);
+  // morte: joelhos cedem primeiro, depois o corpo tomba
+  if (st === 'dead') { A.dt = (A.dt || 0) + dt; k(P.legL.sh.rotation, 'x', 1.2, 8); k(P.legR.sh.rotation, 'x', 1.0, 8); if (A.dt > 0.25) { k(m.root.rotation, 'x', -Math.PI / 2, 5); k(m.body.position, 'y', 0.25, 5); } }
+  else { A.dt = 0; k(m.root.rotation, 'x', 0, 10); k(m.body.position, 'y', 0, 10); }
   if (m.orb) m.orb.material.emissiveIntensity = 0.7 + Math.sin(t * 4) * 0.3;
   // piscar e expressão
   const now = performance.now();

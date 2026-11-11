@@ -436,7 +436,7 @@ function updateMe(dt) {
     me.ry = Math.atan2(vx, vz); S.channel = null;
   }
   me.anim.state = S.dead ? 'dead' : moving ? 'run' : 'idle';
-  let a = me.root.rotation.y, d = me.ry - a; d = Math.atan2(Math.sin(d), Math.cos(d)); me.root.rotation.y = a + d * Math.min(1, dt * 14);
+  let a = me.root.rotation.y, d = me.ry - a; d = Math.atan2(Math.sin(d), Math.cos(d)); me.root.rotation.y = a + d * Math.min(1, dt * 10);
   me.root.position.set(me.x, WG.height(me.x, me.z), me.z); animHumanoid(me, dt);
   // coleta
   if (S.channel) { const p = (now() - S.channel.start) / (S.channel.end - S.channel.start); $('#cast').hidden = false; $('#cast i').style.width = Math.min(100, p * 100) + '%'; $('#cast span').textContent = 'Coletando…'; if (p >= 1) { const n = S.channel.node; S.channel = null; gather(n); } else if (Math.random() < 0.03) playAttack(me, 'melee'); }
