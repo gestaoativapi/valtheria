@@ -1,5 +1,6 @@
 // ===== Valtheria — personagens 3D suaves (toon) com rosto, expressões e raças =====
 import * as THREE from './three.module.min.js';
+import { createCharacter, play as playClip, setOutfit, setPart } from './chars.js';
 const GD = window.GD;
 
 // ---------- materiais toon + contorno ----------
@@ -129,14 +130,15 @@ export function buildHumanoid(o) {
     if (f.animalEars) { const e = at(cone(0.06, 0.14, skin, 10), s * 0.09 * hs, 0.17 * hs, -0.02); e.rotation.z = -s * 0.35; e.scale.z = 0.45; return e; }
     const e = at(ball(0.035, skin, 10, 8), s * 0.148 * hs, 0, -0.005); e.scale.set(0.45, 1, 0.8); return e;
   };
-  if (!f.snout) P.head.add(ear(-1), ear(1));
-  if (f.muzzle) { const mz = at(ball(0.075 * hs, toon(shade(skinCol, 1.12)), 16, 12), 0, -0.05 * hs, 0.12 * hs); mz.scale.set(1, 0.75, 1.1); P.head.add(mz, at(ball(0.025, toon('#222'), 10, 8), 0, -0.02 * hs, 0.2 * hs)); }
+  const FEAT = []; const ft = (o) => { FEAT.push(o); return o; };
+  if (!f.snout) { const eL = ear(-1), eR = ear(1); P.head.add(eL, eR); if (f.ears || f.animalEars) FEAT.push(eL, eR); }
+  if (f.muzzle) { const mz = at(ball(0.075 * hs, toon(shade(skinCol, 1.12)), 16, 12), 0, -0.05 * hs, 0.12 * hs); mz.scale.set(1, 0.75, 1.1); P.head.add(ft(mz), ft(at(ball(0.025, toon('#222'), 10, 8), 0, -0.02 * hs, 0.2 * hs))); }
   if (f.snout) {
-    const sn = at(capsule(0.05 * hs, 0.07, toon(skinCol)), 0, -0.065 * hs, 0.135 * hs); sn.rotation.x = Math.PI / 2; sn.scale.set(1.15, 1, 0.75); P.head.add(sn);
-    [-1, 1].forEach(s => { const h = at(cone(0.03, 0.22, toon('#e8dcc0'), 10), s * 0.08 * hs, 0.12 * hs, -0.1); h.rotation.x = -2.2; h.rotation.z = s * 0.25; P.head.add(h); });
-    const crest = at(cone(0.05, 0.16, toon(shade(skinCol, 0.7)), 4), 0, 0.15 * hs, -0.06); crest.rotation.x = -0.9; P.head.add(crest);
+    const sn = at(capsule(0.05 * hs, 0.07, toon(skinCol)), 0, -0.065 * hs, 0.135 * hs); sn.rotation.x = Math.PI / 2; sn.scale.set(1.15, 1, 0.75); P.head.add(ft(sn));
+    [-1, 1].forEach(s => { const h = at(cone(0.03, 0.22, toon('#e8dcc0'), 10), s * 0.08 * hs, 0.12 * hs, -0.1); h.rotation.x = -2.2; h.rotation.z = s * 0.25; P.head.add(ft(h)); });
+    const crest = at(cone(0.05, 0.16, toon(shade(skinCol, 0.7)), 4), 0, 0.15 * hs, -0.06); crest.rotation.x = -0.9; P.head.add(ft(crest));
   }
-  if (f.tusks) { const tm = toon('#f4eedc'); [-1, 1].forEach(s => { const t = at(cone(0.016, 0.07, tm, 8), s * 0.045, -0.085 * hs, 0.12 * hs); P.head.add(t); }); }
+  if (f.tusks) { const tm = toon('#f4eedc'); [-1, 1].forEach(s => { const t = at(cone(0.016, 0.07, tm, 8), s * 0.045, -0.085 * hs, 0.12 * hs); P.head.add(ft(t)); }); }
   if (f.horns && !f.snout) { /* reservado */ }
   // cabelo
   P.hair = G(); P.head.add(P.hair); buildHair(P.hair, look, hs, hairM, f, fem);
@@ -187,10 +189,12 @@ export function buildHumanoid(o) {
   P.base = G(); P.torso.add(P.base);
   const shirt = lathe(chest.map(([x, y]) => [x * 1.04 + (x ? 0.004 : 0), y]).filter(([, y]) => y < 0.6), cloth); shirt.scale.set(1, 1, 0.72); P.base.add(shirt);
   [P.legL, P.legR].forEach(L => { L.l.add(at(capsule(0.086, 0.3, pants), 0, -0.22, 0)); });
-  const m = { root, body, P, o, look, race, gear: G(), anim: { state: 'idle', t: 0, atk: -1, kind: null, blink: 2 + Math.random() * 3, expr: 'neutral', exprUntil: 0 } };
+  if (P.tail) FEAT.push(P.tail); if (P.wings) FEAT.push(P.wings);
+  const m = { root, body, P, o, look, race, FEAT, skinCol, H, Wd, gear: G(), anim: { state: 'idle', t: 0, atk: -1, kind: null, blink: 2 + Math.random() * 3, expr: 'neutral', exprUntil: 0 } };
   body.add(m.gear);
   m.setExpr = (e, ms = 1800) => setExpr(m, e, ms);
   m.enc = o.enc || 0; setGear(m, o.weapon, o.armor, o.equip);
+  if (o.glb !== false && GLB.on) upgradeGLB(m);
   return m;
 }
 
@@ -211,7 +215,7 @@ function buildHair(g, look, hs, hm, f, fem) {
   if (st === 5) { g.add(at(ball(0.07 * hs, hm, 14, 10), 0, 0.14 * hs, -0.1)); }
 }
 
-export function setExpr(m, e, ms = 1800) {
+export function setExpr_(m, e, ms = 1800) {
   m.anim.expr = e; m.anim.exprUntil = ms > 0 ? performance.now() + ms : 0;
   m.P.skull.material = faceTexture(m.look, m.race, e, false);
 }
@@ -231,8 +235,9 @@ export function setGear(m, weaponId, armorId, equip) {
   (m.gearParts || []).forEach(x => x.parent && x.parent.remove(x)); m.gearParts = [];
   const add = (parent, obj) => { parent.add(obj); m.gearParts.push(obj); return obj; };
   const a = GD.ITEMS[armorId], w = GD.ITEMS[weaponId];
-  P.base.visible = !a; if (P.hair) P.hair.visible = true;
-  if (a) {
+  if (P.base) P.base.visible = !a; if (P.hair) P.hair.visible = true;
+  if (m.glb) glbOutfit(m, a, equip);
+  if (a && !m.glbMode) {
     const g = a.grade, heavy = a.kind === 'pesada';
     const am = heavy ? toon(ARMOR_COL[a.kind][g], { metal: 0.6, rough: 0.35, emissive: GLOW[g], ei: g >= 3 ? 0.15 : 0 }) : toon(ARMOR_COL[a.kind][g], { emissive: GLOW[g], ei: g >= 3 ? 0.12 : 0 });
     const tm = toon(TRIM[g], { metal: 0.75, rough: 0.3 });
@@ -301,13 +306,13 @@ export function setGear(m, weaponId, armorId, equip) {
       add(P.head, at(capsule(0.012, 0.09, toon(TRIM[g]), 6), 0, -0.01, 0.165)); [-1, 1].forEach(s => add(P.head, at(ball(0.05, hc, 10, 8), s * 0.15, -0.04, 0)).scale.set(0.5, 1.2, 1));
       if (hm.relic) for (let i = 0; i < 5; i++) add(P.head, at(cone(0.02, 0.1, toon('#bfefff', { emissive: 0x6ac8ff, ei: 0.6 }), 6), Math.cos(i * 0.6 - 1.2) * 0.13, 0.15, Math.sin(i * 0.6 - 1.2) * 0.13 + 0.03));
       if (P.hair) P.hair.visible = false; }
-    else if (kind === 'leve') { const hood = new THREE.Mesh(new THREE.SphereGeometry(0.18, 24, 16, Math.PI * 0.15, Math.PI * 1.7, 0, Math.PI * 0.7), toon(ARMOR_COL.leve[g], { double: true })); hood.rotation.y = Math.PI; hood.castShadow = true; hood.position.set(0, 0.02, -0.01); add(P.head, hood); if (P.hair) P.hair.visible = false; }
+    else if (kind === 'leve') { const hood = new THREE.Mesh(new THREE.SphereGeometry(0.18, 24, 16, Math.PI * 0.15, Math.PI * 1.7, 0, Math.PI * 0.7), toon(ARMOR_COL.leve[g], { double: true })); hood.rotation.y = Math.PI; hood.castShadow = true; hood.position.set(0, 0.02, -0.01); if (!m.glbMode) add(P.head, hood); if (P.hair) P.hair.visible = false; }
     else { const hat = G(); hat.add(at(tube(0.26, 0.26, 0.02, toon(ARMOR_COL.robe[g]), 24), 0, 0, 0), at(cone(0.13, 0.36, toon(ARMOR_COL.robe[g]), 16), 0, 0.18, -0.02)); hat.children[1].rotation.x = -0.25; hat.position.y = 0.13; add(P.head, hat); } }
   const gl = E('luvas');
-  if (gl) { const gm = toon(gl.kind === 'pesada' ? ARMOR_COL.pesada[gl.grade] : gl.kind === 'leve' ? ARMOR_COL.leve[gl.grade] : ARMOR_COL.robe[gl.grade], gl.kind === 'pesada' ? { metal: 0.6 } : {});
+  if (gl && !m.glbMode) { const gm = toon(gl.kind === 'pesada' ? ARMOR_COL.pesada[gl.grade] : gl.kind === 'leve' ? ARMOR_COL.leve[gl.grade] : ARMOR_COL.robe[gl.grade], gl.kind === 'pesada' ? { metal: 0.6 } : {});
     [P.armL, P.armR].forEach(A => { const h = at(ball(0.058, gm, 12, 10), 0, 0, 0); h.scale.set(0.9, 1.2, 0.8); add(A.hand, h); add(A.fa, at(tube(0.06, 0.055, 0.09, gm, 12), 0, -0.25, 0)); }); }
   const bt = E('botas');
-  if (bt) { const bm = toon(bt.kind === 'pesada' ? ARMOR_COL.pesada[bt.grade] : bt.kind === 'leve' ? '#4a3424' : ARMOR_COL.robe[bt.grade], bt.kind === 'pesada' ? { metal: 0.6 } : {});
+  if (bt && !m.glbMode) { const bm = toon(bt.kind === 'pesada' ? ARMOR_COL.pesada[bt.grade] : bt.kind === 'leve' ? '#4a3424' : ARMOR_COL.robe[bt.grade], bt.kind === 'pesada' ? { metal: 0.6 } : {});
     [P.legL, P.legR].forEach(L => { add(L.sh, at(tube(0.075, 0.068, 0.24, bm, 12), 0, -0.32, 0)); const f = at(capsule(0.058, 0.13, bm), 0, -0.43, 0.065); f.rotation.x = Math.PI / 2; add(L.sh, f); }); }
 }
 
@@ -316,6 +321,7 @@ export function setGear(m, weaponId, armorId, equip) {
 // ombros giram ao contrário do quadril, braços balançam opostos às pernas com cotovelo dobrando,
 // cabeça estabiliza o olhar; parado: respiração, troca de peso e olhar ao redor.
 export function animHumanoid(m, dt) {
+  if (m.glb) return animGLB(m, dt);
   const A = m.anim, P = m.P; A.t += dt;
   const t = A.t, st = A.state, run = st === 'run';
   const k = (o, key, v, s = 10) => { o[key] += (v - o[key]) * Math.min(1, dt * s); };
@@ -385,3 +391,76 @@ export function animHumanoid(m, dt) {
   else if (A.blink <= -0.12) { A.blink = 2.5 + Math.random() * 3.5; P.skull.material = faceTexture(m.look, m.race, A.expr); }
 }
 export function playAttack(m, kind) { m.anim.atk = performance.now(); m.anim.kind = kind; if (m.setExpr && Math.random() < 0.6) m.setExpr('angry', 1200); }
+
+export function setExpr(m, e, ms) { if (m.glb) return; return setExpr_(m, e, ms); }
+
+// ================= modelos 3D realistas (GLB) =================
+export const GLB = { on: true };
+const HAIR_M = ['simpleparted', 'buzzed', 'long', 'simpleparted', 'buzzed', 'long'], HAIR_F = ['long', 'buns', 'simpleparted', 'buzzedfemale', 'long', 'buns'];
+const OUTFIT_OF = { pesada: 'ranger', leve: 'ranger', robe: 'peasant' };
+const GRADE_TINT = ['#ffffff', '#e8dcc4', '#d6e2f0', '#cfe0ff', '#ffd2d2', '#f0dcff'], HEAVY_TINT = ['#b8c0c8', '#a8b4c0', '#c0c8d4', '#a8c4e8', '#e0b0b0', '#d8c8f0'];
+const BASE_SKIN = new THREE.Color('#c49470');
+export function upgradeGLB(m) {
+  if (m.glb || m.glbPending) return; m.glbPending = true;
+  const o = m.o, fem = o.gender === 'f', f = (GD.RACES[m.race] || {}).feat || {}, look = m.look;
+  const beard = !fem && (look.beard ?? (f.beard ? 2 : 0)) > 0 && !f.snout;
+  const a = GD.ITEMS[o.armor];
+  createCharacter({ gender: fem ? 'f' : 'm', outfit: a ? OUTFIT_OF[a.kind] : 'peasant', hair: f.noHair ? null : (fem ? HAIR_F : HAIR_M)[look.hair || 0] })
+    .then(async C => { C.outfitKind = a ? OUTFIT_OF[a.kind] : 'peasant'; if (beard) await setPart(C, 'beard', 'hair_beard'); if (m.disposed) return; applyGLB(m, C); })
+    .catch(e => { m.glbPending = false; console.warn('GLB', e); });
+}
+function ownMats(obj) { obj.traverse(o => { if (o.isMesh && o.material && !o.userData.ownMat) { o.material = o.material.clone(); o.userData.ownMat = 1; } }); }
+function tintGLB(m) {
+  const C = m.glb, sk = new THREE.Color(m.skinCol), hc = new THREE.Color(GD.HAIR_COLORS[m.look.hair_color] || '#333');
+  const skinK = new THREE.Color(sk.r / BASE_SKIN.r, sk.g / BASE_SKIN.g, sk.b / BASE_SKIN.b);
+  C.model.traverse(o => { if (!o.isMesh) return; const nm = (o.material.name || ''); ownMats(o);
+    if (/Superhero|Regular/.test(nm)) o.material.color.copy(skinK);
+    else if (/Hair/.test(nm)) o.material.color.copy(hc).multiplyScalar(1.6); });
+}
+async function glbOutfit(m, a, equip) {
+  const C = m.glb, kind = a ? OUTFIT_OF[a.kind] : 'peasant';
+  if (C.outfitKind !== kind) { C.outfitKind = kind; await setOutfit(C, kind); ownMats(C.model); tintGLB(m); }
+  const tint = new THREE.Color(a ? (a.kind === 'pesada' ? HEAVY_TINT : GRADE_TINT)[a.grade] : '#ffffff');
+  for (const o of C.parts.outfit || []) { ownMats(o); if (/Ranger|Peasant/.test(o.material.name)) { o.material.color.copy(tint); o.material.metalness = a && a.kind === 'pesada' ? 0.25 : 0; o.material.envMapIntensity = a && a.kind === 'pesada' ? 1.2 : 0.6; } if (/Hood/.test(o.name)) o.visible = !!(equip && GD.ITEMS[equip.elmo] && GD.ITEMS[equip.elmo].kind === 'leve'); }
+  const hidden = !!(equip && equip.elmo); (C.parts.hair || []).forEach(h => h.visible = !hidden);
+  // elmo de couro = capuz do próprio traje; os outros elmos continuam sendo peças à parte
+}
+function applyGLB(m, C) {
+  const P = m.P; m.glbPending = false;
+  const K = 1.98 / 1.81; C.root.scale.set(m.Wd * K, m.H * K, m.Wd * K); m.root.add(C.root);
+  playClip(C, 'Idle_Loop'); C.mixer.update(0); m.root.updateMatrixWorld(true);
+  const sock = (proc, bname) => { const b = C.bones[bname], s = new THREE.Object3D(); b.add(s); b.updateWorldMatrix(true, false);
+    const M = new THREE.Matrix4().copy(b.matrixWorld).invert().multiply(proc.matrixWorld); M.decompose(s.position, s.quaternion, s.scale); return s; };
+  const wpos = (bname) => { const v = new THREE.Vector3(); C.bones[bname].getWorldPosition(v); return v; };
+  const head = sock(P.head, 'Head'); { const v = wpos('Head'); v.y += 0.1 * m.H * K; C.bones.Head.worldToLocal(v); head.position.copy(v); head.scale.multiplyScalar(0.72); }
+  const torso = sock(P.torso, 'spine_03'), hips = sock(P.hips, 'pelvis');
+  const handR = sock(P.armR.hand, 'hand_r'), handL = sock(P.armL.hand, 'hand_l');
+  // mão: eixo dos dedos = -Y, polegar = +Z (mesmo referencial das mãos procedurais, onde as armas foram desenhadas)
+  const frame = (s, bname, side, scaleRef) => { const b = C.bones[bname], h = wpos('hand_' + side), fing = wpos('middle_01_' + side).sub(h).normalize(), th = wpos('index_01_' + side).sub(wpos('pinky_01_' + side));
+    th.sub(fing.clone().multiplyScalar(th.dot(fing))).normalize(); const Y = fing.clone().negate(), Z = th, X = new THREE.Vector3().crossVectors(Y, Z).normalize();
+    const qW = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z)), qB = new THREE.Quaternion(); b.getWorldQuaternion(qB);
+    s.quaternion.copy(qB.invert().multiply(qW)); const sc = new THREE.Vector3(); scaleRef.getWorldScale(sc); const bs = new THREE.Vector3(); b.getWorldScale(bs); s.scale.set(sc.x / bs.x, sc.y / bs.y, sc.z / bs.z); };
+  for (const [hs, side, proc] of [[handR, 'r', P.armR.hand], [handL, 'l', P.armL.hand]]) { frame(hs, 'hand_' + side, side, proc); const mid = C.bones['middle_01_' + side]; if (mid) hs.position.copy(mid.position).multiplyScalar(0.55); }
+  const faL = sock(P.armL.fa, 'lowerarm_l'), faR = sock(P.armR.fa, 'lowerarm_r'); frame(faL, 'lowerarm_l', 'l', P.armL.fa); faL.position.set(0, 0, 0); const sL = sock(P.armL.s, 'upperarm_l'), sR = sock(P.armR.s, 'upperarm_r');
+  for (const f of m.FEAT) { const par = f.parent; if (!par) continue; const target = par === P.head ? head : par === P.hips ? hips : torso; target.add(f); }
+  m.body.visible = false;
+  m.P = { ...P, head, skull: head, torso, hips, armR: { hand: handR, fa: faR, s: sR }, armL: { hand: handL, fa: faL, s: sL }, hair: null, base: null, legL: { l: hips, sh: hips }, legR: { l: hips, sh: hips } };
+  m.glb = C; m.glbMode = true; ownMats(C.model); tintGLB(m);
+  C.root.traverse(o => o.userData.pick = m.root.userData.pick || o.userData.pick);
+  const eq = m.o.equip || {}; setGear(m, m.o.weapon || eq.arma, m.o.armor || eq.armadura, eq);
+  m.anim.idleClip = m.o.npc ? (['Idle_Loop', 'Idle_FoldArms_Loop', 'Idle_Talking_Loop'][Math.floor(Math.random() * 3)]) : 'Idle_Loop';
+  if (m.onGLB) m.onGLB(m);
+}
+const ATK_CLIPS = ['Sword_Regular_A', 'Sword_Regular_B', 'Sword_Regular_C', 'Sword_Attack'];
+function animGLB(m, dt) {
+  const A = m.anim, C = m.glb, t = performance.now();
+  if (A.state === 'dead') { if (A.cur !== 'dead') { playClip(C, 'Death01', { once: true, fade: 0.15 }); A.cur = 'dead'; } }
+  else if (A.atk >= 0 && A.atkSeen !== A.atk) {
+    A.atkSeen = A.atk; const wk = m.weaponKind;
+    const clip = A.kind === 'cast' ? 'Spell_Simple_Shoot' : A.kind === 'bow' ? 'Spell_Simple_Shoot' : wk === 'punhos' || !wk ? (Math.random() < 0.5 ? 'Punch_Jab' : 'Punch_Cross') : ATK_CLIPS[Math.floor(Math.random() * ATK_CLIPS.length)];
+    const act = playClip(C, clip, { once: true, fade: 0.08, speed: 1.35 }); A.cur = 'atk'; A.atkEnd = t + (act ? act.getClip().duration / 1.35 * 1000 - 120 : 500);
+  }
+  else if (A.cur === 'atk' && t < A.atkEnd) { /* golpe em andamento */ }
+  else { const want = A.state === 'run' ? 'Jog_Fwd_Loop' : A.state === 'gather' ? 'Interact' : (A.idleClip || 'Idle_Loop'); if (A.cur !== want) { playClip(C, want, { fade: 0.22, speed: A.state === 'run' ? 1.15 : 1 }); A.cur = want; } }
+  C.mixer.update(dt);
+}

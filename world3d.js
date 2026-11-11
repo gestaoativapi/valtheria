@@ -139,20 +139,30 @@ export function makeFire(x, y, z, scale = 1, color = '#ffffff', light = false, s
   const parts = [];
   for (let i = 0; i < 9; i++) { const s = new THREE.Sprite(fireMat(color)); s.userData.ph = Math.random(); s.userData.sp = 0.8 + Math.random() * 0.6; g.add(s); parts.push(s); }
   const smk = []; if (smoke) for (let i = 0; i < 6; i++) { const s = new THREE.Sprite(smokeMat); s.userData.ph = i / 6; g.add(s); smk.push(s); }
-  let pl = null; if (light) { pl = new THREE.PointLight(new THREE.Color(color).lerp(new THREE.Color('#ff8a3a'), 0.6), 0, 18 * scale, 1.6); pl.position.y = 0.8 * scale; g.add(pl); }
+  // a luz real vem de um conjunto FIXO de luzes (LIGHT_POOL): o número de luzes nunca muda, então nenhum shader é recompilado (evita travadas)
+  const pl = light ? { color: new THREE.Color(color).lerp(new THREE.Color('#ff8a3a'), 0.6), dist: 18 * scale, y: 0.8 * scale } : null;
   const f = { g, parts, smk, pl, scale }; FIRES.push(f); return g;
 }
 export function makeSmoke(x, y, z, scale = 1) { const g = new THREE.Group(); g.position.set(x, y, z); const smk = []; for (let i = 0; i < 7; i++) { const s = new THREE.Sprite(smokeMat); s.userData.ph = i / 7; g.add(s); smk.push(s); } FIRES.push({ g, parts: [], smk, pl: null, scale }); return g; }
 export function updateFires(dt, t, night, camPos) {
   for (const f of FIRES) {
     if (!f.g.parent) continue;
-    const near = f.g.position.distanceToSquared(camPos) < 260 * 260; f.g.visible = near; if (!near) continue;
+    if (!f.wp) { f.g.updateWorldMatrix(true, false); f.wp = new THREE.Vector3().setFromMatrixPosition(f.g.matrixWorld); }
+    const near = f.wp.distanceToSquared(camPos) < 260 * 260; f.g.visible = near; if (!near) continue;
     const S = f.scale;
     for (const s of f.parts) { const p = (t * s.userData.sp + s.userData.ph) % 1; s.position.set(Math.sin(s.userData.ph * 40 + t * 3) * 0.12 * S, p * 1.3 * S, Math.cos(s.userData.ph * 30 + t * 2.5) * 0.12 * S); const k = (1 - p); s.scale.setScalar((0.35 + 0.65 * k) * 0.9 * S); s.material.opacity = k; }
     for (const s of f.smk) { const p = (t * 0.18 + s.userData.ph) % 1; s.position.set(Math.sin(t * 0.7 + s.userData.ph * 9) * 0.6 * S * p + p * 0.8 * S, 1.2 * S + p * 5 * S, Math.cos(t * 0.5 + s.userData.ph * 7) * 0.4 * S * p); s.scale.setScalar((0.6 + p * 2.6) * S); }
-    if (f.pl) f.pl.intensity = (0.4 + night * 2.6) * S * (0.85 + Math.sin(t * 13 + f.scale) * 0.08 + Math.sin(t * 7.3) * 0.07);
   }
+  // distribui as luzes do conjunto fixo para as fogueiras mais próximas da câmera
+  if (!LIGHT_POOL.length) return;
+  const cand = []; for (const f of FIRES) { if (!f.pl || !f.g.parent || !f.g.visible || !f.wp) continue; const d = f.wp.distanceToSquared(camPos); if (d < 150 * 150) cand.push([d, f]); }
+  cand.sort((a, b) => a[0] - b[0]);
+  for (let i = 0; i < LIGHT_POOL.length; i++) { const L = LIGHT_POOL[i], c = cand[i];
+    if (!c) { L.intensity = 0; continue; } const f = c[1]; L.position.copy(f.wp); L.position.y += f.pl.y; L.color.copy(f.pl.color); L.distance = f.pl.dist;
+    L.intensity = (0.4 + night * 2.6) * f.scale * (0.85 + Math.sin(t * 13 + i) * 0.08 + Math.sin(t * 7.3) * 0.07); }
 }
+export const LIGHT_POOL = [];
+export function initLightPool(scene, n) { while (LIGHT_POOL.length) scene.remove(LIGHT_POOL.pop()); for (let i = 0; i < n; i++) { const L = new THREE.PointLight(0xffaa66, 0, 18, 1.6); L.castShadow = false; scene.add(L); LIGHT_POOL.push(L); } }
 
 // ---------- grama com vento (em volta do jogador) ----------
 export function createGrass(count = 9000) {

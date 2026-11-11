@@ -1,8 +1,9 @@
 // ===== Valtheria — cliente =====
 import * as THREE from './three.module.min.js';
-import { buildHumanoid, setGear, animHumanoid, playAttack, buildMob, animMob, buildNode, buildHouse, makeLabel, mat } from './models.js';
-import { createSky, createWater, dayPhase, sunVectors, WIND, makeFire, updateFires, createGrass, layoutGrass, ROCK_GEOS, rockMat, TREE_KINDS, leafMat, treeTrunkMat } from './world3d.js';
+import { buildHumanoid, setGear, animHumanoid, playAttack, upgradeGLB, buildMob, animMob, buildNode, buildHouse, makeLabel, mat } from './models.js';
+import { createSky, createWater, dayPhase, sunVectors, WIND, makeFire, updateFires, initLightPool, createGrass, layoutGrass, ROCK_GEOS, rockMat, TREE_KINDS, leafMat, treeTrunkMat } from './world3d.js';
 import { buildTownArchitecture, buildLandmark, updateTownAnim } from './towns.js';
+import { RoomEnvironment } from './RoomEnvironment.js';
 const GD = window.GD, WG = window.WG, QD = window.QD, CFG = window.GAME_CONFIG || {};
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -45,6 +46,8 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.3, 1200);
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 const hemi = new THREE.HemisphereLight(0xcfe3ff, 0x5a4a32, 1.15); scene.add(hemi);
+initLightPool(scene, IS_MOBILE ? 2 : 4);
+{ const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.55; pm.dispose(); }
 const sun = new THREE.DirectionalLight(0xfff0d0, 2.4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 260 }); sun.shadow.bias = -0.0006; scene.add(sun, sun.target);
 scene.fog = new THREE.Fog(0xb8cde0, 140, 420);
@@ -156,7 +159,7 @@ const PLAZA = { humano: '#a8a08e', halfling: '#b8a878', anao: '#6a645a', elfo: '
 function townCtx(t) {
   const roadAngles = WG.ROADS.filter(([a, b]) => a === t || b === t).map(([a, b]) => { const o = a === t ? b : a; return Math.atan2(o.z - t.z, o.x - t.x); });
   return { t, roadAngles, H: (x, z) => WG.height(x, z), collide: (x, z, r) => houses.push({ x, z, r }),
-    statue: (race, x, z, s, rot) => { const m = buildHumanoid({ race, gender: 'm', skinColor: '#8a8478', armor: 'pesada_c', weapon: 'martelo_c', look: { beard: 2 } }); m.root.scale.setScalar(s); m.root.position.set(x, WG.height(x, z) + 1.2, z); m.root.rotation.y = rot; const base = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.8, 1.2, 12), mat('#6a645a')); base.position.set(x, WG.height(x, z) + 0.6, z); scene.add(m.root, base); houses.push({ x, z, r: 2.8 }); },
+    statue: (race, x, z, s, rot) => { const m = buildHumanoid({ glb: false, race, gender: 'm', skinColor: '#8a8478', armor: 'pesada_c', weapon: 'martelo_c', look: { beard: 2 } }); m.root.scale.setScalar(s); m.root.position.set(x, WG.height(x, z) + 1.2, z); m.root.rotation.y = rot; const base = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.8, 1.2, 12), mat('#6a645a')); base.position.set(x, WG.height(x, z) + 0.6, z); scene.add(m.root, base); houses.push({ x, z, r: 2.8 }); },
     dragonStatue: (x, z, s, rot) => { const R = buildMob({ ...FAM.dragao, color: '#2a2626', boss: false, ghost: false }); R.root.scale.setScalar(s); R.root.position.set(x, WG.height(x, z), z); R.root.rotation.y = rot; scene.add(R.root); houses.push({ x, z, r: 4 }); } };
 }
 function buildTowns() {
@@ -173,7 +176,7 @@ function buildTowns() {
     const races = [t.race, 'humano', t.race, 'elfo', t.race, 'anao', t.race];
     NPC_TYPES.forEach(([type, name, color], i) => {
       const a = i / NPC_TYPES.length * Math.PI * 2 + 0.3, x = t.x + Math.cos(a) * 17, z = t.z + Math.sin(a) * 17;
-      const m = buildHumanoid({ race: races[i] || t.race, gender: i % 3 === 1 ? 'f' : 'm', hair: i % 6, hair_color: i, skin: 0, look: { eyes: i % 4, face: i % 4 }, armor: type === 'ferreiro' ? 'pesada_c' : 'robe_' + ['b', 'a', 'c', 'd', 'c', 's', 'a'][i], weapon: type === 'portal' ? 'cajado_b' : type === 'ferreiro' ? 'martelo_c' : null });
+      const m = buildHumanoid({ glb: false, npc: true, race: races[i] || t.race, gender: i % 3 === 1 ? 'f' : 'm', hair: i % 6, hair_color: i, skin: 0, look: { eyes: i % 4, face: i % 4 }, armor: type === 'ferreiro' ? 'pesada_c' : 'robe_' + ['b', 'a', 'c', 'd', 'c', 's', 'a'][i], weapon: type === 'portal' ? 'cajado_b' : type === 'ferreiro' ? 'martelo_c' : null });
       m.root.position.set(x, y, z); m.root.rotation.y = Math.atan2(t.x - x, t.z - z); scene.add(m.root);
       const l = makeLabel(name, '#ffe36a', 28); l.position.set(0, 2.5 * (GD.RACES[races[i] || t.race]?.h || 1), 0); m.root.add(l);
       const npc = { type, name, town: t, x, z, model: m }; m.root.traverse(o => o.userData.pick = npc); npcs.push(npc);
@@ -196,7 +199,7 @@ function nameColor(c) { return c.gm ? '#ffcf4a' : c.karma ? '#ff4a4a' : c.flag ?
 function makeMe() {
   if (me) { scene.remove(me.root); }
   const c = S.c; me = buildHumanoid({ ...c, weapon: c.equipment.arma, armor: c.equipment.armadura, equip: c.equipment, enc: encOf(c) }); me.x = c.x; me.z = c.z; me.ry = 0;
-  me.label = makeLabel(c.name, nameColor({ gm: S.c.is_gm, karma: S.c.karma, flag: false }), 30); me.label.position.y = 2.25 * GD.RACES[c.race].h; me.root.add(me.label);
+  me.label = makeLabel(c.name, nameColor({ gm: S.c.is_gm, karma: S.c.karma, flag: false }), 30); me.label.position.y = 2.15 * GD.RACES[c.race].h; me.root.add(me.label);
   scene.add(me.root);
 }
 function relabelMe() { if (!me) return; me.root.remove(me.label); me.label = makeLabel(S.c.name, nameColor({ gm: S.c.is_gm, karma: S.c.karma, flag: S.flagUntil > Date.now() }), 30); me.label.position.y = 2.25 * GD.RACES[S.c.race].h; me.root.add(me.label); }
@@ -213,7 +216,7 @@ function updateCamera() {
   const rh = (GD.RACES[S.c.race]?.h || 1), close = clamp((5 - cam.dist) / 3.5, 0, 1); const ty = WG.height(me.x, me.z) + (1.7 + (1.62 * rh - 1.7) * close) * (close ? 1 : 1) + (rh - 1) * 0.6 * (1 - close);
   let cx = me.x + Math.sin(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cz = me.z + Math.cos(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cy = ty + Math.sin(cam.pitch) * cam.dist;
   cy = Math.max(cy, WG.height(cx, cz) + 0.25);
-  camera.position.set(cx, cy, cz); camera.lookAt(me.x, ty, me.z); if (me.label) me.label.visible = cam.dist > 3;
+  camera.position.set(cx, cy, cz); camera.lookAt(me.x, ty, me.z); if (me.label) me.label.visible = cam.dist > 5.5;
 }
 
 // ---------- clique: mover, selecionar, interagir ----------
@@ -333,9 +336,10 @@ function hurtMob(m, v, crit) {
   floatText(m.x, WG.height(m.x, m.z) + 2.2 * m.fam.scale, m.z, (crit ? '💥' : '') + v, crit ? '#ff9a3a' : '#ffe36a');
   if (m.hp <= 0) killMob(m);
 }
+function freeMob(m) { scene.remove(m.model.root); m.model.root.traverse(o => { if (o.isSprite && o.material) { o.material.map?.dispose(); o.material.dispose(); } }); }
 function killMob(m) {
   m.dead = true; m.model.anim.state = 'dead'; if (S.target && S.target.ref === m) { S.target = null; S.autoAtk = false; }
-  setTimeout(() => { scene.remove(m.model.root); S.mobs = S.mobs.filter(x => x !== m); }, 2500);
+  setTimeout(() => { freeMob(m); S.mobs = S.mobs.filter(x => x !== m); }, 2500);
   S.killQ.push({ L: m.L, boss: !!m.fam.boss || !!m.champion, fam: m.fam.id });
 }
 async function processKills() {
@@ -474,7 +478,7 @@ function makeChampion(m) { m.champion = true; m.maxHp = m.hp = Math.round(m.hp *
   const lb = makeLabel(`⭐ Campeão ${m.fam.name} Nv.${m.L}`, '#ffcf3a', 28); lb.position.y = 2.6; m.model.root.add(lb); }
 function spawner() {
   if (!me || S.dead) return;
-  for (const m of [...S.mobs]) if (!m.dead && Math.hypot(m.x - me.x, m.z - me.z) > 170) { scene.remove(m.model.root); S.mobs = S.mobs.filter(x => x !== m); }
+  for (const m of [...S.mobs]) if (!m.dead && Math.hypot(m.x - me.x, m.z - me.z) > 170) { freeMob(m); S.mobs = S.mobs.filter(x => x !== m); }
   // chefes de missão
   for (const id of S.q.active) { const Q = QD.QUESTS[id]; if (Q.goal.type !== 'boss' || !Q.goal.spot) continue; const t = GD.TOWNS.find(t => t.id === Q.goal.spot[0]), sp = t.spotsPos[Q.goal.spot[1]];
     if (Math.hypot(sp.x - me.x, sp.z - me.z) < 140 && !S.mobs.some(m => !m.dead && m.fam.id === Q.goal.fam)) spawnMob(FAM[Q.goal.fam], t.max + 2 > 80 ? 80 : t.max + 2, sp.x + 8, sp.z + 8); }
@@ -521,7 +525,7 @@ function updateMobs(dt) {
 
 // ---------- movimento ----------
 function blocked(x, z) { if (x < 20 || z < 20 || x > 2980 || z > 2980) return true; if (WG.height(x, z) < WG.WATER + 0.25) return true; for (const h of houses) if ((x - h.x) ** 2 + (z - h.z) ** 2 < h.r * h.r) return true; return false; }
-function teleport(x, z) { me.x = x; me.z = z; S.dest = null; S.target = null; S.autoAtk = false; S.mobs.forEach(m => scene.remove(m.model.root)); S.mobs = []; updateChunks(x, z, true); saveNow(); }
+function teleport(x, z) { me.x = x; me.z = z; S.dest = null; S.target = null; S.autoAtk = false; S.mobs.forEach(freeMob); S.mobs = []; updateChunks(x, z, true); saveNow(); }
 function updateMe(dt) {
   const st = stats(); let vx = 0, vz = 0, moving = false;
   const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
@@ -1048,7 +1052,7 @@ function setupStudio() {
   const r = new THREE.Mesh(new THREE.TorusGeometry(3.05, 0.05, 6, 60), mat('#f2c46d', { emissive: 0xb08020, ei: 0.8 })); r.rotation.x = Math.PI / 2; studio.add(r);
   studio.position.set(0, -500, 0);
 }
-function showPreview(o) { if (preview) studio.remove(preview.root); preview = buildHumanoid(o); studio.add(preview.root); }
+function showPreview(o) { if (preview) { studio.remove(preview.root); preview.disposed = true; } preview = buildHumanoid(o); studio.add(preview.root); }
 async function toSelect() {
   show('#loading'); $('#loading').hidden = false;
   const d = await B.chars(); S.acct = d; S.chars = d.chars; show('#select'); S.selected = 0; setupStudio(); studio.visible = true; renderSelect();
@@ -1147,6 +1151,7 @@ function loop() {
     updateMe(dt); updateMobs(dt); updateOthers(dt); updateFx(dt); updateCamera(); updateChunks(me.x, me.z, false);
     updateEnvironment(dt); water.position.x = Math.round(me.x / 50) * 50; water.position.z = Math.round(me.z / 50) * 50; sky.position.copy(camera.position);
     if (!GRASS.center || Math.hypot(GRASS.center.x - me.x, GRASS.center.z - me.z) > 12) layoutGrass(GRASS, me.x, me.z, WG.height, grassOk, grassColor); updateTownVisibility();
+    if ((S.npcGlbT = (S.npcGlbT || 0) + dt) > 1) { S.npcGlbT = 0; if (PERF.cur !== 'baixa') { let k = 0; for (const n of npcs) if (n.model && !n.model.glb && !n.model.glbPending && Math.hypot(n.x - me.x, n.z - me.z) < 55 && k++ < 3) upgradeGLB(n.model); } }
     npcs.forEach(n => { if (n.crystal) { n.crystal.rotation.y += dt * (n.crystal.userData.spin2 ? 0.8 : 0.6); if (n.crystal.userData.spin) n.crystal.position.y = WG.TOWN_H + 6 + Math.sin(clock.elapsedTime * 1.5) * 0.4; } else if (n.model && Math.hypot(n.x - me.x, n.z - me.z) < 80) animHumanoid(n.model, dt); });
   } else if (studio.visible) {
     { const ph = preview ? (GD.RACES[preview.race]?.h || 1) : 1, close = clamp((3.2 - stu.dist) / 2.3, 0, 1), ty = -500 + 1.0 * ph + 0.62 * ph * close; camera.position.set(Math.sin(stu.yaw) * Math.cos(stu.pitch) * stu.dist + 0.35 * (1 - close), ty + Math.sin(stu.pitch) * stu.dist, Math.cos(stu.yaw) * Math.cos(stu.pitch) * stu.dist); camera.lookAt(0.35 * (1 - close), ty, 0); if (preview) animHumanoid(preview, dt); }

@@ -18,7 +18,7 @@ const bsph = (r, m) => new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14), m);
 const grp = (...c) => { const g = new THREE.Group(); c.forEach(x => g.add(x)); return g; };
 const at = (o, x, y, z) => { o.position.set(x, y, z); return o; };
 
-export { buildHumanoid, setGear, animHumanoid, playAttack, setExpr, toon } from './avatar.js';
+export { buildHumanoid, setGear, animHumanoid, playAttack, setExpr, toon, upgradeGLB, GLB } from './avatar.js';
 import { buildHumanoid, animHumanoid } from './avatar.js';
 
 // ---------- monstros ----------
