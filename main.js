@@ -281,7 +281,9 @@ async function pvpHit(o, mult) {
   if (r.killed) { toast(r.pk ? `Você cometeu PK contra ${o.n}! Karma: ${r.karma}` : `Você venceu ${o.n} em PvP!`, r.pk ? 'err' : 'ok'); S.target = null; S.autoAtk = false; }
 }
 function hurtMob(m, v, crit) {
-  if (m.dead) return; m.hp -= v; m.aggro = true; S.lastCombat = Date.now();
+  if (m.dead) return;
+  if (m.returning) { floatText(m.x, WG.height(m.x, m.z) + 2.2 * m.fam.scale, m.z, 'Imune', '#9ab8ff'); return; }
+  if (me && inSafe(me.x, me.z) && !S.gmKill) { if (!S.safeToast || Date.now() - S.safeToast > 3000) { S.safeToast = Date.now(); toast('Você não pode atacar monstros de dentro da cidade — saia da zona segura', 'err'); } S.autoAtk = false; return; } m.hp -= v; m.aggro = true; S.lastCombat = Date.now();
   floatText(m.x, WG.height(m.x, m.z) + 2.2 * m.fam.scale, m.z, (crit ? '💥' : '') + v, crit ? '#ff9a3a' : '#ffe36a');
   if (m.hp <= 0) killMob(m);
 }
@@ -456,14 +458,16 @@ function updateMobs(dt) {
     m.dots = m.dots.filter(d => d.until > t); if (m.dead) continue;
     const dP = Math.hypot(me.x - m.x, me.z - m.z), dH = Math.hypot(m.home.x - m.x, m.home.z - m.z);
     if (!m.aggro && m.fam.aggro && dP < 13 && !S.dead && !inTown && Math.abs(m.L - S.c.level) < 15) m.aggro = true;
-    if (m.aggro && (S.dead || inTown || dH > 70)) { m.aggro = false; m.wander = { ...m.home }; m.hp = m.maxHp; }
+    if (m.aggro && (S.dead || inTown || dH > 70)) { m.aggro = false; m.returning = true; }
+    if (m.returning) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25 * dt); if (dH < 3) { m.returning = false; m.hp = m.maxHp; m.wander = null; } }
     let tx = null, tz = null, spd = m.st.speed * (t < m.slowUntil ? 0.55 : 1) * (1 + Math.max(-0.9, debOf(m, 'speed'))) * (m.fam.boss ? 0.9 : 1);
     const reach = 1.6 * m.fam.scale + 0.6;
     if (t < m.stunUntil) { /* atordoado */ }
+    else if (m.returning) { tx = m.home.x; tz = m.home.z; spd *= 1.6; }
     else if (m.aggro) { if (dP > reach) { tx = me.x; tz = me.z; spd *= 1.25; } else if (t >= m.nextAtk) { m.nextAtk = t + 1500; m.model.anim.atk = now(); m.ry = Math.atan2(me.x - m.x, me.z - m.z); const d = dmgVs(m.st.atk * (1 + debOf(m, 'atk')), 1, st.pdef, 0.05); hurtMe(d.v); } }
     else { if (!m.wander || t > m.wanderT) { m.wanderT = t + 3000 + Math.random() * 4000; m.wander = Math.random() < 0.5 ? null : { x: m.home.x + (Math.random() - 0.5) * 30, z: m.home.z + (Math.random() - 0.5) * 30 }; } if (m.wander) { tx = m.wander.x; tz = m.wander.z; spd *= 0.35; } }
     let moving = false;
-    if (tx != null) { const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz); if (d > 0.5) { const nx = m.x + dx / d * spd * dt, nz = m.z + dz / d * spd * dt; if (!blocked(nx, nz) && !inSafe(nx, nz)) { m.x = nx; m.z = nz; moving = true; } else m.wander = null; m.ry = Math.atan2(dx, dz); } }
+    if (tx != null) { const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz); if (d > 0.5) { const nx = m.x + dx / d * spd * dt, nz = m.z + dz / d * spd * dt; if (!blocked(nx, nz) && !inSafe(nx, nz)) { m.x = nx; m.z = nz; moving = true; } else if (m.returning) { m.x = m.home.x; m.z = m.home.z; } else m.wander = null; m.ry = Math.atan2(dx, dz); } }
     m.model.root.position.set(m.x, WG.height(m.x, m.z), m.z); m.model.root.rotation.y = m.ry;
     animMob(m.model, dt, moving);
   }
@@ -575,7 +579,7 @@ async function command(line) {
   const [c, ...a] = line.slice(1).split(/\s+/), cmd = c.toLowerCase(), gm = S.c.is_gm, say = r => r && addChat({ kind: 'sys', msg: r });
   const G = async (k, args) => { if (!gm) return toast('Apenas GM', 'err'); say(await safe(() => B.gm(k, args))); await refresh(); };
   switch (cmd) {
-    case 'ajuda': addChat({ kind: 'sys', msg: 'Comandos: /onde, /online' + (gm ? ' | GM: /give item qtd [jogador], /aurum qtd [jogador], /nivel n [jogador], /prof coleta|refino|forja n, /tp x z, /ir cidade, /puxar jogador, /kick j, /ban j, /desban j, /karma n [j], /anuncio texto, /reset, /vel, /deus, /spawn chefe|familia nivel' : '') }); break;
+    case 'ajuda': addChat({ kind: 'sys', msg: 'Comandos: /onde, /online' + (gm ? ' | GM: /give item qtd [jogador], /aurum qtd [jogador], /nivel n [jogador], /prof coleta|refino|forja n, /tp x z, /ir cidade, /puxar jogador, /kick j, /ban j, /desban j, /karma n [j], /anuncio texto, /reset, /vel, /deus, /spawn chefe|familia nivel, /matar (alvo), /matartodos [raio] (com recompensa), /limpar [raio] (remove sem recompensa)' : '') }); break;
     case 'onde': say(`Posição ${Math.round(me.x)}, ${Math.round(me.z)} — ${$('#zone').textContent}`); break;
     case 'online': say('Online: ' + Object.values(S.presence).map(p => p[0]?.name).join(', ')); break;
     case 'give': return G('give', { item: a[0], qtd: +a[1] || 1, alvo: a[2] });
@@ -591,6 +595,8 @@ async function command(line) {
     case 'ir': { if (!gm) return; const t = GD.TOWNS.find(t => t.id.startsWith((a[0] || '').toLowerCase()) || t.name.toLowerCase().includes((a[0] || '').toLowerCase())); if (t) teleport(t.x, t.z + 25); return; }
     case 'vel': if (gm) { S.buffs.gmspeed = S.buffs.gmspeed ? (delete S.buffs.gmspeed, undefined) : { until: 9e15, vals: { speed: 2 } }; if (!S.buffs.gmspeed) delete S.buffs.gmspeed; toast('Velocidade GM ' + (S.buffs.gmspeed ? 'ligada' : 'desligada'), 'ok'); } return;
     case 'deus': if (gm) { S.god = !S.god; toast('Invencível ' + (S.god ? 'ligado' : 'desligado'), 'ok'); } return;
+    case 'matar': { if (!gm) return; const t = S.target; if (!t || t.kind !== 'mob' || t.ref.dead) return toast('Selecione um monstro (clique nele) e use /matar', 'err'); t.ref.returning = false; S.gmKill = true; hurtMob(t.ref, t.ref.hp + 1, false); S.gmKill = false; toast('Monstro eliminado', 'ok'); return; }
+    case 'matartodos': case 'limpar': { if (!gm) return; const r = clamp(+a[0] || 40, 5, 300); let n = 0; S.mobs.filter(m => !m.dead && Math.hypot(m.x - me.x, m.z - me.z) <= r).forEach(m => { m.returning = false; S.gmKill = true; if (cmd === 'limpar') { m.dead = true; scene.remove(m.model.root); S.mobs = S.mobs.filter(x => x !== m); if (S.target && S.target.ref === m) S.target = null; } else hurtMob(m, m.hp + 1, false); S.gmKill = false; n++; }); toast(n + (cmd === 'limpar' ? ' monstro(s) removido(s)' : ' monstro(s) eliminado(s)') + ' num raio de ' + r + ' m', 'ok'); return; }
     case 'spawn': { if (!gm) return; const f = FAM[a[0]] || Object.values(FAM).find(f => f.name.toLowerCase().includes((a[0] || '').toLowerCase())); if (!f) return toast('Família desconhecida', 'err'); spawnMob(f, clamp(+a[1] || S.c.level, 1, 80), me.x + 6, me.z + 6); return; }
     default: toast('Comando desconhecido — /ajuda', 'err');
   }
