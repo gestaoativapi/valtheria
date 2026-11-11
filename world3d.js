@@ -87,35 +87,52 @@ export function sunVectors(t) {
 }
 
 // ---------- água ----------
+// mapa de profundidade para a água (alturas do terreno numa janela de 1024 m em volta do jogador; calculado aos poucos)
+const DR = 128; export const DEPTH = { data: new Uint8Array(DR * DR), tex: null, cx: null, cz: null, row: 0, pending: null };
+DEPTH.tex = new THREE.DataTexture(DEPTH.data, DR, DR, THREE.RedFormat, THREE.UnsignedByteType); DEPTH.tex.magFilter = DEPTH.tex.minFilter = THREE.LinearFilter; DEPTH.tex.needsUpdate = true;
+export function updateWaterDepth(WG, mat, x, z, rows = 6) {
+  const cx = Math.round(x / 256) * 256, cz = Math.round(z / 256) * 256, S = 1024;
+  if (!DEPTH.pending && (cx !== DEPTH.cx || cz !== DEPTH.cz)) { DEPTH.pending = { cx, cz, buf: new Uint8Array(DR * DR) }; DEPTH.row = 0; }
+  const P = DEPTH.pending; if (!P) return;
+  for (let r = 0; r < rows && DEPTH.row < DR; r++, DEPTH.row++) { const j = DEPTH.row, wz = P.cz - S / 2 + (j + 0.5) / DR * S; for (let i = 0; i < DR; i++) P.buf[j * DR + i] = Math.max(0, Math.min(255, Math.round((WG.height(P.cx - S / 2 + (i + 0.5) / DR * S, wz) + 20) / 40 * 255))); }
+  if (DEPTH.row >= DR) { DEPTH.data.set(P.buf); DEPTH.tex.needsUpdate = true; DEPTH.cx = P.cx; DEPTH.cz = P.cz; mat.uniforms.hBox.value.set(P.cx - S / 2, P.cz - S / 2, S); mat.uniforms.hOn.value = 1; DEPTH.pending = null; }
+}
 export function createWater() {
   const geo = new THREE.PlaneGeometry(1400, 1400, 220, 220); geo.rotateX(-Math.PI / 2);
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
     uniforms: { time: WIND.time, sunDir: { value: new THREE.Vector3(0, 1, 0) }, night: { value: 0 }, deep: { value: new THREE.Color(0x0e3a5a) }, shallow: { value: new THREE.Color(0x2a8aa8) },
-      skyC: { value: new THREE.Color(0xa8c8e8) }, fogColor: { value: new THREE.Color() }, fogNear: { value: 140 }, fogFar: { value: 420 } },
-    vertexShader: `uniform float time; varying vec3 wp; varying vec3 nrm;
+      skyC: { value: new THREE.Color(0xa8c8e8) }, fogColor: { value: new THREE.Color() }, fogNear: { value: 140 }, fogFar: { value: 420 }, hMap: { value: DEPTH.tex }, hBox: { value: new THREE.Vector3(-1e5, -1e5, 1) }, hOn: { value: 0 } },
+    vertexShader: `uniform float time; varying vec3 wp; varying vec3 nrm; varying float crest;
       vec3 wave(vec2 p, vec2 d, float a, float l, float s){ float k=6.2831/l; float f=k*(dot(d,p)-s*time); return vec3(a*sin(f), a*k*cos(f)*d.x, a*k*cos(f)*d.y); }
       void main(){
         vec4 w = modelMatrix * vec4(position,1.); vec2 p = w.xz;
         vec3 A = wave(p, normalize(vec2(1.,.3)), .22, 18., 2.2), B = wave(p, normalize(vec2(-.4,1.)), .14, 9., 1.6), C = wave(p, normalize(vec2(.7,-.6)), .06, 4., 1.1);
-        w.y += A.x + B.x + C.x;
+        w.y += A.x + B.x + C.x; crest = A.x + B.x * 1.2;
         nrm = normalize(vec3(-(A.y+B.y+C.y), 1., -(A.z+B.z+C.z)));
         wp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: `uniform vec3 sunDir; uniform float night; uniform vec3 deep; uniform vec3 shallow; uniform vec3 skyC; uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float time; varying vec3 wp; varying vec3 nrm;
+    fragmentShader: `uniform vec3 sunDir; uniform float night; uniform vec3 deep; uniform vec3 shallow; uniform vec3 skyC; uniform vec3 fogColor; uniform float fogNear; uniform float fogFar; uniform float time; uniform sampler2D hMap; uniform vec3 hBox; uniform float hOn; varying vec3 wp; varying vec3 nrm; varying float crest;
       float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
       void main(){
         vec3 V = normalize(cameraPosition - wp);
         vec3 N = normalize(nrm + vec3(sin(wp.x*1.7+time*2.)*.04, 0., cos(wp.z*1.9-time*1.7)*.04));
         float fres = pow(1. - max(dot(N, V), 0.), 4.);
-        vec3 col = mix(shallow, deep, .55);
+        // profundidade (mapa de alturas do terreno ao redor): água rasa turquesa e espuma na margem
+        vec2 huv = (wp.xz - hBox.xy) / hBox.z; float depth = 6.;
+        if (hOn > .5 && huv.x > 0. && huv.y > 0. && huv.x < 1. && huv.y < 1.) depth = max(0., -(texture2D(hMap, huv).r * 40. - 20.));
+        float sh = smoothstep(7., 0.4, depth);
+        vec3 col = mix(mix(shallow, deep, .55), vec3(.18,.62,.64), sh * .8);
+        float fn = h21(floor(wp.xz * 2.3 + vec2(time * .7, time * .4))) * .5 + h21(floor(wp.xz * 1.1 - time * .5)) * .5;
+        float foam = smoothstep(1.4, .1, depth) * smoothstep(.35, .8, fn + sin(depth * 6. - time * 2.5) * .25) + smoothstep(.28, .42, crest) * .35;
         col = mix(col, skyC, fres * .75);
         vec3 L = sunDir.y > 0. ? sunDir : vec3(-sunDir.x, -sunDir.y, -sunDir.z);
         vec3 H = normalize(L + V); float spec = pow(max(dot(N, H), 0.), 220.) * (sunDir.y > 0. ? 2.2 : .5);
         col += mix(vec3(1.,.92,.75), vec3(.6,.7,1.), night) * spec;
         col += vec3(.9) * smoothstep(.9, 1., h21(floor(wp.xz*.8)+floor(time*2.))) * .06 * (1.-night); // cintilado
+        col = mix(col, vec3(.95,.97,1.), clamp(foam, 0., 1.) * .85);
         col *= mix(1., .28, night);
         float d = length(cameraPosition - wp); float f = smoothstep(fogNear, fogFar, d);
-        gl_FragColor = vec4(mix(col, fogColor, f), mix(.86, 1., f));
+        gl_FragColor = vec4(mix(col, fogColor, f), mix(mix(.86, .62, sh * (1. - foam)), 1., f));
       }`,
   });
   const mesh = new THREE.Mesh(geo, mat); mesh.renderOrder = 2; mesh.frustumCulled = false;

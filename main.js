@@ -1,12 +1,14 @@
 // ===== Valtheria — cliente =====
 import * as THREE from './three.module.min.js';
 import { buildHumanoid, setGear, animHumanoid, playAttack, upgradeGLB, buildMob, animMob, buildNode, buildHouse, makeLabel, mat } from './models.js';
-import { createSky, createWater, dayPhase, sunVectors, WIND, makeFire, updateFires, initLightPool, createGrass, layoutGrass, ROCK_GEOS, rockMat, TREE_KINDS, leafMat, treeTrunkMat } from './world3d.js';
+import { updateWaterDepth, createSky, createWater, dayPhase, sunVectors, WIND, makeFire, updateFires, initLightPool, createGrass, layoutGrass, ROCK_GEOS, rockMat, TREE_KINDS, leafMat, treeTrunkMat } from './world3d.js';
 import { buildTownArchitecture, buildLandmark, updateTownAnim } from './towns.js';
 import { RoomEnvironment } from './RoomEnvironment.js';
 import { NAT, loadNature, buildNatureChunk, disposeNature } from './nature.js';
 import { initFX, emit, slash, shock, beam, updateFX } from './fx.js';
 import { initAmbient, updateAmbient, AMB } from './ambient.js';
+import { POST, initPost, setPostQuality, resizePost, renderPost, postHurt, postFlash } from './post.js';
+import { WEATHER, initWeather, updateWeather } from './weather.js';
 import { icon3d, onIconsReady, KIND_AURA } from './icons.js';
 import { say, npcLine, bossLine, updateDialog, VOICE, setVoice } from './dialog.js';
 import { COMP, initComp, restoreComp, compFx, summonPet, setMount, toggleRide, dismount, setWings, toggleFly, updateComp, saddle, mountSpeed, canFly } from './companions.js';
@@ -52,7 +54,7 @@ const scene = new THREE.Scene(); initFX(scene);
 const _tipV = new THREE.Vector3();
 const fxBurst = (x, y, z, color, n = 12, size = 0.2) => emit(x, y, z, { n, color, size, speed: 3, up: 1.5, life: 0.6 });
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.3, 1200);
-addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); resizePost(); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 const hemi = new THREE.HemisphereLight(0xcfe3ff, 0x5a4a32, 1.15); scene.add(hemi);
 initLightPool(scene, IS_MOBILE ? 2 : 4);
 { const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.55; pm.dispose(); }
@@ -179,7 +181,7 @@ function updateChunks(px, pz, all) {
   if (!NAT.ready) return; let up = 0;
   for (const c of chunks.values()) {
     const near = Math.max(Math.abs(c.cx - ccx), Math.abs(c.cz - ccz)) <= NAT_R;
-    if (near && !c.nat && (all || up++ < 1)) { c.nat = buildNatureChunk(c.natData); c.group.add(c.nat.group); c.group.children.forEach(o => { if (o.userData.pk && (o.userData.pk === 'rock' || c.nat.handled.has(o.userData.pk))) o.visible = false; }); }
+    if (near && !c.nat && (all || up++ < 1)) { c.nat = buildNatureChunk(c.natData); c.group.add(c.nat.group); c.group.children.forEach(o => { if (o.userData.pk && c.nat.handled.has(o.userData.pk)) o.visible = false; }); }
     else if (!near && c.nat && Math.max(Math.abs(c.cx - ccx), Math.abs(c.cz - ccz)) > NAT_R + 1) { disposeNature(c.nat); c.nat = null; c.group.children.forEach(o => { if (o.userData.pk) o.visible = true; }); }
   }
 }
@@ -188,6 +190,8 @@ const ROCK_TINT = { vulcao: '#6a5650', rubro: '#d0a080', gelo: '#e8f0ff', cinza:
 loadNature();
 function refreshNode(id) { const m = nodeMeshes.get(id); if (!m) return; const dep = (S.dep[id] || 0) > Date.now(); m.scale.set(1, dep ? 0.22 : 1, 1); m.children.forEach(ch => { if (ch.geometry && ch.geometry.type === 'RingGeometry') ch.visible = !dep; }); m.userData.dep = dep; }
 const WATER = createWater(), water = WATER.mesh; water.position.y = WG.WATER; scene.add(water);
+initPost(renderer, scene, camera); initWeather({ scene, camera, onThunder: () => postFlash(1.4) });
+const CAMFX = { shake: 0 }; const shake = (k) => { CAMFX.shake = Math.min(1, CAMFX.shake + k); };
 const GRASS = createGrass(14000); scene.add(GRASS.mesh);
 // ---------- qualidade gráfica (automática por FPS) ----------
 const QUAL = { alta: { name: 'Alta', pr: 1.5, sh: 2048, shOn: true, soft: true, grass: 14000, R: 4, far: 1200 }, media: { name: 'Média', pr: 1, sh: 1024, shOn: true, soft: false, grass: 6000, R: 3, far: 900 }, baixa: { name: 'Baixa', pr: 0.75, sh: 512, shOn: false, soft: false, grass: 1500, R: 3, far: 650 } };
@@ -198,7 +202,7 @@ function applyQuality(n) {
   const was = renderer.shadowMap.enabled, wasSoft = renderer.shadowMap.type; renderer.shadowMap.enabled = q.shOn; renderer.shadowMap.type = q.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
   sun.shadow.mapSize.set(q.sh, q.sh); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
   if (was !== q.shOn || wasSoft !== renderer.shadowMap.type) scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.needsUpdate = true); });
-  GRASS.limit = q.grass; GRASS.center = null; CHUNK_R = q.R; NAT_R = n === 'baixa' ? -1 : 1; AMB.max = n === 'baixa' ? 0 : n === 'media' ? 4 : 7; camera.far = q.far; camera.updateProjectionMatrix(); PERF.since = performance.now();
+  GRASS.limit = q.grass; GRASS.center = null; CHUNK_R = q.R; NAT_R = n === 'baixa' ? -1 : 1; AMB.max = n === 'baixa' ? 0 : n === 'media' ? 4 : 7; camera.far = q.far; camera.updateProjectionMatrix(); PERF.since = performance.now(); setPostQuality(n); WEATHER.max = n === 'baixa' ? 0.4 : 1;
 }
 applyQuality(PERF.mode !== 'auto' ? PERF.mode : IS_MOBILE ? 'media' : 'alta');
 function perfTick(dt) {
@@ -274,10 +278,17 @@ addEventListener('mouseup', () => cam.drag = false);
 addEventListener('mousemove', e => { if (!cam.drag) return; if (studio.visible) { stu.yaw -= (e.clientX - cam.lx) * 0.01; stu.pitch = clamp(stu.pitch + (e.clientY - cam.ly) * 0.005, -0.4, 0.9); } else { cam.yaw -= (e.clientX - cam.lx) * 0.006; cam.pitch = clamp(cam.pitch + (e.clientY - cam.ly) * 0.005, -0.45, 1.4); } cam.lx = e.clientX; cam.ly = e.clientY; });
 canvas.addEventListener('wheel', e => { if (studio.visible) stu.dist = clamp(stu.dist * (e.deltaY > 0 ? 1.1 : 0.9), 0.9, 6); else cam.dist = clamp(cam.dist * (e.deltaY > 0 ? 1.1 : 0.9), 1.1, 32); }, { passive: true });
 const stu = { yaw: 0, pitch: 0.12, dist: 4.6 }; window.__stu = stu;
+const _ray = new THREE.Raycaster(), _cTo = new THREE.Vector3(), _cFrom = new THREE.Vector3();
 function updateCamera() {
   const rh = (GD.RACES[S.c.race]?.h || 1), close = clamp((5 - cam.dist) / 3.5, 0, 1); const ty = WG.height(me.x, me.z) + (S.alt || 0) + saddle() + (1.7 + (1.62 * rh - 1.7) * close) * (close ? 1 : 1) + (rh - 1) * 0.6 * (1 - close);
   let cx = me.x + Math.sin(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cz = me.z + Math.cos(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cy = ty + Math.sin(cam.pitch) * cam.dist;
   cy = Math.max(cy, WG.height(cx, cz) + 0.25, WG.WATER + 0.6);
+  // câmera não atravessa prédios: aproxima quando há parede entre ela e o personagem
+  if ((CAMFX.n = (CAMFX.n || 0) + 1) % 2 === 0) { CAMFX.hit = 1; const near = townGroups.filter(t => t.g.visible && t.g.isGroup && Math.hypot(t.x - me.x, t.z - me.z) < 160).map(t => t.g);
+    if (near.length) { _cTo.set(cx - me.x, cy - ty, cz - me.z); const D = _cTo.length(); _cTo.normalize(); _ray.set(_cFrom.set(me.x, ty, me.z), _cTo); _ray.far = D; _ray.camera = camera; const h = _ray.intersectObjects(near, true).find(i => i.object.isMesh && !i.object.isSprite && i.distance > 0.6);
+      if (h) CAMFX.hit = Math.max(0.15, (h.distance - 0.4) / D); } }
+  CAMFX.k = (CAMFX.k ?? 1) + ((CAMFX.hit ?? 1) - (CAMFX.k ?? 1)) * 0.25; if (CAMFX.k < 0.999) { cx = me.x + (cx - me.x) * CAMFX.k; cy = ty + (cy - ty) * CAMFX.k; cz = me.z + (cz - me.z) * CAMFX.k; }
+  if (CAMFX.shake > 0.01) { const a = CAMFX.shake * CAMFX.shake * 0.35, tt = performance.now() / 30; cx += Math.sin(tt * 1.7) * a; cy += Math.sin(tt * 2.3) * a; cz += Math.cos(tt * 1.9) * a; CAMFX.shake *= 0.88; }
   camera.position.set(cx, cy, cz); camera.lookAt(me.x, ty, me.z); if (me.label) me.label.visible = cam.dist > 5.5;
 }
 
@@ -410,7 +421,7 @@ function hitFx(o, st, crit, sk) {
   const y = WG.height(o.x, o.z) + 1.1 * (o.fam ? o.fam.scale : 1), col = sk && WCOL[sk.fx] || (st.magic ? 0x8ab0ff : crit ? 0xffa040 : 0xfff0c0);
   emit(o.x, y, o.z, { n: crit ? 26 : 12, color: col, speed: crit ? 7 : 4.5, up: 1.5, life: 0.35, size: crit ? 0.2 : 0.14, grav: 10, drag: 3 });
   if (!st.magic && st.range < 5) slash(o.x, y, o.z, Math.atan2(o.x - me.x, o.z - me.z) + Math.PI / 2, crit ? 0xffb050 : (me.enc >= 7 ? 0xff5050 : me.enc >= 4 ? 0x7ab0ff : 0xffffff), crit || !!sk);
-  if (crit) shock(o.x, y - 1, o.z, 0xffa040, 2.2, 0.35);
+  if (crit) { shock(o.x, y - 1, o.z, 0xffa040, 2.2, 0.35); shake(0.35); postFlash(0.25); }
 }
 function lightning(x, y, z) {
   const pts = []; let px = x + (Math.random() - 0.5) * 2, pz = z + (Math.random() - 0.5) * 2; for (let i = 0; i <= 8; i++) { const k = i / 8; pts.push(new THREE.Vector3(px + (x - px) * k + (Math.random() - 0.5) * 0.8, y + 14 * (1 - k), pz + (z - pz) * k + (Math.random() - 0.5) * 0.8)); }
@@ -447,7 +458,7 @@ async function processKills() {
 function levelUp(L) {
   if (me && me.setExpr) me.setExpr('smile', 4000);
   const old = S.c.level; S.c.level = L; const st = stats(); S.hp = st.maxHp; S.mp = st.maxMp;
-  toast(`⭐ Nível ${L}!`, 'ok'); beam(me.x, WG.height(me.x, me.z), me.z, 0xffd84a, 1.8); shock(me.x, WG.height(me.x, me.z), me.z, 0xffe36a, 6, 0.9); addChat({ kind: 'q', msg: `Você alcançou o nível ${L}!` });
+  toast(`⭐ Nível ${L}!`, 'ok'); beam(me.x, WG.height(me.x, me.z), me.z, 0xffd84a, 1.8); postFlash(1.2); shake(0.4); shock(me.x, WG.height(me.x, me.z), me.z, 0xffe36a, 6, 0.9); addChat({ kind: 'q', msg: `Você alcançou o nível ${L}!` });
   const r = new THREE.Mesh(new THREE.TorusGeometry(1, 0.08, 6, 30), new THREE.MeshBasicMaterial({ color: 0xffe36a, transparent: true })); r.rotation.x = Math.PI / 2; r.position.set(me.x, WG.height(me.x, me.z) + 0.2, me.z); scene.add(r);
   fx.push({ obj: r, t: 0, dur: 1.4, up: (o, k) => { o.position.y += 0.05; o.scale.setScalar(1 + k * 1.5); o.material.opacity = 1 - k; } });
   for (const lv of [20, 40, 76]) if (old < lv && L >= lv) addChat({ kind: 'q', msg: `Uma nova classe está disponível! Fale com o Mestre de Classes em qualquer cidade.` });
@@ -468,7 +479,7 @@ function hurtMe(v) {
   const F = stats().fx || {}; if (F.dodge && Math.random() < F.dodge) { floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, 'Esquiva', '#9fd0ff'); return; }
   if (F.dmgRed) v = Math.max(1, Math.round(v * (1 - F.dmgRed)));
   emit(me.x, WG.height(me.x, me.z) + 1.2, me.z, { n: 8, color: 0xff3030, speed: 2.5, up: 1, life: 0.5, size: 0.14, grav: 9 });
-  if (me.anim) me.anim.hitAt = performance.now();
+  if (me.anim) me.anim.hitAt = performance.now(); postHurt(Math.min(1, v / Math.max(1, stats().maxHp) * 8)); shake(0.25);
   if (S.buffs.dodge && Math.random() < 0.4) { floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, 'Esquiva', '#9fd0ff'); return; }
   S.hp -= v; S.lastCombat = Date.now(); if (me.setExpr && me.anim.expr !== 'angry') me.setExpr(S.hp < stats().maxHp * 0.3 ? 'sad' : 'hurt', 900); floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, '-' + v, '#ff5a5a');
   if (S.hp <= 0) die(false);
@@ -1324,9 +1335,11 @@ function updateEnvironment(dt) {
   else { sun.color.copy(moonC); sun.intensity = 0.55 + 0.6 * THREE.MathUtils.clamp(md.y * 3, 0, 1); }
   hemi.color.copy(hemiNight).lerp(hemiDay, day); hemi.intensity = (0.95 + 0.3 * day) * (th.eclipse ? 0.75 : 1);
   scene.fog.color.lerp(fogC.set(th.fog), k); fogBase.copy(scene.fog.color); scene.fog.color.copy(fogBase).lerp(nightFog, night * 0.6);
+  { const wz = updateWeather(dt, (WG.nearestTown(me.x, me.z).town.theme), false); ENV.wdim = wz.dim; sun.intensity *= 1 - wz.dim * 1.6; hemi.intensity *= 1 - wz.dim * 0.5 - (-wz.flash * 1.5);
+    scene.fog.near = 140 * (1 - wz.dim * 1.2); scene.fog.far = 420 * (1 - wz.dim * 0.9); if (wz.dim) scene.fog.color.lerp(fogC.set(0x6a7480), wz.dim * 1.5); }
   renderer.toneMappingExposure = 1.05 + day * 0.05;
   WIND.time.value = t; WIND.strength.value = 0.7 + Math.sin(t * 0.07) * 0.35 + Math.sin(t * 0.31) * 0.15;
-  WATER.mat.uniforms.sunDir.value.copy(day > 0.05 ? sd : md); WATER.mat.uniforms.night.value = night; WATER.mat.uniforms.fogColor.value.copy(scene.fog.color); WATER.mat.uniforms.skyC.value.copy(skyMat.uniforms.bot.value).lerp(nightFog, night);
+  updateWaterDepth(WG, WATER.mat, me.x, me.z, PERF.cur === 'baixa' ? 2 : 6); WATER.mat.uniforms.fogNear.value = scene.fog.near; WATER.mat.uniforms.fogFar.value = scene.fog.far; WATER.mat.uniforms.sunDir.value.copy(day > 0.05 ? sd : md); WATER.mat.uniforms.night.value = night; WATER.mat.uniforms.fogColor.value.copy(scene.fog.color); WATER.mat.uniforms.skyC.value.copy(skyMat.uniforms.bot.value).lerp(nightFog, night);
   updateFires(dt, t, night, camera.position); updateTownAnim(t);
 }
 // ---------- laço principal ----------
@@ -1345,7 +1358,9 @@ function loop() {
     { const ph = preview ? (GD.RACES[preview.race]?.h || 1) : 1, close = clamp((3.2 - stu.dist) / 2.3, 0, 1), ty = -500 + 1.0 * ph + 0.62 * ph * close; camera.position.set(Math.sin(stu.yaw) * Math.cos(stu.pitch) * stu.dist + 0.35 * (1 - close), ty + Math.sin(stu.pitch) * stu.dist, Math.cos(stu.yaw) * Math.cos(stu.pitch) * stu.dist); camera.lookAt(0.35 * (1 - close), ty, 0); if (preview) animHumanoid(preview, dt); }
     sun.position.set(3, -490, 6); sun.target.position.set(0, -500, 0); sky.position.copy(camera.position);
   }
-  renderer.render(scene, camera);
+  if (POST.on && S.inGame && me) { const st = stats(), r = S.hp / st.maxHp, L = GD.LANDMARKS.find(L => L.poi && Math.hypot(L.x - me.x, L.z - me.z) < 75);
+    renderPost(dt, { lowHp: !S.dead && r < 0.3 ? (0.3 - r) / 0.3 : 0, night: ENV.night, tint: L ? { tumba: '#a8ffc0', pantano: '#b8d890', destrocos: '#ffc890', estranho: '#c8a0ff' }[L.type] : null }); }
+  else if (POST.on) renderPost(dt, { lowHp: 0, night: 0, tint: null }); else renderer.render(scene, camera);
 }
 loop();
 
@@ -1362,4 +1377,4 @@ initComp({ scene, S, GD, WG, me: () => me, toast, petHit, now, keys });
 const POI_AMB = { tumba: { particles: '#aaffbb' }, pantano: { particles: '#c8ff7a' }, destrocos: { particles: '#ffaa5a' }, estranho: { particles: '#c89aff' } };
 initAmbient({ scene, S, WG, me: () => me, isNight: () => { const p = dayPhase(); return p < 0.23 || p > 0.79; }, theme: (x, z) => WG.nearestTown(x, z).town.theme,
   nearPoi: (x, z) => { const L = GD.LANDMARKS.find(L => L.poi && Math.hypot(L.x - x, L.z - z) < 70); return L ? { x: L.x, z: L.z, amb: POI_AMB[L.type] } : null; } });
-window.__game = { COMP, summonPet, setMount, setWings, toggleFly, toggleRide, townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, keys, refreshGear: () => { me.enc = encOf(S.c); setGear(me, S.c.equipment.arma, S.c.equipment.armadura, S.c.equipment); buildBar(); }, attackKey: () => attackKey(), dodge, startGuide, stopGuide, PERF, applyQuality, saveQuests };
+window.__game = { WEATHER, POST, COMP, summonPet, setMount, setWings, toggleFly, toggleRide, townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, keys, refreshGear: () => { me.enc = encOf(S.c); setGear(me, S.c.equipment.arma, S.c.equipment.armadura, S.c.equipment); buildBar(); }, attackKey: () => attackKey(), dodge, startGuide, stopGuide, PERF, applyQuality, saveQuests };

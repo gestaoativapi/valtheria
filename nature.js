@@ -96,7 +96,7 @@ export function buildNatureChunk(d) {
       addInst(group, name, sub, ([x, h, z, sc, r]) => { q.setFromAxisAngle(up, r); sv.setScalar(sc * 1.05); pv.set(x, h - 0.15, z); }, true);
     });
   }
-  d.rocks.forEach((pts, k) => addInst(group, ROCKS[k], pts, ([x, h, z, sc, r]) => { q.setFromAxisAngle(up, r); sv.set(sc * 0.9, sc * 0.75, sc * 0.9); pv.set(x, h - sc * 0.2, z); }, true, d.rockTint));
+  if (false) d.rocks.forEach((pts, k) => addInst(group, ROCKS[k], pts, ([x, h, z, sc, r]) => { q.setFromAxisAngle(up, r); sv.set(sc * 0.9, sc * 0.75, sc * 0.9); pv.set(x, h - sc * 0.2, z); }, true, d.rockTint));
   const red = d.theme === 'outono';
   UNDER.forEach((name, k) => addInst(group, name, d.under.filter(p => (p[5] === 0 && !red ? 1 : p[5]) === k), ([x, h, z, sc, r]) => { q.setFromAxisAngle(up, r); sv.setScalar(sc); pv.set(x, h - 0.05, z); }, false));
   // vegetação extra do bioma (reaproveita os pontos de vegetação rasteira)
