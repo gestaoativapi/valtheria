@@ -301,12 +301,13 @@ export function setGear(m, weaponId, armorId, equip) {
     const em = at(ball(0.06, tm, 12, 8), 0, 0.04, 0.06); em.scale.z = 0.4; const grp = G(); grp.add(body, em); if (g >= 3) grp.add(at(ball(0.035, toon('#fff', { emissive: GLOW[g], ei: 1 }), 10, 8), 0, 0.04, 0.09));
     grp.rotation.y = -Math.PI / 2; add(P.armL.fa, at(grp, -0.09, -0.15, 0)); }
   const hm = E('elmo');
-  if (hm) { const g = hm.grade, kind = hm.kind;
+  const glbHelm = m.glbMode && hm && (helmFor(m, hm) || (hm.kind === 'leve' && m.glb && m.glb.outfitKind === 'ranger'));
+  if (hm && !glbHelm) { const g = hm.grade, kind = hm.kind;
     if (kind === 'pesada') { const hc = toon(hm.relic ? '#cfe8ff' : ARMOR_COL.pesada[g], { metal: 0.6 }); const dome = new THREE.Mesh(new THREE.SphereGeometry(0.168, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hc); dome.castShadow = true; ol(dome); dome.position.y = 0.02; add(P.head, dome);
       add(P.head, at(capsule(0.012, 0.09, toon(TRIM[g]), 6), 0, -0.01, 0.165)); [-1, 1].forEach(s => add(P.head, at(ball(0.05, hc, 10, 8), s * 0.15, -0.04, 0)).scale.set(0.5, 1.2, 1));
       if (hm.relic) for (let i = 0; i < 5; i++) add(P.head, at(cone(0.02, 0.1, toon('#bfefff', { emissive: 0x6ac8ff, ei: 0.6 }), 6), Math.cos(i * 0.6 - 1.2) * 0.13, 0.15, Math.sin(i * 0.6 - 1.2) * 0.13 + 0.03));
       if (P.hair) P.hair.visible = false; }
-    else if (kind === 'leve') { const hood = new THREE.Mesh(new THREE.SphereGeometry(0.18, 24, 16, Math.PI * 0.15, Math.PI * 1.7, 0, Math.PI * 0.7), toon(ARMOR_COL.leve[g], { double: true })); hood.rotation.y = Math.PI; hood.castShadow = true; hood.position.set(0, 0.02, -0.01); if (!m.glbMode) add(P.head, hood); if (P.hair) P.hair.visible = false; }
+    else if (kind === 'leve') { const hood = new THREE.Mesh(new THREE.SphereGeometry(0.18, 24, 16, Math.PI * 0.15, Math.PI * 1.7, 0, Math.PI * 0.7), toon(ARMOR_COL.leve[g], { double: true })); hood.rotation.y = Math.PI; hood.castShadow = true; hood.position.set(0, 0.02, -0.01); add(P.head, hood); if (P.hair) P.hair.visible = false; }
     else { const hat = G(); hat.add(at(tube(0.26, 0.26, 0.02, toon(ARMOR_COL.robe[g]), 24), 0, 0, 0), at(cone(0.13, 0.36, toon(ARMOR_COL.robe[g]), 16), 0, 0.18, -0.02)); hat.children[1].rotation.x = -0.25; hat.position.y = 0.13; add(P.head, hat); } }
   const gl = E('luvas');
   if (gl && !m.glbMode) { const gm = toon(gl.kind === 'pesada' ? ARMOR_COL.pesada[gl.grade] : gl.kind === 'leve' ? ARMOR_COL.leve[gl.grade] : ARMOR_COL.robe[gl.grade], gl.kind === 'pesada' ? { metal: 0.6 } : {});
@@ -396,17 +397,19 @@ export function setExpr(m, e, ms) { if (m.glb) return; return setExpr_(m, e, ms)
 
 // ================= modelos 3D realistas (GLB) =================
 export const GLB = { on: true };
-const HAIR_M = ['simpleparted', 'buzzed', 'long', 'simpleparted', 'buzzed', 'long'], HAIR_F = ['long', 'buns', 'simpleparted', 'buzzedfemale', 'long', 'buns'];
+const HAIR_M = ['simpleparted', 'buzzed', 'long', 'slickback', 'bob', 'buzzed'], HAIR_F = ['long', 'buns', 'bob', 'buzzedfemale', 'simpleparted', 'buns'];
 const OUTFIT_OF = { pesada: 'ranger', leve: 'ranger', robe: 'peasant' };
+function outfitFor(m, a) { const fem = m.o.gender === 'f'; if (!a) return 'peasant'; if (fem) return OUTFIT_OF[a.kind]; return a.kind === 'pesada' ? 'knight' : a.kind === 'leve' ? 'ranger' : a.grade >= 4 ? 'noble' : 'wizard'; }
+function helmFor(m, h) { if (!h) return null; if (h.relic) return 'helm_crown'; if (h.kind === 'pesada' && m.o.gender !== 'f') return 'helm_knight'; return null; }
 const GRADE_TINT = ['#ffffff', '#e8dcc4', '#d6e2f0', '#cfe0ff', '#ffd2d2', '#f0dcff'], HEAVY_TINT = ['#b8c0c8', '#a8b4c0', '#c0c8d4', '#a8c4e8', '#e0b0b0', '#d8c8f0'];
 const BASE_SKIN = new THREE.Color('#c49470');
 export function upgradeGLB(m) {
   if (m.glb || m.glbPending) return; m.glbPending = true;
   const o = m.o, fem = o.gender === 'f', f = (GD.RACES[m.race] || {}).feat || {}, look = m.look;
-  const beard = !fem && (look.beard ?? (f.beard ? 2 : 0)) > 0 && !f.snout;
+  const bv = fem || f.snout ? 0 : (look.beard ?? (f.beard ? 2 : 0)), beard = bv === 2 ? 'hair_beard' : bv === 1 ? 'hair_moustache' : null;
   const a = GD.ITEMS[o.armor];
-  createCharacter({ gender: fem ? 'f' : 'm', outfit: a ? OUTFIT_OF[a.kind] : 'peasant', hair: f.noHair ? null : (fem ? HAIR_F : HAIR_M)[look.hair || 0] })
-    .then(async C => { C.outfitKind = a ? OUTFIT_OF[a.kind] : 'peasant'; if (beard) await setPart(C, 'beard', 'hair_beard'); if (m.disposed) return; applyGLB(m, C); })
+  createCharacter({ gender: fem ? 'f' : 'm', outfit: outfitFor(m, a), hair: f.noHair ? null : (fem ? HAIR_F : HAIR_M)[look.hair || 0] })
+    .then(async C => { C.outfitKind = outfitFor(m, a); if (beard) await setPart(C, 'beard', beard); if (m.disposed) return; applyGLB(m, C); })
     .catch(e => { m.glbPending = false; console.warn('GLB', e); });
 }
 function ownMats(obj) { obj.traverse(o => { if (o.isMesh && o.material && !o.userData.ownMat) { o.material = o.material.clone(); o.userData.ownMat = 1; } }); }
@@ -418,11 +421,13 @@ function tintGLB(m) {
     else if (/Hair/.test(nm)) o.material.color.copy(hc).multiplyScalar(1.6); });
 }
 async function glbOutfit(m, a, equip) {
-  const C = m.glb, kind = a ? OUTFIT_OF[a.kind] : 'peasant';
+  const C = m.glb, kind = outfitFor(m, a);
   if (C.outfitKind !== kind) { C.outfitKind = kind; await setOutfit(C, kind); ownMats(C.model); tintGLB(m); }
   const tint = new THREE.Color(a ? (a.kind === 'pesada' ? HEAVY_TINT : GRADE_TINT)[a.grade] : '#ffffff');
-  for (const o of C.parts.outfit || []) { ownMats(o); if (/Ranger|Peasant/.test(o.material.name)) { o.material.color.copy(tint); o.material.metalness = a && a.kind === 'pesada' ? 0.25 : 0; o.material.envMapIntensity = a && a.kind === 'pesada' ? 1.2 : 0.6; } if (/Hood/.test(o.name)) o.visible = !!(equip && GD.ITEMS[equip.elmo] && GD.ITEMS[equip.elmo].kind === 'leve'); }
-  const hidden = !!(equip && equip.elmo); (C.parts.hair || []).forEach(h => h.visible = !hidden);
+  for (const o of C.parts.outfit || []) { ownMats(o); if (/Ranger|Peasant/.test(o.material.name)) { o.material.color.copy(tint); if (!/Knight|Noble/.test(o.material.name)) o.material.metalness = a && a.kind === 'pesada' ? 0.25 : 0; o.material.envMapIntensity = a && a.kind === 'pesada' ? 1.2 : 0.6; } if (/Hood/.test(o.name)) o.visible = !!(equip && GD.ITEMS[equip.elmo] && GD.ITEMS[equip.elmo].kind === 'leve'); }
+  const hItem = equip && GD.ITEMS[equip.elmo], helm = helmFor(m, hItem);
+  if (C.helmName !== helm) { C.helmName = helm; await setPart(C, 'helm', helm); if (helm) { ownMats(C.model); if (hItem) for (const o of C.parts.helm) if (!hItem.relic) o.material.color.copy(new THREE.Color(HEAVY_TINT[hItem.grade])).lerp(new THREE.Color('#ffffff'), 0.4); } }
+  const hidden = !!hItem && hItem.kind !== 'robe'; (C.parts.hair || []).forEach(h => h.visible = !hidden);
   // elmo de couro = capuz do próprio traje; os outros elmos continuam sendo peças à parte
 }
 function applyGLB(m, C) {
