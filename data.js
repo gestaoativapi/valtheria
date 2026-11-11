@@ -14,6 +14,7 @@
   const RANK_MULT = [1, 1.1, 1.25, 1.45];
   const rankForLevel = (L) => (L >= 76 ? 3 : L >= 40 ? 2 : L >= 20 ? 1 : 0);
   const xpNeed = (L) => Math.round(50 * Math.pow(L, 2.4));
+  const RATE_XP = 50, RATE_AURUM = 50, RATE_DROP = 3; // taxas do servidor (x50)
   const mobXp = (L) => Math.round(xpNeed(L) / (8 + 0.5 * L));
   const profLevel = (xp) => Math.floor(Math.sqrt((xp || 0) / 40));
   const profXpFor = (l) => 40 * l * l;
@@ -69,7 +70,7 @@
   // tipos: hit, buff, heal, dash, leap, taunt, mana
   const S = (lvl, name, icon, o) => ({ lvl, name, icon, mp: 10, cd: 6, ...o });
   const ARCH = {
-    tanque: { name: 'Tanque', weapon: 'espada', armor: 'pesada', atk: 'p', skills: [
+    tanque: { name: 'Tanque', weapon: 'espada', shield: true, armor: 'pesada', atk: 'p', skills: [
       S(1, 'Golpe de Escudo', '🛡️', { type: 'hit', mult: 1.3, stun: 1.2, mp: 6, cd: 6 }),
       S(5, 'Provocar', '📣', { type: 'taunt', radius: 12, mp: 8, cd: 12 }),
       S(12, 'Muralha', '🧱', { type: 'buff', buff: { pdef: 0.6 }, dur: 12, mp: 12, cd: 30 }),
@@ -151,6 +152,21 @@
       S(76, 'Fúria da Montanha', '⛰️', { type: 'hit', mult: 4.2, aoe: 6, mp: 45, cd: 60 }),
     ] },
   };
+
+  // ----- buffs (melhoram atributos) e debuffs (enfraquecem o alvo) por estilo de classe -----
+  // debuff: deb = { atk: -0.25 (ataque do alvo), def: -0.3 (defesa do alvo), speed: -0.5 }
+  const EXTRA = {
+    tanque: [S(8, 'Grito Intimidador', '😤', { type: 'debuff', deb: { atk: -0.25 }, dur: 12, aoe: 8, self: true, mp: 12, cd: 20, fx: 'dark' }), S(28, 'Juramento Sagrado', '⚜️', { type: 'buff', buff: { mdef: 0.4, hot: 0.02 }, dur: 25, mp: 18, cd: 45, fx: 'holy' }), S(44, 'Correntes da Justiça', '⛓️', { type: 'debuff', deb: { speed: -0.5, def: -0.15 }, dur: 10, mp: 14, cd: 16, fx: 'holy' })],
+    guerreiro: [S(8, 'Brado de Batalha', '📯', { type: 'buff', buff: { patk: 0.2, crit: 0.1 }, dur: 25, mp: 14, cd: 45, fx: 'fire' }), S(28, 'Quebra-Armadura', '💢', { type: 'debuff', deb: { def: -0.3 }, dur: 12, mp: 12, cd: 14, fx: 'dark', hitMult: 1.2 }), S(44, 'Pele de Aço', '🛡️', { type: 'buff', buff: { pdef: 0.45 }, dur: 15, mp: 16, cd: 40 })],
+    arqueiro: [S(8, 'Flecha Paralisante', '🕸️', { type: 'debuff', deb: { speed: -0.6 }, dur: 6, mp: 10, cd: 12, fx: 'ice', hitMult: 1.1 }), S(28, 'Vento Veloz', '🍃', { type: 'buff', buff: { speed: 0.35, atkspd: 0.2 }, dur: 20, mp: 14, cd: 45, fx: 'wind' }), S(44, 'Marca do Caçador', '🎯', { type: 'debuff', deb: { def: -0.25 }, dur: 15, mp: 14, cd: 20, fx: 'dark' })],
+    adaga: [S(8, 'Corte Sangrento', '🩸', { type: 'hit', mult: 1.1, dot: { mult: 1.8, dur: 8 }, mp: 10, cd: 9, fx: 'blood' }), S(28, 'Lâmina Enfraquecedora', '🥀', { type: 'debuff', deb: { atk: -0.3 }, dur: 12, mp: 12, cd: 18, fx: 'dark', hitMult: 1.0 }), S(44, 'Instinto Assassino', '👁️', { type: 'buff', buff: { crit: 0.3, patk: 0.15 }, dur: 15, mp: 18, cd: 50, fx: 'dark' })],
+    mago: [S(8, 'Aura Arcana', '🌀', { type: 'buff', buff: { matk: 0.25 }, dur: 30, mp: 16, cd: 50, fx: 'arcane' }), S(28, 'Maldição da Fraqueza', '☠️', { type: 'debuff', deb: { def: -0.3, atk: -0.15 }, dur: 15, mp: 18, cd: 20, fx: 'dark' }), S(44, 'Prisão de Gelo', '🧊', { type: 'debuff', deb: { speed: -0.85 }, stun: 2, dur: 5, mp: 20, cd: 22, fx: 'ice' })],
+    curandeiro: [S(8, 'Escudo Sagrado', '🔆', { type: 'buff', buff: { pdef: 0.3, mdef: 0.3 }, dur: 30, mp: 16, cd: 50, fx: 'holy' }), S(28, 'Purificação', '🕊️', { type: 'heal', pct: 0.25, cleanse: true, mp: 18, cd: 15, fx: 'holy' }), S(44, 'Silêncio Divino', '🤐', { type: 'debuff', deb: { atk: -0.35 }, dur: 10, mp: 16, cd: 22, fx: 'holy' })],
+    xama: [S(8, 'Espírito do Lobo', '🐺', { type: 'buff', buff: { speed: 0.3, patk: 0.15, matk: 0.15 }, dur: 30, mp: 16, cd: 50, fx: 'spirit' }), S(28, 'Praga', '🦠', { type: 'debuff', deb: { def: -0.25 }, dot: { mult: 1.6, dur: 10 }, aoe: 5, dur: 12, mp: 22, cd: 18, fx: 'poison' }), S(44, 'Totem da Vida', '🌳', { type: 'buff', buff: { hot: 0.04 }, dur: 20, mp: 20, cd: 45, fx: 'nature' })],
+    monge: [S(8, 'Postura do Tigre', '🐯', { type: 'buff', buff: { atkspd: 0.3, patk: 0.1 }, dur: 25, mp: 12, cd: 45, fx: 'fire' }), S(28, 'Golpe Atordoante', '💫', { type: 'hit', mult: 1.5, stun: 2, mp: 14, cd: 14 }), S(44, 'Pontos Vitais', '🎯', { type: 'debuff', deb: { def: -0.35 }, dur: 12, mp: 14, cd: 20, fx: 'dark', hitMult: 1.0 })],
+    artesao: [S(8, 'Runa de Proteção', '🔷', { type: 'buff', buff: { pdef: 0.35, mdef: 0.15 }, dur: 30, mp: 14, cd: 50, fx: 'arcane' }), S(28, 'Martelo Sísmico', '🌋', { type: 'hit', mult: 1.4, aoe: 5, self: true, slow: 0.4, mp: 16, cd: 12, fx: 'earth' }), S(44, 'Runa da Ruína', '♨️', { type: 'debuff', deb: { def: -0.3, atk: -0.15 }, dur: 14, mp: 16, cd: 22, fx: 'dark' })],
+  };
+  for (const [k, list] of Object.entries(EXTRA)) { ARCH[k].skills.push(...list); ARCH[k].skills.sort((a, b) => a.lvl - b.lvl); ARCH[k].skills.forEach((sk, i) => sk.id = k + ':' + sk.name); }
 
   // ----- árvore de classes: base (nv 1) → 2ª (nv 20) → 3ª (nv 40) → 4ª (nv 76) -----
   const CLASSES = {};
@@ -244,7 +260,9 @@
   const g = (i) => GRADES[i].id.toLowerCase();
   const RES = { madeira: ['Madeira', 'tabua', 'Tábua', '🪵', '🟫'], minerio: ['Minério', 'barra', 'Barra', '🪨', '🧱'], fibra: ['Fibra', 'tecido', 'Tecido', '🌿', '🧵'], pele: ['Pele', 'couro', 'Couro', '🐾', '🟤'] };
   const WEAPONS = {
-    espada: { name: 'Espada e Escudo', icon: '🛡️', range: 2.6, spd: 1.0, inputs: { barra: 6, couro: 2 } },
+    espada: { name: 'Espada', icon: '🗡️', range: 2.6, spd: 1.0, inputs: { barra: 6, couro: 2 } },
+    lanca: { name: 'Lança', icon: '🔱', range: 3.4, spd: 1.15, inputs: { barra: 5, tabua: 4 } },
+    machado: { name: 'Machado de Guerra', icon: '🪓', range: 2.8, spd: 1.2, inputs: { barra: 8, tabua: 2 } },
     espadao: { name: 'Espadão', icon: '⚔️', range: 2.9, spd: 1.15, inputs: { barra: 9, couro: 2 } },
     arco: { name: 'Arco', icon: '🏹', range: 22, spd: 1.3, inputs: { tabua: 7, tecido: 2 } },
     adaga: { name: 'Adagas', icon: '🗡️', range: 2.3, spd: 0.75, inputs: { barra: 4, couro: 2 } },
@@ -258,6 +276,12 @@
     robe: { name: 'Túnica Mágica', icon: '👘', inputs: { tecido: 10, couro: 1 } },
   };
   const GRADE_NAMES = ['Rústico', 'de Bronze', 'de Aço', 'Azurita', 'Rubro', 'Celestial'];
+  // peças extras de equipamento (slot, nome por tipo de armadura, fração dos atributos)
+  const PARTS = {
+    elmo: { slot: 'elmo', names: { pesada: 'Elmo', leve: 'Capuz', robe: 'Chapéu Arcano' }, icon: '⛑️', f: 0.25, inputs: { pesada: { barra: 4 }, leve: { couro: 4 }, robe: { tecido: 4 } } },
+    luvas: { slot: 'luvas', names: { pesada: 'Manoplas', leve: 'Luvas de Couro', robe: 'Luvas de Seda' }, icon: '🧤', f: 0.15, inputs: { pesada: { barra: 3 }, leve: { couro: 3 }, robe: { tecido: 3 } } },
+    botas: { slot: 'botas', names: { pesada: 'Grevas', leve: 'Botas de Couro', robe: 'Sandálias Arcanas' }, icon: '🥾', f: 0.15, inputs: { pesada: { barra: 3 }, leve: { couro: 3 }, robe: { tecido: 3 } } },
+  };
   GRADES.forEach((G, i) => {
     for (const [k, r] of Object.entries(RES)) {
       ITEMS[`${k}_${g(i)}`] = { id: `${k}_${g(i)}`, name: `${r[0]} ${G.id}`, grade: i, type: 'raw', icon: r[3] };
@@ -280,10 +304,32 @@
       const inp = {}; for (const [m, q] of Object.entries(a.inputs)) inp[`${m}_${g(i)}`] = q; Object.assign(inp, extra);
       RECIPES[id] = { id, out: id, qty: 1, station: 'forja', prof: 'forja', grade: i, inputs: inp, xp: 22 * (i + 1) };
     }
+    for (const [p, P] of Object.entries(PARTS)) for (const k of Object.keys(ARMORS)) {
+      const id = `${p}_${k}_${g(i)}`, gp = G.gp, f = P.f;
+      const st = k === 'pesada' ? { pdef: 10 * gp * f, mdef: 3 * gp * f, hp: 20 * gp * f } : k === 'leve' ? { pdef: 7 * gp * f, mdef: 4 * gp * f } : { pdef: 4 * gp * f, mdef: 8 * gp * f, mp: 25 * gp * f };
+      if (p === 'luvas') { if (k === 'robe') st.matk = 1.5 * gp; else st.patk = 1.2 * gp; }
+      if (p === 'botas') st.spd = k === 'leve' ? 0.04 : 0.02;
+      for (const x in st) st[x] = Math.round(st[x] * 10) / 10;
+      ITEMS[id] = { id, name: `${P.names[k]} ${GRADE_NAMES[i]}`, grade: i, type: 'armor', slot: P.slot, kind: k, part: p, icon: P.icon, stats: st };
+      const inp = {}; for (const [m, q] of Object.entries(P.inputs[k])) inp[`${m}_${g(i)}`] = q; if (i >= 3) inp.gema = 1;
+      RECIPES[id] = { id, out: id, qty: 1, station: 'forja', prof: 'forja', grade: i, inputs: inp, xp: 12 * (i + 1) };
+    }
+    { const id = `escudo_${g(i)}`; ITEMS[id] = { id, name: `Escudo ${GRADE_NAMES[i]}`, grade: i, type: 'armor', slot: 'escudo', kind: 'escudo', icon: '🛡️', stats: { pdef: Math.round(6 * G.gp * 10) / 10, mdef: Math.round(2 * G.gp * 10) / 10, hp: Math.round(10 * G.gp) } };
+      const inp = { [`barra_${g(i)}`]: 5, [`tabua_${g(i)}`]: 2 }; if (i >= 3) inp.gema = 1; RECIPES[id] = { id, out: id, qty: 1, station: 'forja', prof: 'forja', grade: i, inputs: inp, xp: 16 * (i + 1) }; }
     const kid = `kit_${g(i)}`;
     ITEMS[kid] = { id: kid, name: `Kit de Coleta ${G.id}`, grade: i, type: 'tool', icon: '⛏️' };
     RECIPES[kid] = { id: kid, out: kid, qty: 1, station: 'forja', prof: 'forja', grade: i, inputs: { [`tabua_${g(i)}`]: 3, [`barra_${g(i)}`]: 3 }, xp: 15 * (i + 1) };
   });
+  // itens únicos (só caem de chefes especiais) — Grau R (Relíquia)
+  const R_ = (id, name, base, slot, kind, stats, icon) => { ITEMS[id] = { id, name, grade: base, type: slot === 'arma' ? 'weapon' : 'armor', slot, kind, icon, stats, unique: true, relic: true }; };
+  R_('arco_corvo', 'Arco do Rei Corvo', 1, 'arma', 'arco', { patk: 26, crit: 0.05 }, '🏹');
+  R_('escudo_ruinas', 'Escudo das Ruínas Antigas', 1, 'escudo', 'escudo', { pdef: 22, mdef: 10, hp: 60 }, '🛡️');
+  R_('machado_grak', 'Machado de Grak', 2, 'arma', 'machado', { patk: 44 }, '🪓');
+  R_('cajado_lich', 'Cajado do Rei Lich', 3, 'arma', 'cajado', { matk: 66 }, '🪄');
+  R_('adaga_lua', 'Adagas da Lua Partida', 3, 'arma', 'adaga', { patk: 60, crit: 0.08 }, '🗡️');
+  R_('lanca_hidra', 'Lança da Hidra', 4, 'arma', 'lanca', { patk: 80 }, '🔱');
+  R_('espada_carmesim', 'Espada Carmesim do Conde', 5, 'arma', 'espada', { patk: 104, lifesteal: 0.05 }, '⚔️');
+  R_('elmo_inverno', 'Coroa do Inverno', 5, 'elmo', 'pesada', { pdef: 40, mdef: 30, hp: 120 }, '👑');
   ITEMS.gema = { id: 'gema', name: 'Gema Arcana', grade: 3, type: 'special', icon: '💎' };
   ITEMS.fragmento = { id: 'fragmento', name: 'Fragmento Estelar', grade: 5, type: 'special', icon: '🌠' };
   ITEMS.pocao_hp = { id: 'pocao_hp', name: 'Poção de Vida', grade: 0, type: 'potion', icon: '🧪', stats: { hpPct: 0.3 } };
@@ -297,19 +343,38 @@
   // loja do NPC (compra com aurum)
   const SHOP = { pocao_hp: 25, pocao_mp: 60, retorno: 80, kit_ng: 150 };
   Object.keys(WEAPONS).forEach(k => SHOP[`${k}_ng`] = 300); Object.keys(ARMORS).forEach(k => SHOP[`${k}_ng`] = 350);
+  Object.keys(PARTS).forEach(p => Object.keys(ARMORS).forEach(k => SHOP[`${p}_${k}_ng`] = 120)); SHOP.escudo_ng = 200;
   const npcPrice = (it) => Math.round(({ raw: 3, refined: 9, tool: 40, potion: 6, scroll: 20, special: 400 }[it.type] || 120) * Math.pow(2.2, it.grade));
 
   // ----- cidades, regiões e teleporte -----
   const WORLD = { SIZE: 3000, SEED: 20261110 };
+  // band = faixa de nível/região (0..5). As 6 primeiras são as capitais das faixas; as demais são cidades de raça.
   const TOWNS = [
-    { id: 'aurora', name: 'Vila Aurora', x: 1500, z: 2550, min: 1, max: 19, theme: 'verde', spots: [['Campos do Amanhecer', 200], ['Bosque dos Javalis', 330]] },
-    { id: 'dourado', name: 'Forte Dourado', x: 650, z: 2050, min: 20, max: 39, theme: 'outono', spots: [['Planície dos Bandidos', 120], ['Ninho das Aranhas', 250]] },
-    { id: 'pedra', name: 'Pedra Alta', x: 2350, z: 1950, min: 40, max: 51, theme: 'rocha', spots: [['Pedreira dos Golens', 60], ['Cripta Esquecida', 300]] },
-    { id: 'sylvar', name: 'Sylvar', x: 1500, z: 1450, min: 52, max: 60, theme: 'floresta', spots: [['Coração da Mata', 20], ['Vale Espectral', 160]] },
-    { id: 'rubra', name: 'Cidadela Rubra', x: 650, z: 800, min: 61, max: 75, theme: 'rubro', spots: [['Deserto Escarlate', 140], ['Fenda Demoníaca', 280]] },
-    { id: 'celeste', name: 'Bastião Celeste', x: 2350, z: 650, min: 76, max: 80, theme: 'cinza', spots: [['Ninho dos Dragões', 100], ['Ruínas de Aeternum', 230]] },
+    { id: 'aurora', name: 'Vila Aurora', race: 'humano', x: 1500, z: 2550, min: 1, max: 19, theme: 'verde', spots: [['Campos do Amanhecer', 200], ['Bosque dos Javalis', 330]] },
+    { id: 'dourado', name: 'Vale Dourado', race: 'halfling', x: 650, z: 2050, min: 20, max: 39, theme: 'outono', spots: [['Planície dos Bandidos', 120], ['Ninho das Aranhas', 250]] },
+    { id: 'pedra', name: 'Pedra Alta', race: 'anao', x: 2350, z: 1950, min: 40, max: 51, theme: 'rocha', spots: [['Pedreira dos Golens', 60], ['Cripta Esquecida', 300]] },
+    { id: 'sylvar', name: 'Sylvar', race: 'elfo', x: 1500, z: 1450, min: 52, max: 60, theme: 'floresta', spots: [['Coração da Mata', 20], ['Vale Espectral', 160]] },
+    { id: 'rubra', name: 'Cidadela Rubra', race: 'orc', x: 650, z: 800, min: 61, max: 75, theme: 'rubro', spots: [['Deserto Escarlate', 140], ['Fenda Demoníaca', 280]] },
+    { id: 'celeste', name: 'Bastião Celeste', race: 'sylph', x: 2350, z: 650, min: 76, max: 80, theme: 'cinza', spots: [['Ninho dos Dragões', 100], ['Ruínas de Aeternum', 230]] },
+    { id: 'presas', name: 'Clã das Presas', race: 'beastman', x: 1000, z: 1500, band: 1, min: 20, max: 39, theme: 'savana', spots: [] },
+    { id: 'umbraval', name: 'Umbraval', race: 'sombrio', x: 2150, z: 1300, band: 3, min: 52, max: 60, theme: 'sombra', spots: [] },
+    { id: 'pico', name: 'Pico do Dragão', race: 'draconato', x: 1450, z: 420, band: 4, min: 61, max: 75, theme: 'vulcao', spots: [] },
+    { id: 'noctis', name: 'Castelo Noctis', race: 'nocturno', x: 2720, z: 1150, band: 5, min: 76, max: 80, theme: 'noite', spots: [] },
+    { id: 'glacial', name: 'Fortaleza Glacial', race: 'gigante', x: 330, z: 330, band: 5, min: 76, max: 80, theme: 'gelo', spots: [] },
   ];
-  TOWNS.forEach((t, i) => { t.index = i; t.spotsPos = t.spots.map(([n, ang]) => ({ name: n, x: t.x + Math.cos(ang * Math.PI / 180) * 270, z: t.z + Math.sin(ang * Math.PI / 180) * 270, lvl: Math.round((t.min + t.max) / 2) })); });
+  TOWNS.forEach((t, i) => { t.index = i; if (t.band == null) t.band = i; t.spotsPos = t.spots.map(([n, ang]) => ({ name: n, x: t.x + Math.cos(ang * Math.PI / 180) * 270, z: t.z + Math.sin(ang * Math.PI / 180) * 270, lvl: Math.round((t.min + t.max) / 2) })); });
+  const CORE_TOWNS = TOWNS.slice(0, 6);
+  // locais especiais: castelos, ruínas e covis com chefes e drops exclusivos
+  const LANDMARKS = [
+    { id: 'castelo_corvos', name: 'Castelo dos Corvos', type: 'castelo', x: 1180, z: 2250, lvl: 18, boss: 'rei_corvo' },
+    { id: 'ruinas_velhas', name: 'Ruínas de Vel\'Anor', type: 'ruina', x: 1880, z: 2330, lvl: 15, boss: 'guardiao_ruinas' },
+    { id: 'forte_bandido', name: 'Forte dos Saqueadores', type: 'castelo', x: 420, z: 1750, lvl: 35, boss: 'chefe_saqueador' },
+    { id: 'cripta_reis', name: 'Cripta dos Reis', type: 'ruina', x: 2620, z: 2250, lvl: 50, boss: 'rei_lich' },
+    { id: 'templo_lua', name: 'Templo da Lua Partida', type: 'ruina', x: 1800, z: 1180, lvl: 59, boss: 'sacerdotisa_lua' },
+    { id: 'covil_hidra', name: 'Pântano da Hidra', type: 'covil', x: 950, z: 1150, lvl: 70, boss: 'hidra' },
+    { id: 'castelo_sangue', name: 'Castelo do Sangue Eterno', type: 'castelo', x: 2650, z: 820, lvl: 80, boss: 'conde_carmesim' },
+    { id: 'trono_gelo', name: 'Trono do Inverno', type: 'covil', x: 520, z: 520, lvl: 80, boss: 'wyrm_gelo' },
+  ];
   const SAFE_R = 70;
   const teleCost = (lvl) => 50 + lvl * 35;
 
@@ -321,6 +386,17 @@
     [{ id: 'ent', name: 'Ent Corrompido', model: 'ent', color: '#4a6a2a', scale: 1.1, aggro: false }, { id: 'lobo_esp', name: 'Lobo Espectral', model: 'quad', color: '#7ab8ff', scale: 1, aggro: true, ghost: true }, { id: 'ent_mil', name: 'Ent Milenar', model: 'ent', color: '#2a4a1a', scale: 2.2, boss: true }],
     [{ id: 'demonio', name: 'Demônio Rubro', model: 'humanoid', color: '#b03030', scale: 1.15, aggro: true, horns: true }, { id: 'lagarto', name: 'Lagarto Guerreiro', model: 'quad', color: '#9aa040', scale: 1.1, aggro: true }, { id: 'senhor_dem', name: 'Senhor Demônio', model: 'humanoid', color: '#6a0a0a', scale: 2.4, boss: true, horns: true }],
     [{ id: 'dragonete', name: 'Dragonete', model: 'dragon', color: '#6a4a9a', scale: 1, aggro: true }, { id: 'caido', name: 'Cavaleiro Caído', model: 'humanoid', color: '#2a2a3a', scale: 1.1, aggro: true }, { id: 'dragao', name: 'Dragão Celeste', model: 'dragon', color: '#d0c070', scale: 2.8, boss: true }],
+  ];
+  // chefes especiais dos locais (drops exclusivos)
+  const SPECIAL_BOSSES = [
+    { id: 'rei_corvo', name: 'Rei Corvo', model: 'humanoid', color: '#2a2a3a', scale: 2.0, boss: true, special: true, horns: false, drops: ['arco_corvo', 'gema'] },
+    { id: 'guardiao_ruinas', name: 'Guardião das Ruínas', model: 'golem', color: '#6a7a6a', scale: 2.4, boss: true, special: true, drops: ['escudo_ruinas', 'gema'] },
+    { id: 'chefe_saqueador', name: 'Grak, o Saqueador', model: 'humanoid', color: '#5f8a3a', scale: 2.1, boss: true, special: true, drops: ['machado_grak', 'gema'] },
+    { id: 'rei_lich', name: 'Rei Lich Morthas', model: 'humanoid', color: '#d8d2c0', scale: 2.3, boss: true, special: true, drops: ['cajado_lich', 'gema', 'fragmento'] },
+    { id: 'sacerdotisa_lua', name: 'Sacerdotisa da Lua Partida', model: 'humanoid', color: '#8a8ac8', scale: 2.0, boss: true, special: true, drops: ['adaga_lua', 'gema', 'fragmento'] },
+    { id: 'hidra', name: 'Hidra do Pântano', model: 'dragon', color: '#3a7a4a', scale: 2.8, boss: true, special: true, drops: ['lanca_hidra', 'fragmento'] },
+    { id: 'conde_carmesim', name: 'Conde Carmesim', model: 'humanoid', color: '#6a0a1a', scale: 2.4, boss: true, special: true, horns: true, drops: ['espada_carmesim', 'fragmento'] },
+    { id: 'wyrm_gelo', name: 'Wyrm do Inverno', model: 'dragon', color: '#9ad0f0', scale: 3.0, boss: true, special: true, drops: ['elmo_inverno', 'fragmento'] },
   ];
   // estatísticas esperadas de um jogador do nível L (balanceia os monstros)
   function expected(L) {
@@ -338,18 +414,19 @@
     buffs = buffs || {};
     const R = RACES[c.race], t = c.type, L = c.level, f = lf(L), cl = CLASSES[c.class_id] || baseClass(c.race, c.type), rk = cl.rank;
     const eq = c.equipment || {}, w = ITEMS[eq.arma], a = ITEMS[eq.armadura];
-    const ws = w ? w.stats : {}, as = a ? a.stats : {};
+    const ws = w ? w.stats : {}, as = {};
+    for (const [slot, id] of Object.entries(eq)) { if (slot === 'arma' || !ITEMS[id]) continue; for (const [k, v] of Object.entries(ITEMS[id].stats || {})) as[k] = (as[k] || 0) + v; }
     const wk = w ? WEAPONS[w.kind] : { range: 2.2, spd: 0.9 };
     const B = (k) => 1 + (buffs[k] || 0);
     const s = {
       maxHp: Math.round((R.hp[t] * f * (1 + 0.03 * rk) + (as.hp || 0)) ),
       maxMp: Math.round(R.mp[t] * f * (1 + 0.02 * rk) + (as.mp || 0)),
-      patk: (R.patk[t] + (ws.patk || 0)) * f * RANK_MULT[rk] * B('patk'),
-      matk: (R.matk[t] + (ws.matk || 0)) * f * RANK_MULT[rk] * (1 + (as.matkPct || 0)) * B('matk'),
+      patk: (R.patk[t] + (ws.patk || 0) + (as.patk || 0)) * f * RANK_MULT[rk] * B('patk'),
+      matk: (R.matk[t] + (ws.matk || 0) + (as.matk || 0)) * f * RANK_MULT[rk] * (1 + (as.matkPct || 0)) * B('matk'),
       pdef: (R.pdef + (as.pdef || 0)) * f * B('pdef'), mdef: (R.mdef + (as.mdef || 0)) * f * B('mdef'),
       speed: 6.2 * R.spd * (1 + (as.spd || 0)) * B('speed'),
       range: wk.range, atkInterval: wk.spd / B('atkspd'), magic: !!(w && WEAPONS[w.kind].magic) || (!w && t === 'm'),
-      crit: (w && w.kind === 'adaga' ? 0.15 : 0.08) + (buffs.crit || 0), weaponKind: w ? w.kind : null, armorKind: a ? a.kind : null,
+      crit: (w && w.kind === 'adaga' ? 0.15 : 0.08) + (ws.crit || 0) + (buffs.crit || 0), weaponKind: w ? w.kind : null, armorKind: a ? a.kind : null,
       arch: ARCH[cl.arch], cls: cl,
     };
     s.atk = s.magic ? s.matk : s.patk;
@@ -359,6 +436,6 @@
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
     RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
-    WORLD, TOWNS, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
+    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, SPECIAL_BOSSES, PARTS, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

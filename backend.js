@@ -24,7 +24,7 @@ class RemoteBackend {
   equip(i) { return this.rpc('game_equip', this.c({ p_item: i })); }
   unequip(s) { return this.rpc('game_unequip', this.c({ p_slot: s })); }
   useItem(i) { return this.rpc('game_use', this.c({ p_item: i })); }
-  kill(l, boss) { return this.rpc('game_kill', this.c({ p_mob_level: l, p_boss: !!boss })); }
+  kill(l, boss, fam) { return this.rpc('game_kill2', this.c({ p_mob_level: l, p_boss: !!boss, p_fam: fam || '' })); }
   die(pvp) { return this.rpc('game_die', this.c({ p_pvp: !!pvp })); }
   classChange(k) { return this.rpc('game_class_change', this.c({ p_class: k })); }
   teleport(d) { return this.rpc('game_teleport', this.c({ p_dest: d })); }
@@ -73,7 +73,7 @@ class LocalBackend {
     const cl = GD.baseClass(o.race, o.type); if (!cl) this.E('Combinação inválida');
     const A = GD.ARCH[cl.arch], w = A.weapon + '_ng';
     const c = { id: 'L' + Date.now(), ...o, class_id: cl.id, level: 1, xp: 0, hp: 9999, mp: 9999, x: 1500, z: 2578, aurum: 300, karma: 0, pvp: 0, pk: 0, profs: {},
-      equipment: { arma: w, armadura: A.armor + '_ng' }, inv: { pocao_hp: 8, retorno: 2 }, is_gm: true };
+      equipment: { arma: w, armadura: A.armor + '_ng', ...(A.shield ? { escudo: 'escudo_ng' } : {}) }, inv: { pocao_hp: 8, retorno: 2 }, is_gm: true };
     this.d.chars.push(c); this._s(); return c.id;
   }
   async deleteChar(id) { this.d.chars = this.d.chars.filter(c => c.id !== id); this._s(); }
@@ -106,10 +106,10 @@ class LocalBackend {
   async equip(i) { const it = GD.ITEMS[i], c = this.C; if (!it || !it.slot) this.E('Item não equipável'); const req = GD.GRADES[it.grade].lvl; if (c.level < req) this.E(`Equipamento de grau ${GD.GRADES[it.grade].id} exige nível ${req}`); this._take(i, 1); const o = c.equipment[it.slot]; if (o) this._add(o, 1); c.equipment[it.slot] = i; this._s(); return { ...c.equipment }; }
   async unequip(s) { const c = this.C, o = c.equipment[s]; if (!o) this.E('Nada equipado'); this._add(o, 1); delete c.equipment[s]; this._s(); return { ...c.equipment }; }
   async useItem(i) { const it = GD.ITEMS[i]; if (!it || !['potion', 'scroll'].includes(it.type)) this.E('Item não utilizável'); this._take(i, 1); if (it.type === 'scroll') { const t = WG.nearestTown(this.C.x, this.C.z).town; this.C.x = t.x; this.C.z = t.z + 25; this._s(); return { tp: true, x: t.x, z: t.z + 25, town: t.name }; } this._s(); return it.stats; }
-  async kill(L, boss) {
+  async kill(L, boss, fam) {
     const c = this.C; L = Math.max(1, Math.min(80, Math.min(L, c.level + 12)));
     let pen = 1; if (L < c.level - 5) pen = Math.max(0.1, 1 - (c.level - 5 - L) * 0.15);
-    const gain = Math.round(GD.mobXp(L) * pen * (boss ? 12 : 1)); let au = L * 3 + Math.floor(Math.random() * L * 5); if (boss) au *= 10;
+    const gain = Math.round(GD.mobXp(L) * pen * (boss ? 12 : 1) * GD.RATE_XP); let au = L * 3 + Math.floor(Math.random() * L * 5); if (boss) au *= 10; au *= GD.RATE_AURUM;
     c.xp += gain; let ups = 0; while (c.level < 80 && c.xp >= GD.xpNeed(c.level)) { c.xp -= GD.xpNeed(c.level); c.level++; ups++; }
     c.aurum += au; c.karma = Math.max(0, c.karma - Math.max(5, L >> 1));
     const gid = GD.GRADES[GD.gradeForLevel(L)].id.toLowerCase(), drops = {};
@@ -117,7 +117,9 @@ class LocalBackend {
     if (Math.random() < 0.22) { const it = ['madeira', 'minerio', 'fibra'][Math.floor(Math.random() * 3)] + '_' + gid; this._add(it, 1); drops[it] = 1; }
     if (L >= 52 && (Math.random() < 0.07 || boss)) { this._add('gema', 1); drops.gema = 1; }
     if (L >= 76 && (Math.random() < 0.035 || boss)) { this._add('fragmento', 1); drops.fragmento = 1; }
-    this._s(); return { xp: gain, level: c.level, xp_now: c.xp, aurum: au, drops, levelups: ups };
+    let unique = null; const sb = GD.SPECIAL_BOSSES.find(b => b.id === fam);
+    if (sb) { for (const it of sb.drops) { if (GD.ITEMS[it].unique) { if (Math.random() < 0.35) { this._add(it, 1); drops[it] = 1; unique = it; } } else { this._add(it, 2); drops[it] = 2; } } }
+    this._s(); return { xp: gain, level: c.level, xp_now: c.xp, aurum: au, drops, levelups: ups, unique };
   }
   async die(pvp) { const c = this.C; const lost = Math.min(c.xp, pvp ? 0 : Math.round(GD.xpNeed(c.level) * 0.04)); c.xp -= lost; const t = WG.nearestTown(c.x, c.z).town; c.x = t.x; c.z = t.z + 25; this._s(); return { x: c.x, z: c.z, town: t.name, xp_lost: lost }; }
   async classChange(k) { const c = this.C, n = GD.CLASSES[k]; if (!n || n.parent !== c.class_id) this.E('Essa classe não é compatível com a sua classe atual'); if (c.level < GD.RANK_LVL[n.rank]) this.E('Requer nível ' + GD.RANK_LVL[n.rank]); c.class_id = k; this._s(); return n.name; }
@@ -135,8 +137,8 @@ class LocalBackend {
     const c = this.C, Q = QD.QUESTS[id]; c.quests = c.quests || {};
     if (c.quests[id]) this.E('Missão já concluída'); if (c.level < Q.lvl) this.E('Requer nível ' + Q.lvl); if (Q.prereq && !c.quests[Q.prereq]) this.E('Conclua a missão anterior primeiro');
     if (Q.goal.type === 'turnin') { for (const [k, v] of Object.entries(Q.goal.items)) if ((c.inv[k] || 0) < v) this.E(`Faltam itens: ${GD.ITEMS[k].name}`); for (const [k, v] of Object.entries(Q.goal.items)) this._take(k, v); }
-    c.xp += Q.reward.xp || 0; let ups = 0; while (c.level < 80 && c.xp >= GD.xpNeed(c.level)) { c.xp -= GD.xpNeed(c.level); c.level++; ups++; }
-    c.aurum += Q.reward.aurum || 0; for (const [k, v] of Object.entries(Q.reward.items || {})) this._add(k, v); c.quests[id] = true; this._s();
+    c.xp += (Q.reward.xp || 0) * GD.RATE_XP; let ups = 0; while (c.level < 80 && c.xp >= GD.xpNeed(c.level)) { c.xp -= GD.xpNeed(c.level); c.level++; ups++; }
+    c.aurum += (Q.reward.aurum || 0) * GD.RATE_AURUM; for (const [k, v] of Object.entries(Q.reward.items || {})) this._add(k, v); c.quests[id] = true; this._s();
     return { level: c.level, xp_now: c.xp, levelups: ups, reward: Q.reward };
   }
   async gm(cmd, a) {

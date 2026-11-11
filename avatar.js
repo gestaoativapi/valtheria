@@ -190,7 +190,7 @@ export function buildHumanoid(o) {
   const m = { root, body, P, o, look, race, gear: G(), anim: { state: 'idle', t: 0, atk: -1, kind: null, blink: 2 + Math.random() * 3, expr: 'neutral', exprUntil: 0 } };
   body.add(m.gear);
   m.setExpr = (e, ms = 1800) => setExpr(m, e, ms);
-  setGear(m, o.weapon, o.armor);
+  setGear(m, o.weapon, o.armor, o.equip);
   return m;
 }
 
@@ -224,12 +224,12 @@ const ARMOR_COL = {
 };
 const TRIM = ['#555', '#7a5a2a', '#9aa2ac', '#c9b26a', '#e8c25a', '#ffd86a'];
 const GLOW = [0, 0, 0, 0x2a6aff, 0xff2a2a, 0xb04aff];
-export function setGear(m, weaponId, armorId) {
-  const P = m.P, fem = m.o.gender === 'f';
+export function setGear(m, weaponId, armorId, equip) {
+  const P = m.P, fem = m.o.gender === 'f'; equip = equip || m.o.equip || {}; m.o.equip = equip;
   (m.gearParts || []).forEach(x => x.parent && x.parent.remove(x)); m.gearParts = [];
   const add = (parent, obj) => { parent.add(obj); m.gearParts.push(obj); return obj; };
   const a = GD.ITEMS[armorId], w = GD.ITEMS[weaponId];
-  P.base.visible = !a;
+  P.base.visible = !a; if (P.hair) P.hair.visible = true;
   if (a) {
     const g = a.grade, heavy = a.kind === 'pesada';
     const am = heavy ? toon(ARMOR_COL[a.kind][g], { metal: 0.6, rough: 0.35, emissive: GLOW[g], ei: g >= 3 ? 0.15 : 0 }) : toon(ARMOR_COL[a.kind][g], { emissive: GLOW[g], ei: g >= 3 ? 0.12 : 0 });
@@ -255,7 +255,15 @@ export function setGear(m, weaponId, armorId) {
       s.add(at(tube(0.022, 0.022, 0.18, wood, 8), 0, -0.02, 0), at(capsule(0.025, 0.2, gold, 8), 0, 0.08, 0)).children.at(-1).rotation.z = Math.PI / 2;
       s.add(at(ball(0.03, gold, 10, 8), 0, -0.12, 0)); const bl = at(new THREE.Mesh(bladeGeo(L, k === 'espadao' ? 0.1 : 0.07), blade), 0, 0.1, -0.009); bl.castShadow = true; s.add(bl);
       s.rotation.x = 2.0; add(H, s);
-      if (k === 'espada') { const sh = G(); const disc = M(new THREE.CylinderGeometry(0.26, 0.26, 0.04, 24), toon(ARMOR_COL.pesada[g], { metal: 0.5 })); disc.rotation.x = Math.PI / 2; disc.scale.set(0.85, 1, 1.15); sh.add(disc, at(ball(0.06, gold, 12, 8), 0, 0, 0.03)); sh.rotation.y = Math.PI / 2; add(P.armL.fa, at(sh, -0.07, -0.16, 0)); }
+
+    } else if (k === 'lanca') {
+      const s = G(); s.add(at(tube(0.022, 0.026, 2.3, wood, 8), 0, 0.35, 0)); const head = at(cone(0.06, 0.32, blade, 8), 0, 1.66, 0); s.add(head, at(tube(0.035, 0.035, 0.06, gold, 10), 0, 1.48, 0));
+      s.rotation.x = 1.7; add(H, s);
+    } else if (k === 'machado') {
+      const s = G(); s.add(at(tube(0.026, 0.03, 1.05, wood, 8), 0, 0.3, 0));
+      const ax = new THREE.Shape(); ax.moveTo(0, 0.12); ax.quadraticCurveTo(0.22, 0.2, 0.3, 0.02); ax.quadraticCurveTo(0.34, -0.14, 0.26, -0.26); ax.quadraticCurveTo(0.14, -0.12, 0, -0.1); ax.lineTo(0, 0.12);
+      const bl = at(new THREE.Mesh(new THREE.ExtrudeGeometry(ax, { depth: 0.025, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 1 }), blade), 0.02, 0.72, -0.012); bl.castShadow = true; s.add(bl);
+      s.rotation.x = 2.0; add(H, s);
     } else if (k === 'adaga') {
       [H, HL].forEach(h => { const s = G(); s.add(at(tube(0.018, 0.018, 0.12, wood, 8), 0, 0, 0), at(new THREE.Mesh(bladeGeo(0.32, 0.05), blade), 0, 0.06, -0.008)); s.rotation.x = Math.PI / 2; add(h, s); });
     } else if (k === 'arco') {
@@ -272,6 +280,28 @@ export function setGear(m, weaponId, armorId) {
     }
     m.weaponKind = k;
   } else m.weaponKind = null;
+  // peças extras: escudo, elmo, luvas e botas
+  const E = (slot) => GD.ITEMS[equip[slot]];
+  const sh = E('escudo');
+  if (sh) { const g = sh.grade, sm = toon(sh.relic ? '#6a7a6a' : ARMOR_COL.pesada[g], { metal: 0.5 }), tm = toon(TRIM[g]);
+    const kite = new THREE.Shape(); kite.moveTo(0, 0.32); kite.quadraticCurveTo(0.26, 0.3, 0.25, 0.05); kite.quadraticCurveTo(0.2, -0.22, 0, -0.38); kite.quadraticCurveTo(-0.2, -0.22, -0.25, 0.05); kite.quadraticCurveTo(-0.26, 0.3, 0, 0.32);
+    const body = new THREE.Mesh(new THREE.ExtrudeGeometry(kite, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 2 }), sm); body.castShadow = true; ol(body);
+    const em = at(ball(0.06, tm, 12, 8), 0, 0.04, 0.06); em.scale.z = 0.4; const grp = G(); grp.add(body, em); if (g >= 3) grp.add(at(ball(0.035, toon('#fff', { emissive: GLOW[g], ei: 1 }), 10, 8), 0, 0.04, 0.09));
+    grp.rotation.y = -Math.PI / 2; add(P.armL.fa, at(grp, -0.09, -0.15, 0)); }
+  const hm = E('elmo');
+  if (hm) { const g = hm.grade, kind = hm.kind;
+    if (kind === 'pesada') { const hc = toon(hm.relic ? '#cfe8ff' : ARMOR_COL.pesada[g], { metal: 0.6 }); const dome = new THREE.Mesh(new THREE.SphereGeometry(0.168, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hc); dome.castShadow = true; ol(dome); dome.position.y = 0.02; add(P.head, dome);
+      add(P.head, at(capsule(0.012, 0.09, toon(TRIM[g]), 6), 0, -0.01, 0.165)); [-1, 1].forEach(s => add(P.head, at(ball(0.05, hc, 10, 8), s * 0.15, -0.04, 0)).scale.set(0.5, 1.2, 1));
+      if (hm.relic) for (let i = 0; i < 5; i++) add(P.head, at(cone(0.02, 0.1, toon('#bfefff', { emissive: 0x6ac8ff, ei: 0.6 }), 6), Math.cos(i * 0.6 - 1.2) * 0.13, 0.15, Math.sin(i * 0.6 - 1.2) * 0.13 + 0.03));
+      if (P.hair) P.hair.visible = false; }
+    else if (kind === 'leve') { const hood = new THREE.Mesh(new THREE.SphereGeometry(0.18, 24, 16, Math.PI * 0.15, Math.PI * 1.7, 0, Math.PI * 0.7), toon(ARMOR_COL.leve[g], { double: true })); hood.rotation.y = Math.PI; hood.castShadow = true; hood.position.set(0, 0.02, -0.01); add(P.head, hood); if (P.hair) P.hair.visible = false; }
+    else { const hat = G(); hat.add(at(tube(0.26, 0.26, 0.02, toon(ARMOR_COL.robe[g]), 24), 0, 0, 0), at(cone(0.13, 0.36, toon(ARMOR_COL.robe[g]), 16), 0, 0.18, -0.02)); hat.children[1].rotation.x = -0.25; hat.position.y = 0.13; add(P.head, hat); } }
+  const gl = E('luvas');
+  if (gl) { const gm = toon(gl.kind === 'pesada' ? ARMOR_COL.pesada[gl.grade] : gl.kind === 'leve' ? ARMOR_COL.leve[gl.grade] : ARMOR_COL.robe[gl.grade], gl.kind === 'pesada' ? { metal: 0.6 } : {});
+    [P.armL, P.armR].forEach(A => { const h = at(ball(0.058, gm, 12, 10), 0, 0, 0); h.scale.set(0.9, 1.2, 0.8); add(A.hand, h); add(A.fa, at(tube(0.06, 0.055, 0.09, gm, 12), 0, -0.25, 0)); }); }
+  const bt = E('botas');
+  if (bt) { const bm = toon(bt.kind === 'pesada' ? ARMOR_COL.pesada[bt.grade] : bt.kind === 'leve' ? '#4a3424' : ARMOR_COL.robe[bt.grade], bt.kind === 'pesada' ? { metal: 0.6 } : {});
+    [P.legL, P.legR].forEach(L => { add(L.sh, at(tube(0.075, 0.068, 0.24, bm, 12), 0, -0.32, 0)); const f = at(capsule(0.058, 0.13, bm), 0, -0.43, 0.065); f.rotation.x = Math.PI / 2; add(L.sh, f); }); }
 }
 
 // ---------- animação procedural humanizada ----------

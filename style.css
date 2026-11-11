@@ -84,3 +84,6 @@ table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:4px;borde
 .lore p{margin:6px 0;line-height:1.5;font-size:13px}.lore h4{font-size:15px}
 .tree{font-size:12px}.tree .t1{margin-left:0}.tree .t2{margin-left:14px;color:#cdbb99}.tree .t3{margin-left:28px;color:#a99d8a}.tree .t4{margin-left:42px;color:#8a8070}
 #loading{z-index:60}
+
+.sk.t-buff{border-color:#3a9a5a;box-shadow:inset 0 0 8px #3aff7a44}.sk.t-debuff{border-color:#7a3ac8;box-shadow:inset 0 0 8px #a04aff55}.sk.t-heal{border-color:#3aa8a8}
+.sk.empty{opacity:.55}.skrow{cursor:grab}.skrow .sk{width:42px;height:42px;font-size:22px}
