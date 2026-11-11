@@ -344,7 +344,7 @@
   const SHOP = { pocao_hp: 25, pocao_mp: 60, retorno: 80, kit_ng: 150 };
   Object.keys(WEAPONS).forEach(k => SHOP[`${k}_ng`] = 300); Object.keys(ARMORS).forEach(k => SHOP[`${k}_ng`] = 350);
   Object.keys(PARTS).forEach(p => Object.keys(ARMORS).forEach(k => SHOP[`${p}_${k}_ng`] = 120)); SHOP.escudo_ng = 200;
-  const npcPrice = (it) => Math.round(({ raw: 3, refined: 9, tool: 40, potion: 6, scroll: 20, special: 400 }[it.type] || 120) * Math.pow(2.2, it.grade));
+  const npcPrice = (it) => Math.round(({ raw: 3, refined: 9, tool: 40, potion: 6, scroll: 20, special: 400, trophy: 30, enchant: 150 }[it.type] || 120) * Math.pow(2.2, it.grade));
 
   // ----- cidades, regiões e teleporte -----
   const WORLD = { SIZE: 3000, SEED: 20261110 };
@@ -398,6 +398,18 @@
     { id: 'conde_carmesim', name: 'Conde Carmesim', model: 'humanoid', color: '#6a0a1a', scale: 2.4, boss: true, special: true, horns: true, drops: ['espada_carmesim', 'fragmento'] },
     { id: 'wyrm_gelo', name: 'Wyrm do Inverno', model: 'dragon', color: '#9ad0f0', scale: 3.0, boss: true, special: true, drops: ['elmo_inverno', 'fragmento'] },
   ];
+  // ----- troféus de caça (drop de cada família; servem para missões e venda) -----
+  const TROPHY = { javali: ['Presa de Javali', '🐗'], lobo: ['Pele de Lobo Cinzento', '🐺'], bandido: ['Insígnia de Bandido', '🏴'], aranha: ['Seda de Aranha', '🕸️'], golem: ['Núcleo de Golem', '🪨'], esqueleto: ['Osso Amaldiçoado', '🦴'], ent: ['Seiva Corrompida', '🌿'], lobo_esp: ['Essência Espectral', '👻'], demonio: ['Chifre Demoníaco', '😈'], lagarto: ['Escama de Lagarto', '🦎'], dragonete: ['Escama de Dragonete', '🐉'], caido: ['Selo do Cavaleiro Caído', '⚜️'] };
+  MOBS.forEach((fs, g) => fs.forEach(f => { if (TROPHY[f.id]) ITEMS['tr_' + f.id] = { id: 'tr_' + f.id, name: TROPHY[f.id][0], grade: g, type: 'trophy', icon: TROPHY[f.id][1], fam: f.id }; }));
+  // ----- pergaminhos de encantamento (estilo clássico: seguro até +3, máximo +10) -----
+  GRADES.forEach((G, g) => {
+    const k = G.id.toLowerCase();
+    ITEMS['enc_arma_' + k] = { id: 'enc_arma_' + k, name: 'Encantar Arma (' + G.name + ')', grade: g, type: 'enchant', icon: '📜', enc: 'arma' };
+    ITEMS['enc_arm_' + k] = { id: 'enc_arm_' + k, name: 'Encantar Armadura (' + G.name + ')', grade: g, type: 'enchant', icon: '📃', enc: 'armadura' };
+  });
+  const ENCHANT_SAFE = 3, ENCHANT_MAX = 10;
+  const enchantChance = (n) => n < ENCHANT_SAFE ? 1 : Math.max(0.3, 0.66 - (n - ENCHANT_SAFE) * 0.04);
+  const enchantMult = (slot, n) => 1 + (n || 0) * (slot === 'arma' ? 0.05 : 0.04);
   // estatísticas esperadas de um jogador do nível L (balanceia os monstros)
   function expected(L) {
     const f = lf(L), gi = gradeForLevel(L), gp = GRADES[gi].gp, r = rankForLevel(L);
@@ -414,8 +426,10 @@
     buffs = buffs || {};
     const R = RACES[c.race], t = c.type, L = c.level, f = lf(L), cl = CLASSES[c.class_id] || baseClass(c.race, c.type), rk = cl.rank;
     const eq = c.equipment || {}, w = ITEMS[eq.arma], a = ITEMS[eq.armadura];
-    const ws = w ? w.stats : {}, as = {};
-    for (const [slot, id] of Object.entries(eq)) { if (slot === 'arma' || !ITEMS[id]) continue; for (const [k, v] of Object.entries(ITEMS[id].stats || {})) as[k] = (as[k] || 0) + v; }
+    const en = c.enchant || {}, wm = w ? enchantMult('arma', en[eq.arma]) : 1;
+    const ws = {}; if (w) for (const [k, v] of Object.entries(w.stats || {})) ws[k] = (k === 'patk' || k === 'matk') ? v * wm : v;
+    const as = {};
+    for (const [slot, id] of Object.entries(eq)) { if (slot === 'arma' || !ITEMS[id]) continue; const am = enchantMult(slot, en[id]); for (const [k, v] of Object.entries(ITEMS[id].stats || {})) as[k] = (as[k] || 0) + ((k === 'pdef' || k === 'mdef') ? v * am : v); }
     const wk = w ? WEAPONS[w.kind] : { range: 2.2, spd: 0.9 };
     const B = (k) => 1 + (buffs[k] || 0);
     const s = {
@@ -436,6 +450,6 @@
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
     RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
-    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, SPECIAL_BOSSES, PARTS, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
+    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, SPECIAL_BOSSES, PARTS, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

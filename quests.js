@@ -1,4 +1,4 @@
-// ===== Reinos de Aurora — enredo e missões =====
+// ===== Valtheria — enredo e missões =====
 (function (root) {
   const LORE = {
     title: 'A Era do Eclipse',
@@ -31,7 +31,7 @@
   q({ id: 'm13', main: true, town: 'rubra', lvl: 76, prereq: 'm12', title: 'O Eclipse', text: 'Os Cavaleiros Caídos, antigos heróis de Malachar, protegem o caminho para o céu.', goal: { type: 'kill', fam: 'caido', n: 15 }, reward: { xp: 10000000, aurum: 90000, items: { fragmento: 1 } } });
   q({ id: 'm14', main: true, town: 'celeste', lvl: 80, prereq: 'm13', title: 'O Dragão Celeste', text: 'O último fragmento pulsa no coração do Dragão Celeste. Reúna os mais fortes do reino. Restaure a Coroa.', goal: { type: 'boss', fam: 'dragao', spot: ['celeste', 1] }, reward: { xp: 30000000, aurum: 500000, items: { fragmento: 4, gema: 6 } } });
   // ----- secundárias (entregas verificadas pelo servidor) -----
-  const side = (id, town, lvl, title, text, goal, reward) => q({ id, town, lvl, title, text, goal, reward });
+  const side = (id, town, lvl, title, text, goal, reward) => q({ id, kind: 'secundaria', town, lvl, title, text, goal, reward });
   side('s_aur1', 'aurora', 1, 'Lenha para o Inverno', 'O ferreiro da vila precisa de madeira para as fornalhas.', { type: 'turnin', items: { madeira_ng: 10 } }, { xp: 400, aurum: 250, items: { pocao_hp: 5 } });
   side('s_aur2', 'aurora', 4, 'A Primeira Forja', 'Refine minério na Refinaria e entregue barras ao ferreiro.', { type: 'turnin', items: { barra_ng: 5 } }, { xp: 1500, aurum: 400, items: { kit_ng: 1 } });
   side('s_dou1', 'dourado', 20, 'Couro para os Guardas', 'A guarnição do Forte precisa de couro curtido.', { type: 'turnin', items: { couro_d: 8 } }, { xp: 60000, aurum: 2500 });
@@ -45,6 +45,36 @@
   side('s_cel1', 'celeste', 76, 'A Liga Celestial', 'Os mestres forjadores precisam de barras S para as armas finais.', { type: 'turnin', items: { barra_s: 5, fragmento: 1 } }, { xp: 8000000, aurum: 150000, items: { gema: 3 } });
   side('s_cel2', 'celeste', 78, 'Ninho dos Dragões', 'Dragonetes protegem o caminho até o Dragão Celeste.', { type: 'kill', fam: 'dragonete', n: 20 }, { xp: 9000000, aurum: 150000, items: { fragmento: 1 } });
 
+  // ----- secundárias das cidades novas e troféus -----
+  side('s_aur3', 'aurora', 6, 'Presas para o Curtidor', 'O curtidor da vila paga bem por presas de javali.', { type: 'turnin', items: { tr_javali: 8 } }, { xp: 3000, aurum: 600, items: { enc_arm_ng: 1 } });
+  side('s_dou3', 'dourado', 24, 'Insígnias Roubadas', 'Os bandidos usam insígnias para se reconhecer. Traga-as ao xerife.', { type: 'turnin', items: { tr_bandido: 10 } }, { xp: 90000, aurum: 3000, items: { enc_arma_d: 1 } });
+  side('s_pre1', 'presas', 22, 'Prova do Caçador', 'O Clã das Presas só respeita quem traz troféus. Mostre sua força.', { type: 'turnin', items: { tr_aranha: 12 } }, { xp: 110000, aurum: 3500, items: { enc_arm_d: 2 } });
+  side('s_pre2', 'presas', 30, 'A Grande Caçada', 'A matilha precisa de carne para o inverno. Ajude na caçada dos bandidos da estrada.', { type: 'kill', fam: 'bandido', n: 25 }, { xp: 200000, aurum: 5000, items: { pocao_hp2: 10 } });
+  side('s_ped3', 'pedra', 46, 'Núcleos para a Forja Rúnica', 'Os mestres rúnicos gravam runas em núcleos de golem.', { type: 'turnin', items: { tr_golem: 12 } }, { xp: 800000, aurum: 12000, items: { enc_arma_c: 1 } });
+  side('s_umb1', 'umbraval', 53, 'Ecos na Escuridão', 'Lobos espectrais rondam as pontes de obsidiana.', { type: 'kill', fam: 'lobo_esp', n: 20 }, { xp: 1700000, aurum: 26000, items: { enc_arm_b: 1 } });
+  side('s_umb2', 'umbraval', 56, 'Seiva para os Venenos', 'As alquimistas sombrias destilam venenos da seiva corrompida.', { type: 'turnin', items: { tr_ent: 12 } }, { xp: 1900000, aurum: 30000, items: { enc_arma_b: 1 } });
+  side('s_pic1', 'pico', 62, 'Escamas para os Escudos', 'Os ferreiros draconatos reforçam escudos com escamas de lagarto.', { type: 'turnin', items: { tr_lagarto: 12 } }, { xp: 3200000, aurum: 55000, items: { enc_arm_a: 2 } });
+  side('s_pic2', 'pico', 68, 'Chifres do Abismo', 'O Pico do Dragão paga por cada demônio abatido.', { type: 'kill', fam: 'demonio', n: 25 }, { xp: 4000000, aurum: 60000, items: { enc_arma_a: 1 } });
+  side('s_noc1', 'noctis', 76, 'Selos dos Caídos', 'Os nocturnos querem destruir os selos dos antigos cavaleiros.', { type: 'turnin', items: { tr_caido: 12 } }, { xp: 9000000, aurum: 160000, items: { enc_arma_s: 1 } });
+  side('s_gla1', 'glacial', 77, 'Escamas do Céu', 'Os gigantes forjam armaduras com escamas de dragonete.', { type: 'turnin', items: { tr_dragonete: 12 } }, { xp: 9500000, aurum: 160000, items: { enc_arm_s: 2 } });
+  // ----- lendas: chefes dos locais especiais (aceitas em qualquer cidade) -----
+  const legend = (id, lvl, title, text, fam, lm, reward) => q({ id, kind: 'lenda', town: '*', lvl, title, text, goal: { type: 'boss', fam, lm }, reward });
+  legend('l_corvo', 15, 'Lenda: o Rei Corvo', 'Um rei amaldiçoado governa o Castelo dos Corvos. Derrote-o e talvez ganhe seu arco.', 'rei_corvo', 'castelo_corvos', { xp: 25000, aurum: 3000, items: { enc_arma_ng: 2 } });
+  legend('l_ruinas', 14, 'Lenda: o Guardião das Ruínas', 'Nas ruínas de Vel\'Anor, um colosso de pedra protege um escudo antigo.', 'guardiao_ruinas', 'ruinas_velhas', { xp: 22000, aurum: 3000, items: { enc_arm_ng: 2 } });
+  legend('l_grak', 32, 'Lenda: Grak, o Saqueador', 'O líder dos saqueadores ergueu um forte na estrada do oeste.', 'chefe_saqueador', 'forte_bandido', { xp: 300000, aurum: 9000, items: { enc_arma_d: 2 } });
+  legend('l_lich', 48, 'Lenda: o Rei Lich', 'Morthas desperta na Cripta dos Reis a cada lua nova.', 'rei_lich', 'cripta_reis', { xp: 1200000, aurum: 20000, items: { enc_arma_c: 2 } });
+  legend('l_lua', 57, 'Lenda: a Sacerdotisa da Lua', 'No Templo da Lua Partida, uma sacerdotisa canta para Nyx.', 'sacerdotisa_lua', 'templo_lua', { xp: 2500000, aurum: 40000, items: { enc_arma_b: 2 } });
+  legend('l_hidra', 68, 'Lenda: a Hidra do Pântano', 'Três cabeças, um pântano inteiro de veneno.', 'hidra', 'covil_hidra', { xp: 6000000, aurum: 90000, items: { enc_arma_a: 2 } });
+  legend('l_conde', 78, 'Lenda: o Conde Carmesim', 'O senhor do Castelo do Sangue Eterno nunca perdeu um duelo.', 'conde_carmesim', 'castelo_sangue', { xp: 15000000, aurum: 250000, items: { enc_arma_s: 2 } });
+  legend('l_wyrm', 78, 'Lenda: o Wyrm do Inverno', 'No Trono do Inverno dorme a criatura mais fria do mundo.', 'wyrm_gelo', 'trono_gelo', { xp: 15000000, aurum: 250000, items: { enc_arm_s: 3 } });
+  // ----- diárias (renovam à meia-noite; aceitas em qualquer Arauto) -----
+  const BANDS = [['aurora', 1, 'NG', ['javali', 'lobo', 'rei_javali']], ['dourado', 20, 'D', ['bandido', 'aranha', 'rainha']], ['pedra', 40, 'C', ['golem', 'esqueleto', 'golem_anc']], ['sylvar', 52, 'B', ['ent', 'lobo_esp', 'ent_mil']], ['rubra', 61, 'A', ['demonio', 'lagarto', 'senhor_dem']], ['celeste', 76, 'S', ['dragonete', 'caido', 'dragao']]];
+  const need = (L) => Math.round(50 * Math.pow(L, 2.4));
+  BANDS.forEach(([town, L, G, f], b) => { const g = G.toLowerCase(), base = need(L + 4) / 50;
+    q({ id: `d${b}_caca`, kind: 'diaria', town: '*', band: b, lvl: L, title: `Diária: Caçada (${G})`, text: 'O conselho paga por cada fera abatida perto das estradas.', goal: { type: 'kill', fam: f[1], n: 30, daily: true }, reward: { xp: Math.round(base * 0.35), aurum: 200 * (b + 1), items: { [`enc_arm_${g}`]: 1, pocao_hp: 5 } } });
+    q({ id: `d${b}_trofeu`, kind: 'diaria', town: '*', band: b, lvl: L, title: `Diária: Encomenda do Mercador (${G})`, text: 'Um mercador viajante procura troféus de caça.', goal: { type: 'turnin', items: { [`tr_${f[0]}`]: 10 }, daily: true }, reward: { xp: Math.round(base * 0.25), aurum: 400 * (b + 1), items: { [`enc_arma_${g}`]: 1 } } });
+    q({ id: `d${b}_chefe`, kind: 'diaria', town: '*', band: b, lvl: L + 4, title: `Diária: Ameaça do Dia (${G})`, text: 'Um chefe voltou a aparecer na região. Reúna aliados e derrote-o.', goal: { type: 'boss', fam: f[2], spot: [town, 1], daily: true }, reward: { xp: Math.round(base * 0.6), aurum: 800 * (b + 1), items: { [`enc_arma_${g}`]: 1, [`enc_arm_${g}`]: 2 } } });
+  });
   const QUESTS = {}; Q.forEach(x => QUESTS[x.id] = x);
   const api = { LORE, QUESTS, LIST: Q };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.QD = api;

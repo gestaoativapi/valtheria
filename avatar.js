@@ -115,7 +115,7 @@ export function buildHumanoid(o) {
   P.neck = at(tube(0.05, 0.06, 0.14, skin), 0, 0.68, 0); P.torso.add(P.neck);
   // cabeça
   const hs = (f.headBig || 1) * (fem ? 0.97 : 1);
-  P.head = at(G(), 0, 0.86, 0.0); P.torso.add(P.head); P.head.scale.setScalar(1.16);
+  P.head = at(G(), 0, 0.86, 0.0); P.torso.add(P.head); P.head.scale.setScalar(race === 'halfling' ? 1.1 : race === 'gigante' || race === 'orc' ? 0.94 : 0.98);
   const faceShape = [[1, 1.12, 1.02], [1.06, 1.06, 1.04], [1.02, 1.1, 1.0], [0.94, 1.16, 0.98]][look.face || 0];
   P.skull = new THREE.Mesh(new THREE.SphereGeometry(0.15 * hs, 40, 28), faceTexture(look, race)); P.skull.castShadow = true; ol(P.skull);
   P.skull.scale.set(...faceShape); P.head.add(P.skull);
@@ -190,7 +190,7 @@ export function buildHumanoid(o) {
   const m = { root, body, P, o, look, race, gear: G(), anim: { state: 'idle', t: 0, atk: -1, kind: null, blink: 2 + Math.random() * 3, expr: 'neutral', exprUntil: 0 } };
   body.add(m.gear);
   m.setExpr = (e, ms = 1800) => setExpr(m, e, ms);
-  setGear(m, o.weapon, o.armor, o.equip);
+  m.enc = o.enc || 0; setGear(m, o.weapon, o.armor, o.equip);
   return m;
 }
 
@@ -224,6 +224,8 @@ const ARMOR_COL = {
 };
 const TRIM = ['#555', '#7a5a2a', '#9aa2ac', '#c9b26a', '#e8c25a', '#ffd86a'];
 const GLOW = [0, 0, 0, 0x2a6aff, 0xff2a2a, 0xb04aff];
+let _glowTex = null;
+function glowTex() { if (_glowTex) return _glowTex; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.4, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); _glowTex = new THREE.CanvasTexture(c); return _glowTex; }
 export function setGear(m, weaponId, armorId, equip) {
   const P = m.P, fem = m.o.gender === 'f'; equip = equip || m.o.equip || {}; m.o.equip = equip;
   (m.gearParts || []).forEach(x => x.parent && x.parent.remove(x)); m.gearParts = [];
@@ -279,6 +281,11 @@ export function setGear(m, weaponId, armorId, equip) {
       const s = G(); s.add(at(tube(0.028, 0.028, 0.9, wood, 8), 0, 0.25, 0)); const hd = at(M(new THREE.CylinderGeometry(0.075, 0.075, 0.24, 12), blade), 0, 0.66, 0); hd.rotation.z = Math.PI / 2; s.add(hd); s.rotation.x = Math.PI / 2; add(H, s);
     }
     m.weaponKind = k;
+    // brilho do encantamento: +4 a +6 azul, +7 a +9 vermelho, +10 dourado
+    const en = m.enc || 0;
+    if (en >= 4) { const col = new THREE.Color(en >= 10 ? '#ffcf3a' : en >= 7 ? '#ff3a3a' : '#3a8aff'), ei = 0.5 + (en % 3) * 0.25 + (en >= 10 ? 0.6 : 0);
+      for (const part of m.gearParts) { if (part.parent !== H && part.parent !== HL) continue; part.traverse(o => { if (o.isMesh && o.material && o.material.emissive && !o.userData.outline) { o.material = o.material.clone(); o.material.emissive = col.clone(); o.material.emissiveIntensity = ei; } }); }
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: col, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: en >= 7 ? 0.85 : 0.55 })); sp.scale.setScalar(en >= 10 ? 0.9 : 0.6); sp.position.set(0, 0.35, 0); add(H, sp); m.encGlow = sp; }
   } else m.weaponKind = null;
   // peças extras: escudo, elmo, luvas e botas
   const E = (slot) => GD.ITEMS[equip[slot]];

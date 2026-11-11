@@ -38,6 +38,7 @@ class RemoteBackend {
   chatRecent() { return this.rpc('game_chat_recent'); }
   pvp(t, m) { return this.rpc('game_pvp', this.c({ p_target: t, p_mult: m })); }
   questDone(q) { return this.rpc('game_quest_done', this.c({ p_quest: q })); }
+  enchant(slot) { return this.rpc('game_enchant', this.c({ p_slot: slot })); }
   gm(cmd, a) { return this.rpc('game_gm', this.c({ p_cmd: cmd, p_args: a || {} })); }
   join(me, h) {
     this.world = this.sb.channel('mundo', { config: { broadcast: { self: false }, presence: { key: me.id } } });
@@ -117,9 +118,17 @@ class LocalBackend {
     if (Math.random() < 0.22) { const it = ['madeira', 'minerio', 'fibra'][Math.floor(Math.random() * 3)] + '_' + gid; this._add(it, 1); drops[it] = 1; }
     if (L >= 52 && (Math.random() < 0.07 || boss)) { this._add('gema', 1); drops.gema = 1; }
     if (L >= 76 && (Math.random() < 0.035 || boss)) { this._add('fragmento', 1); drops.fragmento = 1; }
+    if (GD.ITEMS['tr_' + fam] && Math.random() < 0.4 * (boss ? 3 : 1)) { const q = boss ? 3 : 1; this._add('tr_' + fam, q); drops['tr_' + fam] = q; }
+    if (Math.random() < (boss ? 0.6 : 0.025)) { const sc = (Math.random() < 0.3 ? 'enc_arma_' : 'enc_arm_') + gid; this._add(sc, 1); drops[sc] = 1; }
     let unique = null; const sb = GD.SPECIAL_BOSSES.find(b => b.id === fam);
     if (sb) { for (const it of sb.drops) { if (GD.ITEMS[it].unique) { if (Math.random() < 0.35) { this._add(it, 1); drops[it] = 1; unique = it; } } else { this._add(it, 2); drops[it] = 2; } } }
     this._s(); return { xp: gain, level: c.level, xp_now: c.xp, aurum: au, drops, levelups: ups, unique };
+  }
+  async enchant(slot) {
+    const c = this.C, id = (c.equipment || {})[slot], it = GD.ITEMS[id]; if (!it) this.E('Nada equipado nesse espaço');
+    const sc = (slot === 'arma' ? 'enc_arma_' : 'enc_arm_') + GD.GRADES[it.grade].id.toLowerCase(); if (!(c.inv[sc] > 0)) this.E('Você precisa de ' + GD.ITEMS[sc].name);
+    c.enchant = c.enchant || {}; const n = c.enchant[id] || 0; if (n >= GD.ENCHANT_MAX) this.E('Já está no máximo (+' + GD.ENCHANT_MAX + ')');
+    this._take(sc, 1); const ok = Math.random() < GD.enchantChance(n); c.enchant[id] = ok ? n + 1 : 0; this._s(); return { ok, level: c.enchant[id], item: id };
   }
   async die(pvp) { const c = this.C; const lost = Math.min(c.xp, pvp ? 0 : Math.round(GD.xpNeed(c.level) * 0.04)); c.xp -= lost; const t = WG.nearestTown(c.x, c.z).town; c.x = t.x; c.z = t.z + 25; this._s(); return { x: c.x, z: c.z, town: t.name, xp_lost: lost }; }
   async classChange(k) { const c = this.C, n = GD.CLASSES[k]; if (!n || n.parent !== c.class_id) this.E('Essa classe não é compatível com a sua classe atual'); if (c.level < GD.RANK_LVL[n.rank]) this.E('Requer nível ' + GD.RANK_LVL[n.rank]); c.class_id = k; this._s(); return n.name; }
@@ -135,10 +144,10 @@ class LocalBackend {
   async pvp() { this.E('PvP só funciona no servidor online'); }
   async questDone(id) {
     const c = this.C, Q = QD.QUESTS[id]; c.quests = c.quests || {};
-    if (c.quests[id]) this.E('Missão já concluída'); if (c.level < Q.lvl) this.E('Requer nível ' + Q.lvl); if (Q.prereq && !c.quests[Q.prereq]) this.E('Conclua a missão anterior primeiro');
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza' }).format(new Date()), daily = Q.kind === 'diaria'; if (daily ? c.quests[id] === today : c.quests[id]) this.E(daily ? 'Missão diária já concluída hoje' : 'Missão já concluída'); if (c.level < Q.lvl) this.E('Requer nível ' + Q.lvl); if (Q.prereq && !c.quests[Q.prereq]) this.E('Conclua a missão anterior primeiro');
     if (Q.goal.type === 'turnin') { for (const [k, v] of Object.entries(Q.goal.items)) if ((c.inv[k] || 0) < v) this.E(`Faltam itens: ${GD.ITEMS[k].name}`); for (const [k, v] of Object.entries(Q.goal.items)) this._take(k, v); }
     c.xp += (Q.reward.xp || 0) * GD.RATE_XP; let ups = 0; while (c.level < 80 && c.xp >= GD.xpNeed(c.level)) { c.xp -= GD.xpNeed(c.level); c.level++; ups++; }
-    c.aurum += (Q.reward.aurum || 0) * GD.RATE_AURUM; for (const [k, v] of Object.entries(Q.reward.items || {})) this._add(k, v); c.quests[id] = true; this._s();
+    c.aurum += (Q.reward.aurum || 0) * GD.RATE_AURUM; for (const [k, v] of Object.entries(Q.reward.items || {})) this._add(k, v); c.quests[id] = daily ? today : true; this._s();
     return { level: c.level, xp_now: c.xp, levelups: ups, reward: Q.reward };
   }
   async gm(cmd, a) {

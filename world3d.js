@@ -172,7 +172,7 @@ export function layoutGrass(G, px, pz, heightFn, okFn, colorFn) {
   let n = 0; const R = 38;
   let seed = (Math.floor(px) * 73856093) ^ (Math.floor(pz) * 19349663);
   const rnd = () => { seed = (seed * 1664525 + 1013904223) | 0; return ((seed >>> 0) % 100000) / 100000; };
-  for (let i = 0; i < G.count * 2 && n < G.count; i++) {
+  const lim = Math.min(G.count, G.limit ?? G.count); for (let i = 0; i < lim * 2 && n < lim; i++) {
     const x = px + (rnd() * 2 - 1) * R, z = pz + (rnd() * 2 - 1) * R;
     if (!okFn(x, z)) continue;
     const h = heightFn(x, z); e.set((rnd() - 0.5) * 0.3, rnd() * 6.28, (rnd() - 0.5) * 0.3); q.setFromEuler(e);

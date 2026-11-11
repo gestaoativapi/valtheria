@@ -36,7 +36,8 @@ function show(id) { ['#login', '#select', '#create', '#hud', '#loading'].forEach
 
 // ---------- renderização ----------
 const canvas = $('#view');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+const IS_MOBILE = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 1;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !IS_MOBILE, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
@@ -117,18 +118,36 @@ function buildChunk(cx, cz) {
   chunks.set(cx + ',' + cz, { group, mesh, nodes });
 }
 function dropChunk(key) { const c = chunks.get(key); scene.remove(c.group); c.mesh.geometry.dispose(); c.group.children.forEach(o => { if (o.isInstancedMesh) o.dispose(); }); const i = terrainMeshes.indexOf(c.mesh); if (i >= 0) terrainMeshes.splice(i, 1); c.nodes.forEach(n => { const m = nodeMeshes.get(n.id); if (m) { scene.remove(m); nodeMeshes.delete(n.id); } }); chunks.delete(key); }
+let CHUNK_R = 4;
 function updateChunks(px, pz, all) {
-  const R = 4, ccx = Math.floor(px / CH), ccz = Math.floor(pz / CH); let built = 0;
+  const R = CHUNK_R, ccx = Math.floor(px / CH), ccz = Math.floor(pz / CH); let built = 0;
   const want = [];
   for (let dz = -R; dz <= R; dz++) for (let dx = -R; dx <= R; dx++) { const cx = ccx + dx, cz = ccz + dz; if (cx < 0 || cz < 0 || cx >= 30 || cz >= 30 || dx * dx + dz * dz > R * R + 1) continue; want.push([dx * dx + dz * dz, cx, cz]); }
   want.sort((a, b) => a[0] - b[0]);
   const keep = new Set(want.map(w => w[1] + ',' + w[2]));
   for (const k of [...chunks.keys()]) if (!keep.has(k)) dropChunk(k);
-  for (const [, cx, cz] of want) { if (!chunks.has(cx + ',' + cz)) { buildChunk(cx, cz); if (!all && ++built >= 2) break; } }
+  for (const [, cx, cz] of want) { if (!chunks.has(cx + ',' + cz)) { buildChunk(cx, cz); if (!all && ++built >= 1) break; } }
 }
 function refreshNode(id) { const m = nodeMeshes.get(id); if (!m) return; const dep = (S.dep[id] || 0) > Date.now(); m.scale.set(1, dep ? 0.22 : 1, 1); m.children.forEach(ch => { if (ch.geometry && ch.geometry.type === 'RingGeometry') ch.visible = !dep; }); m.userData.dep = dep; }
 const WATER = createWater(), water = WATER.mesh; water.position.y = WG.WATER; scene.add(water);
 const GRASS = createGrass(14000); scene.add(GRASS.mesh);
+// ---------- qualidade gráfica (automática por FPS) ----------
+const QUAL = { alta: { name: 'Alta', pr: 1.5, sh: 2048, shOn: true, soft: true, grass: 14000, R: 4, far: 1200 }, media: { name: 'Média', pr: 1, sh: 1024, shOn: true, soft: false, grass: 6000, R: 3, far: 900 }, baixa: { name: 'Baixa', pr: 0.75, sh: 512, shOn: false, soft: false, grass: 1500, R: 3, far: 650 } };
+const QORDER = ['alta', 'media', 'baixa'];
+const PERF = { mode: localStorage.getItem('vt_qual') || 'auto', cur: null, frames: 0, acc: 0, fps: 60, since: 0 };
+function applyQuality(n) {
+  const q = QUAL[n]; if (!q) return; PERF.cur = n; renderer.setPixelRatio(Math.min(devicePixelRatio, q.pr)); renderer.setSize(innerWidth, innerHeight);
+  const was = renderer.shadowMap.enabled, wasSoft = renderer.shadowMap.type; renderer.shadowMap.enabled = q.shOn; renderer.shadowMap.type = q.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+  sun.shadow.mapSize.set(q.sh, q.sh); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  if (was !== q.shOn || wasSoft !== renderer.shadowMap.type) scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.needsUpdate = true); });
+  GRASS.limit = q.grass; GRASS.center = null; CHUNK_R = q.R; camera.far = q.far; camera.updateProjectionMatrix(); PERF.since = performance.now();
+}
+applyQuality(PERF.mode !== 'auto' ? PERF.mode : IS_MOBILE ? 'media' : 'alta');
+function perfTick(dt) {
+  const tn = performance.now(); if (!PERF.t0) PERF.t0 = tn; PERF.frames++; const el = (tn - PERF.t0) / 1000; if (el < 4) return; PERF.fps = PERF.frames / el; PERF.frames = 0; PERF.t0 = tn;
+  if (PERF.mode !== 'auto' || !S.inGame || document.hidden || performance.now() - PERF.since < 8000) return;
+  const i = QORDER.indexOf(PERF.cur); if (PERF.fps < 30 && i < QORDER.length - 1) { applyQuality(QORDER[i + 1]); toast(`Qualidade ajustada para ${QUAL[PERF.cur].name} (${Math.round(PERF.fps)} FPS)`, 'ok'); }
+}
 
 // ----- cidades -----
 const npcs = [], houses = [];
@@ -176,7 +195,7 @@ function buffVals() { const o = {}, t = now(); for (const [k, b] of Object.entri
 function nameColor(c) { return c.gm ? '#ffcf4a' : c.karma ? '#ff4a4a' : c.flag ? '#d38cff' : '#ffffff'; }
 function makeMe() {
   if (me) { scene.remove(me.root); }
-  const c = S.c; me = buildHumanoid({ ...c, weapon: c.equipment.arma, armor: c.equipment.armadura, equip: c.equipment }); me.x = c.x; me.z = c.z; me.ry = 0;
+  const c = S.c; me = buildHumanoid({ ...c, weapon: c.equipment.arma, armor: c.equipment.armadura, equip: c.equipment, enc: encOf(c) }); me.x = c.x; me.z = c.z; me.ry = 0;
   me.label = makeLabel(c.name, nameColor({ gm: S.c.is_gm, karma: S.c.karma, flag: false }), 30); me.label.position.y = 2.25 * GD.RACES[c.race].h; me.root.add(me.label);
   scene.add(me.root);
 }
@@ -211,7 +230,8 @@ function pickAt(e) {
   const th = ray.intersectObjects(terrainMeshes, false); if (th[0]) return { ground: th[0].point };
   return null;
 }
-canvas.addEventListener('mousedown', e => {
+canvas.addEventListener('mousedown', e => { if (TOUCH && e.sourceCapabilities?.firesTouchEvents) return; onPick(e); });
+function onPick(e) {
   if (e.button !== 0 || !S.inGame || S.dead) return;
   const p = pickAt(e); if (!p) return;
   S.gatherAt = null; S.npcAt = null; S.channel = null;
@@ -222,8 +242,33 @@ canvas.addEventListener('mousedown', e => {
   }
   if (p.type) { S.target = { kind: 'npc', ref: p }; S.npcAt = p; S.dest = { x: p.x, z: p.z }; S.autoAtk = false; return; }
   if (p.kind === 'node') { const n = p.ref; S.target = { kind: 'node', ref: n }; S.autoAtk = false; if ((S.dep[n.id] || 0) > Date.now()) { toast('Recurso esgotado, renasce em breve', 'err'); return; } S.gatherAt = n; S.dest = { x: n.x, z: n.z }; return; }
-  if (p.ground) { S.dest = { x: p.ground.x, z: p.ground.z }; S.autoAtk = false; destRing.position.set(p.ground.x, p.ground.y + 0.1, p.ground.z); destRing.visible = true; destRing.scale.setScalar(1); }
-});
+  if (p.ground) { if (S.guide) stopGuide('Guia automático cancelado'); S.dest = { x: p.ground.x, z: p.ground.z }; S.autoAtk = false; destRing.position.set(p.ground.x, p.ground.y + 0.1, p.ground.z); destRing.visible = true; destRing.scale.setScalar(1); }
+}
+// ---------- toque (celular/tablet) ----------
+const TOUCH = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 1;
+if (TOUCH) document.body.classList.add('touch');
+{ const T = { pts: new Map(), moved: false, t0: 0, pinch: 0 };
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); for (const t of e.changedTouches) T.pts.set(t.identifier, { x: t.clientX, y: t.clientY, sx: t.clientX, sy: t.clientY }); if (T.pts.size === 1) { T.moved = false; T.t0 = performance.now(); } if (T.pts.size === 2) { const [a, b] = [...T.pts.values()]; T.pinch = Math.hypot(a.x - b.x, a.y - b.y); T.moved = true; } }, { passive: false });
+  canvas.addEventListener('touchmove', e => { e.preventDefault();
+    for (const t of e.changedTouches) { const p = T.pts.get(t.identifier); if (!p) continue; const dx = t.clientX - p.x, dy = t.clientY - p.y; p.x = t.clientX; p.y = t.clientY;
+      if (T.pts.size === 1) { if (Math.hypot(p.x - p.sx, p.y - p.sy) > 10) T.moved = true; if (T.moved) { if (studio.visible) { stu.yaw -= dx * 0.012; stu.pitch = clamp(stu.pitch + dy * 0.006, -0.4, 0.9); } else { cam.yaw -= dx * 0.008; cam.pitch = clamp(cam.pitch + dy * 0.006, -0.45, 1.4); } } } }
+    if (T.pts.size === 2) { const [a, b] = [...T.pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (T.pinch) { const k = T.pinch / d; if (studio.visible) stu.dist = clamp(stu.dist * k, 0.9, 6); else cam.dist = clamp(cam.dist * k, 1.1, 32); } T.pinch = d; } }, { passive: false });
+  canvas.addEventListener('touchend', e => { e.preventDefault(); for (const t of e.changedTouches) { const p = T.pts.get(t.identifier); T.pts.delete(t.identifier); if (p && !T.moved && T.pts.size === 0 && performance.now() - T.t0 < 350) onPick({ button: 0, clientX: t.clientX, clientY: t.clientY, detail: 1, ctrlKey: false }); } if (T.pts.size < 2) T.pinch = 0; }, { passive: false });
+  canvas.addEventListener('touchcancel', () => { T.pts.clear(); T.pinch = 0; });
+  // joystick virtual
+  const joy = document.createElement('div'); joy.id = 'joy'; joy.innerHTML = '<i></i>'; $('#hud').appendChild(joy); const knob = joy.firstChild; let jid = null;
+  const jset = (t) => { const r = joy.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let dx = (t.clientX - cx) / (r.width / 2), dy = (t.clientY - cy) / (r.height / 2); const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; } S.joy = l < 0.15 ? null : { x: dx, y: dy }; knob.style.transform = `translate(${dx * 38}px,${dy * 38}px)`; };
+  joy.addEventListener('touchstart', e => { e.preventDefault(); const t = e.changedTouches[0]; jid = t.identifier; jset(t); }, { passive: false });
+  joy.addEventListener('touchmove', e => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === jid) jset(t); }, { passive: false });
+  const jend = e => { for (const t of e.changedTouches) if (t.identifier === jid) { jid = null; S.joy = null; knob.style.transform = ''; } }; joy.addEventListener('touchend', jend); joy.addEventListener('touchcancel', jend);
+  // botões de ação
+  const act = document.createElement('div'); act.id = 'actbtns'; act.innerHTML = '<button data-k="atk" title="Atacar">⚔️</button><button data-k="tgt" title="Próximo alvo">🎯</button><button data-k="guide" title="Guia automático">🧭</button><button data-k="chat" title="Chat">💬</button>'; $('#hud').appendChild(act);
+  act.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+  act.onclick = e => { const k = e.target.closest('button')?.dataset.k; if (!k) return;
+    if (k === 'atk') attackKey(); if (k === 'tgt') nextTarget();
+    if (k === 'guide') { if (S.guide) stopGuide('Guia automático desligado'); else { const id = S.q.active.find(id => !qDone(id)); if (id) startGuide(id); else toast('Aceite uma missão no Arauto do Eclipse', 'err'); } }
+    if (k === 'chat') document.body.classList.toggle('chat-open'); };
+}
 
 // ---------- teclado ----------
 const keys = {};
@@ -431,7 +476,7 @@ function spawner() {
   if (!me || S.dead) return;
   for (const m of [...S.mobs]) if (!m.dead && Math.hypot(m.x - me.x, m.z - me.z) > 170) { scene.remove(m.model.root); S.mobs = S.mobs.filter(x => x !== m); }
   // chefes de missão
-  for (const id of S.q.active) { const Q = QD.QUESTS[id]; if (Q.goal.type !== 'boss') continue; const t = GD.TOWNS.find(t => t.id === Q.goal.spot[0]), sp = t.spotsPos[Q.goal.spot[1]];
+  for (const id of S.q.active) { const Q = QD.QUESTS[id]; if (Q.goal.type !== 'boss' || !Q.goal.spot) continue; const t = GD.TOWNS.find(t => t.id === Q.goal.spot[0]), sp = t.spotsPos[Q.goal.spot[1]];
     if (Math.hypot(sp.x - me.x, sp.z - me.z) < 140 && !S.mobs.some(m => !m.dead && m.fam.id === Q.goal.fam)) spawnMob(FAM[Q.goal.fam], t.max + 2 > 80 ? 80 : t.max + 2, sp.x + 8, sp.z + 8); }
   // chefes especiais dos castelos, ruínas e covis (renascem a cada 10 min)
   S.lmCd = S.lmCd || {};
@@ -481,8 +526,8 @@ function updateMe(dt) {
   const st = stats(); let vx = 0, vz = 0, moving = false;
   const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
   if (!S.dead && !typing) {
-    const f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0), r = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-    if (f || r) { const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw); vx = -sy * f + cy * r; vz = -cy * f - sy * r; S.dest = null; S.gatherAt = null; S.npcAt = null; S.channel = null; S.autoAtk = false; }
+    const f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - (S.joy ? S.joy.y : 0), r = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + (S.joy ? S.joy.x : 0);
+    if (f || r) { if (S.guide) stopGuide('Guia automático cancelado'); const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw); vx = -sy * f + cy * r; vz = -cy * f - sy * r; S.dest = null; S.gatherAt = null; S.npcAt = null; S.channel = null; S.autoAtk = false; }
   }
   if (!vx && !vz && !S.dead) {
     const t = S.target;
@@ -528,11 +573,11 @@ async function gather(n) {
 function onPos(p) {
   if (!p || !S.c || p.id === S.c.id) return;
   let o = S.others[p.id];
-  const sig = [p.ra, p.ge, p.h, p.hc, p.sk, p.w, p.a, p.k, p.f, p.g, p.n, JSON.stringify(p.lk || {}), JSON.stringify(p.ex || {})].join('|');
+  const sig = [p.ra, p.ge, p.h, p.hc, p.sk, p.w, p.a, p.k, p.f, p.g, p.n, JSON.stringify(p.lk || {}), JSON.stringify(p.ex || {}), p.en || 0].join('|');
   if (!o) { o = S.others[p.id] = { id: p.id, x: p.x, z: p.z, ry: p.r }; }
   if (o.sig !== sig) {
     if (o.model) scene.remove(o.model.root);
-    o.model = buildHumanoid({ race: p.ra, gender: p.ge, hair: p.h, hair_color: p.hc, skin: p.sk, look: p.lk || undefined, weapon: p.w, armor: p.a, equip: p.ex || {} });
+    o.model = buildHumanoid({ race: p.ra, gender: p.ge, hair: p.h, hair_color: p.hc, skin: p.sk, look: p.lk || undefined, weapon: p.w, armor: p.a, equip: p.ex || {}, enc: p.en || 0 });
     const l = makeLabel(p.n, nameColor({ gm: p.g, karma: p.k, flag: p.f }), 30); l.position.y = 2.25 * (GD.RACES[p.ra]?.h || 1); o.model.root.add(l);
     const sub = makeLabel(`${GD.CLASSES[p.c]?.name || ''} Nv.${p.l}`, '#bcd', 20); sub.position.y = 2.0 * (GD.RACES[p.ra]?.h || 1); o.model.root.add(sub);
     o.model.root.traverse(x => x.userData.pick = { kind: 'player', ref: o }); scene.add(o.model.root); o.sig = sig;
@@ -552,7 +597,7 @@ function netTick() {
   if (!S.inGame) return; const t = Date.now(), st = me.anim.state;
   if (Math.hypot(me.x - lastSent.x, me.z - lastSent.z) > 0.05 || st !== lastSent.st || t - lastSent.t > 2000 || me.anim.atk >= 0) {
     const c = S.c; B.sendPos({ id: c.id, n: c.name, x: +me.x.toFixed(2), z: +me.z.toFixed(2), r: +me.root.rotation.y.toFixed(2), st, ra: c.race, ge: c.gender, h: c.hair, hc: c.hair_color, sk: c.skin, lk: c.look || null, c: c.class_id, l: c.level,
-      w: c.equipment.arma || null, a: c.equipment.armadura || null, ex: { elmo: c.equipment.elmo, luvas: c.equipment.luvas, botas: c.equipment.botas, escudo: c.equipment.escudo }, k: (c.karma || 0) > 0, f: S.flagUntil > t, g: !!c.is_gm, hp: Math.round(100 * S.hp / stats().maxHp), atk: me.anim.atk >= 0 ? me.anim.kind : null });
+      w: c.equipment.arma || null, a: c.equipment.armadura || null, ex: { elmo: c.equipment.elmo, luvas: c.equipment.luvas, botas: c.equipment.botas, escudo: c.equipment.escudo }, en: encOf(c), k: (c.karma || 0) > 0, f: S.flagUntil > t, g: !!c.is_gm, hp: Math.round(100 * S.hp / stats().maxHp), atk: me.anim.atk >= 0 ? me.anim.kind : null });
     lastSent = { x: me.x, z: me.z, t, st };
   }
 }
@@ -605,7 +650,21 @@ async function command(line) {
 
 // ---------- missões ----------
 function qKey() { return 'rda3d_q_' + S.c.id; }
-function loadQuests() { try { S.q = JSON.parse(localStorage.getItem(qKey())) || { active: [], prog: {} }; } catch (_) { S.q = { active: [], prog: {} }; } S.q.active = S.q.active.filter(id => !S.c.quests?.[id] && QD.QUESTS[id]); }
+function encTargets(it) { const eq = S.c.equipment || {}; return Object.entries(eq).filter(([sl, iid]) => IT(iid) && IT(iid).grade === it.grade && (it.enc === 'arma' ? sl === 'arma' : sl !== 'arma')); }
+async function doEnchant(slot) {
+  const iid = S.c.equipment[slot], n = (S.c.enchant || {})[iid] || 0, ch = GD.enchantChance(n);
+  if (n >= GD.ENCHANT_SAFE && !confirm(`Encantar ${IT(iid).name} de +${n} para +${n + 1}?\nChance de sucesso: ${Math.round(ch * 100)}%. Se falhar, o item volta para +0.`)) return;
+  const r = await safe(() => B.enchant(slot)); if (!r) return;
+  S.c.enchant = { ...(S.c.enchant || {}), [iid]: r.level }; await refresh();
+  if (r.ok) { toast(`✨ Sucesso! ${IT(iid).name} agora é +${r.level}`, 'ok'); fxRing(me.x, me.z, r.level >= 7 ? '#ff3a3a' : '#3a8aff'); } else toast(`💥 O encantamento falhou. ${IT(iid).name} voltou para +0`, 'err');
+  if (slot === 'arma') { me.enc = encOf(S.c); setGear(me, S.c.equipment.arma, S.c.equipment.armadura, S.c.equipment); }
+  renderPanel(); buildBar();
+}
+function fxRing(x, z, col) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.08, 8, 32), new THREE.MeshBasicMaterial({ color: col, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); r.rotation.x = -Math.PI / 2; r.position.set(x, WG.height(x, z) + 0.2, z); scene.add(r); fx.push({ obj: r, t: 0, dur: 1, up: (o, k) => { o.scale.setScalar(1 + k * 2.5); o.position.y += 0.03; o.material.opacity = 1 - k; } }); }
+function encOf(c) { return (c.enchant || {})[c.equipment?.arma] || 0; }
+const todayStr = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza' }).format(new Date());
+function qDone(id) { const Q = QD.QUESTS[id], v = S.c.quests?.[id]; return Q?.kind === 'diaria' ? v === todayStr() : !!v; }
+function loadQuests() { try { S.q = JSON.parse(localStorage.getItem(qKey())) || { active: [], prog: {} }; } catch (_) { S.q = { active: [], prog: {} }; } S.q.active = S.q.active.filter(id => QD.QUESTS[id] && !qDone(id)); }
 function saveQuests() { localStorage.setItem(qKey(), JSON.stringify(S.q)); renderTracker(); }
 function questReady(Q) { const g = Q.goal, p = S.q.prog[Q.id] || 0; if (g.type === 'kill') return p >= g.n; if (g.type === 'boss' || g.type === 'reach') return p >= 1; if (g.type === 'turnin') return Object.entries(g.items).every(([k, v]) => (S.inv[k] || 0) >= v); return false; }
 function questEvent(type, key) {
@@ -615,10 +674,92 @@ function questEvent(type, key) {
     if (type === 'reach' && g.type === 'reach' && g.town === key && !S.q.prog[id]) { S.q.prog[id] = 1; ch = true; addChat({ kind: 'q', msg: `Missão "${Q.title}" pronta! Fale com o Arauto daqui.` }); } }
   if (ch) saveQuests();
 }
+const qTag = (Q) => Q.main ? '★ ' : Q.kind === 'diaria' ? '🔁 ' : Q.kind === 'lenda' ? '👑 ' : '';
+$('#quest-track').addEventListener('click', e => { const b = e.target.closest('[data-guide]'); if (!b) return; const id = b.dataset.guide; if (S.guide?.id === id) stopGuide('Guia automático desligado'); else startGuide(id); });
 function renderTracker() {
   const el = $('#quest-track'); if (!S.q.active.length) { el.hidden = true; return; } el.hidden = false;
   el.innerHTML = S.q.active.map(id => { const Q = QD.QUESTS[id], g = Q.goal, p = S.q.prog[id] || 0; const txt = g.type === 'kill' ? `${FAM[g.fam].name}: ${Math.min(p, g.n)}/${g.n}` : g.type === 'boss' ? `Derrotar ${FAM[g.fam].name}${p ? ' ✔' : ''}` : g.type === 'reach' ? `Chegar a ${GD.TOWNS.find(t => t.id === g.town).name}${p ? ' ✔' : ''}` : 'Entregar: ' + Object.entries(g.items).map(([k, v]) => `${iname(k)} ${Math.min(S.inv[k] || 0, v)}/${v}`).join(', ');
-    return `<div style="margin-bottom:5px"><b>${Q.main ? '★ ' : ''}${esc(Q.title)}</b><div class="small">${esc(txt)}${questReady(Q) ? ' — <span style="color:#9be37a">pronta</span>' : ''}</div></div>`; }).join('');
+    const on = S.guide?.id === id;
+    return `<div style="margin-bottom:6px"><button class="gbtn${on ? ' on' : ''}" data-guide="${id}" title="${on ? 'Parar guia automático' : 'Guia automático'}">${on ? '⏹' : '🧭'}</button><b>${qTag(Q)}${esc(Q.title)}</b><div class="small">${esc(txt)}${questReady(Q) ? ' — <span style="color:#9be37a">pronta</span>' : ''}${on && S.guide.plan ? `<br><span style="color:#8ad0ff">🧭 ${esc(S.guide.plan.label || '')}</span>` : ''}</div></div>`; }).join('') + '<div class="small" style="opacity:.7">🧭 = guia automático (WASD cancela)</div>';
+}
+
+// ---------- guia automático ----------
+const FAM_BAND = {}; GD.MOBS.forEach((fs, g) => fs.forEach(f => FAM_BAND[f.id] = g));
+function startGuide(id) { if (!QD.QUESTS[id]) return; S.guide = { id, t: 0, last: { x: me.x, z: me.z }, lastT: now(), detour: null, tp: 0 }; toast('🧭 Guia automático: ' + QD.QUESTS[id].title + ' — WASD cancela', 'ok'); renderTracker(); }
+function stopGuide(msg) { if (!S.guide) return; S.guide = null; S.dest = null; S.autoAtk = false; destRing.visible = false; if (msg) toast(msg); renderTracker(); }
+function huntPlan(fam) {
+  const b = FAM_BAND[fam] ?? GD.gradeForLevel(S.c.level), rg = WG.region(me.x, me.z);
+  if (!rg.safe && rg.grade === b) return { x: me.x, z: me.z, here: true, hunt: fam, area: 90, label: 'Caçando ' + FAM[fam].name };
+  const t = GD.CORE_TOWNS[b], sp = t.spotsPos[0]; return { x: sp.x, z: sp.z, hunt: fam, area: 70, label: 'Indo caçar ' + FAM[fam].name + ' em ' + sp.name };
+}
+function guidePlan(Q) {
+  const g = Q.goal;
+  if (questReady(Q)) { const n = npcs.filter(n => n.type === 'arauto').sort((a, b) => Math.hypot(a.x - me.x, a.z - me.z) - Math.hypot(b.x - me.x, b.z - me.z))[0]; return { x: n.x, z: n.z, npc: n, label: 'Entregar ao Arauto em ' + n.town.name }; }
+  if (g.type === 'reach') { const t = GD.TOWNS.find(t => t.id === g.town); return { x: t.x, z: t.z + 22, arrive: 12, label: 'Viajando para ' + t.name }; }
+  if (g.type === 'boss') { if (g.lm) { const L = GD.LANDMARKS.find(L => L.id === g.lm); return { x: L.x, z: L.z + 12, hunt: g.fam, area: 70, label: 'Rumo a ' + L.name }; } const t = GD.TOWNS.find(t => t.id === g.spot[0]), sp = t.spotsPos[g.spot[1]]; return { x: sp.x, z: sp.z, hunt: g.fam, area: 60, label: 'Rumo a ' + sp.name }; }
+  if (g.type === 'kill') return huntPlan(g.fam);
+  if (g.type === 'turnin') {
+    const miss = Object.entries(g.items).find(([k, v]) => (S.inv[k] || 0) < v); if (!miss) return { x: me.x, z: me.z, label: 'Pronta' };
+    const it = IT(miss[0]); if (it.type === 'trophy') { const p = huntPlan(it.fam); p.label += ` (${it.name})`; return p; }
+    if (it.type === 'raw') { const res = miss[0].replace(/_[a-z]+$/, ''), t = GD.CORE_TOWNS[it.grade], sp = t.spotsPos[0], rg = WG.region(me.x, me.z); const here = !rg.safe && rg.grade === it.grade; return { x: here ? me.x : sp.x, z: here ? me.z : sp.z, here, gather: { type: res, grade: it.grade }, area: 90, label: 'Coletando ' + it.name }; }
+    const t = WG.nearestTown(me.x, me.z).town; return { x: t.x, z: t.z + 18, arrive: 10, info: `Produza ${it.name} no Ferreiro ou na Refinaria (precisa de ${miss[1]}).`, label: 'Produzir ' + it.name };
+  }
+  return { x: me.x, z: me.z, label: '' };
+}
+function guideMove(x, z) {
+  const G = S.guide, d = Math.hypot(x - me.x, z - me.z), t = now();
+  if (G.detour && t < G.detour.until) { S.dest = { x: G.detour.x, z: G.detour.z }; return; }
+  if (t - G.lastT > 2000) { const moved = Math.hypot(me.x - G.last.x, me.z - G.last.z); G.last = { x: me.x, z: me.z }; G.lastT = t;
+    if (moved < 1.5 && d > 6) { const a = Math.atan2(x - me.x, z - me.z) + (Math.random() < 0.5 ? 1 : -1) * (0.9 + Math.random() * 0.9); G.detour = { x: me.x + Math.sin(a) * 22, z: me.z + Math.cos(a) * 22, until: t + 2500 }; S.dest = { x: G.detour.x, z: G.detour.z }; return; } }
+  // atravessa as muralhas pelos portões (estradas)
+  const tw = WG.nearestTown(me.x, me.z).town, ctx = townCtx(tw), dm = Math.hypot(me.x - tw.x, me.z - tw.z), dt2 = Math.hypot(x - tw.x, z - tw.z);
+  if (ctx.roadAngles.length && ((dm < 100 && dt2 > 100) || (dm > 96 && dm < 140 && dt2 < 96))) {
+    const ref = dm < 100 ? Math.atan2(z - tw.z, x - tw.x) : Math.atan2(me.z - tw.z, me.x - tw.x);
+    const a = ctx.roadAngles.reduce((b, r) => Math.abs(Math.atan2(Math.sin(r - ref), Math.cos(r - ref))) < Math.abs(Math.atan2(Math.sin(b - ref), Math.cos(b - ref))) ? r : b);
+    const inG = { x: tw.x + Math.cos(a) * 80, z: tw.z + Math.sin(a) * 80 }, outG = { x: tw.x + Math.cos(a) * 112, z: tw.z + Math.sin(a) * 112 };
+    const first = dm < 100 ? (Math.hypot(me.x - inG.x, me.z - inG.z) > 4 && Math.hypot(me.x - tw.x, me.z - tw.z) < 78 ? inG : outG) : (Math.hypot(me.x - outG.x, me.z - outG.z) > 4 && dm > 100 ? outG : inG);
+    S.dest = first; return;
+  }
+  const k = Math.min(1, 45 / Math.max(d, 1)); S.dest = { x: me.x + (x - me.x) * k, z: me.z + (z - me.z) * k };
+}
+async function guideTeleport(P) {
+  const G = S.guide; if (G.tp > now() || !inSafe(me.x, me.z)) return false; G.tp = now() + 15000;
+  const d0 = Math.hypot(P.x - me.x, P.z - me.z); const best = TELEPORTS.map(t => ({ t, d: Math.hypot(P.x - t.x, P.z - t.z) })).sort((a, b) => a.d - b.d)[0];
+  if (!best || best.d > d0 - 300 || (!S.c.is_gm && S.c.aurum < best.t.cost)) return false;
+  const r = await safe(() => B.teleport(best.t.id)); if (!r) return false; S.c.aurum -= r.cost; toast(`🧭 Teleporte para ${r.name}${r.cost ? ' (' + r.cost + ' aurum)' : ''}`, 'ok'); teleport(r.x, r.z); return true;
+}
+function guideTick() {
+  const G = S.guide; if (!G || S.dead || !me) return; const Q = QD.QUESTS[G.id];
+  if (!Q || !S.q.active.includes(G.id)) return stopGuide();
+  const P = guidePlan(Q), prevLabel = G.plan?.label; G.plan = P; if (prevLabel !== P.label) renderTracker();
+  const st = stats(), t = now();
+  if (S.hp < st.maxHp * 0.4 && (S.inv.pocao_hp || S.inv.pocao_hp2) && t > (G.potT || 0)) { G.potT = t + 2500; usePotion('hp'); }
+  if (S.mp < st.maxMp * 0.2 && S.inv.pocao_mp && t > (G.mpT || 0)) { G.mpT = t + 4000; usePotion('mp'); }
+  // defesa: se algo me ataca, luta
+  const att = S.mobs.find(m => !m.dead && m.aggro && !m.returning && Math.hypot(m.x - me.x, m.z - me.z) < 7);
+  if (att && (!S.target || S.target.ref !== att || !S.autoAtk) && !inSafe(me.x, me.z)) { S.target = { kind: 'mob', ref: att }; S.autoAtk = true; S.dest = null; return; }
+  if (S.autoAtk && S.target?.kind === 'mob' && !S.target.ref.dead) { guideSkill(st); return; }
+  const dist = Math.hypot(P.x - me.x, P.z - me.z);
+  if (P.npc) { if (dist < 4.5) { stopGuide(); faceTo(P.npc.x, P.npc.z); openNpc(P.npc); } else { if (dist > 450) guideTeleport(P); S.npcAt = P.npc; guideMove(P.x, P.z); } return; }
+  if (P.hunt || P.gather) {
+    if (P.here || dist < P.area) {
+      if (P.hunt) { const m = S.mobs.filter(m => !m.dead && !m.returning && m.fam.id === P.hunt && Math.hypot(m.x - me.x, m.z - me.z) < 75).sort((a, b) => Math.hypot(a.x - me.x, a.z - me.z) - Math.hypot(b.x - me.x, b.z - me.z))[0];
+        if (m) { S.target = { kind: 'mob', ref: m }; S.autoAtk = true; S.dest = null; return; } }
+      if (P.gather) { if (S.channel || S.gatherAt) return; let best = null, bd = 1e9; for (const [, mesh] of nodeMeshes) { const n = mesh.userData.ref; if (n.type !== P.gather.type || n.grade !== P.gather.grade || (S.dep[n.id] || 0) > Date.now()) continue; const d = Math.hypot(n.x - me.x, n.z - me.z); if (d < bd) { bd = d; best = n; } }
+        if (best && bd < 90) { S.gatherAt = best; S.target = { kind: 'node', ref: best }; S.dest = { x: best.x, z: best.z }; return; } }
+      if (!G.roam || Math.hypot(G.roam.x - me.x, G.roam.z - me.z) < 3 || t > G.roam.until) { let x, z, k = 0; do { const a = Math.random() * 6.283, r = 15 + Math.random() * 40; x = (P.here ? me.x : P.x) + Math.cos(a) * r; z = (P.here ? me.z : P.z) + Math.sin(a) * r; } while ((blocked(x, z) || inSafe(x, z)) && ++k < 12); G.roam = { x, z, until: t + 8000 }; }
+      S.dest = { x: G.roam.x, z: G.roam.z }; return;
+    }
+  }
+  if (P.info && dist < (P.arrive || 10)) { addChat({ kind: 'q', msg: '🧭 ' + P.info }); stopGuide(); return; }
+  if (P.arrive && dist < P.arrive) { S.dest = null; return; }
+  if (dist > 450) guideTeleport(P);
+  guideMove(P.x, P.z);
+}
+function guideSkill(st) {
+  const t = now(); if (t < (S.guide.skT || 0)) return; S.guide.skT = t + 900;
+  const p = tgtPos(S.target), d = Math.hypot(p.x - me.x, p.z - me.z); if (d > st.range + 1.2) return;
+  const sk = st.arch.skills; for (const e of (S.bar || [])) { if (!e || e.t !== 's') continue; const i = skillIndex(e.id), k = sk[i]; if (i < 0 || !k || S.c.level < k.lvl || (S.cds[i] || 0) > t || S.mp < k.mp + st.maxMp * 0.15) continue; if (!['hit', 'aoe', 'debuff'].includes(k.type)) continue; castSkill(i); return; }
 }
 
 // ---------- painéis ----------
@@ -639,6 +780,8 @@ function itemDesc(id) {
   if (s.hp && !s.hpPct) p.push(`Vida +${Math.round(s.hp)}`); if (s.mp) p.push(`Mana +${Math.round(s.mp)}`); if (s.spd) p.push(`Velocidade +${s.spd * 100}%`); if (s.matkPct) p.push(`Ataque Mágico +${s.matkPct * 100}%`);
   if (s.hpPct) p.push(`Recupera ${s.hpPct * 100}% da vida`); if (s.mpPct) p.push(`Recupera ${s.mpPct * 100}% da mana`);
   if (it.slot) p.push(`Requer nível ${GD.GRADES[it.grade].lvl}`); if (it.type === 'tool') p.push(`Permite coletar recursos até grau ${GD.GRADES[Math.min(5, it.grade + 1)].id}`);
+  if (it.type === 'enchant') p.push(`Encanta ${it.enc === 'arma' ? 'a arma' : 'uma peça de armadura'} de ${GD.GRADES[it.grade].name}: +5%/+4% por nível • seguro até +${GD.ENCHANT_SAFE}, máximo +${GD.ENCHANT_MAX}`); if (it.type === 'trophy') p.push('Troféu de caça: entregue em missões ou venda ao Mercador');
+  if (it.slot && (S.c.enchant || {})[id]) p.push(`Encantado +${S.c.enchant[id]}`);
   if (it.type === 'scroll') p.push('Teleporta para a cidade mais próxima'); if (it.type === 'raw') p.push('Refine no Refinador'); if (it.type === 'refined') p.push('Material de forja');
   return p.join(' • ');
 }
@@ -650,7 +793,7 @@ function renderPanel() {
 }
 function pChar(b) {
   const c = S.c, st = stats(), cl = st.cls, eq = c.equipment, P = c.profs || {};
-  const es = (s, l) => eq[s] ? slot(eq[s], null, `data-slot="${s}"`) : `<div class="slot" data-slot="${s}"><div class="ic">▫️</div><div class="nm">${l}</div></div>`;
+  const es = (s, l) => eq[s] ? slot(eq[s], (c.enchant || {})[eq[s]] ? '+' + c.enchant[eq[s]] : null, `data-slot="${s}"`) : `<div class="slot" data-slot="${s}"><div class="ic">▫️</div><div class="nm">${l}</div></div>`;
   b.innerHTML = `<div class="row"><div class="grow"><b style="font-size:16px">${esc(c.name)}</b><div class="small">${GD.RACES[c.race].name} • ${cl.name} (${['Classe base', '2ª classe', '3ª classe', '4ª classe'][cl.rank]}) • Nível ${c.level}</div></div></div>
   <div class="grid" style="grid-template-columns:repeat(4,90px);margin:8px 0">${es('elmo', 'Elmo')}${es('armadura', 'Armadura')}${es('arma', 'Arma')}${es('escudo', 'Escudo')}${es('luvas', 'Luvas')}${es('botas', 'Botas')}</div>
   <table><tr><td>Vida</td><td>${Math.round(S.hp)} / ${st.maxHp}</td><td>Mana</td><td>${Math.round(S.mp)} / ${st.maxMp}</td></tr>
@@ -660,23 +803,24 @@ function pChar(b) {
   <tr><td>Crítico</td><td>${Math.round(st.crit * 100)}%</td><td>Aurum</td><td>${Number(c.aurum).toLocaleString('pt-BR')}</td></tr>
   <tr><td>PvP</td><td>${c.pvp || 0}</td><td>PK / Karma</td><td style="color:${c.karma ? '#f66' : ''}">${c.pk || 0} / ${c.karma || 0}</td></tr></table>
   <h4>Profissões</h4><table>${Object.entries(GD.PROFS).map(([k, n]) => { const l = GD.profLevel(P[k]); return `<tr><td>${n}</td><td>nível ${l}</td><td class="small">libera até grau ${GD.GRADES[Math.min(5, Math.floor(l / 4))].id}</td></tr>`; }).join('')}</table>`;
-  b.onclick = async e => { const s = e.target.closest('[data-slot]'); if (!s || !eq[s.dataset.slot]) return; const r = await safe(() => B.unequip(s.dataset.slot), 'Desequipado'); if (r) { S.c.equipment = r; await refresh(); setGear(me, r.arma, r.armadura, r); renderPanel(); } };
+  b.onclick = async e => { const s = e.target.closest('[data-slot]'); if (!s || !eq[s.dataset.slot]) return; const r = await safe(() => B.unequip(s.dataset.slot), 'Desequipado'); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); renderPanel(); } };
 }
 function pBag(b) {
-  const f = panelState.f || 'all', order = { weapon: 0, armor: 1, tool: 2, potion: 3, scroll: 4, special: 5, refined: 6, raw: 7 };
-  const ids = Object.keys(S.inv).filter(i => IT(i)).filter(i => { const t = IT(i).type; return f === 'all' || f === t || (f === 'gear' && (t === 'weapon' || t === 'armor')) || (f === 'mat' && ['raw', 'refined', 'special'].includes(t)) || (f === 'use' && ['potion', 'scroll', 'tool'].includes(t)); })
+  const f = panelState.f || 'all', order = { weapon: 0, armor: 1, enchant: 2, tool: 3, potion: 4, scroll: 5, special: 6, trophy: 7, refined: 8, raw: 9 };
+  const ids = Object.keys(S.inv).filter(i => IT(i)).filter(i => { const t = IT(i).type; return f === 'all' || f === t || (f === 'gear' && (t === 'weapon' || t === 'armor')) || (f === 'mat' && ['raw', 'refined', 'special', 'trophy'].includes(t)) || (f === 'use' && ['potion', 'scroll', 'tool', 'enchant'].includes(t)); })
     .sort((a, c) => order[IT(a).type] - order[IT(c).type] || IT(c).grade - IT(a).grade || a.localeCompare(c));
   b.innerHTML = `<div class="chips">${[['all', 'Tudo'], ['gear', 'Equipamentos'], ['mat', 'Materiais'], ['use', 'Consumíveis']].map(([k, l]) => `<button data-f="${k}" class="${k === f ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div class="small">🪙 ${Number(S.c.aurum).toLocaleString('pt-BR')} aurum</div><div id="bdet"></div><div class="grid">${ids.map(i => slot(i, S.inv[i])).join('') || '<div class="small">Inventário vazio</div>'}</div>`;
   b.onclick = async e => {
     if (e.target.dataset.f) { panelState.f = e.target.dataset.f; return renderPanel(); }
     const a = e.target.dataset.a, id = panelState.sel;
-    if (a === 'eq') { const r = await safe(() => B.equip(id), 'Equipado'); if (r) { S.c.equipment = r; await refresh(); setGear(me, r.arma, r.armadura, r); S.hp = Math.min(S.hp, stats().maxHp); buildBar(); renderPanel(); } return; }
+    if (a === 'eq') { const r = await safe(() => B.equip(id), 'Equipado'); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); S.hp = Math.min(S.hp, stats().maxHp); buildBar(); renderPanel(); } return; }
     if (a === 'bar') { addToBar({ t: 'i', id }); return; }
+    const enc = e.target.dataset.enc; if (enc) { await doEnchant(enc); return; }
     if (a === 'use') { const it = IT(id); if (it.type === 'scroll') { const r = await safe(() => B.useItem(id)); if (r) { S.inv[id]--; if (!S.inv[id]) delete S.inv[id]; toast('Retornando a ' + r.town, 'ok'); teleport(r.x, r.z); renderPanel(); } } else { await usePotion(id.startsWith('pocao_mp') ? 'mp' : 'hp'); renderPanel(); } return; }
     const s = e.target.closest('.slot'); if (!s) return; const sid = s.dataset.id; panelState.sel = sid; const it = IT(sid);
     $('#bdet').innerHTML = `<div class="row"><div style="font-size:28px">${it.icon}</div><div class="grow"><b style="color:${gcol(it.grade)}">${esc(it.name)}</b> x${S.inv[sid]}<div class="small">${itemDesc(sid)}</div></div>
-      ${it.slot ? '<button class="btn" data-a="eq">Equipar</button>' : ''}${['potion', 'scroll'].includes(it.type) ? '<button class="btn" data-a="use">Usar</button>' : ''}${['potion', 'scroll'].includes(it.type) || it.slot ? '<button class="btn alt" data-a="bar">➕ Barra</button>' : ''}</div>`;
+      ${it.slot ? '<button class="btn" data-a="eq">Equipar</button>' : ''}${it.type === 'enchant' ? encTargets(it).map(([sl, iid]) => `<button class="btn" data-enc="${sl}">✨ ${esc(IT(iid).name)} +${(S.c.enchant || {})[iid] || 0}</button>`).join('') || '<span class="small">Equipe um item do mesmo grau para encantar</span>' : ''}${['potion', 'scroll'].includes(it.type) ? '<button class="btn" data-a="use">Usar</button>' : ''}${['potion', 'scroll'].includes(it.type) || it.slot ? '<button class="btn alt" data-a="bar">➕ Barra</button>' : ''}</div>`;
   };
   b.ondragstart = e => { const s = e.target.closest('.slot'); if (s && s.dataset.id) e.dataTransfer.setData('text/plain', JSON.stringify({ t: 'i', id: s.dataset.id })); };
   b.querySelectorAll('.slot[data-id]').forEach(el => el.draggable = true);
@@ -748,22 +892,29 @@ function pTeleport(b) {
   b.onclick = async e => { const d = e.target.dataset.d; if (!d) return; const r = await safe(() => B.teleport(d)); if (!r) return; S.c.aurum -= r.cost; closePanel(); toast('Teleportado para ' + r.name, 'ok'); teleport(r.x, r.z); };
 }
 function pArauto(b) {
-  const done = S.c.quests || {}, here = panelState.npc?.town?.id;
+  const here = panelState.npc?.town?.id, gm = S.c.is_gm, band = GD.gradeForLevel(S.c.level);
   const ready = S.q.active.filter(id => questReady(QD.QUESTS[id]));
-  const avail = QD.LIST.filter(Q => !done[Q.id] && !S.q.active.includes(Q.id) && (!Q.prereq || done[Q.prereq]) && (Q.town === here || S.c.is_gm));
+  const okQ = Q => !qDone(Q.id) && !S.q.active.includes(Q.id) && (!Q.prereq || S.c.quests?.[Q.prereq]);
+  const groups = [
+    ['★ História', QD.LIST.filter(Q => Q.main && okQ(Q) && (Q.town === here || gm))],
+    ['📜 Secundárias desta cidade', QD.LIST.filter(Q => Q.kind === 'secundaria' && okQ(Q) && (Q.town === here || gm))],
+    ['🔁 Diárias (renovam à meia-noite)', QD.LIST.filter(Q => Q.kind === 'diaria' && okQ(Q) && Q.band === band)],
+    ['👑 Lendas — chefes dos locais especiais', QD.LIST.filter(Q => Q.kind === 'lenda' && okQ(Q) && S.c.level >= Q.lvl - 8)],
+  ];
+  const row = Q => { const ok = S.c.level >= Q.lvl; return `<div class="row"><div class="grow"><b>${qTag(Q)}${esc(Q.title)}</b> <span class="small">nv ${Q.lvl}</span><div class="small">${esc(Q.text)}</div><div class="small" style="color:#c5f5b0">${rewardTxt(Q.reward)}</div></div><button class="btn" data-acc="${Q.id}" ${ok ? '' : 'disabled'}>Aceitar</button><button class="btn alt" data-accg="${Q.id}" ${ok ? '' : 'disabled'} title="Aceitar e ligar o guia automático">🧭</button></div>`; };
   b.innerHTML = `<div class="small">"O Eclipse cresce a cada noite, aventureiro. Que tarefa aceitará?"</div>
-  ${ready.length ? '<h4>Prontas para entregar</h4>' + ready.map(id => `<div class="row"><div class="grow"><b>${esc(QD.QUESTS[id].title)}</b><div class="small">${rewardTxt(QD.QUESTS[id].reward)}</div></div><button class="btn" data-done="${id}">Concluir</button></div>`).join('') : ''}
-  <h4>Missões disponíveis</h4>${avail.map(Q => { const ok = S.c.level >= Q.lvl; return `<div class="row"><div class="grow"><b>${Q.main ? '★ ' : ''}${esc(Q.title)}</b> <span class="small">nv ${Q.lvl}</span><div class="small">${esc(Q.text)}</div><div class="small" style="color:#c5f5b0">${rewardTxt(Q.reward)}</div></div><button class="btn" data-acc="${Q.id}" ${ok ? '' : 'disabled'}>Aceitar</button></div>`; }).join('') || '<div class="small">Nenhuma missão nova aqui por enquanto.</div>'}`;
-  b.onclick = async e => { const a = e.target.dataset.acc, d = e.target.dataset.done;
-    if (a) { S.q.active.push(a); S.q.prog[a] = 0; saveQuests(); toast('Missão aceita: ' + QD.QUESTS[a].title, 'ok'); renderPanel(); }
-    if (d) { const r = await safe(() => B.questDone(d)); if (!r) return; S.c.quests = { ...(S.c.quests || {}), [d]: true }; S.q.active = S.q.active.filter(x => x !== d); saveQuests();
-      toast(`📜 Missão concluída: ${QD.QUESTS[d].title}!`, 'ok'); addChat({ kind: 'q', msg: `Recompensa: ${rewardTxt(r.reward)}` }); const L = S.c.level; await refresh(); if (S.c.level > L) { S.c.level = L; levelUp(r.level); } renderPanel(); } };
+  ${ready.length ? '<h4>Prontas para entregar</h4>' + ready.map(id => `<div class="row"><div class="grow"><b>${qTag(QD.QUESTS[id])}${esc(QD.QUESTS[id].title)}</b><div class="small">${rewardTxt(QD.QUESTS[id].reward)}</div></div><button class="btn" data-done="${id}">Concluir</button></div>`).join('') : ''}
+  ${groups.map(([t, l]) => l.length ? `<h4>${t}</h4>` + l.map(row).join('') : '').join('') || '<div class="small">Nenhuma missão nova aqui por enquanto.</div>'}`;
+  b.onclick = async e => { const a = e.target.dataset.acc || e.target.dataset.accg, d = e.target.dataset.done;
+    if (a) { if (!S.q.active.includes(a)) { S.q.active.push(a); S.q.prog[a] = 0; saveQuests(); } toast('Missão aceita: ' + QD.QUESTS[a].title, 'ok'); if (e.target.dataset.accg) { closePanel(); startGuide(a); } else renderPanel(); }
+    if (d) { const r = await safe(() => B.questDone(d)); if (!r) return; const Qd = QD.QUESTS[d]; S.c.quests = { ...(S.c.quests || {}), [d]: Qd.kind === 'diaria' ? todayStr() : true }; S.q.active = S.q.active.filter(x => x !== d); delete S.q.prog[d]; if (S.guide?.id === d) stopGuide(); saveQuests();
+      toast(`📜 Missão concluída: ${Qd.title}!`, 'ok'); addChat({ kind: 'q', msg: `Recompensa: ${rewardTxt(r.reward)}` }); const L = S.c.level; await refresh(); if (S.c.level > L) { S.c.level = L; levelUp(r.level); } renderPanel(); } };
 }
-const rewardTxt = (r) => [r.xp ? `${Number(r.xp).toLocaleString('pt-BR')} XP` : '', r.aurum ? `${Number(r.aurum).toLocaleString('pt-BR')} aurum` : '', ...Object.entries(r.items || {}).map(([k, v]) => `${v}x ${iname(k)}`)].filter(Boolean).join(' • ');
+const rewardTxt = (r) => [r.xp ? `${Number(r.xp * GD.RATE_XP).toLocaleString('pt-BR')} XP` : '', r.aurum ? `${Number(r.aurum * GD.RATE_AURUM).toLocaleString('pt-BR')} aurum` : '', ...Object.entries(r.items || {}).map(([k, v]) => `${v}x ${iname(k)}`)].filter(Boolean).join(' • ');
 function pQuests(b) {
-  b.innerHTML = `<h4>Ativas</h4>${S.q.active.map(id => { const Q = QD.QUESTS[id]; return `<div class="row"><div class="grow"><b>${Q.main ? '★ ' : ''}${esc(Q.title)}</b><div class="small">${esc(Q.text)}</div><div class="small" style="color:#c5f5b0">${rewardTxt(Q.reward)}</div></div><button class="btn red" data-ab="${id}">Abandonar</button></div>`; }).join('') || '<div class="small">Nenhuma. Visite o Arauto do Eclipse na praça de qualquer cidade.</div>'}
-  <h4>Concluídas</h4><div class="small">${Object.keys(S.c.quests || {}).map(id => esc(QD.QUESTS[id]?.title)).join(' • ') || '—'}</div>`;
-  b.onclick = e => { const id = e.target.dataset.ab; if (id && confirm('Abandonar a missão?')) { S.q.active = S.q.active.filter(x => x !== id); delete S.q.prog[id]; saveQuests(); renderPanel(); } };
+  b.innerHTML = `<h4>Ativas</h4>${S.q.active.map(id => { const Q = QD.QUESTS[id]; return `<div class="row"><div class="grow"><b>${Q.main ? '★ ' : ''}${esc(Q.title)}</b><div class="small">${esc(Q.text)}</div><div class="small" style="color:#c5f5b0">${rewardTxt(Q.reward)}</div></div><button class="btn alt" data-gd="${id}">${S.guide?.id === id ? '⏹ Parar' : '🧭 Guiar'}</button><button class="btn red" data-ab="${id}">Abandonar</button></div>`; }).join('') || '<div class="small">Nenhuma. Visite o Arauto do Eclipse na praça de qualquer cidade.</div>'}
+  <h4>Concluídas</h4><div class="small">${Object.keys(S.c.quests || {}).filter(id => QD.QUESTS[id] && QD.QUESTS[id].kind !== 'diaria').map(id => esc(QD.QUESTS[id].title)).join(' • ') || '—'}</div>`;
+  b.onclick = e => { const g = e.target.dataset.gd; if (g) { if (S.guide?.id === g) stopGuide('Guia automático desligado'); else { closePanel(); startGuide(g); } return; } const id = e.target.dataset.ab; if (id && S.guide?.id === id) stopGuide(); if (id && confirm('Abandonar a missão?')) { S.q.active = S.q.active.filter(x => x !== id); delete S.q.prog[id]; saveQuests(); renderPanel(); } };
 }
 function pMap(b) {
   b.innerHTML = '<canvas id="bigmap" width="480" height="480" style="width:100%;border:1px solid #5a4630"></canvas><div class="small">Clique em uma cidade no mapa (GM) ou use o Guardião do Portal para viajar. 🟡 você • 🏰 cidades • ⚔️ terras de caça</div>';
@@ -776,10 +927,11 @@ function pMap(b) {
 }
 function pLore(b) { b.innerHTML = `<div class="lore"><div class="logo small">${QD.LORE.title}</div>${QD.LORE.chapters.map(([h, t]) => `<h4>${h}</h4><p>${t}</p>`).join('')}</div>`; }
 function pSys(b) {
-  b.innerHTML = `<div class="row"><div class="grow">Sombras de alta qualidade</div><button class="btn alt" id="sh">${renderer.shadowMap.enabled ? 'Ligadas' : 'Desligadas'}</button></div>
+  b.innerHTML = `<div class="row"><div class="grow">Qualidade gráfica <span class="small">(${Math.round(PERF.fps)} FPS agora • em uso: ${QUAL[PERF.cur].name})</span></div></div><div class="chips">${[['auto', 'Automática'], ['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa (celular fraco)']].map(([k, l]) => `<button data-q="${k}" class="${PERF.mode === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+  <div class="row"><div class="grow">Sombras</div><button class="btn alt" id="sh">${renderer.shadowMap.enabled ? 'Ligadas' : 'Desligadas'}</button></div>
   <div class="row"><div class="grow">Controles</div></div><div class="small">Clique esquerdo: andar / selecionar • clique de novo no alvo (ou duplo clique): atacar • Ctrl + clique: atacar jogador (PvP) • botão direito arrastando: girar câmera • roda: zoom • WASD: andar • 1–7 ou F1–F7: habilidades • Espaço/F: atacar • Tab: próximo alvo • 8/9: poções • Enter: chat • C, I, K, L, M, H: janelas</div>
   <button class="primary" id="tochars">Trocar de personagem</button><button class="link" id="lo">Sair da conta</button>`;
-  b.onclick = async e => { if (e.target.id === 'sh') { renderer.shadowMap.enabled = !renderer.shadowMap.enabled; scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); renderPanel(); }
+  b.onclick = async e => { const qm = e.target.dataset.q; if (qm) { PERF.mode = qm; localStorage.setItem('vt_qual', qm); if (qm !== 'auto') applyQuality(qm); renderPanel(); return; } if (e.target.id === 'sh') { renderer.shadowMap.enabled = !renderer.shadowMap.enabled; scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); renderPanel(); }
     if (e.target.id === 'tochars') { await saveNow(); location.reload(); } if (e.target.id === 'lo') { await saveNow(); await B.logout(); location.reload(); } };
 }
 function pGm(b) {
@@ -821,7 +973,7 @@ function useSlot(n) { const e = S.bar[n]; if (!e) return; if (e.t === 's') { con
 async function useBagItem(id) { const it = IT(id); if (!it) return; if (!S.inv[id]) { toast(`Sem ${it.name} na bolsa`, 'err'); return; }
   if (it.type === 'scroll') { const r = await safe(() => B.useItem(id)); if (r) { S.inv[id]--; if (!S.inv[id]) delete S.inv[id]; toast('Retornando a ' + r.town, 'ok'); teleport(r.x, r.z); } }
   else if (it.type === 'potion') await usePotion(id.startsWith('pocao_mp') ? 'mp' : 'hp', id);
-  else if (it.slot) { const r = await safe(() => B.equip(id), 'Equipado'); if (r) { S.c.equipment = r; await refresh(); setGear(me, r.arma, r.armadura, r); } }
+  else if (it.slot) { const r = await safe(() => B.equip(id), 'Equipado'); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); } }
   buildBar(); }
 function buildBar() {
   if (!S.bar) loadBar(); const st = stats();
@@ -991,6 +1143,7 @@ function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, clock.getDelta());
   if (S.inGame && me) {
+    perfTick(dt); if (S.guide && (S.guideT = (S.guideT || 0) + dt) > 0.25) { S.guideT = 0; guideTick(); }
     updateMe(dt); updateMobs(dt); updateOthers(dt); updateFx(dt); updateCamera(); updateChunks(me.x, me.z, false);
     updateEnvironment(dt); water.position.x = Math.round(me.x / 50) * 50; water.position.z = Math.round(me.z / 50) * 50; sky.position.copy(camera.position);
     if (!GRASS.center || Math.hypot(GRASS.center.x - me.x, GRASS.center.z - me.z) > 12) layoutGrass(GRASS, me.x, me.z, WG.height, grassOk, grassColor); updateTownVisibility();
@@ -1011,4 +1164,4 @@ loop();
   } else $('#login-msg').textContent = 'Servidor online em configuração — use o modo offline para testar.';
   show('#login');
 })();
-window.__game = { townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill };
+window.__game = { townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, startGuide, stopGuide, PERF, applyQuality, saveQuests };
