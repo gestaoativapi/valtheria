@@ -13,7 +13,7 @@ class RemoteBackend {
   async logout() { await this.leave(); await this.sb.auth.signOut(); }
   async rpc(fn, a) { const { data, error } = await this.sb.rpc(fn, a || {}); if (error) throw new Error(/JWT/i.test(error.message) ? 'Sessão expirada, entre novamente' : error.message); return data; }
   chars() { return this.rpc('game_chars'); }
-  createChar(o) { return this.rpc('game_create_char', { p_name: o.name, p_race: o.race, p_type: o.type, p_gender: o.gender, p_hair: o.hair, p_hair_color: o.hair_color, p_skin: o.skin }); }
+  createChar(o) { return this.rpc('game_create_char2', { p_name: o.name, p_race: o.race, p_type: o.type, p_gender: o.gender, p_look: o.look || {} }); }
   deleteChar(id) { return this.rpc('game_delete_char', { p_char: id }); }
   use(id) { this.cid = id; }
   c(o) { return { p_char: this.cid, ...o }; }
@@ -71,9 +71,9 @@ class LocalBackend {
     if (!/^[\p{L}0-9_]{3,16}$/u.test(o.name || '')) this.E('Nome: 3 a 16 letras ou números, sem espaços');
     if (this.d.chars.some(c => c.name.toLowerCase() === o.name.toLowerCase())) this.E('Esse nome já existe');
     const cl = GD.baseClass(o.race, o.type); if (!cl) this.E('Combinação inválida');
-    const w = { mago: 'cajado_ng', xama: 'cajado_ng', artesao: 'martelo_ng' }[cl.arch] || 'espadao_ng';
+    const A = GD.ARCH[cl.arch], w = A.weapon + '_ng';
     const c = { id: 'L' + Date.now(), ...o, class_id: cl.id, level: 1, xp: 0, hp: 9999, mp: 9999, x: 1500, z: 2578, aurum: 300, karma: 0, pvp: 0, pk: 0, profs: {},
-      equipment: { arma: w, armadura: o.type === 'm' ? 'robe_ng' : 'pesada_ng' }, inv: { pocao_hp: 8, retorno: 2 }, is_gm: true };
+      equipment: { arma: w, armadura: A.armor + '_ng' }, inv: { pocao_hp: 8, retorno: 2 }, is_gm: true };
     this.d.chars.push(c); this._s(); return c.id;
   }
   async deleteChar(id) { this.d.chars = this.d.chars.filter(c => c.id !== id); this._s(); }

@@ -1,4 +1,4 @@
-// ===== Reinos de Aurora 3D — dados do jogo (cliente e gerador de SQL) =====
+// ===== Valtheria: A Árvore dos Mil Mundos — dados do jogo (cliente e gerador de SQL) =====
 (function (root) {
   const GRADES = [
     { id: 'NG', lvl: 1, gp: 1, name: 'Sem Grau', color: '#bdbdbd' },
@@ -20,16 +20,51 @@
   const lf = (L) => Math.pow(1.05, L - 1);
   const dmgFormula = (atk, mult, def) => atk * mult * atk / (atk + def * 0.5);
 
+  // ----- raças de Valtheria (masculino e feminino) -----
+  // look: face 0-3, eyes 0-3, eye_color, hair 0-5, hair_color 0-9, skin, scar 0-3, beard 0-2
   const RACES = {
-    humano: { name: 'Humano', types: ['l', 'm'], hp: { l: 130, m: 95 }, mp: { l: 40, m: 100 }, patk: { l: 12, m: 6 }, matk: { l: 5, m: 13 }, pdef: 8, mdef: 8, spd: 1.0, h: 1.0, w: 1.0, skins: ['#f1c27d', '#e0ac69', '#c68642', '#8d5524'], desc: 'Equilibrados, versáteis em qualquer caminho.' },
-    elfo: { name: 'Elfo', types: ['l', 'm'], hp: { l: 120, m: 90 }, mp: { l: 45, m: 110 }, patk: { l: 11, m: 6 }, matk: { l: 5, m: 14 }, pdef: 8, mdef: 10, spd: 1.08, h: 1.04, w: 0.92, skins: ['#fde3c8', '#f5d0b0', '#e8c39e'], desc: 'Ágeis e precisos, os mais rápidos do reino.' },
-    sombrio: { name: 'Elfo Sombrio', types: ['l', 'm'], hp: { l: 115, m: 85 }, mp: { l: 42, m: 105 }, patk: { l: 14, m: 7 }, matk: { l: 5, m: 15 }, pdef: 7, mdef: 9, spd: 1.04, h: 1.03, w: 0.94, skins: ['#b7b5d6', '#9c99c4', '#8a86b8'], desc: 'Dano altíssimo, porém mais frágeis.' },
-    orc: { name: 'Orc', types: ['l', 'm'], hp: { l: 155, m: 110 }, mp: { l: 38, m: 95 }, patk: { l: 14, m: 7 }, matk: { l: 4, m: 12 }, pdef: 9, mdef: 8, spd: 0.95, h: 1.12, w: 1.22, skins: ['#7ca05a', '#6b8f4e', '#8a9a6a'], desc: 'Vida e força brutas, resistência lendária.' },
-    anao: { name: 'Anão', types: ['l'], hp: { l: 145 }, mp: { l: 45 }, patk: { l: 13 }, matk: { l: 4 }, pdef: 10, mdef: 9, spd: 0.92, h: 0.78, w: 1.18, skins: ['#f1c27d', '#e0ac69', '#d19a66'], desc: 'Mestres da coleta e da forja. Só seguem o caminho Lutador.' },
+    humano: { name: 'Humanos', types: ['l', 'm'], hp: { l: 130, m: 95 }, mp: { l: 40, m: 100 }, patk: { l: 12, m: 6 }, matk: { l: 5, m: 13 }, pdef: 8, mdef: 8, spd: 1.0, h: 1.0, w: 1.0,
+      skins: ['#f6d2b4', '#e8b993', '#c98e66', '#9a6440', '#6b4128'], eyes: ['#5a3a22', '#3a6a8a', '#4a7a4a', '#7a6a5a', '#2a2a2a', '#8a6a2a'], feat: {}, excl: ['Templário', 'Arcanista'],
+      desc: 'Versáteis e ambiciosos, fundaram os grandes reinos de Valtheria.' },
+    elfo: { name: 'Elfos Brancos', types: ['l', 'm'], hp: { l: 120, m: 90 }, mp: { l: 45, m: 110 }, patk: { l: 11, m: 6 }, matk: { l: 5, m: 14 }, pdef: 8, mdef: 10, spd: 1.08, h: 1.05, w: 0.9,
+      skins: ['#fbe6d4', '#f3d6bd', '#ead0b8', '#d9b99c'], eyes: ['#3a9a6a', '#4a8ac8', '#8ab8d8', '#b89a4a', '#7a5ab8', '#2a6a4a'], feat: { ears: 'long' }, excl: ['Guardião Arqueiro', 'Cantor de Runas'],
+      desc: 'Guardiões das florestas antigas, mestres do arco e das runas de luz.' },
+    sombrio: { name: 'Elfos Negros', types: ['l', 'm'], hp: { l: 115, m: 85 }, mp: { l: 42, m: 105 }, patk: { l: 14, m: 7 }, matk: { l: 5, m: 15 }, pdef: 7, mdef: 9, spd: 1.04, h: 1.03, w: 0.92,
+      skins: ['#a9a6c9', '#8c88b5', '#6e6a9a', '#54507a'], eyes: ['#e83a5a', '#c84ae8', '#f0a03a', '#e8e8f0', '#4ae8c8', '#ff6a2a'], feat: { ears: 'long' }, excl: ['Lâmina das Sombras', 'Feiticeiro do Abismo'],
+      desc: 'Exilados das cidades subterrâneas. Dano altíssimo, porém mais frágeis.' },
+    orc: { name: 'Orcs e Goblins', types: ['l', 'm'], hp: { l: 155, m: 110 }, mp: { l: 38, m: 95 }, patk: { l: 14, m: 7 }, matk: { l: 4, m: 12 }, pdef: 9, mdef: 8, spd: 0.95, h: 1.12, w: 1.22,
+      skins: ['#8aae62', '#6f9450', '#9aa86a', '#5f7a48', '#a08a6a'], eyes: ['#e8c83a', '#c83a2a', '#3a2a1a', '#8ac83a', '#e87a2a', '#6a4a2a'], feat: { tusks: 1, brow: 1 }, excl: ['Berserker de Sangue', 'Xamã Tribal'],
+      desc: 'Clãs das estepes rubras. Vida e força brutas, resistência lendária.' },
+    anao: { name: 'Anões', types: ['l'], hp: { l: 145 }, mp: { l: 45 }, patk: { l: 13 }, matk: { l: 4 }, pdef: 10, mdef: 9, spd: 0.92, h: 0.78, w: 1.2,
+      skins: ['#f3cba5', '#e2b088', '#c99268', '#9a6a48'], eyes: ['#5a3a22', '#3a5a7a', '#6a6a6a', '#2a2a2a', '#7a5a2a', '#3a6a4a'], feat: { beard: 1, headBig: 1.1 }, excl: ['Forjador de Runas', 'Quebra-Escudos'],
+      desc: 'Senhores das montanhas, das minas e da forja rúnica.' },
+    halfling: { name: 'Halflings', types: ['l', 'm'], hp: { l: 110, m: 85 }, mp: { l: 45, m: 100 }, patk: { l: 12, m: 6 }, matk: { l: 5, m: 13 }, pdef: 8, mdef: 9, spd: 1.06, h: 0.64, w: 0.95,
+      skins: ['#f6d2b4', '#ebbd98', '#d2a27a', '#a8784e'], eyes: ['#5a3a22', '#4a7a4a', '#3a6a8a', '#8a6a3a', '#2a2a2a', '#6a8a3a'], feat: { headBig: 1.18, bigFeet: 1, ears: 'small' }, excl: ['Ladino Andarilho', 'Alquimista'],
+      desc: 'Pequenos, sortudos e espertos. Mestres da coleta e das poções.' },
+    beastman: { name: 'Beastmen', types: ['l', 'm'], hp: { l: 140, m: 100 }, mp: { l: 38, m: 98 }, patk: { l: 14, m: 6 }, matk: { l: 4, m: 13 }, pdef: 9, mdef: 8, spd: 1.07, h: 1.08, w: 1.08,
+      skins: ['#a8784a', '#7a5a3a', '#c8a070', '#8a8a8a', '#e8e0d0'], eyes: ['#e8b83a', '#8ac83a', '#e86a2a', '#4ab8e8', '#c83a3a', '#2a2a2a'], feat: { muzzle: 1, animalEars: 1, tail: 'fur' }, excl: ['Caçador Selvagem', 'Druida da Fera'],
+      desc: 'Povos-fera das matas profundas: lobos, leões e ursos que andam como homens.' },
+    draconato: { name: 'Draconatos', types: ['l', 'm'], hp: { l: 145, m: 105 }, mp: { l: 40, m: 100 }, patk: { l: 13, m: 6 }, matk: { l: 5, m: 14 }, pdef: 10, mdef: 9, spd: 0.98, h: 1.1, w: 1.12,
+      skins: ['#b8483a', '#c8943a', '#4a8a5a', '#3a6aa8', '#7a7a8a'], eyes: ['#ffcc33', '#ff7a2a', '#7ae8ff', '#c8ff4a', '#ff4a4a', '#e8e8e8'], feat: { snout: 1, horns: 1, tail: 'scale', noHair: 1 }, excl: ['Lanceiro Dracônico', 'Sacerdote do Sopro'],
+      desc: 'Filhos do sangue dos dragões antigos, guerreiros de escamas e fogo.' },
+    sylph: { name: 'Sylphs', types: ['l', 'm'], hp: { l: 105, m: 82 }, mp: { l: 50, m: 118 }, patk: { l: 12, m: 6 }, matk: { l: 6, m: 15 }, pdef: 7, mdef: 10, spd: 1.12, h: 0.96, w: 0.86,
+      skins: ['#fdeee6', '#f3e2f0', '#e2eef8', '#f0f0dc'], eyes: ['#4ac8e8', '#c88ae8', '#8ae8b8', '#e8a8c8', '#e8e8ff', '#5a8ae8'], feat: { wings: 1, ears: 'small' }, excl: ['Dançarina do Vento', 'Oráculo Estelar'],
+      desc: 'Espíritos do vento em forma humana, leves e velozes como a brisa.' },
+    nocturno: { name: 'Nocturnos', types: ['l', 'm'], hp: { l: 125, m: 92 }, mp: { l: 44, m: 108 }, patk: { l: 13, m: 7 }, matk: { l: 5, m: 15 }, pdef: 8, mdef: 9, spd: 1.03, h: 1.03, w: 0.95,
+      skins: ['#f4ece8', '#e8dcdc', '#dcd4e0', '#cfc6c6'], eyes: ['#d81a2a', '#a81a4a', '#e8a81a', '#8a1ad8', '#ff4a4a', '#c8c8d8'], feat: { fangs: 1, ears: 'small' }, excl: ['Cavaleiro de Sangue', 'Ilusionista'],
+      desc: 'A nobreza vampírica da Noite Eterna. Elegantes, letais e amaldiçoados.' },
+    gigante: { name: 'Gigantes de Gelo', types: ['l', 'm'], hp: { l: 175, m: 120 }, mp: { l: 36, m: 92 }, patk: { l: 15, m: 6 }, matk: { l: 4, m: 13 }, pdef: 11, mdef: 9, spd: 0.9, h: 1.42, w: 1.38,
+      skins: ['#c8dcec', '#a8c4dc', '#8aaccc', '#dce8f0'], eyes: ['#7ad8ff', '#e8f8ff', '#3a8ac8', '#8ae8e8', '#c8c8ff', '#4a6a8a'], feat: { beard: 1, frost: 1 }, excl: ['Guardião Glacial', 'Runista do Inverno'],
+      desc: 'Colossos dos picos congelados do norte. Resistência e força sem igual.' },
   };
   const TYPES = { l: 'Lutador', m: 'Místico' };
-  const HAIR_COLORS = ['#2b1d14', '#6b4423', '#c89b4a', '#e8d8b0', '#b33a2a', '#1f3b73', '#e0e0e0', '#2d6b3a'];
-
+  const HAIR_COLORS = ['#2b1d14', '#6b4423', '#c89b4a', '#efe0b8', '#b33a2a', '#1f3b73', '#e8e8ee', '#2d6b3a', '#d86aa8', '#7a4ac8'];
+  const HAIR_STYLES = ['Curto', 'Espetado', 'Longo', 'Rabo de cavalo', 'Tranças', 'Coque'];
+  const FACES = ['Oval', 'Redondo', 'Angular', 'Fino'];
+  const EYE_SHAPES = ['Amendoado', 'Redondo', 'Felino', 'Sereno'];
+  const SCARS = ['Nenhuma', 'Bochecha', 'Olho', 'Nariz'];
+  const BEARDS = ['Sem barba', 'Curta', 'Longa'];
+  const EXPRESSIONS = { neutral: 'Neutro', smile: 'Sorriso', sad: 'Tristeza', angry: 'Raiva', hurt: 'Dor' };
   // ----- arquétipos e habilidades -----
   // tipos: hit, buff, heal, dash, leap, taunt, mana
   const S = (lvl, name, icon, o) => ({ lvl, name, icon, mp: 10, cd: 6, ...o });
@@ -119,40 +154,88 @@
 
   // ----- árvore de classes: base (nv 1) → 2ª (nv 20) → 3ª (nv 40) → 4ª (nv 76) -----
   const CLASSES = {};
-  const C = (id, name, race, type, rank, parent, arch, bonus) => { CLASSES[id] = { id, name, race, type, rank, parent, arch, bonus: bonus || null }; };
-  const line = (race, type, parent, arch, names, prefix, bonus) => {
-    let p = parent; names.forEach((n, i) => { const id = prefix + '_' + (i + 1); C(id, n, race, type, i + 1, p, arch, bonus); p = id; });
+  const C = (id, name, race, type, rank, parent, arch, bonus, excl) => { CLASSES[id] = { id, name, race, type, rank, parent, arch, bonus: bonus || null, excl: !!excl }; };
+  const line = (race, type, parent, arch, names, prefix, bonus, excl) => {
+    let p = parent; names.forEach((n, i) => { const id = prefix + '_' + (i + 1); C(id, n, race, type, i + 1, p, arch, bonus, excl); p = id; });
   };
-  C('hum_l', 'Guerreiro Humano', 'humano', 'l', 0, null, 'guerreiro');
-  line('humano', 'l', 'hum_l', 'tanque', ['Cavaleiro', 'Paladino da Aurora', 'Guardião Sagrado'], 'hum_tq');
+  // Humanos — exclusivas: Templário, Arcanista
+  C('hum_l', 'Escudeiro', 'humano', 'l', 0, null, 'guerreiro');
+  line('humano', 'l', 'hum_l', 'tanque', ['Templário', 'Paladino da Aurora', 'Grão-Templário'], 'hum_tq', null, true);
   line('humano', 'l', 'hum_l', 'guerreiro', ['Combatente', 'Mestre de Armas', 'Senhor da Guerra'], 'hum_gr');
   line('humano', 'l', 'hum_l', 'arqueiro', ['Batedor', 'Caçador', 'Atirador Celeste'], 'hum_aq');
   C('hum_m', 'Aprendiz Arcano', 'humano', 'm', 0, null, 'mago');
-  line('humano', 'm', 'hum_m', 'mago', ['Mago', 'Arquimago', 'Sábio do Fogo'], 'hum_mg');
+  line('humano', 'm', 'hum_m', 'mago', ['Arcanista', 'Arquimago', 'Sábio Arcano'], 'hum_mg', null, true);
   line('humano', 'm', 'hum_m', 'curandeiro', ['Clérigo', 'Bispo', 'Santo Curador'], 'hum_cu');
-  C('elf_l', 'Guerreiro Élfico', 'elfo', 'l', 0, null, 'guerreiro');
+  // Elfos Brancos — Guardião Arqueiro, Cantor de Runas
+  C('elf_l', 'Sentinela Élfico', 'elfo', 'l', 0, null, 'guerreiro');
+  line('elfo', 'l', 'elf_l', 'arqueiro', ['Guardião Arqueiro', 'Patrulheiro Lunar', 'Flecha de Prata'], 'elf_aq', null, true);
   line('elfo', 'l', 'elf_l', 'tanque', ['Cavaleiro Élfico', 'Templário da Floresta', 'Guardião Ancestral'], 'elf_tq');
-  line('elfo', 'l', 'elf_l', 'arqueiro', ['Arqueiro Élfico', 'Patrulheiro', 'Flecha Lunar'], 'elf_aq');
   line('elfo', 'l', 'elf_l', 'adaga', ['Andarilho', 'Lâmina do Vento', 'Espectro da Brisa'], 'elf_ad');
   C('elf_m', 'Místico Élfico', 'elfo', 'm', 0, null, 'mago');
+  line('elfo', 'm', 'elf_m', 'curandeiro', ['Cantor de Runas', 'Bardo Rúnico', 'Voz das Runas'], 'elf_cu', null, true);
   line('elfo', 'm', 'elf_m', 'mago', ['Feiticeiro Élfico', 'Mago das Águas', 'Mestre das Marés'], 'elf_mg');
-  line('elfo', 'm', 'elf_m', 'curandeiro', ['Oráculo Élfico', 'Ancião da Floresta', 'Voz da Floresta'], 'elf_cu');
+  // Elfos Negros — Lâmina das Sombras, Feiticeiro do Abismo
   C('de_l', 'Guerreiro Sombrio', 'sombrio', 'l', 0, null, 'guerreiro');
+  line('sombrio', 'l', 'de_l', 'adaga', ['Lâmina das Sombras', 'Assassino da Noite', 'Fantasma do Abismo'], 'de_ad', null, true);
   line('sombrio', 'l', 'de_l', 'tanque', ['Cavaleiro Sombrio', 'Vingador', 'Guardião da Sombra'], 'de_tq');
-  line('sombrio', 'l', 'de_l', 'adaga', ['Assassino', 'Lâmina Noturna', 'Fantasma'], 'de_ad');
   line('sombrio', 'l', 'de_l', 'arqueiro', ['Atirador Sombrio', 'Predador', 'Caçador do Vazio'], 'de_aq');
   C('de_m', 'Místico Sombrio', 'sombrio', 'm', 0, null, 'mago');
-  line('sombrio', 'm', 'de_m', 'mago', ['Feiticeiro Sombrio', 'Necromante', 'Arauto do Vazio'], 'de_mg');
+  line('sombrio', 'm', 'de_m', 'mago', ['Feiticeiro do Abismo', 'Necromante', 'Arauto do Vazio'], 'de_mg', null, true);
   line('sombrio', 'm', 'de_m', 'xama', ['Xamã Sombrio', 'Profeta Sombrio', 'Oráculo do Vazio'], 'de_xa');
+  // Orcs e Goblins — Berserker de Sangue, Xamã Tribal
   C('orc_l', 'Guerreiro Orc', 'orc', 'l', 0, null, 'guerreiro');
-  line('orc', 'l', 'orc_l', 'guerreiro', ['Saqueador', 'Destruidor', 'Titã'], 'orc_gr');
+  line('orc', 'l', 'orc_l', 'guerreiro', ['Berserker de Sangue', 'Destruidor', 'Titã Rubro'], 'orc_gr', null, true);
   line('orc', 'l', 'orc_l', 'monge', ['Monge', 'Punho de Ferro', 'Mestre do Punho'], 'orc_mo');
   C('orc_m', 'Místico Orc', 'orc', 'm', 0, null, 'xama');
-  line('orc', 'm', 'orc_m', 'xama', ['Xamã Orc', 'Senhor Tribal', 'Ancião Tribal'], 'orc_xa');
+  line('orc', 'm', 'orc_m', 'xama', ['Xamã Tribal', 'Senhor Tribal', 'Ancião Tribal'], 'orc_xa', null, true);
   line('orc', 'm', 'orc_m', 'curandeiro', ['Invocador Tribal', 'Bramido Sagrado', 'Voz dos Ancestrais'], 'orc_cu');
+  // Anões — Quebra-Escudos, Forjador de Runas
   C('dw_l', 'Guerreiro Anão', 'anao', 'l', 0, null, 'artesao');
+  line('anao', 'l', 'dw_l', 'guerreiro', ['Quebra-Escudos', 'Martelo de Guerra', 'Senhor da Montanha'], 'dw_qe', null, true);
+  line('anao', 'l', 'dw_l', 'artesao', ['Forjador de Runas', 'Mestre Rúnico', 'Grão-Forjador'], 'dw_fo', 'forja', true);
   line('anao', 'l', 'dw_l', 'artesao', ['Coletor', 'Prospector', 'Mestre Minerador'], 'dw_co', 'coleta');
-  line('anao', 'l', 'dw_l', 'artesao', ['Artífice', 'Forjador', 'Mestre Forjador'], 'dw_fo', 'forja');
+  // Halflings — Ladino Andarilho, Alquimista
+  C('hal_l', 'Andarilho das Colinas', 'halfling', 'l', 0, null, 'adaga');
+  line('halfling', 'l', 'hal_l', 'adaga', ['Ladino Andarilho', 'Mão Leve', 'Sombra das Colinas'], 'hal_ld', 'coleta', true);
+  line('halfling', 'l', 'hal_l', 'arqueiro', ['Atirador de Funda', 'Caçador das Colinas', 'Olho de Falcão'], 'hal_aq');
+  C('hal_m', 'Aprendiz de Ervas', 'halfling', 'm', 0, null, 'curandeiro');
+  line('halfling', 'm', 'hal_m', 'curandeiro', ['Alquimista', 'Mestre das Poções', 'Grão-Alquimista'], 'hal_al', null, true);
+  line('halfling', 'm', 'hal_m', 'mago', ['Ilusionista das Colinas', 'Mago do Lar', 'Arquimago Pequeno'], 'hal_mg');
+  // Beastmen — Caçador Selvagem, Druida da Fera
+  C('bst_l', 'Instinto Selvagem', 'beastman', 'l', 0, null, 'monge');
+  line('beastman', 'l', 'bst_l', 'monge', ['Caçador Selvagem', 'Garra Alfa', 'Rei da Matilha'], 'bst_cs', null, true);
+  line('beastman', 'l', 'bst_l', 'tanque', ['Pele de Ferro', 'Guardião da Matilha', 'Colosso Selvagem'], 'bst_tq');
+  C('bst_m', 'Vidente da Tribo', 'beastman', 'm', 0, null, 'xama');
+  line('beastman', 'm', 'bst_m', 'xama', ['Druida da Fera', 'Espírito Uivante', 'Arquidruida'], 'bst_dr', null, true);
+  line('beastman', 'm', 'bst_m', 'curandeiro', ['Curandeiro Tribal', 'Guardião dos Ritos', 'Voz da Lua'], 'bst_cu');
+  // Draconatos — Lanceiro Dracônico, Sacerdote do Sopro
+  C('drc_l', 'Cria do Dragão', 'draconato', 'l', 0, null, 'guerreiro');
+  line('draconato', 'l', 'drc_l', 'guerreiro', ['Lanceiro Dracônico', 'Cavaleiro Escamado', 'Dragão Lanceiro'], 'drc_ln', null, true);
+  line('draconato', 'l', 'drc_l', 'tanque', ['Escama de Ferro', 'Baluarte Dracônico', 'Muralha Ancestral'], 'drc_tq');
+  C('drc_m', 'Acólito da Chama', 'draconato', 'm', 0, null, 'xama');
+  line('draconato', 'm', 'drc_m', 'xama', ['Sacerdote do Sopro', 'Arauto das Chamas', 'Sopro Primordial'], 'drc_sp', null, true);
+  line('draconato', 'm', 'drc_m', 'mago', ['Piromante', 'Mago do Magma', 'Senhor do Inferno'], 'drc_mg');
+  // Sylphs — Dançarina do Vento, Oráculo Estelar
+  C('syl_l', 'Brisa Errante', 'sylph', 'l', 0, null, 'adaga');
+  line('sylph', 'l', 'syl_l', 'adaga', ['Dançarina do Vento', 'Lâmina da Brisa', 'Tempestade Viva'], 'syl_dv', null, true);
+  line('sylph', 'l', 'syl_l', 'arqueiro', ['Flecha Alada', 'Caçadora Celeste', 'Asa de Prata'], 'syl_aq');
+  C('syl_m', 'Sopro Místico', 'sylph', 'm', 0, null, 'mago');
+  line('sylph', 'm', 'syl_m', 'mago', ['Oráculo Estelar', 'Vidente Astral', 'Voz das Estrelas'], 'syl_or', null, true);
+  line('sylph', 'm', 'syl_m', 'curandeiro', ['Curandeira do Vento', 'Sopro Vital', 'Aurora Viva'], 'syl_cu');
+  // Nocturnos — Cavaleiro de Sangue, Ilusionista
+  C('noc_l', 'Cria da Noite', 'nocturno', 'l', 0, null, 'guerreiro');
+  line('nocturno', 'l', 'noc_l', 'tanque', ['Cavaleiro de Sangue', 'Lorde Carmesim', 'Senhor da Noite Eterna'], 'noc_cs', null, true);
+  line('nocturno', 'l', 'noc_l', 'adaga', ['Caçador Noturno', 'Presa Silenciosa', 'Sombra Carmesim'], 'noc_ad');
+  C('noc_m', 'Herdeiro do Véu', 'nocturno', 'm', 0, null, 'mago');
+  line('nocturno', 'm', 'noc_m', 'mago', ['Ilusionista', 'Mestre dos Véus', 'Arquiteto de Pesadelos'], 'noc_il', null, true);
+  line('nocturno', 'm', 'noc_m', 'xama', ['Sangromante', 'Senhor das Veias', 'Coração Sombrio'], 'noc_xa');
+  // Gigantes de Gelo — Guardião Glacial, Runista do Inverno
+  C('gig_l', 'Filho do Gelo', 'gigante', 'l', 0, null, 'guerreiro');
+  line('gigante', 'l', 'gig_l', 'tanque', ['Guardião Glacial', 'Muralha de Gelo', 'Colosso do Inverno'], 'gig_gg', null, true);
+  line('gigante', 'l', 'gig_l', 'guerreiro', ['Quebra-Geleiras', 'Avalanche', 'Fúria do Norte'], 'gig_gr');
+  C('gig_m', 'Vidente do Gelo', 'gigante', 'm', 0, null, 'xama');
+  line('gigante', 'm', 'gig_m', 'xama', ['Runista do Inverno', 'Senhor da Nevasca', 'Arauto do Gelo Eterno'], 'gig_rn', null, true);
+  line('gigante', 'm', 'gig_m', 'curandeiro', ['Guardião da Aurora Boreal', 'Luz do Norte', 'Coração Glacial'], 'gig_cu');
   const baseClass = (race, type) => Object.values(CLASSES).find(c => c.race === race && c.type === type && c.rank === 0);
   const nextClasses = (cid) => Object.values(CLASSES).filter(c => c.parent === cid);
 
@@ -275,7 +358,7 @@
 
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
-    RACES, TYPES, HAIR_COLORS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
+    RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
     WORLD, TOWNS, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

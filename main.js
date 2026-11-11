@@ -1,4 +1,4 @@
-// ===== Reinos de Aurora 3D — cliente =====
+// ===== Valtheria — cliente =====
 import * as THREE from './three.module.min.js';
 import { buildHumanoid, setGear, animHumanoid, playAttack, buildMob, animMob, buildNode, buildHouse, makeLabel, mat } from './models.js';
 const GD = window.GD, WG = window.WG, QD = window.QD, CFG = window.GAME_CONFIG || {};
@@ -34,7 +34,7 @@ function show(id) { ['#login', '#select', '#create', '#hud', '#loading'].forEach
 // ---------- renderização ----------
 const canvas = $('#view');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 const scene = new THREE.Scene();
@@ -138,7 +138,7 @@ function buildTowns() {
     for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2; if (ra.some(r => Math.abs(Math.atan2(Math.sin(a - r), Math.cos(a - r))) < 0.12)) continue; const x = t.x + Math.cos(a) * 92, z = t.z + Math.sin(a) * 92; const p = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 3.2, 6), mat('#8a6a48')); p.position.set(x, WG.height(x, z) + 1.4, z); p.castShadow = true; scene.add(p); }
     NPC_TYPES.forEach(([type, name, color], i) => {
       const a = i / NPC_TYPES.length * Math.PI * 2 + 0.3, x = t.x + Math.cos(a) * 17, z = t.z + Math.sin(a) * 17;
-      const m = buildHumanoid({ race: ['humano', 'elfo', 'anao', 'orc', 'humano', 'sombrio', 'humano'][i], gender: i % 3 === 1 ? 'f' : 'm', hair: i % 4, hair_color: i, skin: 0, armor: type === 'ferreiro' ? 'pesada_c' : 'robe_' + ['b', 'a', 'c', 'd', 'c', 's', 'a'][i], weapon: type === 'portal' ? 'cajado_b' : type === 'ferreiro' ? 'martelo_c' : null });
+      const m = buildHumanoid({ race: ['humano', 'elfo', 'anao', 'orc', 'halfling', 'sombrio', 'nocturno'][i], gender: i % 3 === 1 ? 'f' : 'm', hair: i % 4, hair_color: i, skin: 0, armor: type === 'ferreiro' ? 'pesada_c' : 'robe_' + ['b', 'a', 'c', 'd', 'c', 's', 'a'][i], weapon: type === 'portal' ? 'cajado_b' : type === 'ferreiro' ? 'martelo_c' : null });
       m.root.position.set(x, y, z); m.root.rotation.y = Math.atan2(t.x - x, t.z - z); scene.add(m.root);
       const l = makeLabel(name, '#ffe36a', 28); l.position.set(0, 2.5, 0); m.root.add(l);
       const npc = { type, name, town: t, x, z, model: m }; m.root.traverse(o => o.userData.pick = npc); npcs.push(npc);
@@ -166,15 +166,16 @@ function relabelMe() { if (!me) return; me.root.remove(me.label); me.label = mak
 // ---------- câmera ----------
 const cam = { yaw: 0, pitch: 0.38, dist: 12, drag: false, lx: 0, ly: 0 };
 canvas.addEventListener('contextmenu', e => e.preventDefault());
-canvas.addEventListener('mousedown', e => { if (e.button === 2 || e.button === 1) { cam.drag = true; cam.lx = e.clientX; cam.ly = e.clientY; } });
+canvas.addEventListener('mousedown', e => { if (e.button === 2 || e.button === 1 || (studio.visible && e.button === 0)) { cam.drag = true; cam.lx = e.clientX; cam.ly = e.clientY; } });
 addEventListener('mouseup', () => cam.drag = false);
-addEventListener('mousemove', e => { if (!cam.drag) return; cam.yaw -= (e.clientX - cam.lx) * 0.006; cam.pitch = clamp(cam.pitch + (e.clientY - cam.ly) * 0.005, 0.05, 1.35); cam.lx = e.clientX; cam.ly = e.clientY; });
-canvas.addEventListener('wheel', e => { cam.dist = clamp(cam.dist * (e.deltaY > 0 ? 1.1 : 0.9), 3.5, 32); }, { passive: true });
+addEventListener('mousemove', e => { if (!cam.drag) return; if (studio.visible) { stu.yaw -= (e.clientX - cam.lx) * 0.01; stu.pitch = clamp(stu.pitch + (e.clientY - cam.ly) * 0.005, -0.4, 0.9); } else { cam.yaw -= (e.clientX - cam.lx) * 0.006; cam.pitch = clamp(cam.pitch + (e.clientY - cam.ly) * 0.005, -0.45, 1.4); } cam.lx = e.clientX; cam.ly = e.clientY; });
+canvas.addEventListener('wheel', e => { if (studio.visible) stu.dist = clamp(stu.dist * (e.deltaY > 0 ? 1.1 : 0.9), 0.9, 6); else cam.dist = clamp(cam.dist * (e.deltaY > 0 ? 1.1 : 0.9), 1.1, 32); }, { passive: true });
+const stu = { yaw: 0, pitch: 0.12, dist: 4.6 }; window.__stu = stu;
 function updateCamera() {
-  const ty = WG.height(me.x, me.z) + 1.7;
+  const rh = (GD.RACES[S.c.race]?.h || 1), close = clamp((5 - cam.dist) / 3.5, 0, 1); const ty = WG.height(me.x, me.z) + (1.7 + (1.62 * rh - 1.7) * close) * (close ? 1 : 1) + (rh - 1) * 0.6 * (1 - close);
   let cx = me.x + Math.sin(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cz = me.z + Math.cos(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cy = ty + Math.sin(cam.pitch) * cam.dist;
-  cy = Math.max(cy, WG.height(cx, cz) + 0.8);
-  camera.position.set(cx, cy, cz); camera.lookAt(me.x, ty, me.z);
+  cy = Math.max(cy, WG.height(cx, cz) + 0.25);
+  camera.position.set(cx, cy, cz); camera.lookAt(me.x, ty, me.z); if (me.label) me.label.visible = cam.dist > 3;
 }
 
 // ---------- clique: mover, selecionar, interagir ----------
@@ -287,6 +288,7 @@ async function processKills() {
   S.killBusy = false;
 }
 function levelUp(L) {
+  if (me && me.setExpr) me.setExpr('smile', 4000);
   const old = S.c.level; S.c.level = L; const st = stats(); S.hp = st.maxHp; S.mp = st.maxMp;
   toast(`⭐ Nível ${L}!`, 'ok'); addChat({ kind: 'q', msg: `Você alcançou o nível ${L}!` });
   const r = new THREE.Mesh(new THREE.TorusGeometry(1, 0.08, 6, 30), new THREE.MeshBasicMaterial({ color: 0xffe36a, transparent: true })); r.rotation.x = Math.PI / 2; r.position.set(me.x, WG.height(me.x, me.z) + 0.2, me.z); scene.add(r);
@@ -298,7 +300,7 @@ function levelUp(L) {
 function hurtMe(v) {
   if (S.dead || S.buffs.invuln || S.god) return;
   if (S.buffs.dodge && Math.random() < 0.4) { floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, 'Esquiva', '#9fd0ff'); return; }
-  S.hp -= v; S.lastCombat = Date.now(); floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, '-' + v, '#ff5a5a');
+  S.hp -= v; S.lastCombat = Date.now(); if (me.setExpr && me.anim.expr !== 'angry') me.setExpr(S.hp < stats().maxHp * 0.3 ? 'sad' : 'hurt', 900); floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, '-' + v, '#ff5a5a');
   if (S.hp <= 0) die(false);
 }
 function die(pvp, by) {
@@ -462,11 +464,11 @@ async function gather(n) {
 function onPos(p) {
   if (!p || !S.c || p.id === S.c.id) return;
   let o = S.others[p.id];
-  const sig = [p.ra, p.ge, p.h, p.hc, p.sk, p.w, p.a, p.k, p.f, p.g, p.n].join('|');
+  const sig = [p.ra, p.ge, p.h, p.hc, p.sk, p.w, p.a, p.k, p.f, p.g, p.n, JSON.stringify(p.lk || {})].join('|');
   if (!o) { o = S.others[p.id] = { id: p.id, x: p.x, z: p.z, ry: p.r }; }
   if (o.sig !== sig) {
     if (o.model) scene.remove(o.model.root);
-    o.model = buildHumanoid({ race: p.ra, gender: p.ge, hair: p.h, hair_color: p.hc, skin: p.sk, weapon: p.w, armor: p.a });
+    o.model = buildHumanoid({ race: p.ra, gender: p.ge, hair: p.h, hair_color: p.hc, skin: p.sk, look: p.lk || undefined, weapon: p.w, armor: p.a });
     const l = makeLabel(p.n, nameColor({ gm: p.g, karma: p.k, flag: p.f }), 30); l.position.y = 2.25 * (GD.RACES[p.ra]?.h || 1); o.model.root.add(l);
     const sub = makeLabel(`${GD.CLASSES[p.c]?.name || ''} Nv.${p.l}`, '#bcd', 20); sub.position.y = 2.0 * (GD.RACES[p.ra]?.h || 1); o.model.root.add(sub);
     o.model.root.traverse(x => x.userData.pick = { kind: 'player', ref: o }); scene.add(o.model.root); o.sig = sig;
@@ -485,7 +487,7 @@ let lastSent = { x: 0, z: 0, t: 0, st: '' };
 function netTick() {
   if (!S.inGame) return; const t = Date.now(), st = me.anim.state;
   if (Math.hypot(me.x - lastSent.x, me.z - lastSent.z) > 0.05 || st !== lastSent.st || t - lastSent.t > 2000 || me.anim.atk >= 0) {
-    const c = S.c; B.sendPos({ id: c.id, n: c.name, x: +me.x.toFixed(2), z: +me.z.toFixed(2), r: +me.root.rotation.y.toFixed(2), st, ra: c.race, ge: c.gender, h: c.hair, hc: c.hair_color, sk: c.skin, c: c.class_id, l: c.level,
+    const c = S.c; B.sendPos({ id: c.id, n: c.name, x: +me.x.toFixed(2), z: +me.z.toFixed(2), r: +me.root.rotation.y.toFixed(2), st, ra: c.race, ge: c.gender, h: c.hair, hc: c.hair_color, sk: c.skin, lk: c.look || null, c: c.class_id, l: c.level,
       w: c.equipment.arma || null, a: c.equipment.armadura || null, k: (c.karma || 0) > 0, f: S.flagUntil > t, g: !!c.is_gm, hp: Math.round(100 * S.hp / stats().maxHp), atk: me.anim.atk >= 0 ? me.anim.kind : null });
     lastSent = { x: me.x, z: me.z, t, st };
   }
@@ -576,7 +578,7 @@ function itemDesc(id) {
 }
 function renderPanel() {
   const k = panelState.kind; if (!k) return; const body = $('#p-body'); body.onclick = null;
-  const T = { char: 'Personagem', bag: 'Inventário', skills: 'Habilidades', quests: 'Diário de Missões', map: 'Mapa do Reino', lore: 'Crônicas de Aurora', gm: 'Painel do GM', sys: 'Sistema', teleport: 'Guardião do Portal', classe: 'Mestre de Classes', craft: panelState.station === 'forja' ? 'Ferreiro' : 'Refinador e Alquimista', shop: 'Mercador', market: 'Casa de Leilões', arauto: 'Arauto do Eclipse' };
+  const T = { char: 'Personagem', bag: 'Inventário', skills: 'Habilidades', quests: 'Diário de Missões', map: 'Mapa do Reino', lore: 'Crônicas de Valtheria', gm: 'Painel do GM', sys: 'Sistema', teleport: 'Guardião do Portal', classe: 'Mestre de Classes', craft: panelState.station === 'forja' ? 'Ferreiro' : 'Refinador e Alquimista', shop: 'Mercador', market: 'Casa de Leilões', arauto: 'Arauto do Eclipse' };
   $('#p-title').textContent = T[k] || k; body.innerHTML = '';
   ({ char: pChar, bag: pBag, skills: pSkills, quests: pQuests, map: pMap, lore: pLore, gm: pGm, sys: pSys, teleport: pTeleport, classe: pClasse, craft: pCraft, shop: pShop, market: pMarket, arauto: pArauto })[k](body);
 }
@@ -806,25 +808,31 @@ function renderSelect() {
   $('#char-list').onclick = e => { const s = e.target.closest('.cslot'); if (s) { S.selected = +s.dataset.i; renderSelect(); } };
 }
 $('#btn-logout').onclick = async () => { await B.logout(); location.reload(); };
-const CO = { race: 'humano', type: 'l', gender: 'm', hair: 0, hair_color: 0, skin: 0 };
+const CO = { race: 'humano', type: 'l', gender: 'm', hair: 0, hair_color: 0, skin: 0, face: 0, eyes: 0, eye_color: 0, scar: 0, beard: 0 };
+const lookOf = (o) => ({ face: o.face, eyes: o.eyes, eye_color: o.eye_color, scar: o.scar, beard: o.beard, hair: o.hair, hair_color: o.hair_color, skin: o.skin });
 $('#btn-new').onclick = () => { show('#create'); renderCreate(); };
 $('#btn-cancel').onclick = () => { show('#select'); renderSelect(); };
-function chips(el, opts, key) { $(el).innerHTML = opts.map(([v, l, st]) => `<button data-v="${v}" class="${CO[key] == v ? 'on' : ''}" ${st ? `style="${st}"` : ''}>${l}</button>`).join(''); $(el).onclick = e => { const v = e.target.dataset.v; if (v == null) return; CO[key] = isNaN(+v) ? v : +v; if (key === 'race' && !GD.RACES[CO.race].types.includes(CO.type)) CO.type = 'l'; if (key === 'race') CO.skin = 0; renderCreate(); }; }
+function chips(el, opts, key) { $(el).innerHTML = opts.map(([v, l, st]) => `<button data-v="${v}" class="${CO[key] == v ? 'on' : ''}" ${st ? `style="${st}"` : ''}>${l}</button>`).join(''); $(el).onclick = e => { const v = e.target.dataset.v; if (v == null) return; CO[key] = isNaN(+v) ? v : +v; if (key === 'race' && !GD.RACES[CO.race].types.includes(CO.type)) CO.type = 'l'; if (key === 'race' || key === 'gender') { if (key === 'race') { CO.skin = 0; CO.eye_color = 0; } CO.beard = GD.RACES[CO.race].feat.beard && CO.gender === 'm' ? 2 : 0; } if (key === 'expr') { preview && preview.setExpr(v, 0); return; } renderCreate(); }; }
 function renderCreate() {
   const R = GD.RACES[CO.race];
   chips('#c-race', Object.entries(GD.RACES).map(([k, r]) => [k, r.name]), 'race'); $('#c-race-desc').textContent = R.desc;
   chips('#c-type', R.types.map(t => [t, GD.TYPES[t]]), 'type'); chips('#c-gender', [['m', 'Masculino'], ['f', 'Feminino']], 'gender');
-  chips('#c-hair', [[0, 'Curto'], [1, 'Espetado'], [2, 'Longo'], [3, 'Rabo']], 'hair');
+  chips('#c-hair', GD.HAIR_STYLES.map((n, i) => [i, n]), 'hair');
+  chips('#c-face', GD.FACES.map((n, i) => [i, n]), 'face'); chips('#c-eyes', GD.EYE_SHAPES.map((n, i) => [i, n]), 'eyes');
+  chips('#c-ecol', R.eyes.map((c, i) => [i, '&nbsp;&nbsp;', `background:${c};min-width:26px`]), 'eye_color'); chips('#c-scar', GD.SCARS.map((n, i) => [i, n]), 'scar');
+  $('#c-beard-wrap').hidden = CO.gender === 'f' || !!R.feat.snout; chips('#c-beard', GD.BEARDS.map((n, i) => [i, n]), 'beard');
+  chips('#c-expr', Object.entries(GD.EXPRESSIONS), 'expr');
   chips('#c-hcol', GD.HAIR_COLORS.map((c, i) => [i, '&nbsp;&nbsp;', `background:${c};min-width:26px`]), 'hair_color');
   chips('#c-skin', R.skins.map((c, i) => [i, '&nbsp;&nbsp;', `background:${c};min-width:26px`]), 'skin');
   const base = GD.baseClass(CO.race, CO.type), arch = GD.ARCH[base.arch];
-  showPreview({ ...CO, weapon: arch.weapon + '_ng', armor: (CO.type === 'm' ? 'robe' : 'pesada') + '_ng' });
+  showPreview({ ...CO, look: lookOf(CO), weapon: arch.weapon + '_ng', armor: arch.armor + '_ng' });
+  const ex = Object.values(GD.CLASSES).filter(c => c.race === CO.race && c.excl && c.rank === 1).map(c => c.name); $('#c-race-desc').innerHTML = esc(R.desc) + (ex.length ? `<br><b>Classes exclusivas:</b> ${ex.map(esc).join(' e ')}` : '');
   const rec = (id, d) => GD.nextClasses(id).map(c => `<div class="t${d}">↳ ${esc(c.name)} <span class="small">(nv ${GD.RANK_LVL[c.rank]} • ${GD.ARCH[c.arch].name}${c.bonus ? ' • bônus de ' + c.bonus : ''})</span></div>${rec(c.id, d + 1)}`).join('');
   $('#class-tree').innerHTML = `<div class="logo small">Árvore de classes</div><div class="tree"><div class="t1"><b>${esc(base.name)}</b> <span class="small">(classe base • ${arch.name})</span></div>${rec(base.id, 2)}</div><p class="small">As trocas de classe acontecem nos níveis 20, 40 e 76, com o Mestre de Classes. Só aparecem os caminhos compatíveis com a sua raça e tipo.</p>`;
 }
 $('#btn-create').onclick = async () => {
   $('#create-msg').textContent = '';
-  try { await B.createChar({ ...CO, name: $('#c-name').value.trim() }); const d = await B.chars(); S.chars = d.chars; S.selected = S.chars.length - 1; show('#select'); renderSelect(); }
+  try { await B.createChar({ ...CO, look: lookOf(CO), name: $('#c-name').value.trim() }); const d = await B.chars(); S.chars = d.chars; S.selected = S.chars.length - 1; show('#select'); renderSelect(); }
   catch (e) { $('#create-msg').textContent = e.message; }
 };
 
@@ -835,7 +843,7 @@ async function refresh() {
   renderTracker();
 }
 async function enterWorld(id) {
-  show('#loading'); $('#loading-msg').textContent = 'Entrando em Aurora…'; B.use(id);
+  show('#loading'); $('#loading-msg').textContent = 'Entrando em Valtheria…'; B.use(id);
   await new Promise(r => setTimeout(r, 30));
   const st = await B.state(); S.c = st.char; S.inv = st.inventory || {}; for (const [k, v] of Object.entries(st.depleted || {})) S.dep[k] = +v;
   studio.visible = false; if (!npcs.length) buildTowns(); if (!mmBase) buildMinimapBase();
@@ -863,7 +871,7 @@ function loop() {
     if (S.skyTo) { const k = Math.min(1, dt * 1.5); skyMat.uniforms.top.value.lerp(skyTop.set(S.skyTo.top), k); skyMat.uniforms.bot.value.lerp(skyBot.set(S.skyTo.bot), k); scene.fog.color.lerp(fogC.set(S.skyTo.fog), k); skyMat.uniforms.moon.value += ((S.skyTo === THEMES.cinza ? 1 : 0) - skyMat.uniforms.moon.value) * k; hemi.intensity = S.skyTo === THEMES.cinza ? 0.8 : 1.15; }
     npcs.forEach(n => { if (n.crystal) { n.crystal.rotation.y += dt * (n.crystal.userData.spin2 ? 0.8 : 0.6); if (n.crystal.userData.spin) n.crystal.position.y = WG.TOWN_H + 6 + Math.sin(clock.elapsedTime * 1.5) * 0.4; } else if (n.model && Math.hypot(n.x - me.x, n.z - me.z) < 80) animHumanoid(n.model, dt); });
   } else if (studio.visible) {
-    camera.position.set(Math.sin(clock.elapsedTime * 0.25) * 0.6, -497.6, 4.6); camera.lookAt(0.35, -498.9, 0); if (preview) { preview.root.rotation.y += dt * 0.5; animHumanoid(preview, dt); }
+    { const ph = preview ? (GD.RACES[preview.race]?.h || 1) : 1, close = clamp((3.2 - stu.dist) / 2.3, 0, 1), ty = -500 + 1.0 * ph + 0.62 * ph * close; camera.position.set(Math.sin(stu.yaw) * Math.cos(stu.pitch) * stu.dist + 0.35 * (1 - close), ty + Math.sin(stu.pitch) * stu.dist, Math.cos(stu.yaw) * Math.cos(stu.pitch) * stu.dist); camera.lookAt(0.35 * (1 - close), ty, 0); if (preview) animHumanoid(preview, dt); }
     sun.position.set(3, -490, 6); sun.target.position.set(0, -500, 0); sky.position.copy(camera.position);
   }
   renderer.render(scene, camera);
