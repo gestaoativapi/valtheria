@@ -258,6 +258,50 @@ export function buildLandmark(ctx, L) {
     for (let i = 0; i < 5; i++) { const w = box(8, 3 + (i % 3) * 2, 1.4, stone); const a = i * 1.3; w.position.set(x + Math.cos(a) * 26, y0 + 2, z + Math.sin(a) * 26); w.rotation.y = -a; g.add(w); }
     const alt = box(5, 1.6, 5, stone); alt.position.set(x, y0 + 0.8, z); g.add(alt);
     g.add(makeFire(x, y0 + 2, z, 1.4, L.id === 'templo_lua' ? '#9ab0ff' : '#7aff9a', true));
+  } else if (L.type === 'tumba') {
+    // cemitério com lápides, cripta de pedra, colunas quebradas, ossos e velas
+    const st = '#7a766e', dk = '#4a4640';
+    for (let i = 0; i < 34; i++) { const a = i * 2.39996, r = 8 + Math.sqrt(i) * 4.2, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r, ty = i % 4, gy = ctx.H(px, pz);
+      const t = new THREE.Group(); if (ty === 0) { A(t, box(0.9, 1.4, 0.22, st)).position.y = 0.6; A(t, cyl(0.45, 0.45, 0.22, st, 12)).position.y = 1.3; t.children[1].rotation.x = Math.PI / 2; }
+      else if (ty === 1) { A(t, box(0.18, 1.8, 0.18, dk)).position.y = 0.9; A(t, box(0.9, 0.18, 0.18, dk)).position.y = 1.3; }
+      else if (ty === 2) { A(t, box(1.1, 0.5, 2.1, st)).position.y = 0.25; A(t, box(0.8, 1.1, 0.25, st)).position.set(0, 0.8, -0.9); }
+      else A(t, box(0.7, 1.0, 0.2, st)).position.y = 0.45;
+      t.rotation.set((i % 5 - 2) * 0.06, a + 1.57, (i % 3 - 1) * 0.08); t.position.set(px, gy - 0.1, pz); g.add(t); }
+    const cr = new THREE.Group(); A(cr, box(9, 7, 11, '#6a665e')).position.y = 3.5; A(cr, gable(9, 11, 3.4, '#3a3632')).position.y = 7; A(cr, box(2.6, 4, 0.4, '#1a1612')).position.set(0, 2, 5.6);
+    [-1, 1].forEach(sd => A(cr, cyl(0.5, 0.6, 7.6, st, 10)).position.set(sd * 2.4, 3.8, 5.8)); cr.add(makeFire(-1.8, 4.6, 6.1, 0.4, '#7aff9a', false)); cr.add(makeFire(1.8, 4.6, 6.1, 0.4, '#7aff9a', false));
+    place(ctx, g, cr, x, z - 16, 0, 7);
+    [['d_column_broken', 1.1, -10, -6], ['d_column', 1.0, 10, -6], ['d_column_broken2', 1.1, -12, 6], ['d_bones', 1.0, 4, 4], ['d_bones2', 1.0, -5, 3], ['d_candelabrum_tall', 1.2, 2.5, -9], ['d_candelabrum_tall', 1.2, -2.5, -9], ['d_chest_gold', 1.3, 0, -11], ['d_bones', 1.0, -8, -2], ['d_column_broken', 1.0, 14, 10]]
+      .forEach(([n, sc, dx, dz]) => place(ctx, g, glbB(n, sc, null), x + dx, z + dz, dx * 0.3, 0));
+    for (let i = 0; i < 4; i++) { const tx = x + Math.cos(i * 1.6) * 20, tz = z + Math.sin(i * 1.6) * 20; place(ctx, g, glbB('q_willow_dead_' + (i % 2 ? 1 : 3), 3.2, null), tx, tz, i, 1.2); }
+    g.add(makeFire(x, y0 + 0.3, z - 9, 0.7, '#7aff9a', true));
+    g.userData.ambient = { fog: '#9ab89a', particles: '#aaffbb' };
+  } else if (L.type === 'pantano') {
+    // água parada escura, salgueiros, vitórias-régias, troncos com musgo e névoa
+    const pools = [[0, 0, 15], [18, 8, 9], [-16, -10, 10], [6, -20, 7], [-8, 18, 8]];
+    pools.forEach(([dx, dz, r]) => { const w = mesh(new THREE.CircleGeometry(r, 28), M('#1e2a16', { rough: 0.55, metal: 0, op: 0.92 })); w.rotation.x = -Math.PI / 2; w.position.set(x + dx, ctx.H(x + dx, z + dz) + 0.08, z + dz); w.receiveShadow = true; g.add(w);
+      for (let k = 0; k < Math.round(r / 2); k++) { const a = k * 2.4 + dx, rr = r * (0.3 + (k % 3) * 0.2); place(ctx, g, glbB('q_lilypad', 2.2, null), x + dx + Math.cos(a) * rr, z + dz + Math.sin(a) * rr, a, 0).position.y += 0.22; } });
+    for (let i = 0; i < 12; i++) { const a = i * 0.52 + 0.2, r = 24 + (i % 3) * 5, tx = x + Math.cos(a) * r, tz = z + Math.sin(a) * r; place(ctx, g, glbB(['q_willow_1', 'q_willow_dead_1', 'q_willow_3', 'q_willow_dead_3'][i % 4], 3.4 + (i % 3) * 0.4, null), tx, tz, a * 2, 1.3); }
+    [['q_woodlog_moss', 3, 9, 12], ['q_treestump_moss', 3, -12, 14], ['q_woodlog_moss', 3, 22, -6], ['q_rock_moss_2', 3, -20, 0], ['q_rock_moss_5', 3, 12, 16], ['q_treestump_moss', 3, 2, 26]].forEach(([n, sc, dx, dz]) => place(ctx, g, glbB(n, sc, null), x + dx, z + dz, dx, 0.8));
+    g.userData.ambient = { fog: '#6a7a5a', particles: '#c8ff7a' };
+  } else if (L.type === 'destrocos') {
+    // comboio destruído: carroças tombadas, caixotes e barris espalhados, muros caídos e fumaça
+    const props = [['b_cart', 3.2], ['b_crate', 3.6], ['b_barrel', 3.6], ['b_bags', 3.6], ['b_crate', 3.6], ['d_barrel', 1.2], ['b_hay', 3.6], ['b_cart', 3.2]];
+    for (let i = 0; i < 26; i++) { const a = i * 1.97, r = 4 + (i * 7 % 22), [n, sc] = props[i % props.length]; const o = place(ctx, g, glbB(n, sc, null), x + Math.cos(a) * r, z + Math.sin(a) * r, a * 1.7, 0); o.rotation.z = (i % 4 === 0) ? 1.3 : (i % 5 - 2) * 0.12; }
+    for (let i = 0; i < 5; i++) { const w = box(6 + (i % 2) * 3, 1.5 + (i % 3), 1.2, '#7a6a5a'); w.position.set(x + Math.cos(i * 1.3) * 18, y0 + 0.6, z + Math.sin(i * 1.3) * 18); w.rotation.set(0.15, i * 1.3, (i % 2) * 0.3); g.add(w); }
+    for (let i = 0; i < 3; i++) { const sx = x + Math.cos(i * 2.1) * 8, sz = z + Math.sin(i * 2.1) * 8; g.add(makeFire(sx, ctx.H(sx, sz) + 0.3, sz, 0.9, '#ffffff', true)); g.add(makeSmoke(sx, ctx.H(sx, sz) + 2, sz, 1.2)); }
+    g.userData.ambient = { fog: '#8a7a6a', particles: '#ffaa5a' };
+  } else if (L.type === 'estranho') {
+    // anomalia: monólito negro com runas, pedras flutuando em órbita e cristais pulsando
+    const mono = new THREE.Group(); A(mono, box(3, 16, 1.6, '#16121e', { rough: 0.2, metal: 0.6 })).position.y = 8;
+    for (let i = 0; i < 6; i++) A(mono, box(2.2, 0.18, 1.66, '#b07aff', { em: 0x9a5aff, ei: 2 })).position.y = 2 + i * 2.4;
+    place(ctx, g, mono, x, z, 0.4, 2.5);
+    for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2, r = 16, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r, h = 5 + (i % 3) * 1.5; const st = box(1.8, h, 1.2, '#2a2632', { rough: 0.5 }); st.position.set(px, ctx.H(px, pz) + h / 2 - 0.3, pz); st.rotation.set((i % 3 - 1) * 0.1, -a, 0); g.add(st);
+      const rn = box(0.9, 0.9, 0.05, '#c89aff', { em: 0x9a5aff, ei: 1.6 }); rn.position.set(px - Math.cos(a) * 0.62, ctx.H(px, pz) + h * 0.6, pz - Math.sin(a) * 0.62); rn.rotation.y = -a + Math.PI / 2; g.add(rn); }
+    for (let i = 0; i < 7; i++) { const rk = mesh(ROCK_GEOS[i % 3], M('#3a3444', { rough: 0.7 })); rk.scale.setScalar(1.2 + (i % 3) * 0.7); const isl = new THREE.Group(); isl.add(rk); isl.add(crystal('#c89aff', 0.5));
+      isl.position.set(x + Math.cos(i * 0.9) * (7 + i), y0 + 7 + (i % 4) * 2.5, z + Math.sin(i * 0.9) * (7 + i)); g.add(isl); ANIM.push({ kind: 'bob', o: isl, y: isl.position.y, s: 0.6 + i * 0.13 }); }
+    for (let i = 0; i < 6; i++) place(ctx, g, crystal(i % 2 ? '#7a3aff' : '#3ad8ff', 1.1 + (i % 3) * 0.4), x + Math.cos(i * 1.05 + 0.5) * 24, z + Math.sin(i * 1.05 + 0.5) * 24, i);
+    g.add(makeFire(x, y0 + 17, z, 1.2, '#b07aff', true));
+    g.userData.ambient = { fog: '#4a3a6a', particles: '#c89aff' };
   } else {
     // covil: arco de rochas, ossos e ambiente próprio
     for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = 22 + (i % 3) * 3, rk = mesh(ROCK_GEOS[i % 3], rockMat); const s = 3 + (i % 4); rk.scale.set(s, s * 1.4, s); rk.position.set(x + Math.cos(a) * r, y0 + s * 0.6, z + Math.sin(a) * r); g.add(rk); }

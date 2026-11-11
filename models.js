@@ -20,7 +20,7 @@ const at = (o, x, y, z) => { o.position.set(x, y, z); return o; };
 
 export { buildHumanoid, setGear, animHumanoid, playAttack, setExpr, toon, upgradeGLB, GLB } from './avatar.js';
 import { buildHumanoid, animHumanoid, GLB } from './avatar.js';
-import { attachWolf, animWolf } from './nature.js';
+import { MOB_GLB, attachMobGLB, animMobGLB } from './creatures.js';
 
 // ---------- monstros ----------
 export function buildMob(fam) {
@@ -30,7 +30,7 @@ export function buildMob(fam) {
   const R = { root, body, legs: [], kind: fam.model, anim: { t: Math.random() * 10, state: 'idle', atk: -1 } };
   if (fam.model === 'humanoid') {
     const h = buildHumanoid({ race: fam.id === 'bandido' ? 'orc' : 'humano', skinColor: c, gender: 'm', hair: 0, hair_color: 0,
-      weapon: fam.id === 'esqueleto' || fam.id === 'caido' ? 'espadao_c' : fam.id === 'bandido' ? 'martelo_ng' : 'espadao_a', armor: fam.id === 'caido' ? 'pesada_s' : fam.id === 'bandido' ? 'leve_ng' : null });
+      weapon: fam.skel ? 'espadao_b' : fam.id === 'esqueleto' || fam.id === 'caido' ? 'espadao_c' : fam.id === 'bandido' ? 'martelo_ng' : 'espadao_a', armor: fam.skel ? 'pesada_a' : fam.id === 'caido' ? 'pesada_s' : fam.id === 'bandido' ? 'leve_ng' : null, equip: fam.skel ? { elmo: 'elmo_pesada_a' } : null });
     body.add(h.root); R.h = h;
     if (fam.horns) { const hm = mat('#2a1a1a'); [-1, 1].forEach(s => { const k = at(cone(0.05, 0.25, hm, 5), s * 0.1, 0.2, 0); k.rotation.z = -s * 0.5; h.P.head.add(k); }); }
     if (fam.id === 'esqueleto') h.P.skull.material = mat('#f0ead8');
@@ -68,12 +68,12 @@ export function buildMob(fam) {
   }
   root.scale.setScalar(fam.scale || 1);
   root.traverse(x => { if (x.isMesh) x.castShadow = true; });
-  if (fam.model === 'quad' && /^lobo/.test(fam.id) && GLB.on && !fam.noGlb) attachWolf(R, fam).catch(e => console.warn('lobo', e));
+  const gdef = MOB_GLB[fam.glb || fam.id]; if (gdef && GLB.on && !fam.noGlb) attachMobGLB(R, fam, gdef).catch(e => console.warn('modelo', fam.id, e));
   return R;
 }
 export function animMob(R, dt, moving) {
   const A = R.anim; A.t += dt; const t = A.t;
-  if (R.mixer) { animWolf(R, dt, moving); return; }
+  if (R.glbC) { animMobGLB(R, dt, moving); return; }
   if (R.h) { R.h.anim.state = A.state === 'dead' ? 'dead' : moving ? 'run' : 'idle'; if (A.atk >= 0 && R.h.anim.atk < 0) { playAttack(R.h, 'melee'); A.atk = -1; } animHumanoid(R.h, dt); return; }
   const sp = moving ? 9 : 0;
   R.legs.forEach((l, i) => { const ph = i % 2 ? 0 : Math.PI; l.rotation.x = moving ? Math.sin(t * sp + ph) * 0.6 : l.rotation.x * 0.9; });

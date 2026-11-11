@@ -6,6 +6,10 @@ import { buildTownArchitecture, buildLandmark, updateTownAnim } from './towns.js
 import { RoomEnvironment } from './RoomEnvironment.js';
 import { NAT, loadNature, buildNatureChunk, disposeNature } from './nature.js';
 import { initFX, emit, slash, shock, beam, updateFX } from './fx.js';
+import { initAmbient, updateAmbient, AMB } from './ambient.js';
+import { icon3d, onIconsReady, KIND_AURA } from './icons.js';
+import { say, npcLine, bossLine, updateDialog, VOICE, setVoice } from './dialog.js';
+import { COMP, initComp, restoreComp, compFx, summonPet, setMount, toggleRide, dismount, setWings, toggleFly, updateComp, saddle, mountSpeed, canFly } from './companions.js';
 const GD = window.GD, WG = window.WG, QD = window.QD, CFG = window.GAME_CONFIG || {};
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -45,6 +49,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWid
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 const scene = new THREE.Scene(); initFX(scene);
+const _tipV = new THREE.Vector3();
 const fxBurst = (x, y, z, color, n = 12, size = 0.2) => emit(x, y, z, { n, color, size, speed: 3, up: 1.5, life: 0.6 });
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.3, 1200);
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
@@ -153,7 +158,7 @@ function buildChunk(cx, cz) {
   const nodes = NODES.filter(n => n.x >= cx * CH && n.x < cx * CH + CH && n.z >= cz * CH && n.z < cz * CH + CH);
   nodes.forEach(n => { const m = buildNode(n.type, n.grade); m.position.set(n.x, WG.height(n.x, n.z), n.z); m.userData = { kind: 'node', ref: n }; scene.add(m); nodeMeshes.set(n.id, m); refreshNode(n.id); });
   // vegetação rasteira (só para os modelos GLB de perto): arbustos, samambaias, flores e cogumelos
-  const under = [], r2 = WG.mulberry32((cx * 3571) ^ (cz * 7643) ^ 913), nU = { verde: 40, floresta: 70, outono: 34, noite: 22, rocha: 14, savana: 8, sombra: 6 }[th.key] || 0;
+  const under = [], r2 = WG.mulberry32((cx * 3571) ^ (cz * 7643) ^ 913), nU = { verde: 40, floresta: 70, outono: 34, noite: 22, rocha: 14, savana: 22, sombra: 6, gelo: 26, cristal: 10, vulcao: 6 }[th.key] || 0;
   for (let i = 0; i < nU; i++) { const x = cx * CH + r2() * CH, z = cz * CH + r2() * CH, h = WG.height(x, z), roll = r2(), sc = 0.7 + r2() * 0.6, r = r2() * 6;
     if (h < 2 || h > 34 || WG.nearestTown(x, z).dist < 105 || WG.nearestLandmark(x, z).dist < 40 || WG.roadDist(x, z) < 6) continue;
     const k = th.key === 'noite' || th.key === 'sombra' ? (roll < 0.6 ? 2 : 6) : th.key === 'rocha' || th.key === 'savana' ? (roll < 0.5 ? 0 : 2) : roll < 0.28 ? 0 : roll < 0.4 ? 1 : roll < 0.62 ? 2 : roll < 0.74 ? 3 : roll < 0.84 ? 4 : roll < 0.94 ? 5 : 6;
@@ -193,7 +198,7 @@ function applyQuality(n) {
   const was = renderer.shadowMap.enabled, wasSoft = renderer.shadowMap.type; renderer.shadowMap.enabled = q.shOn; renderer.shadowMap.type = q.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
   sun.shadow.mapSize.set(q.sh, q.sh); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
   if (was !== q.shOn || wasSoft !== renderer.shadowMap.type) scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.needsUpdate = true); });
-  GRASS.limit = q.grass; GRASS.center = null; CHUNK_R = q.R; NAT_R = n === 'baixa' ? -1 : 1; camera.far = q.far; camera.updateProjectionMatrix(); PERF.since = performance.now();
+  GRASS.limit = q.grass; GRASS.center = null; CHUNK_R = q.R; NAT_R = n === 'baixa' ? -1 : 1; AMB.max = n === 'baixa' ? 0 : n === 'media' ? 4 : 7; camera.far = q.far; camera.updateProjectionMatrix(); PERF.since = performance.now();
 }
 applyQuality(PERF.mode !== 'auto' ? PERF.mode : IS_MOBILE ? 'media' : 'alta');
 function perfTick(dt) {
@@ -238,7 +243,7 @@ function buildTowns() {
     });
   }
   for (const L of GD.LANDMARKS) { const g = buildLandmark(townCtx({ x: L.x, z: L.z, race: 'humano' }), L); scene.add(g); townGroups.push({ g, x: L.x, z: L.z });
-    const lb = makeLabel((L.type === 'castelo' ? '🏰 ' : L.type === 'ruina' ? '🏛️ ' : '💀 ') + L.name, '#ffcf8a', 34); lb.position.set(L.x, WG.height(L.x, L.z) + 26, L.z); lb.scale.multiplyScalar(1.8); scene.add(lb); townGroups.push({ g: lb, x: L.x, z: L.z }); }
+    const lb = makeLabel(({ castelo: '🏰 ', ruina: '🏛️ ', tumba: '⚰️ ', pantano: '🐸 ', destrocos: '🛒 ', estranho: '🔮 ' }[L.type] || '💀 ') + L.name, '#ffcf8a', 34); lb.position.set(L.x, WG.height(L.x, L.z) + 26, L.z); lb.scale.multiplyScalar(1.8); scene.add(lb); townGroups.push({ g: lb, x: L.x, z: L.z }); }
 }
 function updateTownVisibility() { if (!me) return; for (const t of townGroups) t.g.visible = Math.hypot(t.x - me.x, t.z - me.z) < 620; }
 
@@ -247,7 +252,10 @@ let me = null; const pickables = [];
 const ring = (color) => { const m = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.15, 28), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.renderOrder = 5; return m; };
 const selRing = ring(0xff4040); scene.add(selRing); selRing.visible = false;
 const destRing = ring(0xffffff); scene.add(destRing); destRing.visible = false;
-function stats() { const s = GD.charStats(S.c, buffVals()); return s; }
+function stats() { const s = GD.charStats(S.c, buffVals()), cf = compFx();
+  if (Object.keys(cf).length) { s.fx = { ...s.fx }; for (const [k, v] of Object.entries(cf)) s.fx[k] = (s.fx[k] || 0) + v;
+    if (cf.crit) s.crit += cf.crit; if (cf.atkspd) s.atkInterval /= 1 + cf.atkspd; if (cf.matkPct) { s.matk *= 1 + cf.matkPct; } if (cf.hpPct) s.maxHp = Math.round(s.maxHp * (1 + cf.hpPct)); if (cf.speed) s.speed *= 1 + cf.speed; if (cf.pdefPct) s.pdef *= 1 + cf.pdefPct; s.atk = s.magic ? s.matk : s.patk; }
+  return s; }
 function buffVals() { const o = {}, t = now(); for (const [k, b] of Object.entries(S.buffs)) { if (b.until < t) { delete S.buffs[k]; continue; } for (const [s, v] of Object.entries(b.vals)) o[s] = (o[s] || 0) + v; } return o; }
 function nameColor(c) { return c.gm ? '#ffcf4a' : c.karma ? '#ff4a4a' : c.flag ? '#d38cff' : '#ffffff'; }
 function makeMe() {
@@ -267,7 +275,7 @@ addEventListener('mousemove', e => { if (!cam.drag) return; if (studio.visible) 
 canvas.addEventListener('wheel', e => { if (studio.visible) stu.dist = clamp(stu.dist * (e.deltaY > 0 ? 1.1 : 0.9), 0.9, 6); else cam.dist = clamp(cam.dist * (e.deltaY > 0 ? 1.1 : 0.9), 1.1, 32); }, { passive: true });
 const stu = { yaw: 0, pitch: 0.12, dist: 4.6 }; window.__stu = stu;
 function updateCamera() {
-  const rh = (GD.RACES[S.c.race]?.h || 1), close = clamp((5 - cam.dist) / 3.5, 0, 1); const ty = WG.height(me.x, me.z) + (1.7 + (1.62 * rh - 1.7) * close) * (close ? 1 : 1) + (rh - 1) * 0.6 * (1 - close);
+  const rh = (GD.RACES[S.c.race]?.h || 1), close = clamp((5 - cam.dist) / 3.5, 0, 1); const ty = WG.height(me.x, me.z) + (S.alt || 0) + saddle() + (1.7 + (1.62 * rh - 1.7) * close) * (close ? 1 : 1) + (rh - 1) * 0.6 * (1 - close);
   let cx = me.x + Math.sin(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cz = me.z + Math.cos(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cy = ty + Math.sin(cam.pitch) * cam.dist;
   cy = Math.max(cy, WG.height(cx, cz) + 0.25, WG.WATER + 0.6);
   camera.position.set(cx, cy, cz); camera.lookAt(me.x, ty, me.z); if (me.label) me.label.visible = cam.dist > 5.5;
@@ -319,12 +327,13 @@ if (TOUCH) document.body.classList.add('touch');
   joy.addEventListener('touchmove', e => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === jid) jset(t); }, { passive: false });
   const jend = e => { for (const t of e.changedTouches) if (t.identifier === jid) { jid = null; S.joy = null; knob.style.transform = ''; } }; joy.addEventListener('touchend', jend); joy.addEventListener('touchcancel', jend);
   // botões de ação
-  const act = document.createElement('div'); act.id = 'actbtns'; act.innerHTML = '<button data-k="atk" title="Atacar">⚔️</button><button data-k="tgt" title="Próximo alvo">🎯</button><button data-k="guide" title="Guia automático">🧭</button><button data-k="chat" title="Chat">💬</button>'; $('#hud').appendChild(act);
-  act.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+  const act = document.createElement('div'); act.id = 'actbtns'; act.innerHTML = '<button data-k="atk" title="Atacar">⚔️</button><button data-k="tgt" title="Próximo alvo">🎯</button><button data-k="guide" title="Guia automático">🧭</button><button data-k="ride" title="Montar">🐎</button><button data-k="fly" title="Voar">🪽</button><button data-k="up" title="Subir">⬆️</button><button data-k="down" title="Descer">⬇️</button><button data-k="dodge" title="Esquivar">🌀</button><button data-k="chat" title="Chat">💬</button>'; $('#hud').appendChild(act);
+  act.addEventListener('touchstart', e => { e.stopPropagation(); const k = e.target.closest('button')?.dataset.k; if (k === 'up') S.flyUp = true; if (k === 'down') S.flyDown = true; }, { passive: true });
+  const flyEnd = () => { S.flyUp = S.flyDown = false; }; act.addEventListener('touchend', flyEnd); act.addEventListener('touchcancel', flyEnd);
   act.onclick = e => { const k = e.target.closest('button')?.dataset.k; if (!k) return;
     if (k === 'atk') attackKey(); if (k === 'tgt') nextTarget();
     if (k === 'guide') { if (S.guide) stopGuide('Guia automático desligado'); else { const id = S.q.active.find(id => !qDone(id)); if (id) startGuide(id); else toast('Aceite uma missão no Arauto do Eclipse', 'err'); } }
-    if (k === 'chat') document.body.classList.toggle('chat-open'); };
+    if (k === 'chat') document.body.classList.toggle('chat-open'); if (k === 'ride') toggleRide(); if (k === 'fly') toggleFly(); if (k === 'dodge') dodge(); };
 }
 
 // ---------- teclado ----------
@@ -340,6 +349,8 @@ addEventListener('keydown', e => {
   const bk = BAR_KEYS.indexOf(e.key); if (bk >= 0 && !e.ctrlKey) { e.preventDefault(); useSlot(bk); return; }
   if (e.code === 'Tab') { e.preventDefault(); nextTarget(); }
   if (e.code === 'KeyQ') dodge();
+  if (e.code === 'KeyR') toggleRide(); if (e.code === 'KeyV') toggleFly();
+  if (S.fly && e.code === 'Space') { e.preventDefault(); return; }
   if (e.code === 'Space' || e.code === 'KeyF') { e.preventDefault(); attackKey(); }
   const P = { KeyC: 'char', KeyI: 'bag', KeyK: 'skills', KeyL: 'quests', KeyM: 'map', KeyH: 'lore', KeyJ: 'codex', KeyG: 'gm' }[e.code];
   if (P && (P !== 'gm' || S.c.is_gm)) { if (panelState.kind === P) closePanel(); else openPanel(P); }
@@ -354,6 +365,7 @@ function inSafe(x, z) { return WG.region(x, z).safe; }
 function dmgVs(atk, mult, def, crit, cd = 1.8) { const c = Math.random() < crit; return { v: Math.max(1, Math.round(GD.dmgFormula(atk, mult, def) * (0.9 + Math.random() * 0.2) * (c ? cd : 1))), crit: c }; }
 function faceTo(x, z) { me.ry = Math.atan2(x - me.x, z - me.z); }
 function basicAttack(st) {
+  if (COMP.riding) dismount();
   const t = S.target, p = tgtPos(t); faceTo(p.x, p.z);
   const kind = st.weaponKind === 'arco' ? 'bow' : st.magic ? 'cast' : 'melee'; playAttack(me, kind);
   hitTarget(t, 1, st, kind === 'bow' ? 'arrow' : kind === 'cast' ? 'magic' : null);
@@ -451,6 +463,7 @@ function dodge() {
 }
 function hurtMe(v) {
   if (S.dead || S.buffs.invuln || S.god) return;
+  if (S.fly && S.alt > 5) return;
   if (S.roll && now() < S.roll.end) { floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, 'Esquivou!', '#9fd0ff'); return; }
   const F = stats().fx || {}; if (F.dodge && Math.random() < F.dodge) { floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, 'Esquiva', '#9fd0ff'); return; }
   if (F.dmgRed) v = Math.max(1, Math.round(v * (1 - F.dmgRed)));
@@ -484,7 +497,7 @@ function castSkill(i) {
   let tg = S.target; if (needT && (!tg || !['mob', 'player'].includes(tg.kind) || tg.ref.dead)) { attackKey(); tg = S.target; }
   if (needT && !tg) { toast('Selecione um alvo', 'err'); return; }
   if (needT) { const p = tgtPos(tg), d = Math.hypot(p.x - me.x, p.z - me.z), rng = sk.type === 'dash' ? sk.range : st.range + 1.5; if (d > rng) { toast('Alvo fora de alcance', 'err'); S.dest = { x: p.x, z: p.z }; S.autoAtk = true; return; } faceTo(p.x, p.z); }
-  S.mp -= mpc; S.cds[i] = t + sk.cd * 1000; S.autoAtk = needT || S.autoAtk;
+  if (COMP.riding) dismount(); S.mp -= mpc; S.cds[i] = t + sk.cd * 1000; S.autoAtk = needT || S.autoAtk;
   const kind = st.weaponKind === 'arco' ? 'bow' : st.magic ? 'cast' : 'melee'; playAttack(me, sk.type === 'hit' || sk.type === 'dash' ? kind : 'cast'); if ((sk.type === 'hit' || sk.type === 'dash') && kind === 'melee') me.anim.kind = 'skill';
   floatText(me.x, WG.height(me.x, me.z) + 2.7, me.z, sk.icon + ' ' + sk.name, '#bfe8ff', 22);
   if (sk.type === 'hit') { if (sk.self) hitTarget({ kind: 'mob', ref: nearestMob() || { x: me.x, z: me.z, dead: true } }, sk.mult, st, null, sk); else hitTarget(tg, sk.mult, st, st.range > 5 ? (st.magic ? 'magic' : 'arrow') : null, sk); aoeFx(sk, tg); }
@@ -577,7 +590,7 @@ function spawner() {
   // chefes especiais dos castelos, ruínas e covis (renascem a cada 10 min)
   S.lmCd = S.lmCd || {};
   for (const L of GD.LANDMARKS) { const d = Math.hypot(L.x - me.x, L.z - me.z); if (d > 140 || (S.lmCd[L.id] || 0) > Date.now() || S.mobs.some(m => !m.dead && m.fam.id === L.boss)) continue;
-    const m = spawnMob(FAM[L.boss], L.lvl, L.x + 2, L.z + 2); m.landmark = L.id; addChat({ kind: 'sys', msg: `🏰 ${FAM[L.boss].name} guarda ${L.name}. Derrote-o para conseguir itens exclusivos!` }); S.lmCd[L.id] = Date.now() + 600000; }
+    const m = spawnMob(FAM[L.boss], L.lvl, L.x + 2, L.z + 2); m.landmark = L.id; setTimeout(() => say(m.model.root, bossLine(L.type), { boss: true, race: 'orc', h: 3 * (FAM[L.boss].scale || 1) }), 600); addChat({ kind: 'sys', msg: `🏰 ${FAM[L.boss].name} guarda ${L.name}. Derrote-o para conseguir itens exclusivos!` }); S.lmCd[L.id] = Date.now() + 600000; }
   const rg = WG.region(me.x, me.z); if (rg.dist < GD.SAFE_R + 20) return;
   // população variável: mais monstros à noite, perto de locais especiais e em níveis altos
   const cap = Math.round((9 + S.c.level / 10 + ENV.night * 5 + (WG.nearestLandmark(me.x, me.z).dist < 160 ? 4 : 0)) * (0.85 + 0.3 * Math.sin(Date.now() / 90000)));
@@ -641,27 +654,34 @@ function updateMe(dt) {
   if (S.roll && now() < S.roll.end) { vx = S.roll.vx; vz = S.roll.vz; }
   if (vx || vz) {
     const l = Math.hypot(vx, vz), h0 = WG.height(me.x, me.z);
-    let sp = st.speed * dt * (S.roll && now() < S.roll.end ? 2.6 : sprint ? 1.45 : 1);
+    let sp = st.speed * dt * (S.roll && now() < S.roll.end ? 2.6 : sprint ? 1.45 : 1) * mountSpeed() * (S.fly ? (COMP.riding ? 1.15 : 1.7) : 1);
     const px = me.x + vx / l * sp, pz = me.z + vz / l * sp, grade = (WG.height(px, pz) - h0) / Math.max(sp, 1e-4);
-    if (grade > 0.95) { // parede: escala com fôlego
+    if (S.fly) { /* voando: sem obstáculo de terreno */ }
+    else if (grade > 0.95 && COMP.riding) { sp = 0; if (now() - (S.staWarn || 0) > 2500) { S.staWarn = now(); toast('A montaria não escala paredes — desmonte (R) para escalar', 'err'); } }
+    else if (grade > 0.95) { // parede: escala com fôlego
       if (S.sta > 0) { climbing = true; sp *= 0.42; S.sta = Math.max(0, S.sta - 13 * dt); if (!S.climbTip) { S.climbTip = 1; toast('⛰️ Escalando! O fôlego (barra verde) acaba rápido — pare em platôs para recuperar.'); } }
       else { sp = 0; if (now() - (S.staWarn || 0) > 2500) { S.staWarn = now(); toast('Sem fôlego para escalar — espere recuperar', 'err'); } }
     } else if (grade > 0.45) sp *= 0.72;
     const nx = me.x + vx / l * sp, nz = me.z + vz / l * sp;
-    if (sp > 0) { if (!blocked(nx, nz)) { me.x = nx; me.z = nz; moving = true; } else if (!blocked(nx, me.z)) { me.x = nx; moving = true; } else if (!blocked(me.x, nz)) { me.z = nz; moving = true; } else S.dest = null; }
+    if (sp > 0 && S.fly) { if (nx > 20 && nz > 20 && nx < 2980 && nz < 2980) { me.x = nx; me.z = nz; moving = true; } }
+    else if (sp > 0) { if (!blocked(nx, nz)) { me.x = nx; me.z = nz; moving = true; } else if (!blocked(nx, me.z)) { me.x = nx; moving = true; } else if (!blocked(me.x, nz)) { me.z = nz; moving = true; } else S.dest = null; }
     me.ry = Math.atan2(vx, vz); S.channel = null;
     if (sprint && moving && !climbing) { S.sta = Math.max(0, S.sta - 11 * dt); mode = 'sprint'; }
     if (climbing) mode = 'climb';
     if (moving && (mode === 'sprint' || climbing) && Math.random() < 0.35) emit(me.x, WG.height(me.x, me.z) + 0.1, me.z, { n: 2, color: climbing ? 0x9a9080 : 0xc8b890, speed: 1, up: 0.8, life: 0.6, size: 0.25, grav: 1, jit: 0.3 });
   }
+  // aura mística da arma: cada estilo de classe tem sua cor e partículas na ponta da arma (grau C em diante)
+  { const w = GD.ITEMS[S.c.equipment?.arma], tip = me.weaponTip || me.orb; if (w && tip && !S.dead && (w.grade >= 2 || w.relic) && Math.random() < 0.12 + w.grade * 0.06) { const p = tip.getWorldPosition(_tipV);
+      emit(p.x, p.y, p.z, { n: 1, color: new THREE.Color(w.relic ? '#ffd75a' : KIND_AURA[w.kind] || '#ffffff').getHex(), speed: 0.25, up: 0.5, life: 0.7, size: 0.1 + w.grade * 0.015, grav: -0.3, drag: 1 }); } }
   // aura dos equipamentos: arma encantada +4/+7 ou relíquia
   { const w = GD.ITEMS[S.c.equipment?.arma]; if (!S.dead && (me.enc >= 4 || w?.relic) && Math.random() < (me.enc >= 7 || w?.relic ? 0.5 : 0.22)) { const a = Math.random() * 6.28;
     emit(me.x + Math.cos(a) * 0.5, WG.height(me.x, me.z) + 0.3 + Math.random() * 1.4, me.z + Math.sin(a) * 0.5, { n: 1, color: w?.relic ? 0xffc040 : me.enc >= 7 ? 0xff4040 : 0x5a9aff, speed: 0.2, up: 0.8, life: 0.9, size: 0.12, grav: -0.5 }); } }
   if (!climbing && !sprint) S.sta = Math.min(100, S.sta + (moving ? 14 : 24) * dt);
   if (S.roll && now() < S.roll.end) mode = 'roll'; else if (S.roll) S.roll = null;
-  me.anim.state = S.dead ? 'dead' : moving || mode === 'roll' ? mode : 'idle';
+  me.anim.state = S.dead ? 'dead' : COMP.riding ? 'mount' : S.fly ? 'fly' : moving || mode === 'roll' ? mode : 'idle'; me.anim.moving = moving;
+  updateComp(dt, moving, st.speed * mountSpeed());
   let a = me.root.rotation.y, d = me.ry - a; d = Math.atan2(Math.sin(d), Math.cos(d)); me.root.rotation.y = a + d * Math.min(1, dt * 10);
-  me.root.position.set(me.x, WG.height(me.x, me.z), me.z); animHumanoid(me, dt);
+  me.root.position.set(me.x, (S.fly ? Math.max(WG.height(me.x, me.z), WG.WATER + 0.5) : WG.height(me.x, me.z)) + (S.alt || 0) + saddle(), me.z); animHumanoid(me, dt);
   // coleta
   if (S.channel) { const p = (now() - S.channel.start) / (S.channel.end - S.channel.start); $('#cast').hidden = false; $('#cast i').style.width = Math.min(100, p * 100) + '%'; $('#cast span').textContent = 'Coletando…'; if (p >= 1) { const n = S.channel.node; S.channel = null; gather(n); } else if (Math.random() < 0.03) playAttack(me, 'melee'); }
   else $('#cast').hidden = true;
@@ -883,12 +903,17 @@ function openPanel(kind, o = {}) { panelState = { kind, ...o }; $('#panel').hidd
 function closePanel() { $('#panel').hidden = true; panelState = {}; }
 $('#p-close').onclick = closePanel;
 document.querySelectorAll('#menu button').forEach(b => b.onclick = () => panelState.kind === b.dataset.p ? closePanel() : openPanel(b.dataset.p));
+function npcSay(n) { if (!n.model) return; n.greet = Date.now(); const o = n.model.o || {}; say(n.model.root, npcLine(n.type, S.c.name), { race: o.race, gender: o.gender, h: 2.5 * (GD.RACES[o.race]?.h || 1) }); }
+function greetNpcs() { if (!me || S.dead) return; const t = Date.now(); for (const n of npcs) { if (!n.model || !n.type) continue; const d = Math.hypot(n.x - me.x, n.z - me.z); if (d < 7 && t - (n.greet || 0) > 90000) { npcSay(n); break; } } }
 function openNpc(n) {
+  if (Date.now() - (n.greet || 0) > 8000) npcSay(n);
   const map = { portal: 'teleport', classe: 'classe', ferreiro: 'craft', refino: 'craft', mercador: 'shop', leilao: 'market', arauto: 'arauto' };
   openPanel(map[n.type], { npc: n, station: n.type === 'ferreiro' ? 'forja' : n.type === 'refino' ? 'refinaria' : null, tab: 'buy' });
 }
 const nearNpc = (type) => S.c.is_gm || npcs.some(n => n.type === type && Math.hypot(n.x - me.x, n.z - me.z) < 8);
-function slot(id, q, extra = '') { const it = IT(id); return `<div class="slot" data-id="${id}" ${extra} style="border-color:${gcol(it.grade)}88"><span class="g" style="color:${gcol(it.grade)}">${GD.GRADES[it.grade].id}</span>${q != null ? `<span class="q">${q}</span>` : ''}<div class="ic">${it.icon}</div><div class="nm">${esc(it.name)}</div></div>`; }
+function slot(id, q, extra = '') { const it = IT(id); return `<div class="slot" data-id="${id}" ${extra} style="border-color:${gcol(it.grade)}88"><span class="g" style="color:${gcol(it.grade)}">${GD.GRADES[it.grade].id}</span>${q != null ? `<span class="q">${q}</span>` : ''}<div class="ic">${icImg(it)}</div><div class="nm">${esc(it.name)}</div></div>`; }
+function icImg(it, big) { const u = icon3d(it); return u ? `<img src="${u}" class="ic3d${big ? ' big' : ''}" alt="">` : it.icon; }
+onIconsReady(() => { if (panelState.kind && !document.activeElement?.matches('input')) renderPanel(); });
 function itemDesc(id) {
   const it = IT(id), s = it.stats || {}, p = [];
   if (s.patk) p.push(`Ataque Físico +${s.patk}`); if (s.matk) p.push(`Ataque Mágico +${s.matk}`); if (s.pdef) p.push(`Def. Física +${Math.round(s.pdef)}`); if (s.mdef) p.push(`Def. Mágica +${Math.round(s.mdef)}`);
@@ -899,6 +924,7 @@ function itemDesc(id) {
   if (it.slot && (S.c.enchant || {})[id]) p.push(`Encantado +${S.c.enchant[id]}`);
   if (it.slot === 'arma') GD.weaponSA(id, (S.c.enchant || {})[id]).forEach(e => p.push(`${e.icon} ${e.name}: ${e.desc}`));
   if (it.slot && ['armadura', 'elmo', 'luvas', 'botas'].includes(it.slot) && it.grade) p.push(`Conjunto ${it.kind}: 2 peças e 4 peças do mesmo grau ativam bônus`);
+  if (it.comp) { const c = it.comp; p.push(it.type === 'mount' ? `Montaria: velocidade x${c.speed}${c.fly ? ' • VOA (V)' : ''} • R monta/desmonta` : it.type === 'pet' ? `Pet: segue e ajuda no combate${c.flyer ? ' • voa' : ''}` : 'Asas: permitem voar (V) • Espaço sobe, X desce'); if (c.fx) p.push(Object.entries(c.fx).map(([k, v]) => `+${Math.round(v * 100)}% ${({ crit: 'crítico', hpPct: 'vida', speed: 'velocidade', mpRegen: 'regeneração de mana', lifesteal: 'roubo de vida', atkspd: 'vel. de ataque', matkPct: 'ataque mágico', pdefPct: 'defesa física', mpCost: 'economia de mana' })[k] || k}`).join(', ')); p.push(`Requer nível ${c.lvl}`); }
   if (it.type === 'scroll') p.push('Teleporta para a cidade mais próxima'); if (it.type === 'raw') p.push('Refine no Refinador'); if (it.type === 'refined') p.push('Material de forja');
   return p.join(' • ');
 }
@@ -932,7 +958,7 @@ function itemSource(id) {
 }
 function pCodex(b) {
   const tab = panelState.tab2 || 'itens', q = (panelState.q || '').toLowerCase(), g = panelState.cg ?? 'all', sl = panelState.cs || 'all';
-  const tabs = [['itens', '🎒 Itens'], ['skills', '📘 Habilidades'], ['buffs', '✨ Buffs e efeitos'], ['mobs', '🐺 Monstros']];
+  const tabs = [['itens', '🎒 Itens'], ['skills', '📘 Habilidades'], ['buffs', '✨ Buffs e efeitos'], ['comp', '🐎 Montarias e pets'], ['locais', '⚰️ Locais e chefes'], ['mobs', '🐺 Monstros']];
   let h = `<div class="chips">${tabs.map(([k, l]) => `<button data-t="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div>`;
   if (tab === 'itens') {
     h += `<input id="cx-q" placeholder="Buscar item…" value="${esc(panelState.q || '')}" style="width:100%;margin:4px 0">
@@ -940,7 +966,7 @@ function pCodex(b) {
     <div class="chips">${[['all', 'Tudo'], ['arma', 'Armas'], ['armadura', 'Armaduras'], ['elmo', 'Elmos'], ['luvas', 'Luvas'], ['botas', 'Botas'], ['escudo', 'Escudos'], ['mat', 'Materiais'], ['use', 'Consumíveis']].map(([k, l]) => `<button data-s="${k}" class="${k === sl ? 'on' : ''}">${l}</button>`).join('')}</div>`;
     const list = Object.values(GD.ITEMS).filter(it => (g === 'all' || it.grade === +g) && (sl === 'all' || it.slot === sl || (sl === 'mat' && ['raw', 'refined', 'special', 'trophy'].includes(it.type)) || (sl === 'use' && ['potion', 'scroll', 'enchant'].includes(it.type))) && (!q || it.name.toLowerCase().includes(q)))
       .sort((a, c) => a.grade - c.grade || (a.slot || 'z').localeCompare(c.slot || 'z') || a.name.localeCompare(c.name));
-    h += `<div class="small">${list.length} itens</div>` + list.slice(0, 120).map(it => `<div class="row" style="border-bottom:1px solid #ffffff14;padding:4px 0"><div style="font-size:22px;width:30px">${it.icon}</div><div class="grow"><b style="color:${gcol(it.grade)}">${esc(it.name)}</b> <span class="small">${GD.GRADES[it.grade].id}${it.relic ? ' • Relíquia' : ''}</span><div class="small">${itemDesc(it.id) || ''}</div><div class="small" style="opacity:.75">Origem: ${itemSource(it.id)}${S.inv[it.id] ? ` • você tem ${S.inv[it.id]}` : ''}</div></div></div>`).join('');
+    h += `<div class="small">${list.length} itens</div>` + list.slice(0, 120).map(it => `<div class="row" style="border-bottom:1px solid #ffffff14;padding:4px 0"><div style="font-size:22px;width:44px">${icImg(it)}</div><div class="grow"><b style="color:${gcol(it.grade)}">${esc(it.name)}</b> <span class="small">${GD.GRADES[it.grade].id}${it.relic ? ' • Relíquia' : ''}</span><div class="small">${itemDesc(it.id) || ''}</div><div class="small" style="opacity:.75">Origem: ${itemSource(it.id)}${S.inv[it.id] ? ` • você tem ${S.inv[it.id]}` : ''}</div></div></div>`).join('');
   }
   if (tab === 'skills') {
     h += Object.entries(GD.ARCH).map(([k, A]) => `<h4>${esc(A.name)} <span class="small">(${A.weapon}${A.shield ? ' + escudo' : ''}, armadura ${A.armor})</span></h4>` + A.skills.map(s => `<div class="row" style="padding:3px 0"><div style="font-size:20px;width:28px">${s.icon}</div><div class="grow"><b>${esc(s.name)}</b> <span class="small">nv ${s.lvl} • ${s.mp} MP • recarga ${s.cd}s</span><div class="small">${skillDesc(s)}</div></div></div>`).join('')).join('');
@@ -952,6 +978,14 @@ function pCodex(b) {
     h += '<h4>Bônus de conjunto (armadura, elmo, luvas e botas)</h4>' + Object.entries(GD.SETS).map(([k, S2]) => `<div class="row"><div style="font-size:20px;width:28px">${S2.icon}</div><div class="grow"><b>${S2.name}</b><div class="small">2 peças: ${Object.keys(S2.two).join(', ')} • 4 peças: ${Object.keys(S2.four).join(', ')} — mesmo tipo e mesmo grau (maior grau, bônus maior)</div></div></div>`).join('');
     h += '<h4>Buffs das habilidades</h4>' + Object.values(GD.ARCH).flatMap(A => A.skills.filter(s => s.type === 'buff' || s.type === 'debuff').map(s => `<div class="small">${s.icon} <b>${esc(s.name)}</b> (${esc(A.name)}) — ${skillDesc(s)}</div>`)).join('');
     h += '<h4>Movimento</h4><div class="small">💨 Correr: Shift (gasta fôlego) • 🌀 Esquivar: Q (25 de fôlego, invulnerável no rolamento) • ⛰️ Escalar: ande contra encostas íngremes; o fôlego cai rápido, recupere em platôs.</div>';
+  }
+  if (tab === 'comp') {
+    h += '<div class="small">Compre no Mercador (ou consiga com chefes) e use pela bolsa. R monta e desmonta • V voa (com asas ou montaria voadora) • Espaço sobe, X desce. O pet segue você e ajuda no combate.</div>';
+    for (const [ty, tl] of [['mount', 'Montarias'], ['pet', 'Pets'], ['wings', 'Asas']]) h += `<h4>${tl}</h4>` + Object.entries(GD.COMP).filter(([, c]) => c.type === ty).map(([id, c]) => `<div class="row"><div style="font-size:22px;width:30px">${c.icon}</div><div class="grow"><b style="color:${gcol(IT(id).grade)}">${esc(c.name)}</b> <span class="small">nv ${c.lvl}${c.price ? ' • ' + c.price.toLocaleString('pt-BR') + ' aurum' : ' • só com chefes'}${S.inv[id] ? ' • ✔ você tem' : ''}</span><div class="small">${itemDesc(id)}</div></div></div>`).join('');
+  }
+  if (tab === 'locais') {
+    h += '<div class="small">Locais únicos espalhados pelo mundo. Cada um tem um chefe que aparece quando você chega perto e deixa itens próprios (arma relíquia com dois efeitos, pets, asas e montarias raras).</div>';
+    h += GD.LANDMARKS.map(L => { const f = FAM[L.boss]; const dr = (GD.POI_DROPS[L.boss] || (f && f.drops) || []).map(i => IT(i) ? `${IT(i).icon} ${esc(IT(i).name)}` : '').filter(Boolean).join(', '); return `<div class="row"><div class="grow"><b>${{ castelo: '🏰', ruina: '🏛️', covil: '💀', tumba: '⚰️', pantano: '🐸', destrocos: '🛒', estranho: '🔮' }[L.type] || '📍'} ${esc(L.name)}</b> <span class="small">nv ${L.lvl} • (${L.x}, ${L.z})</span><div class="small">Chefe: ${esc(f ? f.name : '?')} — ${dr}</div></div></div>`; }).join('');
   }
   if (tab === 'mobs') {
     h += GD.MOBS.map((fs, gi) => `<h4 style="color:${GD.GRADES[gi].color}">${GD.GRADES[gi].name}</h4>` + fs.map(f => `<div class="small">${f.boss ? '👑' : f.aggro ? '⚔️' : '🐾'} <b>${esc(f.name)}</b>${f.boss ? ' — chefe' : f.aggro ? ' — agressivo' : ' — passivo'}${GD.TROPHY[f.id] ? ` • troféu: ${GD.TROPHY[f.id][1]} ${esc(GD.TROPHY[f.id][0])}` : ''}</div>`).join('')).join('');
@@ -972,10 +1006,11 @@ function pBag(b) {
     if (a === 'eq') { const r = await safe(() => B.equip(id), 'Equipado'); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); S.hp = Math.min(S.hp, stats().maxHp); buildBar(); renderPanel(); } return; }
     if (a === 'bar') { addToBar({ t: 'i', id }); return; }
     const enc = e.target.dataset.enc; if (enc) { await doEnchant(enc); return; }
+    if (a === 'use' && IT(id).comp) { const it = IT(id); if (S.c.level < it.comp.lvl) return toast(`Requer nível ${it.comp.lvl}`, 'err'); if (it.type === 'pet') await summonPet(id); else if (it.type === 'mount') await setMount(id); else setWings(id); renderPanel(); return; }
     if (a === 'use') { const it = IT(id); if (it.type === 'scroll') { const r = await safe(() => B.useItem(id)); if (r) { S.inv[id]--; if (!S.inv[id]) delete S.inv[id]; toast('Retornando a ' + r.town, 'ok'); teleport(r.x, r.z); renderPanel(); } } else { await usePotion(id.startsWith('pocao_mp') ? 'mp' : 'hp'); renderPanel(); } return; }
     const s = e.target.closest('.slot'); if (!s) return; const sid = s.dataset.id; panelState.sel = sid; const it = IT(sid);
-    $('#bdet').innerHTML = `<div class="row"><div style="font-size:28px">${it.icon}</div><div class="grow"><b style="color:${gcol(it.grade)}">${esc(it.name)}</b> x${S.inv[sid]}<div class="small">${itemDesc(sid)}</div></div>
-      ${it.slot ? '<button class="btn" data-a="eq">Equipar</button>' : ''}${it.type === 'enchant' ? encTargets(it).map(([sl, iid]) => `<button class="btn" data-enc="${sl}">✨ ${esc(IT(iid).name)} +${(S.c.enchant || {})[iid] || 0}</button>`).join('') || '<span class="small">Equipe um item do mesmo grau para encantar</span>' : ''}${['potion', 'scroll'].includes(it.type) ? '<button class="btn" data-a="use">Usar</button>' : ''}${['potion', 'scroll'].includes(it.type) || it.slot ? '<button class="btn alt" data-a="bar">➕ Barra</button>' : ''}</div>`;
+    $('#bdet').innerHTML = `<div class="row"><div style="font-size:28px">${icImg(it, true)}</div><div class="grow"><b style="color:${gcol(it.grade)}">${esc(it.name)}</b> x${S.inv[sid]}<div class="small">${itemDesc(sid)}</div></div>
+      ${it.slot ? '<button class="btn" data-a="eq">Equipar</button>' : ''}${it.type === 'enchant' ? encTargets(it).map(([sl, iid]) => `<button class="btn" data-enc="${sl}">✨ ${esc(IT(iid).name)} +${(S.c.enchant || {})[iid] || 0}</button>`).join('') || '<span class="small">Equipe um item do mesmo grau para encantar</span>' : ''}${['potion', 'scroll', 'pet', 'mount', 'wings'].includes(it.type) ? `<button class="btn" data-a="use">${it.comp ? (it.type === 'pet' ? (COMP.petId === sid ? 'Guardar pet' : 'Chamar pet') : it.type === 'mount' ? 'Montar' : (COMP.wingsId === sid ? 'Guardar asas' : 'Equipar asas')) : 'Usar'}</button>` : ''}${['potion', 'scroll', 'pet', 'mount', 'wings'].includes(it.type) || it.slot ? '<button class="btn alt" data-a="bar">➕ Barra</button>' : ''}</div>`;
   };
   b.ondragstart = e => { const s = e.target.closest('.slot'); if (s && s.dataset.id) e.dataTransfer.setData('text/plain', JSON.stringify({ t: 'i', id: s.dataset.id })); };
   b.querySelectorAll('.slot[data-id]').forEach(el => el.draggable = true);
@@ -1083,10 +1118,12 @@ function pMap(b) {
 function pLore(b) { b.innerHTML = `<div class="lore"><div class="logo small">${QD.LORE.title}</div>${QD.LORE.chapters.map(([h, t]) => `<h4>${h}</h4><p>${t}</p>`).join('')}</div>`; }
 function pSys(b) {
   b.innerHTML = `<div class="row"><div class="grow">Qualidade gráfica <span class="small">(${Math.round(PERF.fps)} FPS agora • em uso: ${QUAL[PERF.cur].name})</span></div></div><div class="chips">${[['auto', 'Automática'], ['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa (celular fraco)']].map(([k, l]) => `<button data-q="${k}" class="${PERF.mode === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+  <div class="row"><div class="grow">Vozes dos NPCs</div><button class="btn alt" id="vz">${VOICE.on ? 'Ligadas' : 'Desligadas'}</button></div>
   <div class="row"><div class="grow">Sombras</div><button class="btn alt" id="sh">${renderer.shadowMap.enabled ? 'Ligadas' : 'Desligadas'}</button></div>
-  <div class="row"><div class="grow">Controles</div></div><div class="small">Clique esquerdo: andar / selecionar • clique de novo no alvo (ou duplo clique): atacar • Ctrl + clique: atacar jogador (PvP) • botão direito arrastando: girar câmera • roda: zoom • WASD: andar • 1–7 ou F1–F7: habilidades • Espaço/F: atacar • Tab: próximo alvo • 8/9: poções • Enter: chat • C, I, K, L, M, H: janelas</div>
+  <div class="row"><div class="grow">Controles</div></div><div class="small">Clique esquerdo: andar / selecionar • clique de novo no alvo (ou duplo clique): atacar • Ctrl + clique: atacar jogador (PvP) • botão direito arrastando: girar câmera • roda: zoom • WASD: andar • Shift: correr • Q: esquivar • R: montar • V: voar (Espaço sobe, X desce) • J: compêndio • 1–7 ou F1–F7: habilidades • Espaço/F: atacar • Tab: próximo alvo • 8/9: poções • Enter: chat • C, I, K, L, M, H: janelas</div>
   <button class="primary" id="tochars">Trocar de personagem</button><button class="link" id="lo">Sair da conta</button>`;
   b.onclick = async e => { const qm = e.target.dataset.q; if (qm) { PERF.mode = qm; localStorage.setItem('vt_qual', qm); if (qm !== 'auto') applyQuality(qm); renderPanel(); return; } if (e.target.id === 'sh') { renderer.shadowMap.enabled = !renderer.shadowMap.enabled; scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); renderPanel(); }
+    if (e.target.id === 'vz') { setVoice(!VOICE.on); renderPanel(); return; }
     if (e.target.id === 'tochars') { await saveNow(); location.reload(); } if (e.target.id === 'lo') { await saveNow(); await B.logout(); location.reload(); } };
 }
 function pGm(b) {
@@ -1259,7 +1296,7 @@ async function enterWorld(id) {
   studio.visible = false; if (!npcs.length) buildTowns(); if (!mmBase) buildMinimapBase();
   S.bar = null; makeMe(); const s = stats(); S.hp = S.c.hp > 0 && S.c.hp <= s.maxHp ? S.c.hp : s.maxHp; S.mp = S.c.mp > 0 && S.c.mp <= s.maxMp ? S.c.mp : s.maxMp;
   if (blocked(me.x, me.z) || S.c.hp <= 0) { const t = WG.nearestTown(me.x, me.z).town; me.x = t.x; me.z = t.z + 25; }
-  updateChunks(me.x, me.z, true); loadQuests(); renderTracker(); buildBar();
+  updateChunks(me.x, me.z, true); loadQuests(); renderTracker(); buildBar(); S.fly = false; S.alt = 0; restoreComp();
   show('#hud'); S.inGame = true; $('#btn-gm').hidden = !S.c.is_gm;
   B.join({ id: S.c.id, name: S.c.name, is_gm: S.c.is_gm }, { onPos, onLeave: id => { const o = S.others[id]; if (o) { o.model && scene.remove(o.model.root); delete S.others[id]; } }, onPresence: p => S.presence = p, onChat, onNode, onEvent, onFx: remoteFx });
   $('#chat-log').innerHTML = ''; (await safe(() => B.chatRecent()) || []).forEach(addChat);
@@ -1299,7 +1336,7 @@ function loop() {
   const dt = Math.min(0.05, clock.getDelta());
   if (S.inGame && me) {
     perfTick(dt); if (S.guide && (S.guideT = (S.guideT || 0) + dt) > 0.25) { S.guideT = 0; guideTick(); }
-    updateMe(dt); updateMobs(dt); updateOthers(dt); updateFx(dt); updateFX(dt); updateCamera(); updateChunks(me.x, me.z, false);
+    updateMe(dt); updateMobs(dt); updateOthers(dt); updateFx(dt); updateFX(dt); updateAmbient(dt); updateDialog(); greetNpcs(); updateCamera(); updateChunks(me.x, me.z, false);
     updateEnvironment(dt); water.position.x = Math.round(me.x / 50) * 50; water.position.z = Math.round(me.z / 50) * 50; sky.position.copy(camera.position);
     if (!GRASS.center || Math.hypot(GRASS.center.x - me.x, GRASS.center.z - me.z) > 12) layoutGrass(GRASS, me.x, me.z, WG.height, grassOk, grassColor); updateTownVisibility();
     if ((S.npcGlbT = (S.npcGlbT || 0) + dt) > 1) { S.npcGlbT = 0; if (PERF.cur !== 'baixa') { let k = 0; for (const n of npcs) if (n.model && !n.model.glb && !n.model.glbPending && Math.hypot(n.x - me.x, n.z - me.z) < 55 && k++ < 3) upgradeGLB(n.model); } }
@@ -1320,4 +1357,9 @@ loop();
   } else $('#login-msg').textContent = 'Servidor online em configuração — use o modo offline para testar.';
   show('#login');
 })();
-window.__game = { townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, keys, refreshGear: () => { me.enc = encOf(S.c); setGear(me, S.c.equipment.arma, S.c.equipment.armadura, S.c.equipment); buildBar(); }, attackKey: () => attackKey(), dodge, startGuide, stopGuide, PERF, applyQuality, saveQuests };
+function petHit(tg, mult) { if (tg.dead) return; const st = stats(), d = dmgVs(st.atk, mult, tg.st.def, st.crit, st.critDmg); hurtMob(tg, d.v, d.crit); emit(tg.x, WG.height(tg.x, tg.z) + 0.8, tg.z, { n: 10, color: 0xffe08a, speed: 3, up: 1, life: 0.35, size: 0.14, grav: 8 }); }
+initComp({ scene, S, GD, WG, me: () => me, toast, petHit, now, keys });
+const POI_AMB = { tumba: { particles: '#aaffbb' }, pantano: { particles: '#c8ff7a' }, destrocos: { particles: '#ffaa5a' }, estranho: { particles: '#c89aff' } };
+initAmbient({ scene, S, WG, me: () => me, isNight: () => { const p = dayPhase(); return p < 0.23 || p > 0.79; }, theme: (x, z) => WG.nearestTown(x, z).town.theme,
+  nearPoi: (x, z) => { const L = GD.LANDMARKS.find(L => L.poi && Math.hypot(L.x - x, L.z - z) < 70); return L ? { x: L.x, z: L.z, amb: POI_AMB[L.type] } : null; } });
+window.__game = { COMP, summonPet, setMount, setWings, toggleFly, toggleRide, townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, keys, refreshGear: () => { me.enc = encOf(S.c); setGear(me, S.c.equipment.arma, S.c.equipment.armadura, S.c.equipment); buildBar(); }, attackKey: () => attackKey(), dodge, startGuide, stopGuide, PERF, applyQuality, saveQuests };

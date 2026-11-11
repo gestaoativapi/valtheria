@@ -341,10 +341,36 @@
   RECIPES.pocao_hp2 = { id: 'pocao_hp2', out: 'pocao_hp2', qty: 2, station: 'alquimia', prof: 'refino', grade: 2, inputs: { fibra_c: 3, tecido_d: 1 }, xp: 24 };
   RECIPES.retorno = { id: 'retorno', out: 'retorno', qty: 2, station: 'alquimia', prof: 'refino', grade: 0, inputs: { tecido_ng: 1, madeira_ng: 1 }, xp: 6 };
   // loja do NPC (compra com aurum)
+  // ----- companheiros: montarias, pets e asas (Mercador ou drop de chefes) -----
+  const COMP = {
+    m_burro: { name: 'Burro Teimoso', type: 'mount', model: 'a_donkey', len: 1.9, speed: 1.35, price: 4000, lvl: 1, icon: '🫏' },
+    m_alpaca: { name: 'Alpaca Andarilha', type: 'mount', model: 'a_alpaca', len: 1.8, speed: 1.42, price: 9000, lvl: 5, icon: '🦙' },
+    m_cavalo: { name: 'Cavalo de Guerra', type: 'mount', model: 'a_horse', len: 2.3, speed: 1.6, price: 30000, lvl: 10, icon: '🐎' },
+    m_touro: { name: 'Touro de Batalha', type: 'mount', model: 'a_bull', len: 2.3, speed: 1.5, price: 45000, lvl: 20, icon: '🐂', fx: { pdefPct: 0.06 } },
+    m_cervo: { name: 'Cervo das Brumas', type: 'mount', model: 'a_stag', len: 2.2, speed: 1.7, price: 70000, lvl: 30, icon: '🦌', tint: '#b8c8d8' },
+    m_corcel: { name: 'Corcel Branco', type: 'mount', model: 'a_horse_white', len: 2.4, speed: 1.78, price: 120000, lvl: 40, icon: '🐴' },
+    m_pegaso: { name: 'Pégaso Alado', type: 'mount', model: 'a_horse_white', len: 2.4, speed: 1.9, fly: true, wings: '#fff4c8', price: 400000, lvl: 52, icon: '🦄' },
+    m_cervo_astral: { name: 'Cervo Astral', type: 'mount', model: 'a_stag', len: 2.4, speed: 2.0, fly: true, wings: '#9a6aff', ghost: 0x5a2aaa, lvl: 61, icon: '🦌' },
+    p_raposa: { name: 'Raposa Esperta', type: 'pet', model: 'a_fox', len: 0.9, price: 6000, lvl: 1, icon: '🦊', fx: { crit: 0.02 } },
+    p_husky: { name: 'Husky Guardião', type: 'pet', model: 'a_husky', len: 1.0, price: 9000, lvl: 5, icon: '🐺', fx: { hpPct: 0.04 } },
+    p_shiba: { name: 'Shiba Ligeiro', type: 'pet', model: 'a_shibainu', len: 0.85, price: 9000, lvl: 5, icon: '🐕', fx: { speed: 0.03 } },
+    p_filhote: { name: 'Filhote de Cervo', type: 'pet', model: 'a_deer', len: 1.0, price: 14000, lvl: 15, icon: '🦌', fx: { mpRegen: 0.15 } },
+    p_aranha: { name: 'Aranha Tecelã', type: 'pet', model: 'e_spider', len: 0.8, price: 20000, lvl: 20, icon: '🕷️', fx: { lifesteal: 0.01 } },
+    p_vespa: { name: 'Vespa Guardiã', type: 'pet', model: 'e_wasp', len: 0.7, price: 30000, lvl: 30, icon: '🐝', fx: { atkspd: 0.03 }, flyer: true },
+    p_sapo_real: { name: 'Sapo Real do Pântano', type: 'pet', model: 'e_frog', len: 0.8, lvl: 10, icon: '🐸', fx: { mpRegen: 0.25, mpCost: 0.05 }, tint: '#6aaa3a' },
+    p_rato_rei: { name: 'Rato da Coroa', type: 'pet', model: 'e_rat', len: 0.8, lvl: 10, icon: '🐀', fx: { crit: 0.04 }, tint: '#c8a040' },
+    a_luz: { name: 'Asas de Luz', type: 'wings', color: '#fff2b0', price: 150000, lvl: 40, icon: '🪽', fx: { speed: 0.04 } },
+    a_sombra: { name: 'Asas Sombrias', type: 'wings', color: '#6a3aaa', price: 150000, lvl: 40, icon: '🦇', fx: { crit: 0.02 } },
+    a_fenix: { name: 'Asas da Fênix', type: 'wings', color: '#ff7a2a', price: 320000, lvl: 61, icon: '🔥', fx: { matkPct: 0.04 } },
+    a_gelo: { name: 'Asas Glaciais', type: 'wings', color: '#9ad8ff', price: 320000, lvl: 61, icon: '❄️', fx: { pdefPct: 0.04 } },
+    a_vazio: { name: 'Asas do Vazio', type: 'wings', color: '#4a1a8a', lvl: 52, icon: '🌌', fx: { crit: 0.03, speed: 0.04 } },
+  };
+  for (const [id, c] of Object.entries(COMP)) ITEMS[id] = { id, name: c.name, grade: gradeForLevel(c.lvl), type: c.type, icon: c.icon, comp: c, unique: !c.price };
   const SHOP = { pocao_hp: 25, pocao_mp: 60, retorno: 80, kit_ng: 150 };
   Object.keys(WEAPONS).forEach(k => SHOP[`${k}_ng`] = 300); Object.keys(ARMORS).forEach(k => SHOP[`${k}_ng`] = 350);
   Object.keys(PARTS).forEach(p => Object.keys(ARMORS).forEach(k => SHOP[`${p}_${k}_ng`] = 120)); SHOP.escudo_ng = 200;
-  const npcPrice = (it) => Math.round(({ raw: 3, refined: 9, tool: 40, potion: 6, scroll: 20, special: 400, trophy: 30, enchant: 150 }[it.type] || 120) * Math.pow(2.2, it.grade));
+  for (const [id, c] of Object.entries(COMP)) if (c.price) SHOP[id] = c.price;
+  const npcPrice = (it) => it.comp ? Math.round((it.comp.price || 200000) * 0.25) : Math.round(({ raw: 3, refined: 9, tool: 40, potion: 6, scroll: 20, special: 400, trophy: 30, enchant: 150 }[it.type] || 120) * Math.pow(2.2, it.grade));
 
   // ----- cidades, regiões e teleporte -----
   const WORLD = { SIZE: 3000, SEED: 20261110 };
@@ -398,6 +424,27 @@
     { id: 'conde_carmesim', name: 'Conde Carmesim', model: 'humanoid', color: '#6a0a1a', scale: 2.4, boss: true, special: true, horns: true, drops: ['espada_carmesim', 'fragmento'] },
     { id: 'wyrm_gelo', name: 'Wyrm do Inverno', model: 'dragon', color: '#9ad0f0', scale: 3.0, boss: true, special: true, drops: ['elmo_inverno', 'fragmento'] },
   ];
+  // ----- pontos de interesse: tumbas, pântanos, destroços e objetos estranhos, cada um com um chefe e itens próprios -----
+  const POI_DEF = {
+    tumba: { name: 'Tumba', fam: 'Senhor da Cripta', model: 'humanoid', color: '#d8d2c0', skel: true, kind: 'espadao', wname: 'Lâmina Sepulcral', icon: '⚰️', sa: ['vampiro', 'furia'], places: ['Cripta dos Esquecidos', 'Necrópole de Varn', 'Túmulos do Rei Cego', 'Mausoléu Partido', 'Cemitério das Cinzas'] },
+    pantano: { name: 'Pântano', fam: 'Matriarca do Pântano', model: 'quad', glb: 'sapo_g', color: '#3a5a2a', kind: 'cajado', wname: 'Cajado do Lodo', icon: '🐸', sa: ['gelo', 'sabedoria'], pet: 'p_sapo_real', places: ['Charco de Mûrgal', 'Brejo das Almas', 'Lodaçal Antigo', 'Pântano do Véu'] },
+    destrocos: { name: 'Destroços', fam: 'Rei-Rato dos Destroços', model: 'quad', glb: 'rato_g', color: '#5a4a3a', kind: 'adaga', wname: 'Presas do Rei-Rato', icon: '🐀', sa: ['sangria', 'foco'], pet: 'p_rato_rei', places: ['Caravana Destroçada', 'Ruínas do Comboio', 'Destroços do Cerco', 'Acampamento Saqueado'] },
+    estranho: { name: 'Anomalia', fam: 'Vespa do Vazio', model: 'quad', glb: 'vespa_g', color: '#5a2a8a', kind: 'arco', wname: 'Arco do Vazio', icon: '🔮', sa: ['trovao', 'precisao'], wings: 'a_vazio', mount: 'm_cervo_astral', places: ['Monólito Sussurrante', 'Círculo de Pedras Vivas', 'Fenda Astral'] },
+  };
+  const POI_LIST = [['pantano', 'n', 1275, 2825, 12], ['tumba', 'n', 1825, 2775, 14], ['tumba', 'd', 200, 1450, 39], ['pantano', 'd', 225, 2025, 35], ['destrocos', 'd', 950, 1775, 34], ['estranho', 'd', 575, 2275, 27],
+    ['tumba', 'b', 2275, 2225, 45], ['pantano', 'b', 2600, 1850, 45], ['destrocos', 'b', 2525, 2800, 51], ['estranho', 'b', 2775, 2575, 51], ['tumba', 's', 2200, 375, 78], ['pantano', 's', 1800, 250, 80], ['destrocos', 's', 1775, 625, 80], ['estranho', 's', 600, 1350, 75]];
+  const TIER_NAME = { n: 'Menor', d: 'Antigo', b: 'Ancestral', s: 'Primordial' };
+  const POI_DROPS = {}, POI_N = {};
+  POI_LIST.forEach(([type, t, x, z, lvl]) => { const i = POI_N[type] = (POI_N[type] ?? -1) + 1;
+    const D = POI_DEF[type], g = gradeForLevel(lvl), fid = `${type}_${t}`, wid = `${type}_${t}_arma`;
+    if (!ITEMS[wid]) { const base = ITEMS[`${D.kind}_${GRADES[g].id.toLowerCase()}`], st = {}; for (const [k, v] of Object.entries(base.stats)) st[k] = +(v * 1.22).toFixed(1);
+      ITEMS[wid] = { id: wid, name: `${D.wname} ${TIER_NAME[t]}`, grade: g, type: 'weapon', slot: 'arma', kind: D.kind, icon: D.icon, stats: st, unique: true, relic: true, sa: D.sa, poi: type }; }
+    LANDMARKS.push({ id: 'poi_' + type + '_' + t, name: D.places[i % D.places.length], type, x, z, lvl, boss: fid, poi: true, tier: t });
+    if (!SPECIAL_BOSSES.find(b => b.id === fid)) { const drops = [wid, ...(g >= 3 ? ['gema'] : []), ...(g >= 5 ? ['fragmento'] : [])];
+      if (D.pet) drops.push(D.pet); if (D.wings && g >= 3) drops.push(D.wings); if (D.mount && g >= 4) drops.push(D.mount);
+      SPECIAL_BOSSES.push({ id: fid, name: `${D.fam} ${TIER_NAME[t]}`, model: D.model, glb: D.glb, skel: D.skel, color: D.color, scale: 1.8 + g * 0.15, boss: true, special: true, drops, lvl });
+      POI_DROPS[fid] = drops; }
+  });
   // ----- troféus de caça (drop de cada família; servem para missões e venda) -----
   const TROPHY = { javali: ['Presa de Javali', '🐗'], lobo: ['Pele de Lobo Cinzento', '🐺'], bandido: ['Insígnia de Bandido', '🏴'], aranha: ['Seda de Aranha', '🕸️'], golem: ['Núcleo de Golem', '🪨'], esqueleto: ['Osso Amaldiçoado', '🦴'], ent: ['Seiva Corrompida', '🌿'], lobo_esp: ['Essência Espectral', '👻'], demonio: ['Chifre Demoníaco', '😈'], lagarto: ['Escama de Lagarto', '🦎'], dragonete: ['Escama de Dragonete', '🐉'], caido: ['Selo do Cavaleiro Caído', '⚜️'] };
   MOBS.forEach((fs, g) => fs.forEach(f => { if (TROPHY[f.id]) ITEMS['tr_' + f.id] = { id: 'tr_' + f.id, name: TROPHY[f.id][0], grade: g, type: 'trophy', icon: TROPHY[f.id][1], fam: f.id }; }));
@@ -452,7 +499,7 @@
   function weaponSA(id, enc) {
     const it = ITEMS[id]; if (!it || it.slot !== 'arma' || !it.grade && !it.relic) return [];
     const opts = SA_BY[it.kind] || ['foco'], h = hashId(id), k = (0.8 + 0.25 * it.grade) * (it.relic ? 1.4 : 1) * (1 + Math.max(0, (enc || 0) - 3) * 0.1);
-    const keys = it.relic ? [opts[h % opts.length], opts[(h + 1) % opts.length]] : [opts[h % opts.length]];
+    const keys = it.sa || (it.relic ? [opts[h % opts.length], opts[(h + 1) % opts.length]] : [opts[h % opts.length]]);
     return keys.map(key => { const v = scaleV(SA[key].v, k); return { key, name: SA[key].name, icon: SA[key].icon, v, desc: SA[key].d(v) }; });
   }
   function setBonus(eq) {
@@ -496,6 +543,6 @@
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
     RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
-    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, SPECIAL_BOSSES, PARTS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
+    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -15,12 +15,19 @@ export const TREE_GLB = {
   folhosa: ['n_commontree_1', 'n_commontree_2', 'n_commontree_3'],
   conifera: ['n_pine_1', 'n_pine_2', 'n_pine_3'],
   morta: ['n_deadtree_1', 'n_deadtree_2'],
-  outono: ['n_commontree_1', 'n_twistedtree_1', 'n_commontree_2', 'n_twistedtree_2'],
+  outono: ['n_commontree_1', 'n_twistedtree_1', 'q_birchtree_autumn_1', 'n_twistedtree_2'],
+  floresta: ['n_commontree_1', 'q_birchtree_1', 'n_commontree_3', 'q_birchtree_3'],
+  gelo: ['q_commontree_snow_1', 'q_pinetree_snow_1', 'q_pinetree_snow_3', 'q_commontree_snow_3'],
+  coniferaFrio: ['q_pinetree_snow_1', 'n_pine_2', 'q_pinetree_snow_3'],
+  acacia: ['q_palmtree_1', 'q_palmtree_3'],
 };
+// vegetação por bioma: [modelo, escala]
+const UNDER_BY = { gelo: [['q_bush_snow_1', 1.4], ['q_rock_snow_1', 2.2], ['q_rock_snow_3', 2.2]], savana: [['q_cactus_1', 2.0], ['q_cactus_3', 2.0], ['q_cactusflowers_2', 1.6]],
+  floresta: [['q_treestump_moss', 1.6], ['q_woodlog_moss', 1.6], ['q_bushberries_1', 1.5]], verde: [['q_bushberries_1', 1.4]], noite: [['q_treestump_moss', 1.6], ['q_rock_moss_2', 2.4]] };
 const UNDER = ['n_bush_common', 'n_bush_common_flowers', 'n_fern_1', 'n_plant_1_big', 'n_flower_3_group', 'n_flower_4_group', 'n_mushroom_common'];
 const ROCKS = ['n_rock_medium_1', 'n_rock_medium_2', 'n_rock_medium_3'];
-const SCALE = { n_twistedtree_1: 0.5, n_twistedtree_2: 0.5, n_deadtree_1: 0.8, n_deadtree_2: 0.75 };
-const ALL = [...new Set([...Object.values(TREE_GLB).flat(), ...UNDER, ...ROCKS])];
+const SCALE = { n_twistedtree_1: 0.5, n_twistedtree_2: 0.5, n_deadtree_1: 0.8, n_deadtree_2: 0.75, q_birchtree_1: 2.1, q_birchtree_3: 2.1, q_birchtree_autumn_1: 2.1, q_commontree_snow_1: 2.6, q_commontree_snow_3: 2.6, q_pinetree_snow_1: 2.6, q_pinetree_snow_3: 2.4, q_palmtree_1: 1.8, q_palmtree_3: 1.8 };
+const ALL = [...new Set([...Object.values(TREE_GLB).flat(), ...UNDER, ...ROCKS, ...Object.values(UNDER_BY).flat().map(x => x[0])])];
 
 const MATS = new Map();
 function natMat(src) {
@@ -30,7 +37,7 @@ function natMat(src) {
   const m = new THREE.MeshLambertMaterial({ map: src.map || null, color: src.color ? src.color.clone() : 0xffffff, side: leafy ? THREE.DoubleSide : THREE.FrontSide,
     alphaTest: leafy && src.map ? 0.45 : 0, transparent: false });
   if (m.map) m.map.anisotropy = 4;
-  if (/rock/i.test(name)) m.color.multiplyScalar(1.7); else if (leafy) m.color.multiplyScalar(1.12);
+  if (/rock/i.test(name) && !/snow/i.test(name)) { m.map = null; m.color.set('#8c867c'); m.flatShading = true; } else if (/bush|berr/i.test(name)) m.color.multiplyScalar(1.6); else if (leafy) m.color.multiplyScalar(1.12);
   if (leafy) { windify(m, 0.045, 2.2); const w = m.onBeforeCompile, key = m.customProgramCacheKey();
     // folhas de dois lados: não inverte a normal no verso (senão metade da copa fica preta)
     m.onBeforeCompile = (sh) => { w(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nnormal = normalize(vNormal); nonPerturbedNormal = normal;'); };
@@ -82,7 +89,7 @@ function addInst(group, name, pts, place, shadow, tint) {
 export function buildNatureChunk(d) {
   const group = new THREE.Group(), handled = new Set();
   for (const [kind, pts] of Object.entries(d.trees)) {
-    const list = kind === 'folhosa' && d.theme === 'outono' ? TREE_GLB.outono : TREE_GLB[kind]; if (!list) continue;
+    const list = kind === 'folhosa' && d.theme === 'outono' ? TREE_GLB.outono : kind === 'folhosa' && d.theme === 'floresta' ? TREE_GLB.floresta : kind === 'conifera' && d.theme === 'gelo' ? TREE_GLB.coniferaFrio : TREE_GLB[kind]; if (!list) continue;
     handled.add(kind);
     list.forEach((name, vi) => {
       const sub = pts.filter((p, i) => (i + Math.floor(p[0])) % list.length === vi);
@@ -92,6 +99,8 @@ export function buildNatureChunk(d) {
   d.rocks.forEach((pts, k) => addInst(group, ROCKS[k], pts, ([x, h, z, sc, r]) => { q.setFromAxisAngle(up, r); sv.set(sc * 0.9, sc * 0.75, sc * 0.9); pv.set(x, h - sc * 0.2, z); }, true, d.rockTint));
   const red = d.theme === 'outono';
   UNDER.forEach((name, k) => addInst(group, name, d.under.filter(p => (p[5] === 0 && !red ? 1 : p[5]) === k), ([x, h, z, sc, r]) => { q.setFromAxisAngle(up, r); sv.setScalar(sc); pv.set(x, h - 0.05, z); }, false));
+  // vegetação extra do bioma (reaproveita os pontos de vegetação rasteira)
+  const ub = UNDER_BY[d.theme]; if (ub) ub.forEach(([name, sc], k) => addInst(group, name, d.under.filter((p, i) => i % (ub.length + 1) === k), ([x, h, z, s2, r]) => { q.setFromAxisAngle(up, r); sv.setScalar(s2 * sc); pv.set(x, h - 0.05, z); }, true));
   return { group, handled };
 }
 export function disposeNature(n) { n.group.children.forEach(o => o.dispose && o.dispose()); n.group.removeFromParent(); }

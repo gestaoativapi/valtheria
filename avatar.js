@@ -234,6 +234,7 @@ const WGLB = { espada: ['w_sword', 'w_sword', 'w_sword_2', 'w_sword_big', 'w_swo
   escudo: ['w_shield_round', 'w_shield_round', 'w_shield_heater', 'w_shield_heater', 'w_shield_heater', 'w_shield_celtic_golden'] };
 const WLEN = { espada: 1.0, espadao: 1.45, machado: 1.1, lanca: 2.4, adaga: 0.42, martelo: 1.05 };
 const WMAT = new Map();
+const KAURA = { espada: '#ffd75a', espadao: '#ff6a2a', machado: '#ff3a2a', lanca: '#7ad0ff', arco: '#7aff9a', adaga: '#c03aff', cajado: '#5a8aff', punhos: '#ffb03a', martelo: '#3ad8c8' };
 function swapWeapon(m, holder, name, len, g, relic, shield) {
   if (name === 'w_sword_2') name = 'w_sword';
   loadGLB(name).then(gl => {
@@ -241,18 +242,20 @@ function swapWeapon(m, holder, name, len, g, relic, shield) {
     const src = gl.scene.clone(true), b = new THREE.Box3().setFromObject(src), h = shield ? Math.max(b.max.y - b.min.y, b.max.x - b.min.x) : b.max.y - b.min.y, k = len / h;
     src.scale.setScalar(k); if (shield) { src.position.set(0, -(b.max.y + b.min.y) / 2 * k, 0.02); }
     const en = m.enc || 0, ecol = en >= 10 ? 0xffcf3a : en >= 7 ? 0xff3a3a : 0x3a8aff;
-    src.traverse(o => { if (!o.isMesh) return; o.castShadow = true; const key = o.material.name + ':' + g + ':' + (shield ? 0 : en >= 4 ? ecol : 0) + (relic ? 'r' : '');
+    src.traverse(o => { if (!o.isMesh) return; o.castShadow = true; const key = o.material.name + ':' + g + ':' + (shield ? 's' : m.weaponKind) + ':' + (shield ? 0 : en >= 4 ? ecol : 0) + (relic ? 'r' : '');
       if (!WMAT.has(key)) { const mt = o.material.clone(); mt.metalness = Math.min(mt.metalness, 0.6); mt.envMapIntensity = 1.2; const metal = /metal|steel|iron|blade|silver|gold/i.test(mt.name) || mt.metalness > 0.3;
-        if (metal && g >= 3) { mt.emissive = new THREE.Color(GLOW[g]); mt.emissiveIntensity = 0.35; }
+        if (metal && g >= 2 && !shield) { mt.emissive = new THREE.Color(relic ? '#ffd75a' : KAURA[m.weaponKind] || GLOW[g]); mt.emissiveIntensity = 0.18 + g * 0.06; }
+        if (metal && g >= 3 && shield) { mt.emissive = new THREE.Color(GLOW[g]); mt.emissiveIntensity = 0.35; }
         if (metal && !shield && en >= 4) { mt.emissive = new THREE.Color(ecol); mt.emissiveIntensity = 0.6 + (en % 3) * 0.2; }
         WMAT.set(key, mt); }
       o.material = WMAT.get(key); });
     [...holder.children].forEach(c => { if (!c.isSprite) holder.remove(c); }); holder.add(src);
+    if (!shield) { const tip = new THREE.Object3D(); tip.position.y = len * 0.88; holder.add(tip); m.weaponTip = tip; }
   }).catch(() => {});
 }
 export function setGear(m, weaponId, armorId, equip) {
   const P = m.P, fem = m.o.gender === 'f'; equip = equip || m.o.equip || {}; m.o.equip = equip;
-  (m.gearParts || []).forEach(x => x.parent && x.parent.remove(x)); m.gearParts = [];
+  (m.gearParts || []).forEach(x => x.parent && x.parent.remove(x)); m.gearParts = []; m.weaponTip = null;
   const add = (parent, obj) => { parent.add(obj); m.gearParts.push(obj); return obj; };
   const a = GD.ITEMS[armorId], w = GD.ITEMS[weaponId];
   if (P.base) P.base.visible = !a; if (P.hair) P.hair.visible = true;
@@ -455,6 +458,11 @@ async function glbOutfit(m, a, equip) {
 function applyGLB(m, C) {
   const P = m.P; m.glbPending = false;
   const K = 1.98 / 1.81; C.root.scale.set(m.Wd * K, m.H * K, m.Wd * K); m.root.add(C.root);
+  // proporções próprias de cada raça (escala de ossos; as animações não mexem em escala)
+  const RB = { anao: { Head: 1.1, hand_l: 1.18, hand_r: 1.18, upperarm_l: 1.06, upperarm_r: 1.06 }, orc: { Head: 0.94, neck_01: 0.9, upperarm_l: 1.12, upperarm_r: 1.12, hand_l: 1.15, hand_r: 1.15, spine_03: 1.06 },
+    halfling: { Head: 1.16, foot_l: 1.3, foot_r: 1.3 }, gigante: { hand_l: 1.25, hand_r: 1.25, upperarm_l: 1.1, upperarm_r: 1.1, spine_03: 1.08, Head: 0.92 }, elfo: { Head: 0.96, neck_01: 1.12 }, sombrio: { Head: 0.96, neck_01: 1.1 },
+    sylph: { Head: 0.98, neck_01: 1.1, foot_l: 0.85, foot_r: 0.85 }, draconato: { neck_01: 1.18, Head: 1.04, hand_l: 1.15, hand_r: 1.15 }, beastman: { hand_l: 1.15, hand_r: 1.15, neck_01: 0.92, spine_03: 1.05 }, nocturno: { neck_01: 1.06 } }[m.race] || {};
+  for (const [b, k] of Object.entries(RB)) if (C.bones[b]) C.bones[b].scale.multiplyScalar(k);
   playClip(C, 'Idle_Loop'); C.mixer.update(0); m.root.updateMatrixWorld(true);
   const sock = (proc, bname) => { const b = C.bones[bname], s = new THREE.Object3D(); b.add(s); b.updateWorldMatrix(true, false);
     const M = new THREE.Matrix4().copy(b.matrixWorld).invert().multiply(proc.matrixWorld); M.decompose(s.position, s.quaternion, s.scale); return s; };
@@ -475,7 +483,7 @@ function applyGLB(m, C) {
   m.glb = C; m.glbMode = true; ownMats(C.model); tintGLB(m);
   C.root.traverse(o => o.userData.pick = m.root.userData.pick || o.userData.pick);
   const eq = m.o.equip || {}; setGear(m, m.o.weapon || eq.arma, m.o.armor || eq.armadura, eq);
-  m.anim.idleClip = m.o.idle || (m.o.npc ? (['Idle_Loop', 'Idle_FoldArms_Loop', 'Idle_Talking_Loop'][Math.floor(Math.random() * 3)]) : 'Idle_Loop');
+  m.anim.idleClip = m.o.idle || (!m.o.npc && { orc: 'Idle_FoldArms_Loop', gigante: 'Idle_FoldArms_Loop', anao: 'Idle_Shield_Loop', mago: null }[m.race]) || (m.o.npc ? (['Idle_Loop', 'Idle_FoldArms_Loop', 'Idle_Talking_Loop'][Math.floor(Math.random() * 3)]) : 'Idle_Loop');
   if (m.onGLB) m.onGLB(m);
 }
 const ATK_CLIPS = ['Sword_Regular_A', 'Sword_Regular_B', 'Sword_Regular_C', 'Sword_Attack'];
@@ -491,6 +499,6 @@ function animGLB(m, dt) {
   else if (A.cur === 'atk' && t < A.atkEnd) { /* golpe em andamento */ }
   else if (A.hitAt && t - A.hitAt < 60 && A.cur !== 'hit' && A.state !== 'climb') { A.hitAt = 0; if (playClip(C, Math.random() < 0.5 ? 'Hit_Chest' : 'Hit_Head', { once: true, fade: 0.06, speed: 1.4 })) { A.cur = 'hit'; A.atkEnd = t + 380; } }
   else if (A.cur === 'hit' && t < A.atkEnd) { }
-  else { const want = A.state === 'climb' ? 'ClimbUp_1m' : A.state === 'swim' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'roll' ? 'Roll' : A.state === 'sprint' ? 'Sprint_Loop' : A.state === 'run' ? 'Jog_Fwd_Loop' : A.state === 'gather' ? 'Interact' : (A.idleClip || 'Idle_Loop'); if (A.cur !== want) { if (playClip(C, want, { fade: 0.22, once: want === 'Roll', speed: A.state === 'run' ? 1.15 : A.state === 'climb' ? 0.8 : want === 'Roll' ? 1.3 : 1 })) A.cur = want; else if (A.cur !== 'Jog_Fwd_Loop' && A.state !== 'idle') { playClip(C, 'Jog_Fwd_Loop', { fade: 0.2 }); A.cur = 'Jog_Fwd_Loop'; } } }
+  else { const want = A.state === 'mount' ? 'Sitting_Idle_Loop' : A.state === 'fly' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'climb' ? 'ClimbUp_1m' : A.state === 'swim' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'roll' ? 'Roll' : A.state === 'sprint' ? 'Sprint_Loop' : A.state === 'run' ? 'Jog_Fwd_Loop' : A.state === 'gather' ? 'Interact' : (A.idleClip || 'Idle_Loop'); if (A.cur !== want) { if (playClip(C, want, { fade: 0.22, once: want === 'Roll', speed: A.state === 'run' ? 1.15 * ({ halfling: 1.3, anao: 1.18, gigante: 0.85, orc: 0.95, sylph: 1.08 }[m.race] || 1) : A.state === 'climb' ? 0.8 : want === 'Roll' ? 1.3 : 1 })) A.cur = want; else if (A.cur !== 'Jog_Fwd_Loop' && A.state !== 'idle') { playClip(C, 'Jog_Fwd_Loop', { fade: 0.2 }); A.cur = 'Jog_Fwd_Loop'; } } }
   C.mixer.update(dt);
 }

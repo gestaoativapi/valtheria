@@ -115,3 +115,6 @@ body.touch #zone{top:100px;font-size:12px}
 @media (orientation:portrait){body.touch #hud::after{content:'↻ Gire o celular para jogar na horizontal';position:absolute;left:50%;top:45%;transform:translateX(-50%);background:#000c;color:#f2c46d;padding:10px 16px;border-radius:6px;font-size:14px;pointer-events:none;white-space:nowrap}}
 
 @media (max-height:500px){body.touch #mm-wrap{transform:scale(.85);transform-origin:right top}body.touch .side.right{display:none}}
+
+img.ic3d{width:40px;height:40px;border-radius:6px;display:block;margin:0 auto;image-rendering:auto}img.ic3d.big{width:64px;height:64px}
+.slot .ic img.ic3d{width:46px;height:46px}
