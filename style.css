@@ -33,6 +33,7 @@ label input{display:block;width:100%;margin-top:4px;padding:9px;border:1px solid
 .bar{position:relative;height:14px;background:#2a0808;border:1px solid #000;margin:3px 0;border-radius:2px;overflow:hidden}
 .bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(#ff6a5a,#a01818);transition:width .12s}
 .bar.mp{background:#08122a}.bar.mp i{background:linear-gradient(#6aa0ff,#1838a0)}
+.bar.st{height:5px;background:#0a1a0a;margin-top:2px}.bar.st i{background:linear-gradient(#9aff7a,#2a9a2a)}
 .bar.xp{height:8px;background:#1a1a08}.bar.xp i{background:linear-gradient(#ffe36a,#a08a18)}
 .bar span{position:absolute;inset:0;text-align:center;font-size:10px;line-height:14px;text-shadow:0 1px 1px #000}
 .bar.xp span{font-size:8px;line-height:8px}

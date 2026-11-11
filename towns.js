@@ -1,6 +1,25 @@
 // ===== Valtheria — cidades com arquitetura de cada raça, castelos, ruínas e covis =====
 import * as THREE from './three.module.min.js';
 import { makeFire, makeSmoke, ROCK_GEOS, rockMat } from './world3d.js';
+import { GLTFLoader } from './GLTFLoader.js';
+import { MeshoptDecoder } from './meshopt_decoder.module.js';
+
+// ---------- prédios e objetos 3D (Quaternius Medieval Village Pack, CC0) ----------
+// cada peça nasce com a versão procedural e é trocada pelo modelo quando ele carrega
+const gl = new GLTFLoader(); gl.setMeshoptDecoder(MeshoptDecoder); const BCACHE = new Map();
+const loadB = n => { if (!BCACHE.has(n)) BCACHE.set(n, gl.loadAsync(n + '.glb').then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.material.envMapIntensity = 0.8; } }); return g.scene; })); return BCACHE.get(n); };
+export const BLD = { on: true };
+function glbB(name, scale, fallback, rot = 0) {
+  const g = new THREE.Group(); if (fallback) g.add(fallback);
+  if (BLD.on) loadB(name).then(src => { const o = src.clone(true); o.scale.setScalar(scale); o.rotation.y = rot; if (fallback) g.remove(fallback); g.add(o); }).catch(() => {});
+  return g;
+}
+const PROPS = [['b_barrel', 3.4], ['b_crate', 3.4], ['b_hay', 3.6], ['b_cart', 3.2], ['b_bags', 3.4], ['b_bench_1', 3.2], ['b_cauldron', 3.4]];
+// objetos de rua perto das casas
+function scatterProps(ctx, g, n, r1, r2, list = PROPS) {
+  for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + 0.41 + (i % 3) * 0.05; if (!freeAt(ctx, a, 0.22)) continue; const r = r1 + ((i * 37) % 100) / 100 * (r2 - r1), x = ctx.t.x + Math.cos(a) * r, z = ctx.t.z + Math.sin(a) * r, [nm, sc] = list[i % list.length];
+    place(ctx, g, glbB(nm, sc, null), x, z, a * 3.1, nm === 'b_cart' ? 1.4 : 0.7); }
+}
 
 const mats = new Map();
 function M(color, o = {}) {
@@ -95,7 +114,10 @@ const STYLES = {
     wallRing(ctx, g, { seg: 10, piece: () => { const p = new THREE.Group(); A(p, box(10.4, 6, 1.8, '#8a8478')).position.y = 3; for (let i = -2; i <= 2; i++) A(p, box(1.1, 1.1, 1.9, '#8a8478')).position.set(i * 2.2, 6.5, 0); return p; },
       tower: () => { const tw = new THREE.Group(); A(tw, cyl(3.2, 3.6, 10, '#7e786c', 16)).position.y = 5; A(tw, cone(4, 5, '#8a3b2b', 16)).position.y = 12.5; return tw; }, gateFire: '#ffffff' });
     const roofs = ['#8a3b2b', '#6a3a22', '#5a4a3a', '#7a2a22'];
-    ringPlaces(ctx, 16, 54, 72).forEach((p, i) => place(ctx, g, timberHouse({ roof: roofs[i % 4], v: i % 3 * 0.5, chimney: i % 3 === 0 }), p.x, p.z, facing(ctx, p.x, p.z), 5.5));
+    const HS = [['b_house_1', 3.3], ['b_house_2', 3.2], ['b_inn', 3.1], ['b_house_3', 3.6], ['b_house_4', 4.2], ['b_stable', 2.8], ['b_house_1', 3.3], ['b_blacksmith', 3.0]];
+    ringPlaces(ctx, 16, 54, 72).forEach((p, i) => { const [nm, sc] = HS[i % HS.length]; place(ctx, g, glbB(nm, sc, timberHouse({ roof: roofs[i % 4], v: i % 3 * 0.5, chimney: i % 3 === 0 })), p.x, p.z, facing(ctx, p.x, p.z), 5.5); });
+    { const a = ctx.freeDir(5), x = ctx.t.x + Math.cos(a) * 30, z = ctx.t.z + Math.sin(a) * 30; place(ctx, g, glbB('b_bell_tower', 3.4, null), x, z, facing(ctx, x, z), 3.5); }
+    scatterProps(ctx, g, 26, 46, 80);
     // torre de menagem (castelo) atrás da praça
     const ka = ctx.freeDir(), kx = ctx.t.x + Math.cos(ka) * 40, kz = ctx.t.z + Math.sin(ka) * 40, keep = new THREE.Group();
     A(keep, box(12, 16, 12, '#8a8478')).position.y = 8; for (const sx of [-1, 1]) for (const sz of [-1, 1]) { A(keep, cyl(2.2, 2.4, 19, '#7e786c', 12)).position.set(sx * 6, 9.5, sz * 6); A(keep, cone(2.8, 4, '#3b4a8a', 12)).position.set(sx * 6, 21, sz * 6); }
@@ -104,8 +126,8 @@ const STYLES = {
     place(ctx, g, keep, kx, kz, facing(ctx, kx, kz), 10);
     // poço e barracas de feira
     const wl = new THREE.Group(); A(wl, cyl(1.4, 1.5, 1.1, '#8a8478', 16)).position.y = 0.55; A(wl, cyl(1.2, 1.2, 0.1, '#2a5a8a', 16)).position.y = 1.0; [-1, 1].forEach(s => A(wl, box(0.2, 2.4, 0.2, '#4a3422')).position.set(s * 1.2, 1.9, 0)); A(wl, gable(2.6, 2.4, 1, '#6a3a22')).position.y = 3.1;
-    place(ctx, g, wl, ctx.t.x + 22, ctx.t.z - 22, 0, 1.6);
-    ['#c83a3a', '#3a7ac8', '#e8c03a'].forEach((cc, i) => { const s = new THREE.Group(); A(s, box(3, 1, 1.6, '#6a4a2a')).position.y = 0.5; [-1, 1].forEach(a => [-1, 1].forEach(b => A(s, box(0.12, 2.6, 0.12, '#4a3422')).position.set(a * 1.4, 1.3, b * 0.75))); const cv = box(3.4, 0.12, 2, cc); cv.position.y = 2.6; cv.rotation.x = 0.15; s.add(cv); const a = ctx.freeDir(i + 2), x = ctx.t.x + Math.cos(a) * 32, z = ctx.t.z + Math.sin(a) * 32; place(ctx, g, s, x, z, facing(ctx, x, z), 2); });
+    place(ctx, g, glbB('b_well', 3.6, wl), ctx.t.x + 22, ctx.t.z - 22, 0, 1.6);
+    ['#c83a3a', '#3a7ac8', '#e8c03a'].forEach((cc, i) => { const s = new THREE.Group(); A(s, box(3, 1, 1.6, '#6a4a2a')).position.y = 0.5; [-1, 1].forEach(a => [-1, 1].forEach(b => A(s, box(0.12, 2.6, 0.12, '#4a3422')).position.set(a * 1.4, 1.3, b * 0.75))); const cv = box(3.4, 0.12, 2, cc); cv.position.y = 2.6; cv.rotation.x = 0.15; s.add(cv); const a = ctx.freeDir(i + 2), x = ctx.t.x + Math.cos(a) * 32, z = ctx.t.z + Math.sin(a) * 32; place(ctx, g, glbB(i % 2 ? 'b_marketstand_2' : 'b_marketstand_1', 3.2, s), x, z, facing(ctx, x, z), 2); });
     ringPlaces(ctx, 10, 42, 42, 0.2).forEach(p => lampPost(ctx, g, p.x, p.z));
   },
   halfling(ctx, g) {
@@ -119,6 +141,8 @@ const STYLES = {
     const blades = new THREE.Group(); blades.position.set(0, 9, 3.2); for (let i = 0; i < 4; i++) { const b = box(1.1, 7, 0.12, '#efe3c8'); b.position.y = 3.6; const arm = new THREE.Group(); arm.add(b); arm.rotation.z = i * Math.PI / 2; blades.add(arm); } mill.add(blades); ANIM.push({ kind: 'spin', o: blades, s: 0.6 });
     place(ctx, g, mill, x, z, facing(ctx, x, z), 3.5);
     ringPlaces(ctx, 8, 40, 40, 0.2).forEach(p => lampPost(ctx, g, p.x, p.z, '#ffe8b0', 2.6));
+    { const b = ctx.freeDir(6), mx = ctx.t.x + Math.cos(b) * 34, mz = ctx.t.z + Math.sin(b) * 34; place(ctx, g, glbB('b_mill', 3.4, null), mx, mz, facing(ctx, mx, mz), 4); }
+    scatterProps(ctx, g, 22, 44, 82, [['b_hay', 3.8], ['b_cart', 3.2], ['b_barrel', 3.4], ['b_bench_1', 3.2], ['b_crate', 3.4]]);
   },
   anao(ctx, g) {
     wallRing(ctx, g, { seg: 9, piece: () => { const p = new THREE.Group(); A(p, box(9.4, 8, 3, '#6a645a')).position.y = 4; A(p, box(9.6, 1, 3.4, '#4a463e')).position.y = 8.5; return p; },
@@ -129,6 +153,7 @@ const STYLES = {
     A(f, box(14, 7, 10, '#5a554c')).position.y = 3.5; A(f, box(15, 1, 11, '#3a3630')).position.y = 7.5; A(f, box(6, 5, 0.3, '#1a1410')).position.set(0, 2.5, 5.1);
     f.add(makeFire(0, 0.8, 5.8, 1.6, '#ffffff', true)); A(f, box(1.6, 8, 1.6, '#4a463e')).position.set(5, 9, -2); f.add(makeSmoke(5, 13, -2, 1.3));
     place(ctx, g, f, x, z, facing(ctx, x, z), 8);
+    scatterProps(ctx, g, 20, 44, 80, [['b_barrel', 3.6], ['b_crate', 3.6], ['b_cauldron', 3.6], ['b_cart', 3.2]]);
     const b = ctx.freeDir(3), sx = ctx.t.x + Math.cos(b) * 30, sz = ctx.t.z + Math.sin(b) * 30; ctx.statue('anao', sx, sz, 3.2, facing(ctx, sx, sz));
     ringPlaces(ctx, 8, 42, 42, 0.2).forEach(p => { const y = ctx.H(p.x, p.z); A(g, cyl(0.8, 0.5, 1.2, '#3a3630', 8)).position.set(p.x, y + 0.6, p.z); g.add(makeFire(p.x, y + 1.3, p.z, 0.7, '#ffffff', false)); });
   },
@@ -144,6 +169,7 @@ const STYLES = {
       tower: () => { const tw = new THREE.Group(); [-1, 1].forEach(a => [-1, 1].forEach(b => A(tw, cyl(0.25, 0.3, 9, '#5a3a22', 6)).position.set(a * 1.8, 4.5, b * 1.8))); A(tw, box(5, 0.4, 5, '#6a4a2a')).position.y = 8; A(tw, cone(3.6, 3, '#8a5a3a', 6)).position.y = 10; const f = flag('#a82a22', 4); f.position.y = 11; tw.add(f); return tw; }, gateFire: '#ffffff' });
     const hides = ['#8a6a4a', '#7a5a3a', '#9a7a5a', '#6a4a2a'];
     ringPlaces(ctx, 16, 52, 70).forEach((p, i) => place(ctx, g, tent({ hide: hides[i % 4] }), p.x, p.z, facing(ctx, p.x, p.z), 3.6));
+    scatterProps(ctx, g, 18, 44, 80, [['b_barrel', 3.4], ['b_hay', 3.6], ['b_cart', 3.2], ['b_bags', 3.6]]);
     for (let i = 0; i < 5; i++) { const a = ctx.freeDir(i * 3), x = ctx.t.x + Math.cos(a) * 34, z = ctx.t.z + Math.sin(a) * 34; place(ctx, g, totem(['#8a2a1a', '#3a2a1a', '#8a6a2a']), x, z, facing(ctx, x, z), 1); }
     const a = ctx.freeDir(1), bx = ctx.t.x + Math.cos(a) * 26, bz = ctx.t.z + Math.sin(a) * 26; g.add(makeFire(bx, ctx.H(bx, bz) + 0.2, bz, 2.4, '#ffffff', true, true));
     for (let i = 0; i < 8; i++) A(g, cyl(0.18, 0.2, 2.4, '#4a3422', 5)).position.set(bx + Math.cos(i) * 2.6, ctx.H(bx, bz) + 0.4, bz + Math.sin(i) * 2.6).y;
@@ -160,6 +186,7 @@ const STYLES = {
   beastman(ctx, g) {
     const hides = ['#a8784a', '#8a5a3a', '#c8a070', '#7a6a5a'];
     ringPlaces(ctx, 14, 52, 70).forEach((p, i) => place(ctx, g, tent({ yurt: true, hide: hides[i % 4], hide2: hides[(i + 1) % 4] }), p.x, p.z, facing(ctx, p.x, p.z), 4.4));
+    scatterProps(ctx, g, 18, 44, 80, [['b_hay', 3.6], ['b_cart', 3.2], ['b_barrel', 3.4], ['b_cauldron', 3.6]]);
     for (let i = 0; i < 6; i++) { const a = ctx.freeDir(i * 2), x = ctx.t.x + Math.cos(a) * 36, z = ctx.t.z + Math.sin(a) * 36; place(ctx, g, totem(['#c84a2a', '#e8c03a', '#3a8a5a', '#2a2a2a']), x, z, facing(ctx, x, z), 1); }
     // arco de presas
     for (let i = 0; i < 3; i++) { const a = ctx.roadAngles[i] ?? i * 2, x = ctx.t.x + Math.cos(a) * 88, z = ctx.t.z + Math.sin(a) * 88; [-1, 1].forEach(s => { const tk = cone(0.8, 9, '#efe8d8', 10); const ox = x + Math.cos(a + Math.PI / 2) * s * 4, oz = z + Math.sin(a + Math.PI / 2) * s * 4; tk.position.set(ox, ctx.H(ox, oz) + 4, oz); tk.rotation.set(0, -a, s * 0.35); g.add(tk); }); }
@@ -171,6 +198,7 @@ const STYLES = {
     ringPlaces(ctx, 10, 36, 40, 0.2).forEach((p, i) => { place(ctx, g, crystal('#b06aff', 1.1), p.x, p.z); if (i % 2) g.add(makeFire(p.x, ctx.H(p.x, p.z) + 3.2, p.z, 0.6, '#c06aff', true)); });
   },
   draconato(ctx, g) {
+    scatterProps(ctx, g, 14, 46, 80, [['b_barrel', 3.4], ['b_crate', 3.4], ['b_bags', 3.4]]);
     const a = ctx.freeDir(), x = ctx.t.x + Math.cos(a) * 40, z = ctx.t.z + Math.sin(a) * 40, zig = new THREE.Group();
     [[22, 4], [16, 4], [10, 4], [5, 3]].reduce((y, [s, h]) => { A(zig, box(s, h, s, '#2a2626', { rough: 0.6 })).position.y = y + h / 2; A(zig, box(s + 0.1, 0.3, s + 0.1, '#ff6a1a', { em: 0xff4a0a, ei: 1.4 })).position.y = y + h - 0.2; return y + h; }, 0);
     zig.add(makeFire(0, 15.2, 0, 2.4, '#ffffff', true, true)); place(ctx, g, zig, x, z, facing(ctx, x, z), 12);
@@ -180,6 +208,7 @@ const STYLES = {
     const b = ctx.freeDir(4), dx = ctx.t.x + Math.cos(b) * 28, dz = ctx.t.z + Math.sin(b) * 28; ctx.dragonStatue(dx, dz, 2.2, facing(ctx, dx, dz));
   },
   nocturno(ctx, g) {
+    scatterProps(ctx, g, 14, 46, 80, [['b_barrel', 3.4], ['b_crate', 3.4], ['b_bags', 3.4]]);
     wallRing(ctx, g, { seg: 10, piece: () => { const p = new THREE.Group(); A(p, box(10.4, 9, 2, '#2e2a33')).position.y = 4.5; for (let i = -2; i <= 2; i++) A(p, cone(0.7, 2, '#2e2a33', 4)).position.set(i * 2.2, 10, 0); return p; },
       tower: () => spireTower({ r: 3, h: 16, wall: '#2e2a33', roof: '#1a161e', roofH: 10, spire: true, glow: '#ff3a4a' }), gateFire: '#ff6a6a' });
     // catedral
@@ -192,6 +221,7 @@ const STYLES = {
     ringPlaces(ctx, 10, 36, 36, 0.2).forEach(p => lampPost(ctx, g, p.x, p.z, '#ff4a4a', 3.8));
   },
   gigante(ctx, g) {
+    scatterProps(ctx, g, 14, 46, 80, [['b_barrel', 3.4], ['b_crate', 3.4], ['b_bags', 3.4]]);
     wallRing(ctx, g, { seg: 8, piece: () => { const p = new THREE.Group(); A(p, box(8.4, 9, 4, '#c8dce8', { rough: 0.4 })).position.y = 4.5; A(p, box(8.6, 1.4, 4.4, '#ffffff')).position.y = 9.6; return p; },
       tower: () => { const tw = new THREE.Group(); A(tw, cyl(4, 5, 14, '#b8d0e0', 10, { rough: 0.4 })).position.y = 7; A(tw, cone(5.4, 6, '#ffffff', 10)).position.y = 17; return tw; }, towers: 6, gateFire: '#7ad8ff' });
     ringPlaces(ctx, 10, 56, 74).forEach((p, i) => { const lh = new THREE.Group(); A(lh, box(10, 6, 16, '#8a98a8')).position.y = 3; const r = gable(10, 16, 5, '#f4f8ff'); r.position.y = 6; lh.add(r); A(lh, box(2.4, 4, 0.3, '#3a2a1e')).position.set(0, 2, 8.1); for (let k = 0; k < 6; k++) A(lh, cone(0.25, 1.2, '#d8f0ff', 6, { op: 0.8 })).position.set(-4 + k * 1.6, 5.4, 8.2); place(ctx, g, lh, p.x, p.z, facing(ctx, p.x, p.z), 8); });

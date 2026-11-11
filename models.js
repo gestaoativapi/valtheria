@@ -19,7 +19,8 @@ const grp = (...c) => { const g = new THREE.Group(); c.forEach(x => g.add(x)); r
 const at = (o, x, y, z) => { o.position.set(x, y, z); return o; };
 
 export { buildHumanoid, setGear, animHumanoid, playAttack, setExpr, toon, upgradeGLB, GLB } from './avatar.js';
-import { buildHumanoid, animHumanoid } from './avatar.js';
+import { buildHumanoid, animHumanoid, GLB } from './avatar.js';
+import { attachWolf, animWolf } from './nature.js';
 
 // ---------- monstros ----------
 export function buildMob(fam) {
@@ -67,10 +68,12 @@ export function buildMob(fam) {
   }
   root.scale.setScalar(fam.scale || 1);
   root.traverse(x => { if (x.isMesh) x.castShadow = true; });
+  if (fam.model === 'quad' && /^lobo/.test(fam.id) && GLB.on && !fam.noGlb) attachWolf(R, fam).catch(e => console.warn('lobo', e));
   return R;
 }
 export function animMob(R, dt, moving) {
   const A = R.anim; A.t += dt; const t = A.t;
+  if (R.mixer) { animWolf(R, dt, moving); return; }
   if (R.h) { R.h.anim.state = A.state === 'dead' ? 'dead' : moving ? 'run' : 'idle'; if (A.atk >= 0 && R.h.anim.atk < 0) { playAttack(R.h, 'melee'); A.atk = -1; } animHumanoid(R.h, dt); return; }
   const sp = moving ? 9 : 0;
   R.legs.forEach((l, i) => { const ph = i % 2 ? 0 : Math.PI; l.rotation.x = moving ? Math.sin(t * sp + ph) * 0.6 : l.rotation.x * 0.9; });

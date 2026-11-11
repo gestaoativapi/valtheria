@@ -41,6 +41,14 @@
     const n = fbm(x / 420, z / 420, SEED, 4), m = fbm(x / 95, z / 95, SEED + 50, 3);
     let h = (n - 0.42) * 70 + (m - 0.5) * 10;
     const ridge = 1 - Math.abs(fbm(x / 260, z / 260, SEED + 99, 3) * 2 - 1); h += Math.pow(ridge, 3) * 28;
+    // maciços: cordilheiras bem altas (até ~150 m), longe das cidades, marcos e estradas
+    const mm = fbm(x / 640, z / 640, SEED + 333, 3); let mk = Math.max(0, Math.min(1, (mm - 0.5) / 0.15));
+    if (mk > 0) {
+      mk *= Math.max(0, Math.min(1, (nearestTown(x, z).dist - 200) / 220)) * Math.max(0, Math.min(1, (nearestLandmark(x, z).dist - 110) / 160));
+      if (mk > 0) mk *= Math.max(0, Math.min(1, (roadDist(x, z) - 26) / 110));
+      if (mk > 0) { const pk = 1 - Math.abs(fbm(x / 170, z / 170, SEED + 444, 4) * 2 - 1), cr = fbm(x / 38, z / 38, SEED + 555, 2);
+        h += mk * mk * (40 + Math.pow(pk, 2.2) * 105 + (cr - 0.5) * 14 * mk); }
+    }
     const edge = Math.min(x, z, SIZE - x, SIZE - z); if (edge < 120) h = h * (edge / 120) - (1 - edge / 120) * 25;
     return h;
   }

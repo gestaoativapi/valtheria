@@ -12,7 +12,10 @@ let CLIPS = null;
 export async function loadClips() {
   if (CLIPS) return CLIPS;
   const [a, b] = await Promise.all([loadGLB('anims_a'), loadGLB('anims_b')]);
-  CLIPS = {}; for (const c of [...a.animations, ...b.animations]) CLIPS[c.name] = c; return CLIPS;
+  CLIPS = {}; for (const c of [...a.animations, ...b.animations]) CLIPS[c.name] = c;
+  // animações extras (escalar, nadar, rolar, combos) chegam depois, sem atrasar a entrada no jogo
+  Promise.all([loadGLB('anims_c'), loadGLB('anims_d')]).then(([c, d]) => { for (const x of [...c.animations, ...d.animations]) CLIPS[x.name] = x; }).catch(() => {});
+  return CLIPS;
 }
 export async function preload(list) { await Promise.all([loadClips(), ...list.map(loadGLB)]); }
 
@@ -67,7 +70,8 @@ function maskBody(C, kind) {
   body.geometry = MASKS.get(key);
 }
 export function play(C, name, { fade = 0.2, once = false, speed = 1 } = {}) {
-  const a = C.actions[name]; if (!a || C.cur === a && !once) return a;
+  let a = C.actions[name]; if (!a && CLIPS && CLIPS[name]) a = C.actions[name] = C.mixer.clipAction(CLIPS[name]);
+  if (!a || C.cur === a && !once) return a;
   a.reset(); a.setEffectiveTimeScale(speed); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat); a.clampWhenFinished = once;
   if (C.cur && C.cur !== a) a.crossFadeFrom(C.cur, fade, true); a.play(); C.cur = a; return a;
 }

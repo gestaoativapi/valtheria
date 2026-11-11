@@ -422,6 +422,46 @@
   }
 
   // ----- atributos do personagem -----
+  // ===== efeitos de equipamento (habilidades especiais das armas e bônus de conjunto) =====
+  const SA = {
+    foco: { name: 'Foco', icon: '🎯', v: { crit: 0.04 }, d: v => `+${pc(v.crit)} de chance de crítico` },
+    rapidez: { name: 'Rapidez', icon: '💨', v: { atkspd: 0.08 }, d: v => `+${pc(v.atkspd)} de velocidade de ataque` },
+    furia: { name: 'Fúria', icon: '💢', v: { critDmg: 0.25 }, d: v => `+${pc(v.critDmg)} de dano crítico` },
+    vampiro: { name: 'Vampirismo', icon: '🩸', v: { lifesteal: 0.04 }, d: v => `rouba ${pc(v.lifesteal)} do dano como vida` },
+    chama: { name: 'Chama', icon: '🔥', v: { pFire: 0.12 }, d: v => `${pc(v.pFire)} de chance de explosão de fogo (+60% de dano em área)` },
+    gelo: { name: 'Geada', icon: '❄️', v: { pFrost: 0.14 }, d: v => `${pc(v.pFrost)} de chance de congelar (lentidão e +40% de dano)` },
+    trovao: { name: 'Trovão', icon: '⚡', v: { pStun: 0.07 }, d: v => `${pc(v.pStun)} de chance de raio que atordoa por 1,5s` },
+    sangria: { name: 'Sangria', icon: '🗡️', v: { pBleed: 0.18 }, d: v => `${pc(v.pBleed)} de chance de sangramento (dano por 5s)` },
+    poder: { name: 'Poder Arcano', icon: '🔮', v: { matkPct: 0.08 }, d: v => `+${pc(v.matkPct)} de ataque mágico` },
+    sabedoria: { name: 'Sabedoria', icon: '📘', v: { mpCost: 0.15 }, d: v => `habilidades custam ${pc(v.mpCost)} menos mana` },
+    precisao: { name: 'Precisão', icon: '🏹', v: { crit: 0.05, range: 2 }, d: v => `+${pc(v.crit)} de crítico e +${v.range} m de alcance` },
+  };
+  const pc = x => Math.round(x * 100) + '%';
+  const SA_BY = { espada: ['foco', 'rapidez', 'chama'], lanca: ['furia', 'vampiro', 'trovao'], machado: ['chama', 'furia', 'vampiro'], espadao: ['trovao', 'furia', 'chama'], arco: ['precisao', 'gelo', 'rapidez'],
+    adaga: ['sangria', 'foco', 'vampiro'], cajado: ['poder', 'sabedoria', 'gelo'], punhos: ['rapidez', 'vampiro', 'trovao'], martelo: ['trovao', 'vampiro', 'furia'] };
+  const SETS = {
+    pesada: { name: 'Conjunto Pesado', icon: '🛡️', two: { pdefPct: 0.06 }, four: { hpPct: 0.12, dmgRed: 0.06 } },
+    leve: { name: 'Conjunto Leve', icon: '🍃', two: { speed: 0.05 }, four: { atkspd: 0.1, dodge: 0.07 } },
+    robe: { name: 'Conjunto Arcano', icon: '✨', two: { mpPct: 0.12 }, four: { matkPct: 0.1, mpRegen: 0.6 } },
+  };
+  const EFX_TXT = { pdefPct: v => `+${pc(v)} defesa física`, hpPct: v => `+${pc(v)} vida máxima`, dmgRed: v => `-${pc(v)} dano recebido`, speed: v => `+${pc(v)} velocidade`, atkspd: v => `+${pc(v)} velocidade de ataque`,
+    dodge: v => `${pc(v)} de esquiva`, mpPct: v => `+${pc(v)} mana máxima`, matkPct: v => `+${pc(v)} ataque mágico`, mpRegen: v => `+${pc(v)} regeneração de mana` };
+  const scaleV = (v, k) => Object.fromEntries(Object.entries(v).map(([a, b]) => [a, a === 'range' ? b : +Math.min(/^p[A-Z]/.test(a) ? 0.25 : 9, b * k).toFixed(3)]));
+  function hashId(id) { let h = 7; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
+  // habilidades especiais de uma arma (grau D em diante; relíquias têm duas e mais fortes)
+  function weaponSA(id, enc) {
+    const it = ITEMS[id]; if (!it || it.slot !== 'arma' || !it.grade && !it.relic) return [];
+    const opts = SA_BY[it.kind] || ['foco'], h = hashId(id), k = (0.8 + 0.25 * it.grade) * (it.relic ? 1.4 : 1) * (1 + Math.max(0, (enc || 0) - 3) * 0.1);
+    const keys = it.relic ? [opts[h % opts.length], opts[(h + 1) % opts.length]] : [opts[h % opts.length]];
+    return keys.map(key => { const v = scaleV(SA[key].v, k); return { key, name: SA[key].name, icon: SA[key].icon, v, desc: SA[key].d(v) }; });
+  }
+  function setBonus(eq) {
+    const by = {}; for (const sl of ['armadura', 'elmo', 'luvas', 'botas']) { const it = ITEMS[eq[sl]]; if (it && it.grade) { const k = it.kind + ':' + it.grade; by[k] = (by[k] || 0) + 1; } }
+    const out = []; for (const [k, n] of Object.entries(by)) { if (n < 2) continue; const [kind, g] = k.split(':'), S = SETS[kind]; if (!S) continue; const m = 0.7 + 0.15 * +g;
+      const v = scaleV({ ...S.two, ...(n >= 4 ? S.four : {}) }, m); out.push({ key: 'set_' + kind, name: `${S.name} ${GRADES[g].id} (${n}/4)`, icon: S.icon, v, desc: Object.entries(v).map(([a, b]) => EFX_TXT[a](b)).join(', ') }); }
+    return out;
+  }
+  function equipEffects(c) { const eq = c.equipment || {}, en = c.enchant || {}; return [...weaponSA(eq.arma, en[eq.arma]), ...setBonus(eq)]; }
   function charStats(c, buffs) {
     buffs = buffs || {};
     const R = RACES[c.race], t = c.type, L = c.level, f = lf(L), cl = CLASSES[c.class_id] || baseClass(c.race, c.type), rk = cl.rank;
@@ -443,6 +483,12 @@
       crit: (w && w.kind === 'adaga' ? 0.15 : 0.08) + (ws.crit || 0) + (buffs.crit || 0), weaponKind: w ? w.kind : null, armorKind: a ? a.kind : null,
       arch: ARCH[cl.arch], cls: cl,
     };
+    // aplica os efeitos dos equipamentos
+    const fxv = {}; s.effects = equipEffects(c); for (const e of s.effects) for (const [k, v] of Object.entries(e.v)) fxv[k] = (fxv[k] || 0) + v;
+    s.fx = fxv;
+    if (fxv.crit) s.crit += fxv.crit; if (fxv.atkspd) s.atkInterval /= 1 + fxv.atkspd; if (fxv.matkPct) s.matk *= 1 + fxv.matkPct; if (fxv.hpPct) s.maxHp = Math.round(s.maxHp * (1 + fxv.hpPct));
+    if (fxv.mpPct) s.maxMp = Math.round(s.maxMp * (1 + fxv.mpPct)); if (fxv.pdefPct) s.pdef *= 1 + fxv.pdefPct; if (fxv.speed) s.speed *= 1 + fxv.speed; if (fxv.range) s.range += fxv.range;
+    s.critDmg = 1.8 + (fxv.critDmg || 0);
     s.atk = s.magic ? s.matk : s.patk;
     return s;
   }
@@ -450,6 +496,6 @@
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
     RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
-    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, SPECIAL_BOSSES, PARTS, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
+    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, SPECIAL_BOSSES, PARTS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

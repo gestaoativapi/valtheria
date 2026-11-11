@@ -4,6 +4,8 @@ import { buildHumanoid, setGear, animHumanoid, playAttack, upgradeGLB, buildMob,
 import { createSky, createWater, dayPhase, sunVectors, WIND, makeFire, updateFires, initLightPool, createGrass, layoutGrass, ROCK_GEOS, rockMat, TREE_KINDS, leafMat, treeTrunkMat } from './world3d.js';
 import { buildTownArchitecture, buildLandmark, updateTownAnim } from './towns.js';
 import { RoomEnvironment } from './RoomEnvironment.js';
+import { NAT, loadNature, buildNatureChunk, disposeNature } from './nature.js';
+import { initFX, emit, slash, shock, beam, updateFX } from './fx.js';
 const GD = window.GD, WG = window.WG, QD = window.QD, CFG = window.GAME_CONFIG || {};
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -23,7 +25,7 @@ const NPC_TYPES = [
 
 // ---------- estado ----------
 let B = null;
-const S = { acct: null, chars: [], selected: 0, c: null, inv: {}, dep: {}, hp: 1, mp: 1, buffs: {}, cds: {}, target: null, dest: null, gatherAt: null, npcAt: null,
+const S = { sta: 100, acct: null, chars: [], selected: 0, c: null, inv: {}, dep: {}, hp: 1, mp: 1, buffs: {}, cds: {}, target: null, dest: null, gatherAt: null, npcAt: null,
   others: {}, presence: {}, mobs: [], mobSeq: 0, killQ: [], killBusy: false, dead: false, lastCombat: 0, nextAtk: 0, flagUntil: 0, potCd: 0, q: { active: [], prog: {} }, inGame: false, mode: 'login' };
 
 // ---------- interface ----------
@@ -42,7 +44,8 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: !IS_MOBILE, powerP
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
-const scene = new THREE.Scene();
+const scene = new THREE.Scene(); initFX(scene);
+const fxBurst = (x, y, z, color, n = 12, size = 0.2) => emit(x, y, z, { n, color, size, speed: 3, up: 1.5, life: 0.6 });
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.3, 1200);
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 const hemi = new THREE.HemisphereLight(0xcfe3ff, 0x5a4a32, 1.15); scene.add(hemi);
@@ -66,8 +69,9 @@ const THEMES = {
   noite: { g: ['#3a4a3a', '#2e3a30'], top: 0x1a1a3a, bot: 0x5a4a6a, fog: 0x3a3a4a, leaf: '#2a3a2a', trees: 20, kinds: ['morta', 'conifera'], grass: '#2e3a2e', rocks: 6 },
   gelo: { g: ['#e8f0f4', '#d8e4ec'], top: 0x6a9ac8, bot: 0xe8f4ff, fog: 0xd8e8f4, leaf: '#e8f4ff', trees: 16, kinds: ['gelo'], grass: null, rocks: 8 },
 };
+for (const k in THEMES) THEMES[k].key = k;
 const cA = new THREE.Color(), cB = new THREE.Color();
-function terrainColor(x, z, h, out) {
+function terrainColor(x, z, h, out, W) {
   let d1 = 1e9, d2 = 1e9, t1 = null, t2 = null;
   for (const t of GD.TOWNS) { const d = Math.hypot(x - t.x, z - t.z); if (d < d1) { d2 = d1; t2 = t1; d1 = d; t1 = t; } else if (d < d2) { d2 = d; t2 = t; } }
   const th1 = THEMES[t1.theme], th2 = THEMES[t2.theme], n = WG.fbm(x / 30, z / 30, 5, 2);
@@ -80,21 +84,50 @@ function terrainColor(x, z, h, out) {
   const rd = WG.roadDist(x, z); if (rd < 6) cA.lerp(cB.set('#9a7a50'), clamp(1 - (rd - 3) / 3, 0, 1));
   if (d1 < 100) { const cob = WG.fbm(x / 4, z / 4, 9, 2); cA.lerp(cB.set(cob > 0.5 ? '#8a8270' : '#7a705e'), clamp((100 - d1) / 12, 0, 1) * (d1 < 30 ? 1 : 0.55 + 0.3 * WG.fbm(x / 18, z / 18, 3, 2))); }
   out.copy(cA);
+  if (W) { // pesos de material: rocha, estrada/terra, areia, calçamento
+    W[0] = clamp((h - 30) / 10, 0, 1) * (h > 40 ? 0.4 : 1); W[1] = rd < 6 ? clamp(1 - (rd - 3) / 3, 0, 1) : 0; W[2] = h < 2.2 ? clamp((2.2 - h) / 1.5, 0, 1) : 0;
+    W[3] = d1 < 40 ? clamp((40 - d1) / 8, 0, 1) : 0; }
 }
 
 // ----- terreno em blocos -----
 const CH = 100, SEG = 25, chunks = new Map(), terrainMeshes = [];
 const terrainMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+// texturas reais do chão (CC0): grama, terra, rocha e calçamento, misturadas por bioma, inclinação e altura
+const TEXU = { tGrass: { value: null }, tDirt: { value: null }, tRock: { value: null }, tStone: { value: null }, uTex: { value: 0 } };
+{ const L = new THREE.TextureLoader(); let n = 0; for (const [k, f] of [['tGrass', 't_grass'], ['tDirt', 't_dirt'], ['tRock', 't_rock'], ['tStone', 't_stone']]) L.load(f + '.webp', t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; TEXU[k].value = t; if (++n === 4) TEXU.uTex.value = 1; }); }
+terrainMat.onBeforeCompile = (sh) => {
+  Object.assign(sh.uniforms, TEXU);
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 mats; varying vec4 vMats; varying vec3 vWp; varying vec3 vWn;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvMats = mats; vWp = (modelMatrix * vec4(position, 1.0)).xyz; vWn = normal;');
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D tGrass, tDirt, tRock, tStone; uniform float uTex; varying vec4 vMats; varying vec3 vWp; varying vec3 vWn;')
+    .replace('#include <color_fragment>', `#include <color_fragment>
+      if (uTex > 0.5) {
+        vec2 uv = vWp.xz / 6.0;
+        float far = clamp(length(vWp - cameraPosition) / 140.0, 0.0, 1.0);
+        vec3 gT = texture2D(tGrass, uv).rgb, gM = textureLod(tGrass, vec2(0.5), 12.0).rgb;
+        float gl = dot(gT, vec3(0.3, 0.55, 0.15)) / max(dot(gM, vec3(0.3, 0.55, 0.15)), 0.01);
+        vec3 col = diffuseColor.rgb * mix(clamp(gl, 0.55, 1.6), 1.0, far * 0.6);
+        float slope = 1.0 - clamp((normalize(vWn).y - 0.62) / 0.22, 0.0, 1.0);
+        vec3 rk = texture2D(tRock, uv * 0.7).rgb * 1.45, dt = texture2D(tDirt, uv * 1.3).rgb, st = texture2D(tStone, uv * 1.6).rgb;
+        col = mix(col, dt * (0.85 + 0.3 * diffuseColor.r), vMats.y * 0.85);
+        col = mix(col, mix(dt, vec3(0.80, 0.70, 0.48), 0.6) * (0.9 + 0.2 * gl), vMats.z);
+        col = mix(col, st * vec3(0.95, 0.92, 0.88), vMats.w * 0.75);
+        col = mix(col, rk * mix(vec3(1.0), diffuseColor.rgb * 2.0, 0.25), clamp(max(vMats.x, slope), 0.0, 1.0));
+        float snow = clamp((vWp.y - 72.0 - sin(vWp.x * 0.031) * 7.0 - cos(vWp.z * 0.027) * 7.0) / 9.0, 0.0, 1.0) * (1.0 - slope * 0.7);
+        col = mix(col, vec3(0.93, 0.95, 0.98) * (0.9 + 0.1 * dot(rk, vec3(0.33))), snow);
+        diffuseColor.rgb = col;
+      }`);
+};
 const trunkGeo = new THREE.CylinderGeometry(0.25, 0.4, 3, 6).translate(0, 1.5, 0);
 const leafGeo = new THREE.IcosahedronGeometry(2.1, 0).translate(0, 4.2, 0), conGeo = new THREE.ConeGeometry(2, 6, 7).translate(0, 5.5, 0);
 const trunkMat = mat('#5a3a20');
 const nodeMeshes = new Map();
 function buildChunk(cx, cz) {
   const geo = new THREE.PlaneGeometry(CH, CH, SEG, SEG); geo.rotateX(-Math.PI / 2);
-  const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), c = new THREE.Color();
+  const pos = geo.attributes.position, col = new Float32Array(pos.count * 3), mats = new Float32Array(pos.count * 4), W = [0, 0, 0, 0], c = new THREE.Color();
   const ox = cx * CH + CH / 2, oz = cz * CH + CH / 2;
-  for (let i = 0; i < pos.count; i++) { const x = pos.getX(i) + ox, z = pos.getZ(i) + oz, h = WG.height(x, z); pos.setY(i, h); terrainColor(x, z, h, c); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.computeVertexNormals();
+  for (let i = 0; i < pos.count; i++) { const x = pos.getX(i) + ox, z = pos.getZ(i) + oz, h = WG.height(x, z); pos.setY(i, h); terrainColor(x, z, h, c, W); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; mats.set(W, i * 4); }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.setAttribute('mats', new THREE.BufferAttribute(mats, 4)); geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, terrainMat); mesh.position.set(ox, 0, oz); mesh.receiveShadow = true; mesh.userData.terrain = true;
   const group = new THREE.Group(); group.add(mesh);
   // árvores por bioma (com vento) e rochas
@@ -108,19 +141,26 @@ function buildChunk(cx, cz) {
   for (const [kind, pts] of Object.entries(byKind)) {
     const K = TREE_KINDS[kind], tr = new THREE.InstancedMesh(K.trunk, treeTrunkMat(), pts.length), lf = K.leaf ? new THREE.InstancedMesh(K.leaf, leafMat(kind === 'gelo' ? '#2f5a3a' : th.leaf, kind === 'cristal' ? new THREE.Color(th.leaf).getHex() : 0), pts.length) : null;
     pts.forEach(([x, h, z, sc, r], i) => { q.setFromAxisAngle(up, r); sv.set(sc, sc, sc); pv.set(x, h - 0.2, z); m4.compose(pv, q, sv); tr.setMatrixAt(i, m4); lf && lf.setMatrixAt(i, m4); });
-    tr.castShadow = true; group.add(tr); if (lf) { lf.castShadow = true; group.add(lf); }
+    tr.castShadow = true; tr.userData.pk = kind; group.add(tr); if (lf) { lf.castShadow = true; lf.userData.pk = kind; group.add(lf); }
     if (kind === 'gelo') { const sn = new THREE.InstancedMesh(TREE_KINDS.gelo.leaf, leafMat('#f4f8ff'), pts.length); pts.forEach(([x, h, z, sc, r], i) => { q.setFromAxisAngle(up, r); sv.set(sc * 1.04, sc * 0.55, sc * 1.04); pv.set(x, h + 2.4 * sc, z); m4.compose(pv, q, sv); sn.setMatrixAt(i, m4); }); group.add(sn); }
   }
-  const nRocks = th.rocks + Math.round(Math.max(0, WG.height(ox, oz) - 20) / 3), rocks = [[], [], []];
-  for (let i = 0; i < nRocks; i++) { const x = cx * CH + rng() * CH, z = cz * CH + rng() * CH, h = WG.height(x, z); if (h < 0.5 || WG.nearestTown(x, z).dist < 100 || WG.roadDist(x, z) < 7) continue; rocks[i % 3].push([x, h, z, 0.5 + rng() * rng() * 3.2, rng() * 6]); }
-  rocks.forEach((pts, k) => { if (!pts.length) return; const rm = new THREE.InstancedMesh(ROCK_GEOS[k], rockMat, pts.length); pts.forEach(([x, h, z, sc, r], i) => { q.setFromAxisAngle(up, r); sv.set(sc * 1.3, sc, sc); pv.set(x, h - sc * 0.25, z); m4.compose(pv, q, sv); rm.setMatrixAt(i, m4); }); rm.castShadow = rm.receiveShadow = true; group.add(rm); });
+  const nRocks = th.rocks + Math.round(Math.max(0, WG.height(ox, oz) - 20) / 3), rocks = [[], [], []], hiRocks = [[], [], []];
+  for (let i = 0; i < nRocks; i++) { const x = cx * CH + rng() * CH, z = cz * CH + rng() * CH, h = WG.height(x, z); if (h < 0.5 || WG.nearestTown(x, z).dist < 100 || WG.roadDist(x, z) < 7) continue; (h > 24 ? hiRocks : rocks)[i % 3].push([x, h, z, 0.5 + rng() * rng() * 3.2, rng() * 6]); }
+  rocks.forEach((pts, k) => { if (!pts.length) return; const rm = new THREE.InstancedMesh(ROCK_GEOS[k], rockMat, pts.length); pts.forEach(([x, h, z, sc, r], i) => { q.setFromAxisAngle(up, r); sv.set(sc * 1.3, sc, sc); pv.set(x, h - sc * 0.25, z); m4.compose(pv, q, sv); rm.userData.pk = 'rock'; rm.setMatrixAt(i, m4); }); rm.castShadow = rm.receiveShadow = true; group.add(rm); });
+  hiRocks.forEach((pts, k) => { if (!pts.length) return; const rm = new THREE.InstancedMesh(ROCK_GEOS[k], rockMat, pts.length); pts.forEach(([x, h, z, sc, r], i) => { q.setFromAxisAngle(up, r); sv.set(sc * 1.3, sc, sc); pv.set(x, h - sc * 0.25, z); m4.compose(pv, q, sv); rm.setMatrixAt(i, m4); }); rm.castShadow = rm.receiveShadow = true; group.add(rm); });
   scene.add(group); terrainMeshes.push(mesh);
   // recursos coletáveis
   const nodes = NODES.filter(n => n.x >= cx * CH && n.x < cx * CH + CH && n.z >= cz * CH && n.z < cz * CH + CH);
   nodes.forEach(n => { const m = buildNode(n.type, n.grade); m.position.set(n.x, WG.height(n.x, n.z), n.z); m.userData = { kind: 'node', ref: n }; scene.add(m); nodeMeshes.set(n.id, m); refreshNode(n.id); });
-  chunks.set(cx + ',' + cz, { group, mesh, nodes });
+  // vegetação rasteira (só para os modelos GLB de perto): arbustos, samambaias, flores e cogumelos
+  const under = [], r2 = WG.mulberry32((cx * 3571) ^ (cz * 7643) ^ 913), nU = { verde: 40, floresta: 70, outono: 34, noite: 22, rocha: 14, savana: 8, sombra: 6 }[th.key] || 0;
+  for (let i = 0; i < nU; i++) { const x = cx * CH + r2() * CH, z = cz * CH + r2() * CH, h = WG.height(x, z), roll = r2(), sc = 0.7 + r2() * 0.6, r = r2() * 6;
+    if (h < 2 || h > 34 || WG.nearestTown(x, z).dist < 105 || WG.nearestLandmark(x, z).dist < 40 || WG.roadDist(x, z) < 6) continue;
+    const k = th.key === 'noite' || th.key === 'sombra' ? (roll < 0.6 ? 2 : 6) : th.key === 'rocha' || th.key === 'savana' ? (roll < 0.5 ? 0 : 2) : roll < 0.28 ? 0 : roll < 0.4 ? 1 : roll < 0.62 ? 2 : roll < 0.74 ? 3 : roll < 0.84 ? 4 : roll < 0.94 ? 5 : 6;
+    under.push([x, h, z, sc, r, k]); }
+  chunks.set(cx + ',' + cz, { group, mesh, nodes, cx, cz, nat: null, natData: { trees: byKind, rocks, under, theme: th.key, rockTint: ROCK_TINT[th.key] || '#ffffff' } });
 }
-function dropChunk(key) { const c = chunks.get(key); scene.remove(c.group); c.mesh.geometry.dispose(); c.group.children.forEach(o => { if (o.isInstancedMesh) o.dispose(); }); const i = terrainMeshes.indexOf(c.mesh); if (i >= 0) terrainMeshes.splice(i, 1); c.nodes.forEach(n => { const m = nodeMeshes.get(n.id); if (m) { scene.remove(m); nodeMeshes.delete(n.id); } }); chunks.delete(key); }
+function dropChunk(key) { const c = chunks.get(key); if (c.nat) disposeNature(c.nat); scene.remove(c.group); c.mesh.geometry.dispose(); c.group.children.forEach(o => { if (o.isInstancedMesh) o.dispose(); }); const i = terrainMeshes.indexOf(c.mesh); if (i >= 0) terrainMeshes.splice(i, 1); c.nodes.forEach(n => { const m = nodeMeshes.get(n.id); if (m) { scene.remove(m); nodeMeshes.delete(n.id); } }); chunks.delete(key); }
 let CHUNK_R = 4;
 function updateChunks(px, pz, all) {
   const R = CHUNK_R, ccx = Math.floor(px / CH), ccz = Math.floor(pz / CH); let built = 0;
@@ -130,7 +170,17 @@ function updateChunks(px, pz, all) {
   const keep = new Set(want.map(w => w[1] + ',' + w[2]));
   for (const k of [...chunks.keys()]) if (!keep.has(k)) dropChunk(k);
   for (const [, cx, cz] of want) { if (!chunks.has(cx + ',' + cz)) { buildChunk(cx, cz); if (!all && ++built >= 1) break; } }
+  // modelos GLB de natureza nos blocos próximos (um por quadro para não engasgar)
+  if (!NAT.ready) return; let up = 0;
+  for (const c of chunks.values()) {
+    const near = Math.max(Math.abs(c.cx - ccx), Math.abs(c.cz - ccz)) <= NAT_R;
+    if (near && !c.nat && (all || up++ < 1)) { c.nat = buildNatureChunk(c.natData); c.group.add(c.nat.group); c.group.children.forEach(o => { if (o.userData.pk && (o.userData.pk === 'rock' || c.nat.handled.has(o.userData.pk))) o.visible = false; }); }
+    else if (!near && c.nat && Math.max(Math.abs(c.cx - ccx), Math.abs(c.cz - ccz)) > NAT_R + 1) { disposeNature(c.nat); c.nat = null; c.group.children.forEach(o => { if (o.userData.pk) o.visible = true; }); }
+  }
 }
+let NAT_R = 1;
+const ROCK_TINT = { vulcao: '#6a5650', rubro: '#d0a080', gelo: '#e8f0ff', cinza: '#9a90b0', sombra: '#8a80a0', noite: '#9aa0a8' };
+loadNature();
 function refreshNode(id) { const m = nodeMeshes.get(id); if (!m) return; const dep = (S.dep[id] || 0) > Date.now(); m.scale.set(1, dep ? 0.22 : 1, 1); m.children.forEach(ch => { if (ch.geometry && ch.geometry.type === 'RingGeometry') ch.visible = !dep; }); m.userData.dep = dep; }
 const WATER = createWater(), water = WATER.mesh; water.position.y = WG.WATER; scene.add(water);
 const GRASS = createGrass(14000); scene.add(GRASS.mesh);
@@ -143,7 +193,7 @@ function applyQuality(n) {
   const was = renderer.shadowMap.enabled, wasSoft = renderer.shadowMap.type; renderer.shadowMap.enabled = q.shOn; renderer.shadowMap.type = q.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
   sun.shadow.mapSize.set(q.sh, q.sh); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
   if (was !== q.shOn || wasSoft !== renderer.shadowMap.type) scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.needsUpdate = true); });
-  GRASS.limit = q.grass; GRASS.center = null; CHUNK_R = q.R; camera.far = q.far; camera.updateProjectionMatrix(); PERF.since = performance.now();
+  GRASS.limit = q.grass; GRASS.center = null; CHUNK_R = q.R; NAT_R = n === 'baixa' ? -1 : 1; camera.far = q.far; camera.updateProjectionMatrix(); PERF.since = performance.now();
 }
 applyQuality(PERF.mode !== 'auto' ? PERF.mode : IS_MOBILE ? 'media' : 'alta');
 function perfTick(dt) {
@@ -176,7 +226,11 @@ function buildTowns() {
     const races = [t.race, 'humano', t.race, 'elfo', t.race, 'anao', t.race];
     NPC_TYPES.forEach(([type, name, color], i) => {
       const a = i / NPC_TYPES.length * Math.PI * 2 + 0.3, x = t.x + Math.cos(a) * 17, z = t.z + Math.sin(a) * 17;
-      const m = buildHumanoid({ glb: false, npc: true, race: races[i] || t.race, gender: i % 3 === 1 ? 'f' : 'm', hair: i % 6, hair_color: i, skin: 0, look: { eyes: i % 4, face: i % 4 }, armor: type === 'ferreiro' ? 'pesada_c' : 'robe_' + ['b', 'a', 'c', 'd', 'c', 's', 'a'][i], weapon: type === 'portal' ? 'cajado_b' : type === 'ferreiro' ? 'martelo_c' : null });
+      // cada NPC com traje, arma, gesto e postura do seu ofício
+      const ROLE = { portal: { armor: 'robe_b', weapon: 'cajado_b', idle: 'Spell_Simple_Idle_Loop' }, classe: { armor: 'pesada_a', weapon: 'espadao_a', idle: 'Sword_Idle', gender: 'm', beard: 2 },
+        ferreiro: { armor: 'pesada_c', weapon: 'martelo_c', idle: 'Idle_FoldArms_Loop', gender: 'm', beard: 2 }, refino: { armor: null, weapon: null, idle: 'Idle_Lantern_Loop' },
+        mercador: { armor: 'robe_s', weapon: null, idle: 'Idle_Talking_Loop', beard: 1 }, leilao: { armor: 'robe_a', weapon: null, idle: 'Idle_Talking_Loop', gender: 'f' }, arauto: { armor: 'robe_s', weapon: 'espada_a', helm: 'elmo_inverno', idle: 'Idle_Torch_Loop', gender: 'm' } }[type];
+      const m = buildHumanoid({ glb: false, npc: true, race: races[i] || t.race, gender: ROLE.gender || (i % 3 === 1 ? 'f' : 'm'), hair: i % 6, hair_color: i, skin: 0, look: { eyes: i % 4, face: i % 4, beard: ROLE.beard }, armor: ROLE.armor, weapon: ROLE.weapon, idle: ROLE.idle, equip: ROLE.helm ? { elmo: ROLE.helm } : null });
       m.root.position.set(x, y, z); m.root.rotation.y = Math.atan2(t.x - x, t.z - z); scene.add(m.root);
       const l = makeLabel(name, '#ffe36a', 28); l.position.set(0, 2.5 * (GD.RACES[races[i] || t.race]?.h || 1), 0); m.root.add(l);
       const npc = { type, name, town: t, x, z, model: m }; m.root.traverse(o => o.userData.pick = npc); npcs.push(npc);
@@ -215,7 +269,7 @@ const stu = { yaw: 0, pitch: 0.12, dist: 4.6 }; window.__stu = stu;
 function updateCamera() {
   const rh = (GD.RACES[S.c.race]?.h || 1), close = clamp((5 - cam.dist) / 3.5, 0, 1); const ty = WG.height(me.x, me.z) + (1.7 + (1.62 * rh - 1.7) * close) * (close ? 1 : 1) + (rh - 1) * 0.6 * (1 - close);
   let cx = me.x + Math.sin(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cz = me.z + Math.cos(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cy = ty + Math.sin(cam.pitch) * cam.dist;
-  cy = Math.max(cy, WG.height(cx, cz) + 0.25);
+  cy = Math.max(cy, WG.height(cx, cz) + 0.25, WG.WATER + 0.6);
   camera.position.set(cx, cy, cz); camera.lookAt(me.x, ty, me.z); if (me.label) me.label.visible = cam.dist > 5.5;
 }
 
@@ -285,8 +339,9 @@ addEventListener('keydown', e => {
   const fk = /^F([1-9]|1[0-2])$/.exec(e.key); if (fk) { e.preventDefault(); useSlot(+fk[1] - 1); return; }
   const bk = BAR_KEYS.indexOf(e.key); if (bk >= 0 && !e.ctrlKey) { e.preventDefault(); useSlot(bk); return; }
   if (e.code === 'Tab') { e.preventDefault(); nextTarget(); }
+  if (e.code === 'KeyQ') dodge();
   if (e.code === 'Space' || e.code === 'KeyF') { e.preventDefault(); attackKey(); }
-  const P = { KeyC: 'char', KeyI: 'bag', KeyK: 'skills', KeyL: 'quests', KeyM: 'map', KeyH: 'lore', KeyG: 'gm' }[e.code];
+  const P = { KeyC: 'char', KeyI: 'bag', KeyK: 'skills', KeyL: 'quests', KeyM: 'map', KeyH: 'lore', KeyJ: 'codex', KeyG: 'gm' }[e.code];
   if (P && (P !== 'gm' || S.c.is_gm)) { if (panelState.kind === P) closePanel(); else openPanel(P); }
 });
 addEventListener('keyup', e => keys[e.code] = false);
@@ -296,7 +351,7 @@ function attackKey() { if (!S.target || S.target.kind !== 'mob' || S.target.ref.
 // ---------- combate ----------
 function tgtPos(t) { return t.kind === 'mob' ? t.ref : t.kind === 'player' ? t.ref : null; }
 function inSafe(x, z) { return WG.region(x, z).safe; }
-function dmgVs(atk, mult, def, crit) { const c = Math.random() < crit; return { v: Math.max(1, Math.round(GD.dmgFormula(atk, mult, def) * (0.9 + Math.random() * 0.2) * (c ? 1.8 : 1))), crit: c }; }
+function dmgVs(atk, mult, def, crit, cd = 1.8) { const c = Math.random() < crit; return { v: Math.max(1, Math.round(GD.dmgFormula(atk, mult, def) * (0.9 + Math.random() * 0.2) * (c ? cd : 1))), crit: c }; }
 function faceTo(x, z) { me.ry = Math.atan2(x - me.x, z - me.z); }
 function basicAttack(st) {
   const t = S.target, p = tgtPos(t); faceTo(p.x, p.z);
@@ -312,9 +367,18 @@ function hitTarget(t, mult, st, proj, sk) {
       const targets = sk && sk.aoe ? S.mobs.filter(o => !o.dead && Math.hypot(o.x - (sk.self ? me.x : m.x), o.z - (sk.self ? me.z : m.z)) < sk.aoe + 0.8) : [m];
       targets.forEach(o => {
         let mul = mult; if (sk && sk.execute && o.hp / o.maxHp < 0.3) mul *= 2;
-        const d = dmgVs(st.atk, mul, o.st.def * (1 + debOf(o, 'def')), st.crit); hurtMob(o, d.v, d.crit);
+        const F = st.fx || {}; if (o.frozenUntil > now()) mul *= 1.4;
+        const d = dmgVs(st.atk, mul, o.st.def * (1 + debOf(o, 'def')), st.crit, st.critDmg); hurtMob(o, d.v, d.crit); hitFx(o, st, d.crit, sk);
+        // efeitos especiais da arma
+        if (!o.dead || o.hp > -1e9) {
+          if (F.pFire && Math.random() < F.pFire) { const fy = WG.height(o.x, o.z) + 1; emit(o.x, fy, o.z, { n: 40, color: 0xff6a1a, speed: 6, up: 3, life: 0.7, size: 0.3 }); shock(o.x, fy - 1, o.z, 0xff7a2a, 3.5); floatText(o.x, fy + 1.6, o.z, '🔥 Chama', '#ff9a4a', 22);
+            S.mobs.filter(q => !q.dead && Math.hypot(q.x - o.x, q.z - o.z) < 3.5).forEach(q => hurtMob(q, Math.round(GD.dmgFormula(st.atk, 0.6, q.st.def)), false)); }
+          if (F.pFrost && Math.random() < F.pFrost && !o.dead) { o.frozenUntil = now() + 3000; o.slowUntil = now() + 3000; emit(o.x, WG.height(o.x, o.z) + 1, o.z, { n: 30, color: 0x9ae0ff, speed: 3, up: 1, life: 0.9, size: 0.22, grav: 2 }); floatText(o.x, WG.height(o.x, o.z) + 2.6, o.z, '❄️ Congelado', '#9ae0ff', 22); }
+          if (F.pStun && Math.random() < F.pStun && !o.dead) { o.stunUntil = now() + 1500; const fy = WG.height(o.x, o.z); lightning(o.x, fy, o.z); skillFx('stun', 'holy', o); }
+          if (F.pBleed && Math.random() < F.pBleed && !o.dead) { o.dots.push({ until: now() + 5000, dps: GD.dmgFormula(st.atk, 0.9, o.st.def) / 5, next: now() + 1000 }); emit(o.x, WG.height(o.x, o.z) + 1.2, o.z, { n: 14, color: 0xc01020, speed: 2, up: 1, life: 0.8, size: 0.14, grav: 8 }); }
+        }
         if (sk) { if (sk.stun) o.stunUntil = now() + sk.stun * 1000; if (sk.slow) o.slowUntil = now() + 4000; if (sk.dot) o.dots.push({ until: now() + sk.dot.dur * 1000, dps: GD.dmgFormula(st.atk, sk.dot.mult, o.st.def) / sk.dot.dur, next: now() + 1000 }); }
-        const ls = (S.buffs.lifesteal ? 0.2 : 0) + (sk && sk.drain ? sk.drain : 0); if (ls) S.hp = Math.min(st.maxHp, S.hp + d.v * ls);
+        const ls = (S.buffs.lifesteal ? 0.2 : 0) + (sk && sk.drain ? sk.drain : 0) + ((st.fx || {}).lifesteal || 0); if (ls) S.hp = Math.min(st.maxHp, S.hp + d.v * ls);
       });
     } else if (t.kind === 'player') {
       pvpHit(t.ref, mult);
@@ -329,6 +393,18 @@ async function pvpHit(o, mult) {
   S.lastCombat = Date.now(); S.c.karma = r.karma; S.c.pvp = r.pvp; S.c.pk = r.pk_count; S.flagUntil = r.flag_until ? Date.parse(r.flag_until) : 0; relabelMe();
   if (r.killed) { toast(r.pk ? `Você cometeu PK contra ${o.n}! Karma: ${r.karma}` : `Você venceu ${o.n} em PvP!`, r.pk ? 'err' : 'ok'); S.target = null; S.autoAtk = false; }
 }
+const WCOL = { fire: 0xff7a2a, ice: 0x9ae0ff, holy: 0xffe36a, spirit: 0xb08aff, arcane: 0xc07aff };
+function hitFx(o, st, crit, sk) {
+  const y = WG.height(o.x, o.z) + 1.1 * (o.fam ? o.fam.scale : 1), col = sk && WCOL[sk.fx] || (st.magic ? 0x8ab0ff : crit ? 0xffa040 : 0xfff0c0);
+  emit(o.x, y, o.z, { n: crit ? 26 : 12, color: col, speed: crit ? 7 : 4.5, up: 1.5, life: 0.35, size: crit ? 0.2 : 0.14, grav: 10, drag: 3 });
+  if (!st.magic && st.range < 5) slash(o.x, y, o.z, Math.atan2(o.x - me.x, o.z - me.z) + Math.PI / 2, crit ? 0xffb050 : (me.enc >= 7 ? 0xff5050 : me.enc >= 4 ? 0x7ab0ff : 0xffffff), crit || !!sk);
+  if (crit) shock(o.x, y - 1, o.z, 0xffa040, 2.2, 0.35);
+}
+function lightning(x, y, z) {
+  const pts = []; let px = x + (Math.random() - 0.5) * 2, pz = z + (Math.random() - 0.5) * 2; for (let i = 0; i <= 8; i++) { const k = i / 8; pts.push(new THREE.Vector3(px + (x - px) * k + (Math.random() - 0.5) * 0.8, y + 14 * (1 - k), pz + (z - pz) * k + (Math.random() - 0.5) * 0.8)); }
+  const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xcfe8ff, transparent: true, blending: THREE.AdditiveBlending })); scene.add(l);
+  fx.push({ obj: l, t: 0, dur: 0.3, up: (o, k) => { o.material.opacity = 1 - k; } }); emit(x, y + 0.3, z, { n: 30, color: 0xbfe0ff, speed: 6, up: 2, life: 0.4, size: 0.18 }); shock(x, y, z, 0xbfe0ff, 3, 0.4);
+}
 function hurtMob(m, v, crit) {
   if (m.dead) return;
   if (m.returning) { floatText(m.x, WG.height(m.x, m.z) + 2.2 * m.fam.scale, m.z, 'Imune', '#9ab8ff'); return; }
@@ -336,9 +412,9 @@ function hurtMob(m, v, crit) {
   floatText(m.x, WG.height(m.x, m.z) + 2.2 * m.fam.scale, m.z, (crit ? '💥' : '') + v, crit ? '#ff9a3a' : '#ffe36a');
   if (m.hp <= 0) killMob(m);
 }
-function freeMob(m) { scene.remove(m.model.root); m.model.root.traverse(o => { if (o.isSprite && o.material) { o.material.map?.dispose(); o.material.dispose(); } }); }
+function freeMob(m) { m.model.disposed = true; scene.remove(m.model.root); m.model.root.traverse(o => { if (o.isSprite && o.material) { o.material.map?.dispose(); o.material.dispose(); } }); }
 function killMob(m) {
-  m.dead = true; m.model.anim.state = 'dead'; if (S.target && S.target.ref === m) { S.target = null; S.autoAtk = false; }
+  m.dead = true; m.model.anim.state = 'dead'; { const y = WG.height(m.x, m.z); emit(m.x, y + 0.8 * m.fam.scale, m.z, { n: m.fam.boss ? 80 : 26, color: m.fam.boss ? 0xffc040 : 0x8a7aff, speed: 2.2, up: 3, life: 1.2, size: 0.2, grav: -1.5, drag: 1 }); if (m.fam.boss) { shock(m.x, y, m.z, 0xffc040, 10, 1); beam(m.x, y, m.z, 0xffc040, 2); } } if (S.target && S.target.ref === m) { S.target = null; S.autoAtk = false; }
   setTimeout(() => { freeMob(m); S.mobs = S.mobs.filter(x => x !== m); }, 2500);
   S.killQ.push({ L: m.L, boss: !!m.fam.boss || !!m.champion, fam: m.fam.id });
 }
@@ -359,15 +435,27 @@ async function processKills() {
 function levelUp(L) {
   if (me && me.setExpr) me.setExpr('smile', 4000);
   const old = S.c.level; S.c.level = L; const st = stats(); S.hp = st.maxHp; S.mp = st.maxMp;
-  toast(`⭐ Nível ${L}!`, 'ok'); addChat({ kind: 'q', msg: `Você alcançou o nível ${L}!` });
+  toast(`⭐ Nível ${L}!`, 'ok'); beam(me.x, WG.height(me.x, me.z), me.z, 0xffd84a, 1.8); shock(me.x, WG.height(me.x, me.z), me.z, 0xffe36a, 6, 0.9); addChat({ kind: 'q', msg: `Você alcançou o nível ${L}!` });
   const r = new THREE.Mesh(new THREE.TorusGeometry(1, 0.08, 6, 30), new THREE.MeshBasicMaterial({ color: 0xffe36a, transparent: true })); r.rotation.x = Math.PI / 2; r.position.set(me.x, WG.height(me.x, me.z) + 0.2, me.z); scene.add(r);
   fx.push({ obj: r, t: 0, dur: 1.4, up: (o, k) => { o.position.y += 0.05; o.scale.setScalar(1 + k * 1.5); o.material.opacity = 1 - k; } });
   for (const lv of [20, 40, 76]) if (old < lv && L >= lv) addChat({ kind: 'q', msg: `Uma nova classe está disponível! Fale com o Mestre de Classes em qualquer cidade.` });
   const sk = stats().arch.skills.filter(s => s.lvl > old && s.lvl <= L); sk.forEach(s => toast(`Nova habilidade: ${s.icon} ${s.name}`, 'ok'));
   buildBar();
 }
+function dodge() {
+  if (S.dead || S.roll || S.sta < 25) { if (S.sta < 25) toast('Fôlego insuficiente para esquivar', 'err'); return; }
+  const f = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0) - (S.joy ? S.joy.y : 0), r = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + (S.joy ? S.joy.x : 0);
+  let vx, vz; if (f || r) { const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw); vx = -sy * f + cy * r; vz = -cy * f - sy * r; } else { vx = Math.sin(me.ry); vz = Math.cos(me.ry); }
+  const l = Math.hypot(vx, vz); S.sta -= 25; S.roll = { vx: vx / l, vz: vz / l, end: now() + 520 }; S.dest = null; S.autoAtk = false; me.ry = Math.atan2(vx, vz);
+  fxBurst(me.x, WG.height(me.x, me.z) + 0.2, me.z, 0xd8c8a0, 10, 0.5);
+}
 function hurtMe(v) {
   if (S.dead || S.buffs.invuln || S.god) return;
+  if (S.roll && now() < S.roll.end) { floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, 'Esquivou!', '#9fd0ff'); return; }
+  const F = stats().fx || {}; if (F.dodge && Math.random() < F.dodge) { floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, 'Esquiva', '#9fd0ff'); return; }
+  if (F.dmgRed) v = Math.max(1, Math.round(v * (1 - F.dmgRed)));
+  emit(me.x, WG.height(me.x, me.z) + 1.2, me.z, { n: 8, color: 0xff3030, speed: 2.5, up: 1, life: 0.5, size: 0.14, grav: 9 });
+  if (me.anim) me.anim.hitAt = performance.now();
   if (S.buffs.dodge && Math.random() < 0.4) { floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, 'Esquiva', '#9fd0ff'); return; }
   S.hp -= v; S.lastCombat = Date.now(); if (me.setExpr && me.anim.expr !== 'angry') me.setExpr(S.hp < stats().maxHp * 0.3 ? 'sad' : 'hurt', 900); floatText(me.x, WG.height(me.x, me.z) + 2.4, me.z, '-' + v, '#ff5a5a');
   if (S.hp <= 0) die(false);
@@ -390,13 +478,14 @@ function castSkill(i) {
   if (S.dead) return; const st = stats(), sk = st.arch.skills[i]; if (!sk) return;
   if (S.c.level < sk.lvl) { toast(`${sk.name} libera no nível ${sk.lvl}`, 'err'); return; }
   const t = now(); if ((S.cds[i] || 0) > t) return;
-  if (S.mp < sk.mp) { toast('MP insuficiente', 'err'); return; }
+  const mpc = Math.round(sk.mp * (1 - ((st.fx || {}).mpCost || 0)));
+  if (S.mp < mpc) { toast('MP insuficiente', 'err'); return; }
   const needT = (['hit', 'dash'].includes(sk.type) || (sk.type === 'debuff' && !sk.aoe)) && !sk.self;
   let tg = S.target; if (needT && (!tg || !['mob', 'player'].includes(tg.kind) || tg.ref.dead)) { attackKey(); tg = S.target; }
   if (needT && !tg) { toast('Selecione um alvo', 'err'); return; }
   if (needT) { const p = tgtPos(tg), d = Math.hypot(p.x - me.x, p.z - me.z), rng = sk.type === 'dash' ? sk.range : st.range + 1.5; if (d > rng) { toast('Alvo fora de alcance', 'err'); S.dest = { x: p.x, z: p.z }; S.autoAtk = true; return; } faceTo(p.x, p.z); }
-  S.mp -= sk.mp; S.cds[i] = t + sk.cd * 1000; S.autoAtk = needT || S.autoAtk;
-  const kind = st.weaponKind === 'arco' ? 'bow' : st.magic ? 'cast' : 'melee'; playAttack(me, sk.type === 'hit' || sk.type === 'dash' ? kind : 'cast');
+  S.mp -= mpc; S.cds[i] = t + sk.cd * 1000; S.autoAtk = needT || S.autoAtk;
+  const kind = st.weaponKind === 'arco' ? 'bow' : st.magic ? 'cast' : 'melee'; playAttack(me, sk.type === 'hit' || sk.type === 'dash' ? kind : 'cast'); if ((sk.type === 'hit' || sk.type === 'dash') && kind === 'melee') me.anim.kind = 'skill';
   floatText(me.x, WG.height(me.x, me.z) + 2.7, me.z, sk.icon + ' ' + sk.name, '#bfe8ff', 22);
   if (sk.type === 'hit') { if (sk.self) hitTarget({ kind: 'mob', ref: nearestMob() || { x: me.x, z: me.z, dead: true } }, sk.mult, st, null, sk); else hitTarget(tg, sk.mult, st, st.range > 5 ? (st.magic ? 'magic' : 'arrow') : null, sk); aoeFx(sk, tg); }
   if (sk.type === 'dash') { const p = tgtPos(tg), d = Math.hypot(p.x - me.x, p.z - me.z), k = Math.max(0, (d - 1.8) / d); me.x += (p.x - me.x) * k; me.z += (p.z - me.z) * k; hitTarget(tg, sk.mult, st, null, sk); }
@@ -440,7 +529,9 @@ function skillFx(kind, f, who) {
   const ringM = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.9, 32), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
   ringM.rotation.x = -Math.PI / 2; ringM.position.set(x, y + (kind === 'debuff' ? 2.2 : 0.1), z); scene.add(ringM);
   fx.push({ obj: ringM, t: 0, dur: 0.9, up: (o, k) => { const s = kind === 'debuff' ? 1.6 - k : 0.6 + k * 1.6; o.scale.setScalar(s); o.position.y = y + (kind === 'debuff' ? 2.2 - k * 2 : 0.1 + k * 0.3); o.material.opacity = 0.8 * (1 - k); } });
-  const n = kind === 'stun' ? 5 : 16;
+  emit(x, y + 0.4, z, { n: kind === 'stun' ? 8 : 28, color: col.getHex(), speed: 1.2, up: kind === 'debuff' ? -0.5 : 3.5, ring: 0.8, life: 1.1, size: 0.2, grav: kind === 'debuff' ? 2 : -0.5, drag: 0.8 });
+  if (kind === 'buff') shock(x, y, z, col.getHex(), 2.6, 0.6);
+  const n = kind === 'stun' ? 5 : 10;
   for (let i = 0; i < n; i++) {
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: sparkTex, color: col, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); const a0 = i / n * Math.PI * 2, r0 = 0.5 + Math.random() * 0.4;
     sp.scale.setScalar(kind === 'stun' ? 0.35 : 0.28); scene.add(sp);
@@ -458,10 +549,11 @@ function projectile(x, z, tx, tz, kind, f, onHit) {
   const o = kind === 'arrow' ? new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.9, 4), new THREE.MeshBasicMaterial({ color: 0xe8d8a0 })) : new THREE.Mesh(new THREE.IcosahedronGeometry(0.25, 1), new THREE.MeshBasicMaterial({ color: col }));
   if (kind === 'arrow') { o.rotation.order = 'YXZ'; o.rotation.y = Math.atan2(tx - x, tz - z); o.rotation.x = Math.PI / 2; }
   scene.add(o); const d = Math.hypot(tx - x, tz - z), dur = Math.max(0.12, d / (kind === 'arrow' ? 45 : 28));
-  fx.push({ obj: o, t: 0, dur, up: (ob, k) => ob.position.set(x + (tx - x) * k, y0 + (y1 - y0) * k + Math.sin(k * Math.PI) * d * 0.04, z + (tz - z) * k), end: onHit });
+  fx.push({ obj: o, t: 0, dur, up: (ob, k) => { ob.position.set(x + (tx - x) * k, y0 + (y1 - y0) * k + Math.sin(k * Math.PI) * d * 0.04, z + (tz - z) * k); if (kind !== 'arrow') emit(ob.position.x, ob.position.y, ob.position.z, { n: 2, color: col, speed: 0.4, up: 0.2, life: 0.35, size: 0.22, grav: 0 }); },
+    end: () => { if (kind !== 'arrow') emit(tx, y1, tz, { n: 18, color: col, speed: 4, up: 1.5, life: 0.5, size: 0.2 }); onHit && onHit(); } });
 }
 function updateFx(dt) {
-  for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += dt; const k = Math.min(1, f.t / f.dur); f.up(f.obj, k); if (k >= 1) { scene.remove(f.obj); f.obj.geometry?.dispose?.(); if (f.obj.material?.map) f.obj.material.map.dispose(); f.end && f.end(); fx.splice(i, 1); } }
+  for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += dt; const k = Math.min(1, f.t / f.dur); f.up(f.obj, k); if (k >= 1) { scene.remove(f.obj); f.obj.geometry?.dispose?.(); if (f.obj.material?.map && f.obj.material.map !== sparkTex) f.obj.material.map.dispose(); f.obj.material?.dispose?.(); f.end && f.end(); fx.splice(i, 1); } }
 }
 
 // ---------- monstros (simulados por jogador) ----------
@@ -519,7 +611,7 @@ function updateMobs(dt) {
     let moving = false;
     if (tx != null) { const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz); if (d > 0.5) { const nx = m.x + dx / d * spd * dt, nz = m.z + dz / d * spd * dt; if (!blocked(nx, nz) && !inSafe(nx, nz)) { m.x = nx; m.z = nz; moving = true; } else if (m.returning) { m.x = m.home.x; m.z = m.home.z; } else m.wander = null; m.ry = Math.atan2(dx, dz); } }
     m.model.root.position.set(m.x, WG.height(m.x, m.z), m.z); m.model.root.rotation.y = m.ry;
-    animMob(m.model, dt, moving);
+    m.model.fast = m.aggro || m.returning; animMob(m.model, dt, moving);
   }
 }
 
@@ -543,12 +635,31 @@ function updateMe(dt) {
     if (S.npcAt && Math.hypot(S.npcAt.x - me.x, S.npcAt.z - me.z) < 4) { S.dest = null; const n = S.npcAt; S.npcAt = null; faceTo(n.x, n.z); openNpc(n); }
     if (S.dest) { const dx = S.dest.x - me.x, dz = S.dest.z - me.z, d = Math.hypot(dx, dz); const stop = S.npcAt ? 3.5 : S.gatherAt ? 2.6 : 0.3; if (d < stop) { S.dest = null; destRing.visible = false; } else { vx = dx / d; vz = dz / d; } }
   }
+  // fôlego: corrida (Shift), esquiva (Q) e escalada automática em encostas íngremes
+  const sprint = (keys.ShiftLeft || keys.ShiftRight || S.sprintBtn) && (vx || vz) && S.sta > 5 && !S.dead;
+  let climbing = false, mode = 'run';
+  if (S.roll && now() < S.roll.end) { vx = S.roll.vx; vz = S.roll.vz; }
   if (vx || vz) {
-    const l = Math.hypot(vx, vz), sp = st.speed * dt, nx = me.x + vx / l * sp, nz = me.z + vz / l * sp;
-    if (!blocked(nx, nz)) { me.x = nx; me.z = nz; moving = true; } else if (!blocked(nx, me.z)) { me.x = nx; moving = true; } else if (!blocked(me.x, nz)) { me.z = nz; moving = true; } else S.dest = null;
+    const l = Math.hypot(vx, vz), h0 = WG.height(me.x, me.z);
+    let sp = st.speed * dt * (S.roll && now() < S.roll.end ? 2.6 : sprint ? 1.45 : 1);
+    const px = me.x + vx / l * sp, pz = me.z + vz / l * sp, grade = (WG.height(px, pz) - h0) / Math.max(sp, 1e-4);
+    if (grade > 0.95) { // parede: escala com fôlego
+      if (S.sta > 0) { climbing = true; sp *= 0.42; S.sta = Math.max(0, S.sta - 13 * dt); if (!S.climbTip) { S.climbTip = 1; toast('⛰️ Escalando! O fôlego (barra verde) acaba rápido — pare em platôs para recuperar.'); } }
+      else { sp = 0; if (now() - (S.staWarn || 0) > 2500) { S.staWarn = now(); toast('Sem fôlego para escalar — espere recuperar', 'err'); } }
+    } else if (grade > 0.45) sp *= 0.72;
+    const nx = me.x + vx / l * sp, nz = me.z + vz / l * sp;
+    if (sp > 0) { if (!blocked(nx, nz)) { me.x = nx; me.z = nz; moving = true; } else if (!blocked(nx, me.z)) { me.x = nx; moving = true; } else if (!blocked(me.x, nz)) { me.z = nz; moving = true; } else S.dest = null; }
     me.ry = Math.atan2(vx, vz); S.channel = null;
+    if (sprint && moving && !climbing) { S.sta = Math.max(0, S.sta - 11 * dt); mode = 'sprint'; }
+    if (climbing) mode = 'climb';
+    if (moving && (mode === 'sprint' || climbing) && Math.random() < 0.35) emit(me.x, WG.height(me.x, me.z) + 0.1, me.z, { n: 2, color: climbing ? 0x9a9080 : 0xc8b890, speed: 1, up: 0.8, life: 0.6, size: 0.25, grav: 1, jit: 0.3 });
   }
-  me.anim.state = S.dead ? 'dead' : moving ? 'run' : 'idle';
+  // aura dos equipamentos: arma encantada +4/+7 ou relíquia
+  { const w = GD.ITEMS[S.c.equipment?.arma]; if (!S.dead && (me.enc >= 4 || w?.relic) && Math.random() < (me.enc >= 7 || w?.relic ? 0.5 : 0.22)) { const a = Math.random() * 6.28;
+    emit(me.x + Math.cos(a) * 0.5, WG.height(me.x, me.z) + 0.3 + Math.random() * 1.4, me.z + Math.sin(a) * 0.5, { n: 1, color: w?.relic ? 0xffc040 : me.enc >= 7 ? 0xff4040 : 0x5a9aff, speed: 0.2, up: 0.8, life: 0.9, size: 0.12, grav: -0.5 }); } }
+  if (!climbing && !sprint) S.sta = Math.min(100, S.sta + (moving ? 14 : 24) * dt);
+  if (S.roll && now() < S.roll.end) mode = 'roll'; else if (S.roll) S.roll = null;
+  me.anim.state = S.dead ? 'dead' : moving || mode === 'roll' ? mode : 'idle';
   let a = me.root.rotation.y, d = me.ry - a; d = Math.atan2(Math.sin(d), Math.cos(d)); me.root.rotation.y = a + d * Math.min(1, dt * 10);
   me.root.position.set(me.x, WG.height(me.x, me.z), me.z); animHumanoid(me, dt);
   // coleta
@@ -558,7 +669,7 @@ function updateMe(dt) {
   if (!S.dead) {
     const town = inSafe(me.x, me.z), out = Date.now() - S.lastCombat > 6000, bv = buffVals();
     S.hp = Math.min(st.maxHp, S.hp + st.maxHp * ((town ? 0.08 : out ? 0.02 : 0.004) + (bv.hot || 0)) * dt);
-    S.mp = Math.min(st.maxMp, S.mp + st.maxMp * (town ? 0.06 : 0.012) * dt);
+    S.mp = Math.min(st.maxMp, S.mp + st.maxMp * (town ? 0.06 : 0.012) * (1 + ((st.fx || {}).mpRegen || 0)) * dt);
   }
   if (destRing.visible) destRing.scale.setScalar(0.6 + Math.sin(now() / 200) * 0.15);
   const t = S.target && S.target.ref; if (t && !t.dead && (S.target.kind !== 'npc' || t.x)) { const p = S.target.kind === 'npc' ? t : S.target.kind === 'node' ? t : t; selRing.visible = true; selRing.position.set(p.x, WG.height(p.x, p.z) + 0.08, p.z); selRing.material.color.set(S.target.kind === 'mob' ? 0xff4040 : S.target.kind === 'player' ? 0x40a0ff : 0xffe36a); const sc = S.target.kind === 'mob' ? t.fam.scale * 1.2 : 1; selRing.scale.setScalar(sc); } else selRing.visible = false;
@@ -786,14 +897,16 @@ function itemDesc(id) {
   if (it.slot) p.push(`Requer nível ${GD.GRADES[it.grade].lvl}`); if (it.type === 'tool') p.push(`Permite coletar recursos até grau ${GD.GRADES[Math.min(5, it.grade + 1)].id}`);
   if (it.type === 'enchant') p.push(`Encanta ${it.enc === 'arma' ? 'a arma' : 'uma peça de armadura'} de ${GD.GRADES[it.grade].name}: +5%/+4% por nível • seguro até +${GD.ENCHANT_SAFE}, máximo +${GD.ENCHANT_MAX}`); if (it.type === 'trophy') p.push('Troféu de caça: entregue em missões ou venda ao Mercador');
   if (it.slot && (S.c.enchant || {})[id]) p.push(`Encantado +${S.c.enchant[id]}`);
+  if (it.slot === 'arma') GD.weaponSA(id, (S.c.enchant || {})[id]).forEach(e => p.push(`${e.icon} ${e.name}: ${e.desc}`));
+  if (it.slot && ['armadura', 'elmo', 'luvas', 'botas'].includes(it.slot) && it.grade) p.push(`Conjunto ${it.kind}: 2 peças e 4 peças do mesmo grau ativam bônus`);
   if (it.type === 'scroll') p.push('Teleporta para a cidade mais próxima'); if (it.type === 'raw') p.push('Refine no Refinador'); if (it.type === 'refined') p.push('Material de forja');
   return p.join(' • ');
 }
 function renderPanel() {
   const k = panelState.kind; if (!k) return; const body = $('#p-body'); body.onclick = null;
-  const T = { char: 'Personagem', bag: 'Inventário', skills: 'Habilidades', quests: 'Diário de Missões', map: 'Mapa do Reino', lore: 'Crônicas de Valtheria', gm: 'Painel do GM', sys: 'Sistema', teleport: 'Guardião do Portal', classe: 'Mestre de Classes', craft: panelState.station === 'forja' ? 'Ferreiro' : 'Refinador e Alquimista', shop: 'Mercador', market: 'Casa de Leilões', arauto: 'Arauto do Eclipse' };
+  const T = { codex: 'Compêndio de Valtheria', char: 'Personagem', bag: 'Inventário', skills: 'Habilidades', quests: 'Diário de Missões', map: 'Mapa do Reino', lore: 'Crônicas de Valtheria', gm: 'Painel do GM', sys: 'Sistema', teleport: 'Guardião do Portal', classe: 'Mestre de Classes', craft: panelState.station === 'forja' ? 'Ferreiro' : 'Refinador e Alquimista', shop: 'Mercador', market: 'Casa de Leilões', arauto: 'Arauto do Eclipse' };
   $('#p-title').textContent = T[k] || k; body.innerHTML = '';
-  ({ char: pChar, bag: pBag, skills: pSkills, quests: pQuests, map: pMap, lore: pLore, gm: pGm, sys: pSys, teleport: pTeleport, classe: pClasse, craft: pCraft, shop: pShop, market: pMarket, arauto: pArauto })[k](body);
+  ({ codex: pCodex, char: pChar, bag: pBag, skills: pSkills, quests: pQuests, map: pMap, lore: pLore, gm: pGm, sys: pSys, teleport: pTeleport, classe: pClasse, craft: pCraft, shop: pShop, market: pMarket, arauto: pArauto })[k](body);
 }
 function pChar(b) {
   const c = S.c, st = stats(), cl = st.cls, eq = c.equipment, P = c.profs || {};
@@ -806,8 +919,46 @@ function pChar(b) {
   <tr><td>Velocidade</td><td>${st.speed.toFixed(1)} m/s</td><td>Alcance</td><td>${st.range} m</td></tr>
   <tr><td>Crítico</td><td>${Math.round(st.crit * 100)}%</td><td>Aurum</td><td>${Number(c.aurum).toLocaleString('pt-BR')}</td></tr>
   <tr><td>PvP</td><td>${c.pvp || 0}</td><td>PK / Karma</td><td style="color:${c.karma ? '#f66' : ''}">${c.pk || 0} / ${c.karma || 0}</td></tr></table>
+  <h4>Efeitos dos equipamentos</h4>${st.effects.length ? st.effects.map(e => `<div class="small">${e.icon} <b>${esc(e.name)}</b> — ${esc(e.desc)}</div>`).join('') : '<div class="small">Nenhum. Armas de grau D ou maior têm habilidades especiais, e 2 ou 4 peças do mesmo conjunto dão bônus.</div>'}
   <h4>Profissões</h4><table>${Object.entries(GD.PROFS).map(([k, n]) => { const l = GD.profLevel(P[k]); return `<tr><td>${n}</td><td>nível ${l}</td><td class="small">libera até grau ${GD.GRADES[Math.min(5, Math.floor(l / 4))].id}</td></tr>`; }).join('')}</table>`;
   b.onclick = async e => { const s = e.target.closest('[data-slot]'); if (!s || !eq[s.dataset.slot]) return; const r = await safe(() => B.unequip(s.dataset.slot), 'Desequipado'); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); renderPanel(); } };
+}
+function itemSource(id) {
+  const it = IT(id); const src = [];
+  if (GD.RECIPES[id]) src.push(GD.RECIPES[id].station === 'forja' ? '⚒️ Forja' : GD.RECIPES[id].station === 'alquimia' ? '⚗️ Alquimia' : '🔥 Refinaria');
+  if (GD.SHOP[id] != null) src.push('🛒 Mercador');
+  if (it.type === 'raw') src.push('⛏️ Coleta'); if (it.type === 'trophy') src.push('⚔️ Drop de monstros'); if (it.type === 'enchant' || it.type === 'scroll') src.push('⚔️ Drop raro');
+  if (it.relic || it.unique) src.push('👑 Chefe lendário'); return src.join(' • ') || '—';
+}
+function pCodex(b) {
+  const tab = panelState.tab2 || 'itens', q = (panelState.q || '').toLowerCase(), g = panelState.cg ?? 'all', sl = panelState.cs || 'all';
+  const tabs = [['itens', '🎒 Itens'], ['skills', '📘 Habilidades'], ['buffs', '✨ Buffs e efeitos'], ['mobs', '🐺 Monstros']];
+  let h = `<div class="chips">${tabs.map(([k, l]) => `<button data-t="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  if (tab === 'itens') {
+    h += `<input id="cx-q" placeholder="Buscar item…" value="${esc(panelState.q || '')}" style="width:100%;margin:4px 0">
+    <div class="chips"><button data-g="all" class="${g === 'all' ? 'on' : ''}">Todos</button>${GD.GRADES.map((G, i) => `<button data-g="${i}" class="${String(i) === String(g) ? 'on' : ''}" style="color:${G.color}">${G.id}</button>`).join('')}</div>
+    <div class="chips">${[['all', 'Tudo'], ['arma', 'Armas'], ['armadura', 'Armaduras'], ['elmo', 'Elmos'], ['luvas', 'Luvas'], ['botas', 'Botas'], ['escudo', 'Escudos'], ['mat', 'Materiais'], ['use', 'Consumíveis']].map(([k, l]) => `<button data-s="${k}" class="${k === sl ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+    const list = Object.values(GD.ITEMS).filter(it => (g === 'all' || it.grade === +g) && (sl === 'all' || it.slot === sl || (sl === 'mat' && ['raw', 'refined', 'special', 'trophy'].includes(it.type)) || (sl === 'use' && ['potion', 'scroll', 'enchant'].includes(it.type))) && (!q || it.name.toLowerCase().includes(q)))
+      .sort((a, c) => a.grade - c.grade || (a.slot || 'z').localeCompare(c.slot || 'z') || a.name.localeCompare(c.name));
+    h += `<div class="small">${list.length} itens</div>` + list.slice(0, 120).map(it => `<div class="row" style="border-bottom:1px solid #ffffff14;padding:4px 0"><div style="font-size:22px;width:30px">${it.icon}</div><div class="grow"><b style="color:${gcol(it.grade)}">${esc(it.name)}</b> <span class="small">${GD.GRADES[it.grade].id}${it.relic ? ' • Relíquia' : ''}</span><div class="small">${itemDesc(it.id) || ''}</div><div class="small" style="opacity:.75">Origem: ${itemSource(it.id)}${S.inv[it.id] ? ` • você tem ${S.inv[it.id]}` : ''}</div></div></div>`).join('');
+  }
+  if (tab === 'skills') {
+    h += Object.entries(GD.ARCH).map(([k, A]) => `<h4>${esc(A.name)} <span class="small">(${A.weapon}${A.shield ? ' + escudo' : ''}, armadura ${A.armor})</span></h4>` + A.skills.map(s => `<div class="row" style="padding:3px 0"><div style="font-size:20px;width:28px">${s.icon}</div><div class="grow"><b>${esc(s.name)}</b> <span class="small">nv ${s.lvl} • ${s.mp} MP • recarga ${s.cd}s</span><div class="small">${skillDesc(s)}</div></div></div>`).join('')).join('');
+    h += '<h4>Classes que usam cada estilo</h4><div class="small">' + Object.values(GD.CLASSES).map(c => `${esc(c.name)} (${esc(GD.ARCH[c.arch]?.name || '')})`).join(' • ') + '</div>';
+  }
+  if (tab === 'buffs') {
+    h += '<h4>Habilidades especiais das armas</h4><div class="small">Toda arma de grau D ou maior tem uma; relíquias têm duas, 50% mais fortes. Encantar acima de +3 aumenta o efeito em 10% por nível.</div>';
+    h += Object.entries(GD.SA).map(([k, a]) => `<div class="row"><div style="font-size:20px;width:28px">${a.icon}</div><div class="grow"><b>${a.name}</b><div class="small">${a.d(a.v)} (valor do grau D; cresce com o grau) • aparece em: ${Object.entries(GD.SA_BY).filter(([w, l]) => l.includes(k)).map(([w]) => w).join(', ')}</div></div></div>`).join('');
+    h += '<h4>Bônus de conjunto (armadura, elmo, luvas e botas)</h4>' + Object.entries(GD.SETS).map(([k, S2]) => `<div class="row"><div style="font-size:20px;width:28px">${S2.icon}</div><div class="grow"><b>${S2.name}</b><div class="small">2 peças: ${Object.keys(S2.two).join(', ')} • 4 peças: ${Object.keys(S2.four).join(', ')} — mesmo tipo e mesmo grau (maior grau, bônus maior)</div></div></div>`).join('');
+    h += '<h4>Buffs das habilidades</h4>' + Object.values(GD.ARCH).flatMap(A => A.skills.filter(s => s.type === 'buff' || s.type === 'debuff').map(s => `<div class="small">${s.icon} <b>${esc(s.name)}</b> (${esc(A.name)}) — ${skillDesc(s)}</div>`)).join('');
+    h += '<h4>Movimento</h4><div class="small">💨 Correr: Shift (gasta fôlego) • 🌀 Esquivar: Q (25 de fôlego, invulnerável no rolamento) • ⛰️ Escalar: ande contra encostas íngremes; o fôlego cai rápido, recupere em platôs.</div>';
+  }
+  if (tab === 'mobs') {
+    h += GD.MOBS.map((fs, gi) => `<h4 style="color:${GD.GRADES[gi].color}">${GD.GRADES[gi].name}</h4>` + fs.map(f => `<div class="small">${f.boss ? '👑' : f.aggro ? '⚔️' : '🐾'} <b>${esc(f.name)}</b>${f.boss ? ' — chefe' : f.aggro ? ' — agressivo' : ' — passivo'}${GD.TROPHY[f.id] ? ` • troféu: ${GD.TROPHY[f.id][1]} ${esc(GD.TROPHY[f.id][0])}` : ''}</div>`).join('')).join('');
+  }
+  b.innerHTML = h;
+  const qi = $('#cx-q'); if (qi) { qi.oninput = () => { panelState.q = qi.value; const pos = qi.selectionStart; renderPanel(); const n = $('#cx-q'); n.focus(); n.setSelectionRange(pos, pos); }; }
+  b.onclick = e => { const d = e.target.dataset; if (d.t) { panelState.tab2 = d.t; renderPanel(); } else if (d.g) { panelState.cg = d.g; renderPanel(); } else if (d.s) { panelState.cs = d.s; renderPanel(); } };
 }
 function pBag(b) {
   const f = panelState.f || 'all', order = { weapon: 0, armor: 1, enchant: 2, tool: 3, potion: 4, scroll: 5, special: 6, trophy: 7, refined: 8, raw: 9 };
@@ -1001,7 +1152,7 @@ function updateHud() {
   $('#st-name').innerHTML = `<span style="color:${nameColor({ gm: c.is_gm, karma: c.karma, flag: S.flagUntil > Date.now() })}">${c.is_gm ? '[GM] ' : ''}${esc(c.name)}</span> <span class="small">Nv. ${c.level}</span>`;
   $('#st-class').textContent = `${GD.RACES[c.race].name} • ${st.cls.name}`;
   $('#b-hp').style.width = Math.max(0, 100 * S.hp / st.maxHp) + '%'; $('#t-hp').textContent = `${Math.ceil(Math.max(0, S.hp))} / ${st.maxHp}`;
-  $('#b-mp').style.width = 100 * S.mp / st.maxMp + '%'; $('#t-mp').textContent = `${Math.floor(S.mp)} / ${st.maxMp}`;
+  $('#b-st').style.width = (S.sta ?? 100) + '%'; $('#b-mp').style.width = 100 * S.mp / st.maxMp + '%'; $('#t-mp').textContent = `${Math.floor(S.mp)} / ${st.maxMp}`;
   $('#b-xp').style.width = c.level >= 80 ? '100%' : Math.min(100, 100 * c.xp / need) + '%'; $('#t-xp').textContent = c.level >= 80 ? 'NÍVEL MÁXIMO' : `${(100 * c.xp / need).toFixed(2)}%`;
   const bv = Object.entries(S.buffs).filter(([k]) => !['invuln', 'lifesteal', 'dodge', 'gmspeed'].includes(k)).map(([k, b]) => `${b.icon || '✨'}${Math.ceil((b.until - now()) / 1000)}s`).join(' ');
   $('#st-extra').innerHTML = `🪙 ${Number(c.aurum).toLocaleString('pt-BR')}${c.karma ? ` • <span style="color:#f66">Karma ${c.karma}</span>` : ''}${S.flagUntil > Date.now() ? ' • <span style="color:#d38cff">PvP</span>' : ''} ${bv}`;
@@ -1148,7 +1299,7 @@ function loop() {
   const dt = Math.min(0.05, clock.getDelta());
   if (S.inGame && me) {
     perfTick(dt); if (S.guide && (S.guideT = (S.guideT || 0) + dt) > 0.25) { S.guideT = 0; guideTick(); }
-    updateMe(dt); updateMobs(dt); updateOthers(dt); updateFx(dt); updateCamera(); updateChunks(me.x, me.z, false);
+    updateMe(dt); updateMobs(dt); updateOthers(dt); updateFx(dt); updateFX(dt); updateCamera(); updateChunks(me.x, me.z, false);
     updateEnvironment(dt); water.position.x = Math.round(me.x / 50) * 50; water.position.z = Math.round(me.z / 50) * 50; sky.position.copy(camera.position);
     if (!GRASS.center || Math.hypot(GRASS.center.x - me.x, GRASS.center.z - me.z) > 12) layoutGrass(GRASS, me.x, me.z, WG.height, grassOk, grassColor); updateTownVisibility();
     if ((S.npcGlbT = (S.npcGlbT || 0) + dt) > 1) { S.npcGlbT = 0; if (PERF.cur !== 'baixa') { let k = 0; for (const n of npcs) if (n.model && !n.model.glb && !n.model.glbPending && Math.hypot(n.x - me.x, n.z - me.z) < 55 && k++ < 3) upgradeGLB(n.model); } }
@@ -1169,4 +1320,4 @@ loop();
   } else $('#login-msg').textContent = 'Servidor online em configuração — use o modo offline para testar.';
   show('#login');
 })();
-window.__game = { townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, startGuide, stopGuide, PERF, applyQuality, saveQuests };
+window.__game = { townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, keys, refreshGear: () => { me.enc = encOf(S.c); setGear(me, S.c.equipment.arma, S.c.equipment.armadura, S.c.equipment); buildBar(); }, attackKey: () => attackKey(), dodge, startGuide, stopGuide, PERF, applyQuality, saveQuests };
