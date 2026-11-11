@@ -12,6 +12,7 @@ const now = () => performance.now();
 // ---------- dados globais do mundo ----------
 const NODES = WG.genNodes().filter(WG.nodeVisible); window.NODES_BY_ID = {}; NODES.forEach(n => window.NODES_BY_ID[n.id] = n);
 window.TELEPORTS = []; GD.TOWNS.forEach(t => { TELEPORTS.push({ id: 'town:' + t.id, name: t.name, x: t.x, z: t.z + 25, lvl: t.min, town: true }); t.spotsPos.forEach((s, i) => TELEPORTS.push({ id: `spot:${t.id}:${i}`, name: s.name, x: s.x, z: s.z, lvl: s.lvl })); });
+GD.LANDMARKS.forEach(L => TELEPORTS.push({ id: 'lm:' + L.id, name: L.name, x: L.x, z: L.z + 40, lvl: L.lvl, lm: true }));
 TELEPORTS.forEach(t => t.cost = GD.teleCost(t.lvl));
 const FAM = {}; GD.MOBS.forEach((g, gi) => g.forEach(f => { f.grade = gi; FAM[f.id] = f; })); GD.SPECIAL_BOSSES.forEach(f => { f.grade = Math.min(5, GD.gradeForLevel((GD.LANDMARKS.find(l => l.boss === f.id) || {}).lvl || 1)); FAM[f.id] = f; });
 const NPC_TYPES = [
@@ -592,7 +593,7 @@ async function command(line) {
     case 'anuncio': return G('anuncio', { msg: a.join(' ') });
     case 'reset': await G('reset_nos', {}); S.dep = {}; nodeMeshes.forEach((m, id) => refreshNode(id)); return;
     case 'tp': if (!gm) return; teleport(+a[0], +a[1]); return;
-    case 'ir': { if (!gm) return; const t = GD.TOWNS.find(t => t.id.startsWith((a[0] || '').toLowerCase()) || t.name.toLowerCase().includes((a[0] || '').toLowerCase())); if (t) teleport(t.x, t.z + 25); return; }
+    case 'ir': { if (!gm) return; const t = GD.TOWNS.find(t => t.id.startsWith((a[0] || '').toLowerCase()) || t.name.toLowerCase().includes((a[0] || '').toLowerCase())); if (t) teleport(t.x, t.z + 25); else { const L = GD.LANDMARKS.find(L => L.id.startsWith((a[0] || '').toLowerCase()) || L.name.toLowerCase().includes((a[0] || '').toLowerCase())); if (L) teleport(L.x, L.z + 40); else toast('Destino não encontrado', 'err'); } return; }
     case 'vel': if (gm) { S.buffs.gmspeed = S.buffs.gmspeed ? (delete S.buffs.gmspeed, undefined) : { until: 9e15, vals: { speed: 2 } }; if (!S.buffs.gmspeed) delete S.buffs.gmspeed; toast('Velocidade GM ' + (S.buffs.gmspeed ? 'ligada' : 'desligada'), 'ok'); } return;
     case 'deus': if (gm) { S.god = !S.god; toast('Invencível ' + (S.god ? 'ligado' : 'desligado'), 'ok'); } return;
     case 'matar': { if (!gm) return; const t = S.target; if (!t || t.kind !== 'mob' || t.ref.dead) return toast('Selecione um monstro (clique nele) e use /matar', 'err'); t.ref.returning = false; S.gmKill = true; hurtMob(t.ref, t.ref.hp + 1, false); S.gmKill = false; toast('Monstro eliminado', 'ok'); return; }
@@ -743,7 +744,7 @@ async function pMarket(b) {
 }
 function pTeleport(b) {
   const gm = S.c.is_gm;
-  b.innerHTML = `<div class="small">"Os portais conectam as seis cidades e as terras de caça. Escolha seu destino."</div>${GD.TOWNS.map(t => `<h4>${esc(t.name)} <span class="small">Nv. ${t.min}–${t.max}</span></h4>` + TELEPORTS.filter(x => x.id === 'town:' + t.id || x.id.startsWith('spot:' + t.id + ':')).map(x => `<div class="row"><div class="grow">${x.town ? '🏰' : '⚔️'} ${esc(x.name)} <span class="small">(nv ${x.lvl})</span></div><span class="small">${gm ? 'grátis' : x.cost + ' aurum'}</span><button class="btn" data-d="${x.id}">Ir</button></div>`).join('')).join('')}`;
+  b.innerHTML = `<div class="small">"Os portais conectam as onze cidades, as terras de caça e os locais lendários. Escolha seu destino."</div>${GD.TOWNS.map(t => `<h4>${esc(t.name)} <span class="small">Nv. ${t.min}–${t.max}</span></h4>` + TELEPORTS.filter(x => x.id === 'town:' + t.id || x.id.startsWith('spot:' + t.id + ':')).map(x => `<div class="row"><div class="grow">${x.town ? '🏰' : '⚔️'} ${esc(x.name)} <span class="small">(nv ${x.lvl})</span></div><span class="small">${gm ? 'grátis' : x.cost + ' aurum'}</span><button class="btn" data-d="${x.id}">Ir</button></div>`).join('')).join('')}<h4>⚔️ Locais especiais (chefes e drops exclusivos)</h4>${TELEPORTS.filter(x => x.lm).sort((a, b) => a.lvl - b.lvl).map(x => `<div class="row"><div class="grow">🏯 ${esc(x.name)} <span class="small">(nv ${x.lvl})</span></div><span class="small">${gm ? 'grátis' : x.cost + ' aurum'}</span><button class="btn" data-d="${x.id}">Ir</button></div>`).join('')}`;
   b.onclick = async e => { const d = e.target.dataset.d; if (!d) return; const r = await safe(() => B.teleport(d)); if (!r) return; S.c.aurum -= r.cost; closePanel(); toast('Teleportado para ' + r.name, 'ok'); teleport(r.x, r.z); };
 }
 function pArauto(b) {
