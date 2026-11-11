@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reinos de Aurora — MMORPG 3D</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<div id="login" class="screen">
+  <div class="card">
+    <div class="logo">Reinos de Aurora</div>
+    <div class="sub">A Era do Eclipse</div>
+    <div class="tabs"><button data-tab="entrar" class="on">Entrar</button><button data-tab="criar">Criar conta</button></div>
+    <label>Usuário<input id="f-user" autocomplete="username" maxlength="16"></label>
+    <label>Senha<input id="f-pass" type="password" autocomplete="current-password" maxlength="72"></label>
+    <button id="btn-go" class="primary">Entrar</button>
+    <div id="login-msg" class="msg"></div>
+    <button id="btn-offline" class="link">Jogar offline (teste local, sem servidor)</button>
+  </div>
+</div>
+
+<div id="select" class="screen clear" hidden>
+  <div class="side">
+    <div class="logo small">Seus personagens</div>
+    <div id="char-list"></div>
+    <button id="btn-new" class="primary">+ Criar personagem</button>
+    <button id="btn-logout" class="link">Sair da conta</button>
+  </div>
+  <div class="side right" id="char-info"></div>
+</div>
+
+<div id="create" class="screen clear" hidden>
+  <div class="side">
+    <div class="logo small">Criar personagem</div>
+    <div class="lbl">Raça</div><div id="c-race" class="chips"></div>
+    <div class="small" id="c-race-desc"></div>
+    <div class="lbl">Caminho</div><div id="c-type" class="chips"></div>
+    <div class="lbl">Gênero</div><div id="c-gender" class="chips"></div>
+    <div class="lbl">Cabelo</div><div id="c-hair" class="chips"></div>
+    <div class="lbl">Cor do cabelo</div><div id="c-hcol" class="chips"></div>
+    <div class="lbl">Tom de pele</div><div id="c-skin" class="chips"></div>
+    <label>Nome<input id="c-name" maxlength="16"></label>
+    <button id="btn-create" class="primary">Criar</button>
+    <button id="btn-cancel" class="link">Voltar</button>
+    <div id="create-msg" class="msg"></div>
+  </div>
+  <div class="side right" id="class-tree"></div>
+</div>
+
+<div id="hud" hidden>
+  <div id="status" class="win">
+    <div id="st-name"></div><div id="st-class" class="small"></div>
+    <div class="bar hp"><i id="b-hp"></i><span id="t-hp"></span></div>
+    <div class="bar mp"><i id="b-mp"></i><span id="t-mp"></span></div>
+    <div class="bar xp"><i id="b-xp"></i><span id="t-xp"></span></div>
+    <div id="st-extra" class="small"></div>
+  </div>
+  <div id="target" class="win" hidden><div id="tg-name"></div><div class="bar hp"><i id="tg-hp"></i></div><div id="tg-act"></div></div>
+  <div id="zone"></div>
+  <div id="mm-wrap" class="win"><canvas id="minimap" width="180" height="180"></canvas><div id="coords" class="small"></div></div>
+  <div id="quest-track" class="win" hidden></div>
+  <div id="announce" hidden></div>
+  <div id="toasts"></div>
+  <div id="chat" class="win"><div id="chat-log"></div><form id="chat-form"><input id="chat-in" maxlength="200" placeholder="Enter para conversar • /ajuda" autocomplete="off"></form></div>
+  <div id="bar"></div>
+  <div id="menu">
+    <button data-p="char" title="Personagem (C)">🧝<span>C</span></button>
+    <button data-p="bag" title="Inventário (I)">🎒<span>I</span></button>
+    <button data-p="skills" title="Habilidades (K)">📘<span>K</span></button>
+    <button data-p="quests" title="Missões (L)">📜<span>L</span></button>
+    <button data-p="map" title="Mapa (M)">🗺️<span>M</span></button>
+    <button data-p="lore" title="História (H)">📖<span>H</span></button>
+    <button data-p="gm" id="btn-gm" hidden title="Painel GM (G)">👑<span>G</span></button>
+    <button data-p="sys" title="Sistema (Esc)">⚙️<span>Esc</span></button>
+  </div>
+  <div id="dead" class="win" hidden><div class="logo small">Você caiu em batalha</div><div id="dead-msg" class="small"></div><button id="btn-revive" class="primary">Voltar à cidade</button></div>
+  <div id="cast" hidden><i></i><span></span></div>
+</div>
+
+<div id="panel" class="win" hidden><div class="phead"><span id="p-title"></span><button id="p-close">✕</button></div><div id="p-body"></div></div>
+<div id="loading" class="screen" hidden><div class="logo">Reinos de Aurora</div><div class="sub" id="loading-msg">Carregando o mundo…</div></div>
+
+<script src="supabase.js"></script>
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="world.js"></script>
+<script src="quests.js"></script>
+<script src="backend.js"></script>
+<script type="module" src="main.js"></script>
+</body>
+</html>
