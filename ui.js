@@ -1,5 +1,6 @@
 // ===== Valtheria — interface: quadros móveis, compactar/ocultar, barra extra e aba de equipamento com boneco 3D =====
 import * as THREE from './lib/three.module.min.js';
+import { RoomEnvironment } from './lib/RoomEnvironment.js';
 
 const LS = 'vt_ui_v1';
 let ST = {}; try { ST = JSON.parse(localStorage.getItem(LS)) || {}; } catch (_) {}
@@ -74,7 +75,7 @@ function openEquip(X) {
     document.body.appendChild(w); movable(w, 'equip', w.querySelector('.phead'));
     w.querySelector('.phead').onclick = e => { const a = e.target.dataset.a; if (a === 'close') closeEquip(); else if (a === 'min') w.classList.toggle('ui-min'); };
     const cv = w.querySelector('#eq-cv'); EQ.r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); EQ.r.setPixelRatio(Math.min(2, devicePixelRatio)); EQ.r.outputColorSpace = THREE.SRGBColorSpace; EQ.r.toneMapping = THREE.ACESFilmicToneMapping; EQ.r.toneMappingExposure = 1.15;
-    EQ.scene = new THREE.Scene(); EQ.cam = new THREE.PerspectiveCamera(32, 260 / 380, 0.1, 50);
+    EQ.scene = new THREE.Scene(); EQ.cam = new THREE.PerspectiveCamera(32, 260 / 380, 0.1, 50); try { EQ.scene.environment = new THREE.PMREMGenerator(EQ.r).fromScene(new RoomEnvironment(), 0.04).texture; EQ.scene.environmentIntensity = 0.9; } catch (_) {} window.__EQ = EQ;
     EQ.scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x3a2a20, 1.5)); const k = new THREE.DirectionalLight(0xfff0d8, 2.6); k.position.set(2, 4, 3); EQ.scene.add(k); const rim = new THREE.DirectionalLight(0x7ab0ff, 1.4); rim.position.set(-3, 2, -3); EQ.scene.add(rim);
     const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.12, 40), new THREE.MeshStandardMaterial({ color: '#2a2230', metalness: 0.4, roughness: 0.5 })); ped.position.y = -0.06; EQ.scene.add(ped);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.78, 0.015, 6, 60), new THREE.MeshBasicMaterial({ color: '#f2c46d' })); ring.rotation.x = Math.PI / 2; EQ.scene.add(ring);

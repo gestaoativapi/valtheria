@@ -338,6 +338,17 @@ export function setGear(m, weaponId, armorId, equip) {
   } else m.weaponKind = null;
   // peças extras: escudo, elmo, luvas e botas
   const E = (slot) => GD.ITEMS[equip[slot]];
+  // set lendário: cristais nos ombros, peito, elmo e joelhos, frisos de prata e gema no cinto — tudo preso aos ossos, na escala do corpo
+  { const sIt = ['armadura', 'elmo', 'luvas', 'botas'].map(E).filter(it => it && it.set), S0 = sIt[0] && GD.LEGEND_SETS[sIt[0].set]; if (S0) { const C = S0.cores;
+    const cry = new THREE.MeshStandardMaterial({ color: '#5a3cff', emissive: C.brilho, emissiveIntensity: 0.55, roughness: 0.12, metalness: 0.1, flatShading: true, transparent: true, opacity: 0.92 }), silver = new THREE.MeshStandardMaterial({ color: C.detalhe, metalness: 1, roughness: 0.28 }), plate = new THREE.MeshStandardMaterial({ color: C.principal, metalness: 0.85, roughness: 0.32 });
+    const shard = (h, r) => M(new THREE.ConeGeometry(r, h, 5), cry, false), cluster = (n, h, spread) => { const g = G(); for (let i = 0; i < n; i++) { const k = i - (n - 1) / 2, c = shard(h * (1 - Math.abs(k) * 0.22), h * 0.2); c.position.set(k * spread, h * 0.45 * (1 - Math.abs(k) * 0.2), 0); c.rotation.z = -k * 0.32; g.add(c); } return g; };
+    if (E('armadura')?.set) { [-1, 1].forEach(sd => { const pad = add(P.torso, at(M(new THREE.SphereGeometry(0.105, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), plate, false), sd * 0.235, 0.56, 0)); pad.scale.set(1.15, 0.8, 1.05); pad.rotation.z = -sd * 0.35;
+        add(P.torso, at(M(new THREE.TorusGeometry(0.108, 0.01, 6, 20), silver, false), sd * 0.235, 0.555, 0)).rotation.set(Math.PI / 2, 0, -sd * 0.35); const cl = add(P.torso, at(cluster(3, 0.17, 0.045), sd * 0.25, 0.62, -0.01)); cl.rotation.z = -sd * 0.45; });
+      const ch = add(P.torso, at(cluster(3, 0.1, 0.035), 0, 0.4, 0.175)); ch.rotation.x = 0.15; const bg = add(P.torso, at(M(new THREE.OctahedronGeometry(0.035, 0), cry, false), 0, 0.06, 0.165)); bg.scale.set(1, 1.3, 0.5); add(P.torso, at(M(new THREE.OctahedronGeometry(0.05, 0), silver, false), 0, 0.06, 0.15)).scale.set(1, 1.3, 0.3);
+ }
+    if (E('elmo')?.set) { const cr = add(P.head, at(cluster(5, 0.2, 0.028), 0, 0.14, 0.02)); cr.rotation.y = Math.PI / 2; cr.rotation.x = 0; add(P.head, at(M(new THREE.TorusGeometry(0.172, 0.009, 6, 28), silver, false), 0, 0.06, 0)).rotation.x = Math.PI / 2; }
+    if (E('luvas')?.set) [P.armL, P.armR].forEach(A => { add(A.fa, at(M(new THREE.TorusGeometry(0.062, 0.011, 6, 20), silver, false), 0, -0.1, 0)).rotation.x = Math.PI / 2; add(A.fa, at(cluster(3, 0.07, 0.022), 0, -0.2, 0.05)); });
+    m.legendSet = sIt.length >= 4 ? S0 : null; } else m.legendSet = null; }
   // traje futurista (Era Neon): faixas de luz no peito, cinto, braços e pernas; visor holográfico
   { const nItems = ['armadura', 'elmo', 'luvas', 'botas'].map(E).filter(it => it && it.neon); if (nItems.length) { const nc = nItems[0].neon, gm = new THREE.MeshBasicMaterial({ color: nc, toneMapped: false }), gm2 = new THREE.MeshBasicMaterial({ color: '#ff3ad8', toneMapped: false });
     if (E('armadura')?.neon) { add(P.torso, at(M(new THREE.TorusGeometry(0.2, 0.02, 6, 28), gm, false), 0, 0.44, 0)).scale.set(1.05, 0.78, 1); add(P.torso, at(M(new THREE.TorusGeometry(0.2, 0.024, 6, 28), gm2, false), 0, 0.05, 0)).scale.set(1.1, 0.8, 1);
@@ -459,7 +470,7 @@ export const GLB = { on: true };
 const HAIR_M = ['simpleparted', 'buzzed', 'long', 'slickback', 'bob', 'buzzed'], HAIR_F = ['long', 'buns', 'bob', 'buzzedfemale', 'simpleparted', 'buns'];
 const OUTFIT_OF = { pesada: 'ranger', leve: 'ranger', robe: 'peasant' };
 function outfitFor(m, a) { const fem = m.o.gender === 'f'; if (!a) return 'peasant'; if (fem) return OUTFIT_OF[a.kind]; return a.kind === 'pesada' ? 'knight' : a.kind === 'leve' ? 'ranger' : a.grade >= 4 ? 'noble' : 'wizard'; }
-function helmFor(m, h) { if (!h) return null; if (h.relic) return 'helm_crown'; if (h.kind === 'pesada' && m.o.gender !== 'f') return 'helm_knight'; return null; }
+function helmFor(m, h) { if (!h) return null; if (h.set) return 'helm_knight'; if (h.relic) return 'helm_crown'; if (h.kind === 'pesada' && m.o.gender !== 'f') return 'helm_knight'; return null; }
 const GRADE_TINT = ['#ffffff', '#e8dcc4', '#d6e2f0', '#cfe0ff', '#ffd2d2', '#f0dcff'], HEAVY_TINT = ['#b8c0c8', '#a8b4c0', '#c0c8d4', '#a8c4e8', '#e0b0b0', '#d8c8f0'];
 const BASE_SKIN = new THREE.Color('#c49470');
 export function upgradeGLB(m) {
@@ -482,10 +493,12 @@ function tintGLB(m) {
 async function glbOutfit(m, a, equip) {
   const C = m.glb, kind = outfitFor(m, a);
   if (C.outfitKind !== kind) { C.outfitKind = kind; await setOutfit(C, kind); ownMats(C.model); tintGLB(m); }
-  const tint = new THREE.Color(a ? (a.neon ? '#8a96b8' : (a.kind === 'pesada' ? HEAVY_TINT : GRADE_TINT)[a.grade]) : '#ffffff');
-  for (const o of C.parts.outfit || []) { ownMats(o); if (/Ranger|Peasant/.test(o.material.name)) { o.material.color.copy(tint); if (!/Knight|Noble/.test(o.material.name)) o.material.metalness = a && a.kind === 'pesada' ? 0.25 : 0; o.material.envMapIntensity = a && a.kind === 'pesada' ? 1.2 : 0.6; } if (/Hood/.test(o.name)) o.visible = !!(equip && GD.ITEMS[equip.elmo] && GD.ITEMS[equip.elmo].kind === 'leve' && !GD.ITEMS[equip.elmo].neon); }
+  const tint = new THREE.Color(a ? (a.set ? '#6a86ff' : a.neon ? '#8a96b8' : (a.kind === 'pesada' ? HEAVY_TINT : GRADE_TINT)[a.grade]) : '#ffffff');
+  if (a && a.set) { const S0 = GD.LEGEND_SETS[a.set]; for (const o of C.parts.outfit || []) { ownMats(o); const mt = o.material; if (/Superhero|Regular|Hair|Eye/.test(mt.name)) continue; if (mt.map) { mt.userData.map0 = mt.map; mt.map = null; } mt.color.set(S0.cores.principal).multiplyScalar(1.12); mt.metalness = 0.78; mt.roughness = 0.36; mt.envMapIntensity = 1.3; mt.needsUpdate = true; if (/Hood/.test(o.name)) o.visible = false; } }
+  else for (const o of C.parts.outfit || []) { const mt = o.material; if (mt && mt.userData && mt.userData.map0) { mt.map = mt.userData.map0; mt.userData.map0 = null; mt.color.set('#ffffff'); mt.metalness = 0; mt.roughness = 1; mt.needsUpdate = true; } }
+  for (const o of C.parts.outfit || []) { if (a && a.set) break; ownMats(o); if (/Ranger|Peasant/.test(o.material.name)) { o.material.color.copy(tint); if (!/Knight|Noble/.test(o.material.name)) o.material.metalness = a && a.kind === 'pesada' ? 0.25 : 0; o.material.envMapIntensity = a && a.kind === 'pesada' ? 1.2 : 0.6; } if (/Hood/.test(o.name)) o.visible = !!(equip && GD.ITEMS[equip.elmo] && GD.ITEMS[equip.elmo].kind === 'leve' && !GD.ITEMS[equip.elmo].neon); }
   const hItem = equip && GD.ITEMS[equip.elmo], helm = helmFor(m, hItem);
-  if (C.helmName !== helm) { C.helmName = helm; await setPart(C, 'helm', helm); if (helm) { ownMats(C.model); if (hItem) for (const o of C.parts.helm) if (!hItem.relic) o.material.color.copy(new THREE.Color(HEAVY_TINT[hItem.grade])).lerp(new THREE.Color('#ffffff'), 0.4); } }
+  if (C.helmName !== helm) { C.helmName = helm; await setPart(C, 'helm', helm); if (helm) { ownMats(C.model); if (hItem) for (const o of C.parts.helm) if (hItem.set) { o.material.color.set('#5a78ff'); o.material.metalness = 0.6; o.material.roughness = 0.35; } else if (!hItem.relic) o.material.color.copy(new THREE.Color(HEAVY_TINT[hItem.grade])).lerp(new THREE.Color('#ffffff'), 0.4); } }
   const hidden = !!hItem && hItem.kind !== 'robe' && !hItem.neon; (C.parts.hair || []).forEach(h => h.visible = !hidden);
   // elmo de couro = capuz do próprio traje; os outros elmos continuam sendo peças à parte
 }

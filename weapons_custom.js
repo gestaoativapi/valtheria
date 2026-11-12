@@ -2,30 +2,41 @@
 // Cada função devolve um THREE.Group apontando para +Y, com a mão na origem e um Object3D "tip" na ponta.
 import * as THREE from './lib/three.module.min.js';
 
+// Espada Celestial da Harmonia — refeita com proporções reais: lâmina fina (1,2 cm) com fio serrilhado, canal azul com veio de energia,
+// filete dourado, guarda em asas de meia-lua, cabo estreito trançado e pomo com gema. Medidas em metros; total ≈ 1,12 m.
 function espadaHarmonia() {
   const group = new THREE.Group(); group.name = 'Espada_Celestial_da_Harmonia';
-  const blade = new THREE.MeshStandardMaterial({ name: 'blade', color: 0xdceaf5, metalness: 0.95, roughness: 0.19 }), gold = new THREE.MeshStandardMaterial({ name: 'gold', color: 0xd9a441, metalness: 0.9, roughness: 0.23 });
-  const grip = new THREE.MeshStandardMaterial({ name: 'grip', color: 0x102b42, metalness: 0.25, roughness: 0.7 }), gem = new THREE.MeshStandardMaterial({ name: 'gem', color: 0x16cfff, emissive: 0x087bff, emissiveIntensity: 1.8, metalness: 0.35, roughness: 0.15 });
-  const add = (geometry, material, name, x, y, z) => { const mesh = new THREE.Mesh(geometry, material); mesh.name = name; mesh.position.set(x, y, z); mesh.castShadow = true; group.add(mesh); return mesh; };
-  const shape = new THREE.Shape(); shape.moveTo(-0.065, 0.20); shape.lineTo(0.065, 0.20); shape.lineTo(0.072, 0.48); shape.lineTo(0.058, 0.66); shape.lineTo(0.025, 0.79); shape.lineTo(0, 0.85); shape.lineTo(-0.025, 0.79); shape.lineTo(-0.058, 0.66); shape.lineTo(-0.072, 0.48); shape.closePath();
-  add(new THREE.ExtrudeGeometry(shape, { depth: 0.035, bevelEnabled: true, bevelSegments: 1, steps: 1, bevelSize: 0.008, bevelThickness: 0.006 }), blade, 'Lamina_Celestial', 0, 0, -0.0175);
-  const spine = new THREE.Shape(); spine.moveTo(-0.009, 0.23); spine.lineTo(0.009, 0.23); spine.lineTo(0.007, 0.67); spine.lineTo(0, 0.79); spine.lineTo(-0.007, 0.67); spine.closePath();
-  add(new THREE.ExtrudeGeometry(spine, { depth: 0.012, bevelEnabled: false }), gold, 'Nervura_Dourada', 0, 0, 0.012);
-  add(new THREE.BoxGeometry(0.27, 0.055, 0.075), gold, 'Guarda_Esquerda', -0.15, 0.19, 0).rotation.z = -0.32; add(new THREE.BoxGeometry(0.27, 0.055, 0.075), gold, 'Guarda_Direita', 0.15, 0.19, 0).rotation.z = 0.32;
-  add(new THREE.OctahedronGeometry(0.065, 0), gold, 'Nucleo_Guarda', 0, 0.19, 0.055); add(new THREE.OctahedronGeometry(0.055, 1), gem, 'Cristal_Guarda', 0, 0.19, 0.105);
-  add(new THREE.CylinderGeometry(0.043, 0.052, 0.30, 8), grip, 'Punho_Azul', 0, 0.015, 0);
-  for (const y of [-0.125, -0.065, 0.065, 0.145]) add(new THREE.CylinderGeometry(0.056, 0.056, 0.018, 10), gold, 'Anel_Ornamental', 0, y, 0);
-  add(new THREE.OctahedronGeometry(0.075, 0), gold, 'Pomo_Dourado', 0, -0.145, 0); add(new THREE.OctahedronGeometry(0.035, 1), gem, 'Cristal_Pomo', 0, -0.145, 0.055);
-  for (const side of [-1, 1]) add(new THREE.OctahedronGeometry(0.035, 0), gem, 'Cristal_Lateral', side * 0.16, 0.22, 0.055).rotation.z = side * 0.3;
-  // acabamento seguindo a arte: veio de energia azul na lâmina, dentes no fio e guarda em meia-lua
-  const core = new THREE.Shape(); core.moveTo(-0.022, 0.25); core.lineTo(0.022, 0.25); core.lineTo(0.03, 0.47); core.lineTo(0.016, 0.66); core.lineTo(0, 0.75); core.lineTo(-0.016, 0.66); core.lineTo(-0.03, 0.47); core.closePath();
-  const glowM = new THREE.MeshStandardMaterial({ name: 'gem', color: 0x0a4a9a, emissive: 0x1a9aff, emissiveIntensity: 1.5, metalness: 0.3, roughness: 0.2 });
-  for (const zz of [0.0185, -0.0265]) add(new THREE.ExtrudeGeometry(core, { depth: 0.008, bevelEnabled: false }), glowM, 'Veio_de_Energia', 0, 0, zz);
-  for (const side of [-1, 1]) { for (let i = 0; i < 4; i++) { const t = add(new THREE.ConeGeometry(0.022, 0.07, 4), blade, 'Dente', side * (0.078 - i * 0.004), 0.3 + i * 0.105, 0); t.rotation.z = -side * 1.15; t.scale.z = 0.5; }
-    const horn = add(new THREE.TorusGeometry(0.11, 0.018, 6, 14, 1.9), gold, 'Meia_Lua', side * 0.2, 0.25, 0); horn.rotation.z = side > 0 ? -0.5 : Math.PI - 1.4; horn.scale.z = 1.6;
-    add(new THREE.ConeGeometry(0.02, 0.09, 5), gold, 'Ponta_Guarda', side * 0.29, 0.13, 0).rotation.z = side * 2.4; }
-  add(new THREE.OctahedronGeometry(0.03, 0), gem, 'Cristal_Lamina', 0, 0.3, 0.03).scale.set(1, 1.8, 0.6);
-  const tip = new THREE.Object3D(); tip.name = 'tip'; tip.position.set(0, 0.85, 0); group.add(tip);
+  const steel = new THREE.MeshStandardMaterial({ name: 'blade', color: 0xd5dde6, metalness: 1, roughness: 0.2 });
+  const gold = new THREE.MeshStandardMaterial({ name: 'gold', color: 0xd6a03c, metalness: 1, roughness: 0.28 });
+  const grip = new THREE.MeshStandardMaterial({ name: 'grip', color: 0x0c1420, metalness: 0.1, roughness: 0.75 });
+  const chan = new THREE.MeshStandardMaterial({ name: 'gem', color: 0x0b3a78, metalness: 0.6, roughness: 0.25, emissive: 0x0a4ab0, emissiveIntensity: 0.55 });
+  const glow = new THREE.MeshStandardMaterial({ name: 'gem', color: 0x7fe8ff, emissive: 0x2ac8ff, emissiveIntensity: 2.2, metalness: 0, roughness: 0.3 });
+  const gem = new THREE.MeshStandardMaterial({ name: 'gem', color: 0x1a8aee, emissive: 0x0a5ae0, emissiveIntensity: 0.55, metalness: 0.2, roughness: 0.08, flatShading: true });
+  const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; group.add(m); return m; };
+  const ext = (shape, depth, bevel = 0) => { const g = new THREE.ExtrudeGeometry(shape, { depth, steps: 1, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 1, curveSegments: 10 }); g.translate(0, 0, -depth / 2); return g; };
+  const Y0 = 0.135, Y1 = 1.0, half = y => { const k = (y - Y0) / (Y1 - Y0); return k < 0.68 ? 0.036 + 0.012 * Math.sin(k / 0.68 * Math.PI * 0.5) : 0.048 * Math.pow(1 - (k - 0.68) / 0.32, 0.8); };
+  // lâmina: metade direita com 6 dentes em gancho, espelhada
+  { const N = 6, seg = (0.74 - Y0) / N, R = [[0.03, Y0]]; for (let i = 0; i < N; i++) { const a = Y0 + i * seg, b = a + seg; R.push([half(a) - 0.004, a + seg * 0.12], [half(b) + 0.009, b - seg * 0.06], [half(b) - 0.006, b]); }
+    R.push([half(0.82), 0.82], [half(0.9) * 0.9, 0.9], [0, Y1]); const sh = new THREE.Shape(); sh.moveTo(0, Y0); R.forEach(([x, y]) => sh.lineTo(x, y)); [...R].reverse().slice(1).forEach(([x, y]) => sh.lineTo(-x, y)); sh.closePath();
+    add(ext(sh, 0.003, 0.0045), steel); }
+  // canal azul, filete dourado e veio de energia (nas duas faces)
+  const lens = (w, a, b, tipK = 0.2) => { const s = new THREE.Shape(), m = a + (b - a) * 0.55; s.moveTo(0, a); s.quadraticCurveTo(w * 1.1, a + (b - a) * 0.12, w, m); s.quadraticCurveTo(w * 0.7, b - (b - a) * tipK, 0, b); s.quadraticCurveTo(-w * 0.7, b - (b - a) * tipK, -w, m); s.quadraticCurveTo(-w * 1.1, a + (b - a) * 0.12, 0, a); return s; };
+  for (const f of [1, -1]) { add(ext(lens(0.03, 0.17, 0.9), 0.002), gold, 0, 0, f * 0.0068); add(ext(lens(0.0245, 0.185, 0.875), 0.002), chan, 0, 0, f * 0.0082); add(ext(lens(0.0035, 0.2, 0.86, 0.05), 0.0015), glow, 0, 0, f * 0.0094);
+    for (const [gy, gs] of [[0.245, 0.02], [0.8, 0.014]]) { const d = add(new THREE.OctahedronGeometry(gs, 0), gem, 0, gy, f * 0.011); d.scale.set(0.8, 1.9, 0.3); const r = add(new THREE.OctahedronGeometry(gs * 1.35, 0), gold, 0, gy, f * 0.0088); r.scale.set(0.8, 1.9, 0.12); } }
+  // guarda: núcleo em losango com gema e duas asas em meia-lua (uma sobe, outra desce)
+  { const wing = new THREE.Shape(); wing.moveTo(0.012, 0.0); wing.quadraticCurveTo(0.09, -0.012, 0.145, 0.075); wing.quadraticCurveTo(0.118, 0.03, 0.075, 0.03); wing.quadraticCurveTo(0.04, 0.03, 0.012, 0.045); wing.closePath();
+    const low = new THREE.Shape(); low.moveTo(0.012, 0.012); low.quadraticCurveTo(0.07, 0.0, 0.118, -0.058); low.quadraticCurveTo(0.075, -0.03, 0.05, -0.024); low.quadraticCurveTo(0.03, -0.018, 0.012, -0.022); low.closePath();
+    const hook = new THREE.Shape(); hook.moveTo(0.03, 0.04); hook.quadraticCurveTo(0.062, 0.06, 0.058, 0.105); hook.quadraticCurveTo(0.046, 0.075, 0.024, 0.066); hook.closePath();
+    for (const sx of [1, -1]) { for (const [sp, th, dy] of [[wing, 0.012, 0.105], [low, 0.01, 0.105], [hook, 0.007, 0.1]]) { const m = add(ext(sp, th, 0.0025), gold, 0, dy, 0); m.scale.x = sx; } add(new THREE.SphereGeometry(0.0065, 8, 6), glow, sx * 0.082, 0.132, 0.008); }
+    const core = add(new THREE.OctahedronGeometry(0.034, 0), gold, 0, 0.118, 0); core.scale.set(1, 1.35, 0.5); for (const f of [1, -1]) { const g = add(new THREE.OctahedronGeometry(0.02, 0), gem, 0, 0.118, f * 0.013); g.scale.set(0.9, 1.5, 0.4); } }
+  // cabo trançado, anéis e pomo
+  add(new THREE.CylinderGeometry(0.0155, 0.017, 0.185, 12), grip, 0, 0.0, 0);
+  for (let i = 0; i < 9; i++) { const r = add(new THREE.TorusGeometry(0.0165, 0.0028, 5, 14), grip, 0, -0.078 + i * 0.0185, 0); r.rotation.x = Math.PI / 2 + (i % 2 ? 0.42 : -0.42); }
+  for (const y of [0.088, -0.03, -0.09]) add(new THREE.CylinderGeometry(0.0205, 0.0205, 0.012, 14), gold, 0, y, 0);
+  { const p = add(new THREE.OctahedronGeometry(0.03, 0), gold, 0, -0.128, 0); p.scale.set(1, 1.3, 0.6); for (const f of [1, -1]) { const g = add(new THREE.OctahedronGeometry(0.015, 0), gem, 0, -0.128, f * 0.014); g.scale.set(0.9, 1.5, 0.4); }
+    add(new THREE.ConeGeometry(0.009, 0.04, 6), gold, 0, -0.178, 0).rotation.x = Math.PI; for (const sx of [1, -1]) add(new THREE.ConeGeometry(0.007, 0.03, 5), gold, sx * 0.03, -0.14, 0).rotation.z = sx * 2.2; }
+  const tip = new THREE.Object3D(); tip.name = 'tip'; tip.position.set(0, Y1, 0); group.add(tip);
+  group.scale.setScalar(0.9); // 1,06 m no total: espada de uma mão
   return group;
 }
 const BUILD = { W001: espadaHarmonia }, PROTO = {};

@@ -555,6 +555,16 @@
     const drops = [...Object.keys(NEON_GEAR), 'neon_traje', 'neon_visor', 'neon_luvas', 'neon_botas', 'a_neon', 'm_hover', 'p_drone', 'gema', 'fragmento'];
     SPECIAL_BOSSES.push({ id: 'mecha_omega', name: 'Mecha Ômega', model: 'golem', glb: 'mecha_omega', color: '#3af0ff', scale: 2.6, boss: true, special: true, neon: true, drops, lvl: 60 });
     POI_DROPS.mecha_omega = drops; }
+  // ----- sets lendários: 4 peças com nome próprio; o bônus completo conta só a armadura (sem a arma) -----
+  const LEGEND_SETS = {
+    set_desbravador_estrelas: { name: 'Desbravador das Estrelas', classe: 'Guerreiro', kind: 'pesada', grade: 5, icon: '🌌', img: 'set_estrelas',
+      lore: 'Forjada com minério estelar e abençoada pelos Cosmos, protege aqueles que ousam explorar o desconhecido.',
+      // cores ajustadas à arte: azul-real no metal, prata nos frisos e violeta nos cristais (o índigo original ficava escuro demais para brilhar)
+      cores: { principal: '#2a3fae', detalhe: '#c8ccd6', brilho: '#7a5cff' }, pecas: { elmo: 'Elmo', armadura: 'Armadura', luvas: 'Luvas', botas: 'Botas' }, two: { pdefPct: 0.06 }, four: { hpPct: 0.12, dmgRed: 0.08 } },
+  };
+  for (const [sid, S] of Object.entries(LEGEND_SETS)) { const gs = GRADES[S.grade].id.toLowerCase();
+    for (const [slot, pn] of Object.entries(S.pecas)) { const base = ITEMS[slot === 'armadura' ? `${S.kind}_${gs}` : `${slot}_${S.kind}_${gs}`], st = {}; for (const [k, v] of Object.entries(base.stats)) st[k] = v > 1 ? +(v * 1.2).toFixed(1) : v;
+      const id = `${sid}_${slot}`; ITEMS[id] = { id, name: `${pn} do ${S.name}`, grade: S.grade, type: 'armor', slot, kind: S.kind, part: base.part, icon: base.icon, stats: st, unique: true, relic: true, set: sid, img: `${S.img}_${slot}.webp`, tint: S.cores.principal }; } }
   // ----- armas lendárias (modelo próprio em código) -----
   { const base = ITEMS.espada_s, st = {}; for (const [k, v] of Object.entries(base.stats)) st[k] = +(v * 1.3).toFixed(1);
     ITEMS.lend_espada_harmonia = { id: 'lend_espada_harmonia', name: 'Espada Celestial da Harmonia', grade: 5, type: 'weapon', slot: 'arma', kind: 'espada', icon: '🗡️', stats: st, unique: true, relic: true, sa: ['vampiro', 'foco'], model: 'W001', neon: '#3ac8ff', legend: true, img: 'lend_espada_harmonia.webp' }; }
@@ -620,8 +630,9 @@
     return keys.map(key => { const v = scaleV(SA[key].v, k); return { key, name: SA[key].name, icon: SA[key].icon, v, desc: SA[key].d(v) }; });
   }
   function setBonus(eq) {
-    const by = {}; for (const sl of ['armadura', 'elmo', 'luvas', 'botas']) { const it = ITEMS[eq[sl]]; if (it && it.grade) { const k = it.kind + ':' + it.grade; by[k] = (by[k] || 0) + 1; } }
-    const out = []; for (const [k, n] of Object.entries(by)) { if (n < 2) continue; const [kind, g] = k.split(':'), S = SETS[kind]; if (!S) continue; const m = 0.7 + 0.15 * +g;
+    const by = {}, leg = {}; for (const sl of ['armadura', 'elmo', 'luvas', 'botas']) { const it = ITEMS[eq[sl]]; if (it && it.set) { leg[it.set] = (leg[it.set] || 0) + 1; continue; } if (it && it.grade) { const k = it.kind + ':' + it.grade; by[k] = (by[k] || 0) + 1; } }
+    const out = []; for (const [sid, n] of Object.entries(leg)) { const S = LEGEND_SETS[sid]; if (!S || n < 2) continue; const v = { ...S.two, ...(n >= 4 ? S.four : {}) }; out.push({ key: sid, name: `Set ${S.name} (${n}/4)`, icon: S.icon, v, legend: n >= 4 ? sid : null, desc: Object.entries(v).map(([a, b]) => EFX_TXT[a](b)).join(', ') + (n < 4 ? ' • complete as 4 peças para o bônus total' : '') }); }
+    for (const [k, n] of Object.entries(by)) { if (n < 2) continue; const [kind, g] = k.split(':'), S = SETS[kind]; if (!S) continue; const m = 0.7 + 0.15 * +g;
       const v = scaleV({ ...S.two, ...(n >= 4 ? S.four : {}) }, m); out.push({ key: 'set_' + kind, name: `${S.name} ${GRADES[g].id} (${n}/4)`, icon: S.icon, v, desc: Object.entries(v).map(([a, b]) => EFX_TXT[a](b)).join(', ') }); }
     return out;
   }
@@ -660,6 +671,6 @@
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
     RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
-    mobKind, ELEM_STRONG, elemMult, CLAN, CASTLES, RACE_ELEM, TWO_HANDED, TWO_HAND_GRIP, WORLD, TOWNS, CORE_TOWNS, LANDMARKS, NEON, NEON_MOBS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
+    LEGEND_SETS, mobKind, ELEM_STRONG, elemMult, CLAN, CASTLES, RACE_ELEM, TWO_HANDED, TWO_HAND_GRIP, WORLD, TOWNS, CORE_TOWNS, LANDMARKS, NEON, NEON_MOBS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);
