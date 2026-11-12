@@ -31,6 +31,38 @@ const tube = (r1, r2, h, m, s = 12) => M(new THREE.CylinderGeometry(r1, r2, h, s
 
 // ---------- rosto desenhado (olhos, sobrancelhas, boca, cicatrizes) ----------
 const faceCache = new Map();
+// cabeça de fera (leão, tigre, lobo ou crocodilo): crânio que cobre a cabeça humana, focinho, orelhas, olhos e pelagem
+function beastHead(head, kind, col, eyeCol, hs, fem, ft) {
+  hs *= 1.32; // a cabeça de fera precisa envolver a cabeça humana do modelo
+  const fur = toon(col), lite = toon(shade(col, 1.28)), dark = toon(shade(col, 0.55)), blk = toon('#1c1614'), wht = toon('#f2ead8'), eye = toon(eyeCol, { emissive: new THREE.Color(eyeCol).getHex(), ei: 0.25 });
+  const add = (m, x, y, z, sx = 1, sy = 1, sz = 1) => { at(m, x * hs, (y - 0.05) * hs, (z + 0.012) * hs); m.scale.set(sx, sy, sz); head.add(ft(m)); return m; };
+  const croc = kind === 'crocodilo', wolf = kind === 'lobo';
+  add(ball(0.158 * hs, fur, 18, 14), 0, 0.03, 0.0, croc ? 1.0 : 1.02, croc ? 0.92 : 1.0, 1.1); // crânio
+  add(ball(0.1 * hs, fur, 14, 10), 0, -0.15, -0.03, 1.15, 0.9, 1.1); // pescoço peludo
+  const eyes = (y, z, x, r) => [-1, 1].forEach(s => { add(ball(r * hs, eye, 10, 8), s * x, y, z, 1, 0.8, 0.6); const p = add(ball(r * 0.5 * hs, blk, 8, 6), s * x, y, z + r * 0.5, croc ? 0.35 : 0.7, 1, 0.5); const br = add(capsule(0.012 * hs, 0.05 * hs, dark, 6), s * x, y + r * 1.15, z + 0.004); br.rotation.z = Math.PI / 2 - s * 0.35; });
+  if (croc) {
+    add(capsule(0.062 * hs, 0.2 * hs, fur, 10), 0, -0.01, 0.2, 1.15, 0.62, 1).rotation.x = Math.PI / 2; // focinho de cima
+    add(capsule(0.055 * hs, 0.19 * hs, lite, 10), 0, -0.062, 0.18, 1.1, 0.42, 1).rotation.x = Math.PI / 2; // mandíbula
+    for (const s of [-1, 1]) { add(ball(0.03 * hs, fur, 8, 6), s * 0.04, 0.03, 0.34, 1, 0.7, 1); add(ball(0.045 * hs, fur, 10, 8), s * 0.075, 0.125, 0.07); // narinas e arcos dos olhos
+      for (let i = 0; i < 6; i++) { const t = add(cone(0.009 * hs, 0.028 * hs, wht, 5), s * (0.062 - i * 0.002), -0.045, 0.13 + i * 0.038); t.rotation.x = Math.PI; } }
+    for (let i = 0; i < 5; i++) add(cone(0.022 * hs, 0.05 * hs, dark, 5), 0, 0.17 - i * 0.012, -0.03 - i * 0.045).rotation.x = -0.5 - i * 0.25; // crista dorsal
+    eyes(0.125, 0.105, 0.075, 0.026);
+  } else {
+    const mz = wolf ? 0.2 : 0.165, ml = wolf ? 0.1 : 0.04;
+    add(capsule(0.066 * hs, ml * hs, lite, 10), 0, -0.035, mz - 0.03, wolf ? 0.92 : 1.2, wolf ? 0.8 : 0.9, 1).rotation.x = Math.PI / 2; // focinho
+    add(ball(0.052 * hs, wolf ? lite : wht, 10, 8), 0, -0.085, mz - 0.04, 1.15, 0.6, 1.1); // queixo
+    add(ball(0.03 * hs, blk, 10, 8), 0, -0.012, mz + ml / 2 + 0.03, 1.25, 0.8, 0.8); // nariz
+    add(capsule(0.006 * hs, 0.04 * hs, blk, 4), 0, -0.05, mz + ml / 2 + 0.035, 1, 1, 0.6);
+    for (const s of [-1, 1]) { const w = add(ball(0.045 * hs, wolf ? lite : wht, 10, 8), s * 0.04, -0.055, mz + ml / 2 - 0.005, 1, 0.75, 0.9); // bochechas
+      if (wolf) { const e = add(cone(0.05 * hs, 0.17 * hs, fur, 4), s * 0.085, 0.2, -0.03, 1, 1, 0.5); e.rotation.z = -s * 0.2; const ei = add(cone(0.03 * hs, 0.11 * hs, toon('#c89a8a'), 4), s * 0.085, 0.19, -0.012, 1, 1, 0.4); ei.rotation.z = -s * 0.2; for (let i = 0; i < 3; i++) { const c = add(cone(0.035 * hs, 0.11 * hs, lite, 5), s * (0.135 - i * 0.012), -0.06 - i * 0.035, 0.03 - i * 0.02); c.rotation.z = s * (2.0 + i * 0.25); } }
+      else { add(ball(0.045 * hs, fur, 10, 8), s * 0.105, 0.165, -0.02, 1, 1, 0.45); add(ball(0.028 * hs, dark, 8, 6), s * 0.105, 0.165, -0.005, 1, 1, 0.4); } // orelhas redondas
+      const fang = add(cone(0.009 * hs, 0.035 * hs, wht, 5), s * 0.03, -0.085, mz + ml / 2 - 0.005); fang.rotation.x = Math.PI; }
+    eyes(0.05, 0.135, 0.062, 0.027);
+    if (kind === 'leao' && !fem) { for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = 0.165; add(ball(0.075 * hs, dark, 8, 6), Math.sin(a) * r, 0.02 + Math.cos(a) * r, -0.05, 1, 1.25, 0.9).rotation.z = -a; } add(ball(0.17 * hs, dark, 12, 10), 0, 0.03, -0.1, 1.2, 1.2, 0.9); add(ball(0.11 * hs, dark, 10, 8), 0, -0.2, 0.05, 1.3, 1, 0.8); } // juba
+    if (kind === 'tigre') { for (const s of [-1, 1]) { for (let i = 0; i < 3; i++) { const st = add(capsule(0.008 * hs, 0.06 * hs, blk, 4), s * (0.12 + i * 0.012), 0.0 - i * 0.045, 0.08 - i * 0.01, 1, 1, 0.5); st.rotation.z = s * 1.2; st.rotation.y = s * 0.7; } const ch = add(ball(0.06 * hs, wht, 8, 6), s * 0.115, -0.06, 0.05, 0.6, 1, 0.9); }
+      for (let i = -1; i <= 1; i++) { const st = add(capsule(0.008 * hs, 0.055 * hs, blk, 4), i * 0.035, 0.165, 0.07, 1, 1, 0.5); st.rotation.x = 0.9; } }
+  }
+}
 function shade(hex, f) { const c = new THREE.Color(hex); c.multiplyScalar(f); return '#' + c.getHexString(); }
 export function faceTexture(look, race, expr = 'neutral', blink = false) {
   const R = GD.RACES[race] || GD.RACES.humano, f = R.feat || {};
@@ -102,7 +134,9 @@ const BASE_CLOTH = ['#e8e0cc', '#5a4a3a'];
 export function buildHumanoid(o) {
   const race = GD.RACES[o.race] ? o.race : 'humano', R = GD.RACES[race], f = R.feat || {}, fem = o.gender === 'f';
   const look = { skin: o.skin || 0, hair: o.hair || 0, hair_color: o.hair_color || 0, ...(o.look || {}), gender: o.gender, skinCol: o.skinColor };
-  const skinCol = o.skinColor || R.skins[look.skin] || R.skins[0];
+  const beast = race === 'beastman' ? ['leao', 'tigre', 'lobo', 'crocodilo'][(look.face || 0) % 4] : null;
+  let skinCol = o.skinColor || R.skins[look.skin] || R.skins[0];
+  if (beast === 'crocodilo') skinCol = '#' + new THREE.Color(skinCol).lerp(new THREE.Color('#5f7040'), 0.7).getHexString(); else if (beast === 'tigre') skinCol = '#' + new THREE.Color(skinCol).lerp(new THREE.Color('#d8842e'), 0.6).getHexString();
   const skin = toon(skinCol), hairM = toon(GD.HAIR_COLORS[look.hair_color] || '#333');
   const H = R.h * (fem ? 0.95 : 1), Wd = R.w * (fem ? 0.88 : 1);
   const root = G(), body = G(); root.add(body); body.scale.set(Wd, H, Wd);
@@ -132,8 +166,9 @@ export function buildHumanoid(o) {
     const e = at(ball(0.035, skin, 10, 8), s * 0.148 * hs, 0, -0.005); e.scale.set(0.45, 1, 0.8); return e;
   };
   const FEAT = []; const ft = (o) => { FEAT.push(o); return o; };
-  if (!f.snout) { const eL = ear(-1), eR = ear(1); P.head.add(eL, eR); if (f.ears || f.animalEars) FEAT.push(eL, eR); }
-  if (f.muzzle) { const mz = at(ball(0.075 * hs, toon(shade(skinCol, 1.12)), 16, 12), 0, -0.05 * hs, 0.12 * hs); mz.scale.set(1, 0.75, 1.1); P.head.add(ft(mz), ft(at(ball(0.025, toon('#222'), 10, 8), 0, -0.02 * hs, 0.2 * hs))); }
+  if (!f.snout && !beast) { const eL = ear(-1), eR = ear(1); P.head.add(eL, eR); if (f.ears || f.animalEars) FEAT.push(eL, eR); }
+  if (beast) beastHead(P.head, beast, skinCol, GD.RACES[race].eyes[look.eye_color] || '#e8b83a', hs, fem, ft);
+  else if (f.muzzle) { const mz = at(ball(0.075 * hs, toon(shade(skinCol, 1.12)), 16, 12), 0, -0.05 * hs, 0.12 * hs); mz.scale.set(1, 0.75, 1.1); P.head.add(ft(mz), ft(at(ball(0.025, toon('#222'), 10, 8), 0, -0.02 * hs, 0.2 * hs))); }
   if (f.snout) {
     const sn = at(capsule(0.05 * hs, 0.07, toon(skinCol)), 0, -0.065 * hs, 0.135 * hs); sn.rotation.x = Math.PI / 2; sn.scale.set(1.15, 1, 0.75); P.head.add(ft(sn));
     [-1, 1].forEach(s => { const h = at(cone(0.03, 0.22, toon('#e8dcc0'), 10), s * 0.08 * hs, 0.12 * hs, -0.1); h.rotation.x = -2.2; h.rotation.z = s * 0.25; P.head.add(ft(h)); });
@@ -177,6 +212,7 @@ export function buildHumanoid(o) {
     P.tail = at(G(), 0, 0.02, -0.14); P.hips.add(P.tail);
     let p = P.tail; for (let i = 0; i < 4; i++) { const r = (f.tail === 'fur' ? 0.055 : 0.07) * (1 - i * 0.18); const seg = at(G(), 0, 0, i ? -0.14 : 0); p.add(seg); seg.add(at(capsule(r, 0.1, tm, 8), 0, 0, -0.07)).children.at(-1).rotation.x = Math.PI / 2; seg.rotation.x = 0.35; p = seg; }
   }
+  if (beast && P.tail) { if (beast === 'crocodilo') P.tail.scale.set(1.7, 1.4, 1.15); else if (beast === 'leao') { let p = P.tail; while (p.children.find(c => c.isGroup)) p = p.children.find(c => c.isGroup); p.add(at(ball(0.06, toon(shade(skinCol, 0.5)), 8, 6), 0, 0, -0.14)); P.tail.scale.set(0.6, 0.6, 1.25); } else if (beast === 'tigre') P.tail.scale.set(0.7, 0.7, 1.3); }
   if (f.wings) {
     P.wings = at(G(), 0, 0.46, -0.12); P.torso.add(P.wings);
     const wm = toon('#d8f0ff', { opacity: 0.55, double: true, emissive: 0x6ab8ff, ei: 0.25 });
