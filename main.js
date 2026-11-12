@@ -4,6 +4,9 @@ import { buildHumanoid, setGear, animHumanoid, playAttack, upgradeGLB, buildMob,
 import { updateWaterDepth, createSky, createWater, dayPhase, sunVectors, WIND, makeFire, updateFires, initLightPool, createGrass, layoutGrass, ROCK_GEOS, rockMat, TREE_KINDS, leafMat, treeTrunkMat } from './world3d.js';
 import { buildTownArchitecture, buildLandmark, updateTownAnim, stoneify } from './towns.js';
 import { buildNeon, buildPortal, updateNeon } from './neon.js';
+import { ELEM, elemOf, isMeteor, classElem, initElements, updateElements, elemImpact, meteor, castBurst, bodyAura } from './elements.js';
+import { initUI, initBars, toggleEquip, renderEquip, updateEquip, equipOpen, closeEquip } from './ui.js';
+import { buildWings } from './companions.js';
 import { RoomEnvironment } from './lib/RoomEnvironment.js';
 import { NAT, loadNature, buildNatureChunk, disposeNature } from './nature.js';
 import { initFX, emit, slash, shock, beam, updateFX, updateTrail, crater } from './fx.js';
@@ -52,7 +55,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: !IS_MOBILE, powerP
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
-const scene = new THREE.Scene(); initFX(scene);
+const scene = new THREE.Scene(); initFX(scene); initElements({ scene, H: (x, z) => WG.height(x, z), shake: k => shake(k), sfx: (k, v) => sfx(k, v) });
 const _tipV = new THREE.Vector3();
 const fxBurst = (x, y, z, color, n = 12, size = 0.2) => emit(x, y, z, { n, color, size, speed: 3, up: 1.5, life: 0.6 });
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.3, 1200);
@@ -181,7 +184,10 @@ function buildChunk(cx, cz) {
     if (h < 2 || h > 34 || WG.nearestTown(x, z).dist < 105 || WG.nearestLandmark(x, z).dist < 40 || WG.inNeon(x, z, 20) || WG.roadDist(x, z) < 6) continue;
     const k = th.key === 'noite' || th.key === 'sombra' ? (roll < 0.6 ? 2 : 6) : th.key === 'rocha' || th.key === 'savana' ? (roll < 0.5 ? 0 : 2) : roll < 0.28 ? 0 : roll < 0.4 ? 1 : roll < 0.62 ? 2 : roll < 0.74 ? 3 : roll < 0.84 ? 4 : roll < 0.94 ? 5 : 6;
     const sbb = subBiome(x, z, h, th.key, 999); if (sbb.name === 'deserto' && r2() < 0.7) continue; under.push([x, h, z, sc, r, k, sbb.name]); }
-  chunks.set(cx + ',' + cz, { group, mesh, nodes, cx, cz, nat: null, natData: { trees: byKind, rocks, under, theme: th.key, rockTint: ROCK_TINT[th.key] || '#ffffff' } });
+  // colisão: troncos e rochas grandes deste pedaço
+  const cols = []; for (const pts of Object.values(byKind)) for (const [x, , z, sc] of pts) cols.push(x, z, 0.45 * sc);
+  for (const pts of [...rocks, ...hiRocks]) for (const [x, , z, sc] of pts) if (sc > 1.1) cols.push(x, z, sc * 0.8);
+  chunks.set(cx + ',' + cz, { cols, group, mesh, nodes, cx, cz, nat: null, natData: { trees: byKind, rocks, under, theme: th.key, rockTint: ROCK_TINT[th.key] || '#ffffff' } });
 }
 function dropChunk(key) { const c = chunks.get(key); if (c.nat) disposeNature(c.nat); scene.remove(c.group); c.mesh.geometry.dispose(); c.group.children.forEach(o => { if (o.isInstancedMesh) o.dispose(); }); const i = terrainMeshes.indexOf(c.mesh); if (i >= 0) terrainMeshes.splice(i, 1); c.nodes.forEach(n => { const m = nodeMeshes.get(n.id); if (m) { scene.remove(m); nodeMeshes.delete(n.id); } }); chunks.delete(key); }
 let CHUNK_R = 4;
@@ -242,7 +248,7 @@ async function portalTick() {
 }
 function townCtx(t) {
   const roadAngles = WG.ROADS.filter(([a, b]) => a === t || b === t).map(([a, b]) => { const o = a === t ? b : a; return Math.atan2(o.z - t.z, o.x - t.x); });
-  return { t, roadAngles, H: (x, z) => WG.height(x, z), collide: (x, z, r) => houses.push({ x, z, r }),
+  return { t, roadAngles, H: (x, z) => WG.height(x, z), collide: (x, z, r) => houses.push({ x, z, r }), collideBox: (x, z, hw, hd, rot) => houses.push({ x, z, hw, hd, c: Math.cos(rot), s: Math.sin(rot), br: Math.hypot(hw, hd), r: Math.max(hw, hd) }),
     statue: (race, x, z, s, rot) => { const m = buildHumanoid({ glb: false, race, gender: 'm', skinColor: '#8a8478', armor: 'pesada_c', weapon: 'martelo_c', look: { beard: 2 } }); m.root.scale.setScalar(s); m.root.position.set(x, WG.height(x, z) + 1.2, z); m.root.rotation.y = rot; const base = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.8, 1.2, 12), mat('#6a645a')); base.position.set(x, WG.height(x, z) + 0.6, z); scene.add(m.root, base); houses.push({ x, z, r: 2.8 }); },
     dragonStatue: (x, z, s, rot) => { const R = buildMob({ ...FAM.dragao, color: '#2a2626', boss: false, ghost: false }); R.root.scale.setScalar(s); R.root.position.set(x, WG.height(x, z), z); R.root.rotation.y = rot; scene.add(R.root); houses.push({ x, z, r: 4 }); } };
 }
@@ -392,7 +398,7 @@ addEventListener('keydown', e => {
   const bk = BAR_KEYS.indexOf(e.key); if (bk >= 0 && !e.ctrlKey) { e.preventDefault(); useSlot(e.shiftKey ? bk : bk); return; }
   if (e.code === 'Tab') { e.preventDefault(); nextTarget(); }
   if (e.code === 'KeyQ') dodge();
-  if (e.code === 'KeyR') toggleRide(); if (e.code === 'KeyV') toggleFly();
+  if (e.code === 'KeyR') toggleRide(); if (e.code === 'KeyV') toggleFly(); if (e.code === 'KeyU') toggleEquip(EQX);
   if (S.fly && e.code === 'Space') { e.preventDefault(); return; }
   if (e.code === 'Space' || e.code === 'KeyF') { e.preventDefault(); attackKey(); }
   const P = { KeyC: 'char', KeyI: 'bag', KeyK: 'skills', KeyL: 'quests', KeyM: 'map', KeyH: 'lore', KeyJ: 'codex', KeyG: 'gm' }[e.code];
@@ -416,7 +422,7 @@ function basicAttack(st) {
   B.sendFx({ k: kind === 'bow' ? 'arrow' : kind === 'cast' ? 'magic' : 'melee', x: me.x, z: me.z, tx: p.x, tz: p.z, id: S.c.id });
 }
 function hitTarget(t, mult, st, proj, sk) {
-  const p = tgtPos(t); const rk = st.cls.rank; mult *= sk ? 1 + 0.1 * rk : 1;
+  const p = tgtPos(t); const rk = st.cls.rank; mult *= sk ? 1 + 0.1 * rk : 1; if (sk && elemOf(sk) === GD.RACE_ELEM[S.c.race]) mult *= 1.05;
   const apply = () => {
     if (t.kind === 'mob') {
       const m = t.ref; if (m.dead) return;
@@ -440,8 +446,12 @@ function hitTarget(t, mult, st, proj, sk) {
       pvpHit(t.ref, mult);
     }
   };
-  if (proj) projectile(me.x, me.z, p.x, p.z, proj, sk?.fx, apply); else apply();
+  const el = elemOf(sk), fxApply = () => { apply(); if (el && sk && t.kind === 'mob' && (sk.aoe || (sk.mult || 0) >= 1.6)) { const c = sk.self ? me : p; elemImpact(el, c.x, c.z, sk.aoe || 2, (sk.mult || 1) / 2); } };
+  if (isMeteor(sk)) meteor(sk.self ? me.x : p.x, sk.self ? me.z : p.z, sk.aoe || 5, apply);
+  else if (proj) projectile(me.x, me.z, p.x, p.z, proj, sk?.fx, fxApply); else fxApply();
 }
+// elemento do personagem: o que domina a classe; se não houver, o da raça
+function myElem() { const st = stats(); const k = S.c.class_id + ':' + S.c.race; if (S.elemKey !== k) { S.elemKey = k; S.elem = classElem(st.arch.skills, GD.RACE_ELEM[S.c.race]); } return S.elem; }
 async function pvpHit(o, mult) {
   if (inSafe(me.x, me.z) || inSafe(o.x, o.z)) { toast('PvP proibido dentro das cidades', 'err'); S.autoAtk = false; return; }
   const r = await safe(() => B.pvp(o.id, mult)); if (!r) { S.autoAtk = false; return; }
@@ -456,7 +466,7 @@ function hitFx(o, st, crit, sk) {
   emit(o.x, y, o.z, { n: crit ? 26 : 12, color: col, speed: crit ? 7 : 4.5, up: 1.5, life: 0.35, size: crit ? 0.2 : 0.14, grav: 10, drag: 3 });
   if (!st.magic && st.range < 5) slash(o.x, y, o.z, Math.atan2(o.x - me.x, o.z - me.z) + Math.PI / 2, crit ? 0xffb050 : (GD.ENC_TIER(me.enc || 0) ? new THREE.Color(GD.ENC_TIER(me.enc).c).getHex() : 0xffffff), crit || !!sk);
   if (crit) { shock(o.x, y - 1, o.z, 0xffa040, 2.2, 0.35); shake(0.35); postFlash(0.25); hitStop(70); }
-  if (sk && (sk.mult || 0) >= 2.5) { crater(o.x, y - 1.1, o.z, col, 2.5); shake(0.5); hitStop(90); }
+  if (sk && (sk.mult || 0) >= 2.5) { if (!elemOf(sk)) crater(o.x, y - 1.1, o.z, col, 2.5); shake(0.5); hitStop(90); }
 }
 function lightning(x, y, z) {
   sfx('thunder', 0.4);
@@ -464,7 +474,7 @@ function lightning(x, y, z) {
   const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xcfe8ff, transparent: true, blending: THREE.AdditiveBlending })); scene.add(l);
   fx.push({ obj: l, t: 0, dur: 0.3, up: (o, k) => { o.material.opacity = 1 - k; } }); emit(x, y + 0.3, z, { n: 30, color: 0xbfe0ff, speed: 6, up: 2, life: 0.4, size: 0.18 }); shock(x, y, z, 0xbfe0ff, 3, 0.4);
 }
-function hurtMob(m, v, crit) {
+function hurtMob(m, v, crit) { S.auraAt = Date.now();
   if (m.dead) return;
   if (m.returning) { floatText(m.x, WG.height(m.x, m.z) + 2.2 * m.fam.scale, m.z, 'Imune', '#9ab8ff'); return; }
   if (me && inSafe(me.x, me.z) && !S.gmKill) { if (!S.safeToast || Date.now() - S.safeToast > 3000) { S.safeToast = Date.now(); toast('Você não pode atacar monstros de dentro da cidade — saia da zona segura', 'err'); } S.autoAtk = false; return; } m.hp -= v; m.aggro = true; S.lastCombat = Date.now();
@@ -578,7 +588,7 @@ function castSkill(i) {
   if (needT) { const p = tgtPos(tg), d = Math.hypot(p.x - me.x, p.z - me.z), rng = sk.type === 'dash' || sk.type === 'blink' ? (sk.range || 14) : sk.type === 'chain' ? 18 : st.range + 1.5; if (d > rng) { toast('Alvo fora de alcance', 'err'); S.dest = { x: p.x, z: p.z }; S.autoAtk = true; return; } faceTo(p.x, p.z); }
   if (COMP.riding) dismount(); S.mp -= mpc; S.cds[i] = t + sk.cd * 1000; S.autoAtk = needT || S.autoAtk;
   const kind = st.weaponKind === 'arco' ? 'bow' : st.magic ? 'cast' : 'melee'; playAttack(me, ['hit', 'dash', 'blink', 'multi'].includes(sk.type) ? kind : 'cast'); if ((sk.type === 'hit' || sk.type === 'dash') && kind === 'melee') me.anim.kind = 'skill';
-  floatText(me.x, WG.height(me.x, me.z) + 2.7, me.z, sk.icon + ' ' + sk.name, '#bfe8ff', 22);
+  floatText(me.x, WG.height(me.x, me.z) + 2.7, me.z, sk.icon + ' ' + sk.name, '#bfe8ff', 22); S.auraAt = Date.now(); castBurst(elemOf(sk) || myElem(), me.x, me.z, 1.8 * (GD.RACES[S.c.race]?.h || 1));
   if (sk.type === 'hit') { if (sk.self) hitTarget({ kind: 'mob', ref: nearestMob() || { x: me.x, z: me.z, dead: true } }, sk.mult, st, null, sk); else hitTarget(tg, sk.mult, st, st.range > 5 ? (st.magic ? 'magic' : 'arrow') : null, sk); aoeFx(sk, tg); }
   if (sk.type === 'dash') { const p = tgtPos(tg), d = Math.hypot(p.x - me.x, p.z - me.z), k = Math.max(0, (d - 1.8) / d); me.x += (p.x - me.x) * k; me.z += (p.z - me.z) * k; hitTarget(tg, sk.mult, st, null, sk); }
   if (sk.type === 'leap') { const p = tg ? tgtPos(tg) : null; const a = p ? Math.atan2(me.x - p.x, me.z - p.z) : me.ry + Math.PI; const nx = me.x + Math.sin(a) * sk.dist, nz = me.z + Math.cos(a) * sk.dist; if (!blocked(nx, nz)) { me.x = nx; me.z = nz; } }
@@ -644,6 +654,7 @@ function castZone(sk, st, tg) {
   shock(p.x, y, p.z, col, R, 0.8); let n = 0; const ticks = sk.ticks || 4; sfx(sk.fx === 'ice' ? 'ice' : sk.fx === 'fire' ? 'fire' : 'magic');
   const iv = setInterval(() => { if (++n > ticks) { clearInterval(iv); return; }
     for (let k = 0; k < 6; k++) { const a = Math.random() * 6.28, r = Math.random() * R; emit(p.x + Math.cos(a) * r, y + 9, p.z + Math.sin(a) * r, { n: 4, color: col, speed: 0.5, up: -14, life: 0.6, size: 0.3, grav: 20 }); }
+    const zel = elemOf(sk), za = Math.random() * 6.28, zr = Math.random() * R * 0.6, zx = p.x + Math.cos(za) * zr, zz = p.z + Math.sin(za) * zr; if (isMeteor(sk)) meteor(zx, zz, R * 0.55, null, 0.7); else if (zel) setTimeout(() => elemImpact(zel, zx, zz, R * 0.6, 0.8), 260);
     setTimeout(() => { emit(p.x, y + 0.4, p.z, { n: 24, color: col, speed: 5, up: 2, ring: R * 0.5, life: 0.5, size: 0.25 }); if (sk.fx === 'fire') shake(0.15);
       S.mobs.filter(o => !o.dead && Math.hypot(o.x - p.x, o.z - p.z) < R + 0.5).forEach(o => { hurtMob(o, Math.round(GD.dmgFormula(st.atk, sk.mult / ticks * 1.6, o.st.def)), false); o.aggro = true; if (n === 1) applyStatus(o, sk, st); }); }, 280);
   }, 600);
@@ -771,7 +782,13 @@ function updateMobs(dt) {
 }
 
 // ---------- movimento ----------
-function blocked(x, z) { if (x < 20 || z < 20 || x > 2980 || z > 2980) return true; if (WG.height(x, z) < WG.WATER + 0.25) return true; for (const h of houses) if ((x - h.x) ** 2 + (z - h.z) ** 2 < h.r * h.r) return true; return false; }
+// preso dentro de um objeto (ex.: chegou por teleporte): deixa sair andando
+function stuckIn(x, z) { return WG.height(x, z) > WG.WATER + 0.25 && blocked(x, z); }
+function blocked(x, z, fly) { if (x < 20 || z < 20 || x > 2980 || z > 2980) return true; if (!fly && WG.height(x, z) < WG.WATER + 0.25) return true;
+  if (fly && S.alt > 9) return false; // voando alto passa por cima
+  for (const h of houses) { const dx = x - h.x, dz = z - h.z; if (h.hw) { if (Math.abs(dx) > h.br || Math.abs(dz) > h.br) continue; const lx = dx * h.c + dz * h.s, lz = -dx * h.s + dz * h.c; if (Math.abs(lx) < h.hw && Math.abs(lz) < h.hd) return true; } else if (dx * dx + dz * dz < h.r * h.r) return true; }
+  const c = chunks.get(Math.floor(x / CH) + ',' + Math.floor(z / CH)); if (c && c.cols) { const a = c.cols; for (let k = 0; k < a.length; k += 3) { const dx = x - a[k], dz = z - a[k + 1]; if (dx * dx + dz * dz < a[k + 2] * a[k + 2]) return true; } }
+  return false; }
 function teleport(x, z) { me.x = x; me.z = z; S.dest = null; S.target = null; S.autoAtk = false; S.mobs.forEach(freeMob); S.mobs = []; updateChunks(x, z, true); saveNow(); }
 function updateMe(dt) {
   const st = stats(); let vx = 0, vz = 0, moving = false;
@@ -805,8 +822,8 @@ function updateMe(dt) {
       else { sp = 0; if (now() - (S.staWarn || 0) > 2500) { S.staWarn = now(); toast('Sem fôlego para escalar — espere recuperar', 'err'); } }
     } else if (grade > 0.45) sp *= 0.72;
     const nx = me.x + vx / l * sp, nz = me.z + vz / l * sp;
-    if (sp > 0 && S.fly) { if (nx > 20 && nz > 20 && nx < 2980 && nz < 2980) { me.x = nx; me.z = nz; moving = true; } }
-    else if (sp > 0) { if (!blocked(nx, nz)) { me.x = nx; me.z = nz; moving = true; } else if (!blocked(nx, me.z)) { me.x = nx; moving = true; } else if (!blocked(me.x, nz)) { me.z = nz; moving = true; } else S.dest = null; }
+    if (sp > 0 && S.fly) { if (!blocked(nx, nz, true) || blocked(me.x, me.z, true)) { me.x = nx; me.z = nz; moving = true; } }
+    else if (sp > 0) { if (!blocked(nx, nz) || (stuckIn(me.x, me.z) && !stuckIn(nx, nz) || stuckIn(me.x, me.z) && WG.height(nx, nz) > 0.3)) { me.x = nx; me.z = nz; moving = true; } else if (!blocked(nx, me.z)) { me.x = nx; moving = true; } else if (!blocked(me.x, nz)) { me.z = nz; moving = true; } else S.dest = null; }
     me.ry = Math.atan2(vx, vz); S.channel = null;
     if (sprint && moving && !climbing) { S.sta = Math.max(0, S.sta - 11 * dt); mode = 'sprint'; }
     if (climbing) mode = 'climb';
@@ -1047,7 +1064,7 @@ let panelState = {};
 function openPanel(kind, o = {}) { panelState = { kind, ...o }; $('#panel').hidden = false; renderPanel(); }
 function closePanel() { $('#panel').hidden = true; panelState = {}; }
 $('#p-close').onclick = closePanel;
-document.querySelectorAll('#menu button').forEach(b => b.onclick = () => panelState.kind === b.dataset.p ? closePanel() : openPanel(b.dataset.p));
+document.querySelectorAll('#menu button').forEach(b => b.onclick = () => { if ($('#menu').dataset.dragged && Date.now() - $('#menu').dataset.dragged < 250) return; b.dataset.p === 'equip' ? toggleEquip(EQX) : panelState.kind === b.dataset.p ? closePanel() : openPanel(b.dataset.p); });
 function npcSay(n) { if (!n.model) return; n.greet = Date.now(); const o = n.model.o || {}; say(n.model.root, npcLine(n.type, S.c.name), { race: o.race, gender: o.gender, h: 2.5 * (GD.RACES[o.race]?.h || 1) }); }
 // ----- habitantes: aldeões que passeiam, conversam e vivem nas cidades -----
 const VIL = { list: [], town: null, max: 8 };
@@ -1099,6 +1116,9 @@ function itemDesc(id) {
 function renderPanel() {
   const k = panelState.kind; if (!k) return; const body = $('#p-body'); body.onclick = null;
   const T = { codex: 'Compêndio de Valtheria', char: 'Personagem', bag: 'Inventário', skills: 'Habilidades', quests: 'Diário de Missões', map: 'Mapa do Reino', lore: 'Crônicas de Valtheria', gm: 'Painel do GM', sys: 'Sistema', teleport: 'Guardião do Portal', classe: 'Mestre de Classes', craft: panelState.station === 'forja' ? 'Ferreiro' : 'Refinador e Alquimista', shop: 'Mercador', market: 'Casa de Leilões', arauto: 'Arauto do Eclipse' };
+  { const G = [['char', 'skills', 'quests'], ['bag', 'codex'], ['map', 'lore']].find(g => g.includes(k)), ic = { char: '🧝 Personagem', skills: '📘 Habilidades', quests: '📜 Missões', bag: '🎒 Bolsa', codex: '📚 Compêndio', map: '🗺️ Mapa', lore: '📖 História' };
+    let tb = $('#p-tabs'); if (!tb) { tb = document.createElement('div'); tb.id = 'p-tabs'; body.parentNode.insertBefore(tb, body); tb.onclick = e => { const b = e.target.closest('[data-tab]'); if (b) b.dataset.tab === 'equip' ? toggleEquip(EQX) : openPanel(b.dataset.tab); }; }
+    tb.hidden = !G; if (G) tb.innerHTML = G.map(t => `<button data-tab="${t}" class="${t === k ? 'on' : ''}">${ic[t]}</button>`).join('') + (G[0] === 'char' || G[0] === 'bag' ? '<button data-tab="equip">🛡️ Equipamento (U)</button>' : ''); }
   $('#p-title').textContent = T[k] || k; body.innerHTML = '';
   ({ codex: pCodex, char: pChar, bag: pBag, skills: pSkills, quests: pQuests, map: pMap, lore: pLore, gm: pGm, sys: pSys, teleport: pTeleport, classe: pClasse, craft: pCraft, shop: pShop, market: pMarket, arauto: pArauto })[k](body);
   numberPanel();
@@ -1177,7 +1197,7 @@ function pBag(b) {
   b.onclick = async e => {
     if (e.target.dataset.f) { panelState.f = e.target.dataset.f; return renderPanel(); }
     const a = e.target.dataset.a, id = panelState.sel;
-    if (a === 'eq') { const r = await safe(() => B.equip(id), 'Equipado'); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); S.hp = Math.min(S.hp, stats().maxHp); buildBar(); renderPanel(); } return; }
+    if (a === 'eq') { const r = await equipItem(id); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); S.hp = Math.min(S.hp, stats().maxHp); buildBar(); renderPanel(); } return; }
     if (a === 'bar') { addToBar({ t: 'i', id }); return; }
     const enc = e.target.dataset.enc; if (enc) { await doEnchant(enc); return; }
     if (a === 'use' && IT(id).comp) { const it = IT(id); if (S.c.level < it.comp.lvl) return toast(`Requer nível ${it.comp.lvl}`, 'err'); if (it.type === 'pet') await summonPet(id); else if (it.type === 'mount') await setMount(id); else setWings(id); renderPanel(); return; }
@@ -1349,12 +1369,19 @@ Object.defineProperty(S, 'bar', { get() { if (!S.barAll) return null; const o = 
 function saveBar() { localStorage.setItem(barKey(), JSON.stringify(S.barAll)); }
 function skillIndex(id) { return stats().arch.skills.findIndex(s => s.id === id); }
 function useSlot(n) { const e = S.bar[n]; if (!e) return; if (e.t === 's') { const i = skillIndex(e.id); if (i >= 0) castSkill(i); } else useBagItem(e.id); }
+// equipar com a regra de pegada: arma de duas mãos (ou par de armas) não aceita escudo
+async function equipItem(id) { const it = IT(id), eq = S.c.equipment || {}, w = IT(eq.arma);
+  if (it.slot === 'escudo' && w && GD.TWO_HANDED.includes(w.kind)) { toast(`${w.name} ocupa as duas mãos — troque por uma arma de uma mão (espada ou machado) para usar escudo`, 'err'); return null; }
+  let r = await safe(() => B.equip(id), 'Equipado'); if (!r) return null;
+  if (it.slot === 'arma' && GD.TWO_HANDED.includes(it.kind) && r.escudo) { const r2 = await safe(() => B.unequip('escudo')); if (r2) { r = r2; toast('🛡️ Escudo guardado: esta arma usa as duas mãos'); } }
+  return r; }
 async function useBagItem(id) { const it = IT(id); if (!it) return; if (!S.inv[id]) { toast(`Sem ${it.name} na bolsa`, 'err'); return; }
   if (it.type === 'scroll') { const r = await safe(() => B.useItem(id)); if (r) { S.inv[id]--; if (!S.inv[id]) delete S.inv[id]; toast('Retornando a ' + r.town, 'ok'); teleport(r.x, r.z); } }
   else if (it.type === 'potion') await usePotion(id.startsWith('pocao_mp') ? 'mp' : 'hp', id);
-  else if (it.slot) { const r = await safe(() => B.equip(id), 'Equipado'); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); } }
+  else if (it.slot) { const r = await equipItem(id); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); } }
   buildBar(); }
 function buildBar() {
+  buildBar2();
   if (!S.barAll) loadBar(); const st = stats();
   $('#bar').innerHTML = `<div class="bpage" title="Página da barra (tecla ao lado do 1, ou clique)"><button data-pg="-1">▲</button><b>${S.barPage + 1}</b><button data-pg="1">▼</button></div>` + S.bar.map((e, n) => {
     let inner = '', title = 'Vazio — arraste uma habilidade (K) ou item da bolsa (I) para cá', cls = 'empty';
@@ -1370,6 +1397,37 @@ function buildBar() {
   bar.ondrop = e => { e.preventDefault(); const k = e.target.closest('.sk'); if (!k) return; let d; try { d = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (_) { return; } const n = +k.dataset.n;
     if (d.from != null) { const tmp = S.bar[n]; S.bar[n] = S.bar[d.from]; S.bar[d.from] = tmp; } else if (d.t) S.bar[n] = { t: d.t, id: d.id }; saveBar(); buildBar(); };
 }
+// ---------- barra extra (9 atalhos só de clique) ----------
+function loadBar2() { try { const b = JSON.parse(localStorage.getItem(barKey() + '_x')); S.bar2 = Array.isArray(b) && b.length === 9 ? b : Array(9).fill(null); } catch (_) { S.bar2 = Array(9).fill(null); } }
+function buildBar2() { const el = $('#bar2'); if (!el) return; if (!S.bar2 || S.bar2Key !== barKey()) { S.bar2Key = barKey(); loadBar2(); } const st = stats();
+  el.innerHTML = S.bar2.map((e, n) => { let inner = '', title = 'Atalho extra (só clique) — arraste uma habilidade (K) ou item (I) para cá', cls = 'empty';
+    if (e && e.t === 's') { const s = st.arch.skills.find(x => x.id === e.id); if (s) { inner = s.icon; title = s.name; cls = S.c.level < s.lvl ? 'off' : ''; } } else if (e && e.t === 'i') { const it = IT(e.id); if (it) { inner = (it.icon || '📦') + `<span class="n">${S.inv[e.id] || 0}</span>`; title = it.name; cls = S.inv[e.id] ? '' : 'off'; } }
+    return `<div class="sk ${cls}" data-n="${n}" title="${esc(title)}">${inner}</div>`; }).join('');
+  el.onclick = e => { const k = e.target.closest('.sk'); if (!k) return; const en = S.bar2[+k.dataset.n]; if (!en) return; if (en.t === 's') { const i = skillIndex(en.id); if (i >= 0) castSkill(i); } else useBagItem(en.id); };
+  el.oncontextmenu = e => { e.preventDefault(); const k = e.target.closest('.sk'); if (!k) return; S.bar2[+k.dataset.n] = null; localStorage.setItem(barKey() + '_x', JSON.stringify(S.bar2)); buildBar2(); };
+  el.ondragover = e => e.preventDefault();
+  el.ondrop = e => { e.preventDefault(); const k = e.target.closest('.sk'); if (!k) return; let d; try { d = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (_) { return; } const n = +k.dataset.n; if (d.from != null) S.bar2[n] = S.bar[d.from]; else if (d.t) S.bar2[n] = { t: d.t, id: d.id }; localStorage.setItem(barKey() + '_x', JSON.stringify(S.bar2)); buildBar2(); }; }
+// ---------- aba de equipamento com boneco 3D ----------
+const EQX = { esc,
+  data() { const c = S.c, eq = c.equipment || {}, st = stats(), slots = {}, locked = {};
+    for (const k of ['elmo', 'armadura', 'luvas', 'botas', 'arma', 'escudo']) { const it = IT(eq[k]); if (it) slots[k] = { id: it.id, name: it.name, html: icImg(it, true), enc: (c.enchant || {})[it.id], desc: itemDesc(it.id) }; }
+    const cmp = (k, id) => { const it = IT(id); if (it) slots[k] = { id, name: it.name, html: it.icon, desc: itemDesc(id) }; }; cmp('asas', COMP.wingsId); cmp('montaria', COMP.mountId); cmp('pet', COMP.petId);
+    const w = IT(eq.arma); if (w && GD.TWO_HANDED.includes(w.kind)) locked.escudo = 'Bloqueado: a arma atual usa as duas mãos';
+    for (const k of ['colar', 'anel1', 'anel2', 'brinco', 'capa', 'reliquia']) locked[k] = 'Acessório especial — conquistado em chefes e eventos (em breve)'; locked.insignia = 'Insígnia do clã — chega com o sistema de clãs';
+    const el = myElem(), E = ELEM[el], re = ELEM[GD.RACE_ELEM[c.race]];
+    return { slots, locked, sig: JSON.stringify([eq, COMP.wingsId, c.enchant && c.enchant[eq.arma], c.race]),
+      stats: `<b>${esc(c.name)}</b> • Nv. ${c.level}<br>⚔️ ${Math.round(st.patk)} &nbsp;🔮 ${Math.round(st.matk)} &nbsp;🛡️ ${Math.round(st.pdef)} &nbsp;✨ ${Math.round(st.mdef)}<br>${E ? `${E.icon} Elemento da classe: <b>${E.name}</b>` : ''}${re ? ` • ${re.icon} Afinidade da raça: <b>${re.name}</b>` : ''}<br>${w ? (GD.TWO_HAND_GRIP.includes(w.kind) ? '🤲 Pegada de duas mãos' : GD.TWO_HANDED.includes(w.kind) ? '⚔️ Uma arma em cada mão' : '✋ Uma mão — pode usar escudo') : '👊 Desarmado'}`,
+      foot: `<button class="btn" data-act="bag">🎒 Abrir bolsa</button> ${COMP.wingsId ? `<button class="btn" data-act="fly">🪽 ${S.fly ? 'Pousar' : 'Voar'} (V)</button>` : '<span class="small">Equipe asas (use-as na bolsa) para voar</span>'} ${COMP.mountId ? '<button class="btn" data-act="ride">🐎 Montar (R)</button>' : ''}` }; },
+  async onSlot(k) { const eq = S.c.equipment || {};
+    if (['elmo', 'armadura', 'luvas', 'botas', 'arma', 'escudo'].includes(k)) { if (!eq[k]) { openPanel('bag'); return; } const r = await safe(() => B.unequip(k), 'Desequipado'); if (r) { S.c.equipment = r; await refresh(); me.enc = encOf(S.c); setGear(me, r.arma, r.armadura, r); buildBar(); renderEquip(); } }
+    else if (k === 'asas') { COMP.wingsId ? setWings(COMP.wingsId) : openPanel('bag'); renderEquip(); } else if (k === 'montaria') { COMP.mountId ? toggleRide() : openPanel('bag'); } else if (k === 'pet') { COMP.petId ? summonPet(COMP.petId) : openPanel('bag'); renderEquip(); }
+    else toast('Este espaço será liberado com acessórios de chefes, eventos e do clã', 'err'); },
+  onAct(a) { if (a === 'bag') openPanel('bag'); else if (a === 'fly') { toggleFly(); renderEquip(); } else if (a === 'ride') toggleRide(); },
+  makeDoll() { const c = S.c, d = buildHumanoid({ ...c, glb: true, weapon: c.equipment.arma, armor: c.equipment.armadura, equip: c.equipment, enc: encOf(c) }); upgradeGLB(d); d.height = 1.8 * (GD.RACES[c.race]?.h || 1);
+    if (COMP.wingsId) { const wd = IT(COMP.wingsId)?.comp, h = GD.RACES[c.race]?.h || 1; if (wd) d.root.add(buildWings(wd.color, 0.9 * h, 1.32 * h, -0.16)); } return d; },
+  animDoll(d, dt) { animHumanoid(d, dt); } };
+let eqSig = '';
+function equipWatch() { if (!equipOpen()) return; const s = JSON.stringify([S.c.equipment, COMP.wingsId, COMP.mountId, COMP.petId, S.fly, S.c.enchant]); if (s !== eqSig) { eqSig = s; renderEquip(); } }
 function addToBar(entry) { let n = S.bar.findIndex(e => e && e.t === entry.t && e.id === entry.id); if (n >= 0) { toast('Já está na barra', 'err'); return; } n = S.bar.findIndex(e => !e); if (n < 0) { toast('Barra cheia — clique com o botão direito num atalho para liberar', 'err'); return; } S.bar[n] = entry; saveBar(); buildBar(); toast('Adicionado à barra (tecla ' + BAR_KEYS[n] + ')', 'ok'); }
 function updateHud() {
   const c = S.c, st = stats(), need = GD.xpNeed(c.level);
@@ -1482,9 +1540,9 @@ async function enterWorld(id) {
   const st = await B.state(); S.c = st.char; S.inv = st.inventory || {}; for (const [k, v] of Object.entries(st.depleted || {})) S.dep[k] = +v;
   studio.visible = false; if (!npcs.length) buildTowns(); if (!mmBase) buildMinimapBase();
   S.bar = null; makeMe(); const s = stats(); S.hp = S.c.hp > 0 && S.c.hp <= s.maxHp ? S.c.hp : s.maxHp; S.mp = S.c.mp > 0 && S.c.mp <= s.maxMp ? S.c.mp : s.maxMp;
-  if (blocked(me.x, me.z) || S.c.hp <= 0) { const t = WG.nearestTown(me.x, me.z).town; me.x = t.x; me.z = t.z + 25; }
+  if (me.x < 20 || me.z < 20 || me.x > 2980 || me.z > 2980 || WG.height(me.x, me.z) < WG.WATER + 0.25 || S.c.hp <= 0) { const t = WG.nearestTown(me.x, me.z).town; me.x = t.x; me.z = t.z + 25; }
   updateChunks(me.x, me.z, true); loadQuests(); renderTracker(); buildBar(); S.fly = false; S.alt = 0; restoreComp();
-  show('#hud'); S.inGame = true; $('#btn-gm').hidden = !S.c.is_gm;
+  show('#hud'); S.inGame = true; if (!S.uiInit) { S.uiInit = 1; initUI(); initBars(); } $('#btn-gm').hidden = !S.c.is_gm;
   B.join({ id: S.c.id, name: S.c.name, is_gm: S.c.is_gm }, { onPos, onLeave: id => { const o = S.others[id]; if (o) { o.model && scene.remove(o.model.root); delete S.others[id]; } }, onPresence: p => S.presence = p, onChat, onNode, onEvent, onFx: remoteFx });
   $('#chat-log').innerHTML = ''; (await safe(() => B.chatRecent()) || []).forEach(addChat);
   addChat({ kind: 'q', msg: `Bem-vindo(a) a Aurora, ${S.c.name}. Fale com o Arauto do Eclipse na praça para começar sua jornada (H abre a história).` });
@@ -1530,7 +1588,7 @@ function loop() {
   const tnow = performance.now(); const dt = Math.min(0.05, clock.getDelta()) * (tnow < TIME.stopUntil ? 0.06 : tnow < TIME.slowUntil ? 0.35 : 1);
   if (S.inGame && me) {
     perfTick(dt); if (S.guide && (S.guideT = (S.guideT || 0) + dt) > 0.25) { S.guideT = 0; guideTick(); }
-    updateMe(dt); updateMobs(dt); updateOthers(dt); updateFx(dt); updateFX(dt); updateAmbient(dt); updateDialog(); greetNpcs(); updateTraps(); setMood(S.mobs.some(m => m.aggro && !m.dead) ? 'combate' : 'calma'); if (S.inGame && me) updateVillagers(dt); updateCamera(); updateChunks(me.x, me.z, false);
+    updateMe(dt); updateMobs(dt); updateOthers(dt); updateFx(dt); updateFX(dt); updateElements(dt); updateEquip(dt); equipWatch(); if (!S.dead && Date.now() - Math.max(S.lastCombat || 0, S.auraAt || 0) < 5000) bodyAura(myElem(), me.x, me.z, 1.8 * (GD.RACES[S.c.race]?.h || 1) + (S.alt || 0), dt, PERF.cur === 'baixa' ? 0.5 : 1); updateAmbient(dt); updateDialog(); greetNpcs(); updateTraps(); setMood(S.mobs.some(m => m.aggro && !m.dead) ? 'combate' : 'calma'); if (S.inGame && me) updateVillagers(dt); updateCamera(); updateChunks(me.x, me.z, false);
     updateEnvironment(dt); water.position.x = Math.round(me.x / 50) * 50; water.position.z = Math.round(me.z / 50) * 50; sky.position.copy(camera.position);
     if (!GRASS.center || Math.hypot(GRASS.center.x - me.x, GRASS.center.z - me.z) > 12) layoutGrass(GRASS, me.x, me.z, WG.height, grassOk, grassColor); updateTownVisibility();
     if ((S.npcGlbT = (S.npcGlbT || 0) + dt) > 1) { S.npcGlbT = 0; if (PERF.cur !== 'baixa') { let k = 0; for (const n of npcs) if (n.model && !n.model.glb && !n.model.glbPending && Math.hypot(n.x - me.x, n.z - me.z) < 55 && k++ < 3) upgradeGLB(n.model); } }
@@ -1558,4 +1616,4 @@ initComp({ scene, S, GD, WG, me: () => me, toast, petHit, now, keys });
 const POI_AMB = { tumba: { particles: '#aaffbb' }, pantano: { particles: '#c8ff7a' }, destrocos: { particles: '#ffaa5a' }, estranho: { particles: '#c89aff' } };
 initAmbient({ scene, S, WG, me: () => me, isNight: () => { const p = dayPhase(); return p < 0.23 || p > 0.79; }, theme: (x, z) => WG.nearestTown(x, z).town.theme,
   nearPoi: (x, z) => { const L = GD.LANDMARKS.find(L => L.poi && Math.hypot(L.x - x, L.z - z) < 70); return L ? { x: L.x, z: L.z, amb: POI_AMB[L.type] } : null; } });
-window.__game = { VIL, stats, WEATHER, POST, COMP, summonPet, setMount, setWings, toggleFly, toggleRide, townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, keys, refreshGear: () => { me.enc = encOf(S.c); setGear(me, S.c.equipment.arma, S.c.equipment.armadura, S.c.equipment); buildBar(); }, attackKey: () => attackKey(), dodge, startGuide, stopGuide, PERF, applyQuality, saveQuests };
+window.__game = { meteor, elemImpact, castBurst, blocked, playAttack, openEquip: () => toggleEquip(EQX), VIL, stats, WEATHER, POST, COMP, summonPet, setMount, setWings, toggleFly, toggleRide, townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, keys, refreshGear: () => { me.enc = encOf(S.c); setGear(me, S.c.equipment.arma, S.c.equipment.armadura, S.c.equipment); buildBar(); }, attackKey: () => attackKey(), dodge, startGuide, stopGuide, PERF, applyQuality, saveQuests };

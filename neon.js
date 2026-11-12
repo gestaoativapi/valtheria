@@ -99,7 +99,7 @@ export function buildNeon(ctx, L, N) {
       g.add(tower(x, z, y0, w, d, h, seed)); ctx.collide(x, z, Math.max(w, d) * 0.62); } }
   // postes de luz ao longo das avenidas
   for (let k = -N.r + 16; k < N.r - 12; k += 18) { if (Math.abs(k) < 26) continue;
-    for (const s of [-1, 1]) { [[x0 + k, z0 + s * 9.5, s > 0 ? Math.PI : 0], [x0 + s * 9.5, z0 + k, s > 0 ? -Math.PI / 2 : Math.PI / 2]].forEach(([px, pz, r]) => { if (Math.hypot(px - N.hub.x, pz - N.hub.z) < N.hub.r) return; const lp = glbFit('n_light_street_1', 6.5, { rot: r, glow: '#bff8ff' }); lp.position.set(px, y0, pz); g.add(lp);
+    for (const s of [-1, 1]) { [[x0 + k, z0 + s * 9.5, s > 0 ? Math.PI : 0], [x0 + s * 9.5, z0 + k, s > 0 ? -Math.PI / 2 : Math.PI / 2]].forEach(([px, pz, r]) => { if (Math.hypot(px - N.hub.x, pz - N.hub.z) < N.hub.r) return; const lp = glbFit('n_light_street_1', 6.5, { rot: r, glow: '#bff8ff' }); lp.position.set(px, y0, pz); g.add(lp); ctx.collide(px, pz, 0.45);
       const halo = new THREE.Mesh(new THREE.CircleGeometry(3.2, 20), add('#3af0ff')); halo.material.opacity = 0.16; halo.rotation.x = -Math.PI / 2; halo.position.set(px, y0 + 0.12, pz); g.add(halo); }); } }
   // árvores bioluminescentes em canteiros
   for (let i = 0; i < 26; i++) { const a = i * 2.399, r = 22 + (i * 17 % 90); const x = x0 + Math.cos(a) * r, z = z0 + Math.sin(a) * r; if (Math.abs(x - x0) < 12 || Math.abs(z - z0) < 12 || r > N.r - 10) continue;

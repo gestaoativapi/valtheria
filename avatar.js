@@ -256,7 +256,7 @@ function swapWeapon(m, holder, name, len, g, relic, shield, neon) {
 }
 export function setGear(m, weaponId, armorId, equip) {
   const P = m.P, fem = m.o.gender === 'f'; equip = equip || m.o.equip || {}; m.o.equip = equip;
-  (m.gearParts || []).forEach(x => x.parent && x.parent.remove(x)); m.gearParts = []; m.weaponTip = null;
+  (m.gearParts || []).forEach(x => x.parent && x.parent.remove(x)); m.gearParts = []; m.weaponTip = null; m.arrowInHand = null;
   const add = (parent, obj) => { parent.add(obj); m.gearParts.push(obj); return obj; };
   const a = GD.ITEMS[armorId], w = GD.ITEMS[weaponId];
   if (P.base) P.base.visible = !a; if (P.hair) P.hair.visible = true;
@@ -300,6 +300,9 @@ export function setGear(m, weaponId, armorId, equip) {
     } else if (k === 'arco') {
       const b = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.025, 8, 24, Math.PI * 0.8), g >= 3 ? blade : wood); b.rotation.z = Math.PI / 2 + Math.PI * 0.1;
       const s = G(); s.add(b, at(new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 1.1, 4), toon('#eee')), 0, 0, 0)); s.position.set(0, 0, 0.05); s.rotation.y = Math.PI / 2; add(HL, s); m.bow = s;
+      // aljava nas costas e a flecha que aparece na mão ao puxar
+      { const qv = G(); qv.add(tube(0.05, 0.04, 0.5, toon('#5a3a20'), 10)); for (let i = 0; i < 4; i++) { qv.add(at(tube(0.006, 0.006, 0.26, toon('#d8c8a0'), 4), (i % 2 - 0.5) * 0.04, 0.34, (i > 1 ? 1 : -1) * 0.02), at(cone(0.016, 0.05, toon(['#c83a3a', '#e8e8e8'][i % 2]), 4), (i % 2 - 0.5) * 0.04, 0.46, (i > 1 ? 1 : -1) * 0.02)); } qv.rotation.z = -0.5; add(P.torso, at(qv, 0.07, 0.36, -0.2));
+        const ar = G(); ar.add(at(tube(0.006, 0.006, 0.7, toon('#d8c8a0'), 4), 0, 0.3, 0), at(cone(0.02, 0.07, blade, 4), 0, 0.68, 0)); ar.visible = false; add(H, ar); m.arrowInHand = ar; }
     } else if (k === 'cajado') {
       const s = G(); s.add(at(tube(0.026, 0.032, 1.7, wood, 8), 0, 0.3, 0));
       const orb = at(new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 2), new THREE.MeshStandardMaterial({ color: ['#88f', '#c6f', '#6cf', '#5af', '#f55', '#e6f'][g], emissive: [0x2222aa, 0x6622aa, 0x2288cc, 0x2a6aff, 0xff2a2a, 0xb04aff][g], emissiveIntensity: 0.9, roughness: 0.2 })), 0, 1.2, 0);
@@ -507,11 +510,30 @@ function animGLB(m, dt) {
     A.atkSeen = A.atk; const wk = m.weaponKind;
     const SK = A.kind === 'skill' ? ['Sword_Regular_Combo', 'Melee_Hook', 'Sword_Dash'].filter(n => C.clips ? true : true) : null;
     const clip = SK && wk && wk !== 'punhos' && wk !== 'cajado' && wk !== 'arco' ? SK[Math.floor(Math.random() * SK.length)] : A.kind === 'cast' || A.kind === 'skill' && wk === 'cajado' ? 'Spell_Simple_Shoot' : A.kind === 'bow' ? 'Spell_Simple_Shoot' : wk === 'punhos' || !wk ? (Math.random() < 0.5 ? 'Punch_Jab' : 'Punch_Cross') : ATK_CLIPS[Math.floor(Math.random() * ATK_CLIPS.length)];
-    const act = playClip(C, clip, { once: true, fade: 0.08, speed: 1.35 }); A.cur = 'atk'; A.atkEnd = t + (act ? act.getClip().duration / 1.35 * 1000 - 120 : 500);
+    if (wk === 'arco' && C.clips && CLIP_OK(C, 'OverhandThrow')) { // arqueiro: leva a mão à aljava, pega a flecha, puxa e solta
+      playClip(C, 'OverhandThrow', { once: true, fade: 0.06, speed: 2.3 }); A.cur = 'atk'; A.bowT = t + 300; A.atkEnd = t + 900; if (m.arrowInHand) m.arrowInHand.visible = true; }
+    else { const act = playClip(C, clip, { once: true, fade: 0.08, speed: 1.35 }); A.cur = 'atk'; A.atkEnd = t + (act ? act.getClip().duration / 1.35 * 1000 - 120 : 500); }
   }
-  else if (A.cur === 'atk' && t < A.atkEnd) { /* golpe em andamento */ }
+  else if (A.cur === 'atk' && t < A.atkEnd) { if (A.bowT && t >= A.bowT) { A.bowT = 0; const act = playClip(C, 'Spell_Simple_Shoot', { once: true, fade: 0.12, speed: 1.6 }); A.atkEnd = t + (act ? act.getClip().duration / 1.6 * 1000 - 100 : 400); if (m.arrowInHand) m.arrowInHand.visible = false; } }
   else if (A.hitAt && t - A.hitAt < 60 && A.cur !== 'hit' && A.state !== 'climb') { A.hitAt = 0; if (playClip(C, Math.random() < 0.5 ? 'Hit_Chest' : 'Hit_Head', { once: true, fade: 0.06, speed: 1.4 })) { A.cur = 'hit'; A.atkEnd = t + 380; } }
   else if (A.cur === 'hit' && t < A.atkEnd) { }
   else { const want = A.state === 'mount' ? 'Sitting_Idle_Loop' : A.state === 'fly' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'climb' ? 'ClimbUp_1m' : A.state === 'swim' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'roll' ? 'Roll' : A.state === 'sprint' ? 'Sprint_Loop' : A.state === 'run' ? (A.walk ? 'Walk_Loop' : 'Jog_Fwd_Loop') : A.state === 'gather' ? 'Interact' : (A.idleClip || 'Idle_Loop'); if (A.cur !== want) { if (playClip(C, want, { fade: 0.22, once: want === 'Roll', speed: A.state === 'run' ? 1.15 * ({ halfling: 1.3, anao: 1.18, gigante: 0.85, orc: 0.95, sylph: 1.08 }[m.race] || 1) : A.state === 'climb' ? 0.8 : want === 'Roll' ? 1.3 : 1 })) A.cur = want; else if (A.cur !== 'Jog_Fwd_Loop' && A.state !== 'idle') { playClip(C, 'Jog_Fwd_Loop', { fade: 0.2 }); A.cur = 'Jog_Fwd_Loop'; } } }
   C.mixer.update(dt);
+  // pegada de duas mãos: durante o golpe, a mão esquerda vai até o cabo da arma (cajado, espadão, lança, martelo)
+  { const two = m.weaponKind && m.weaponTip && GD.TWO_HAND_GRIP.includes(m.weaponKind), want = two && A.cur === 'atk' && t < A.atkEnd ? 1 : 0; A.ikW = (A.ikW || 0) + (want - (A.ikW || 0)) * Math.min(1, dt * 14); if (two && A.ikW > 0.03) twoHandIK(m, C, A.ikW); }
+}
+const CLIP_OK = (C, n) => !!(C.clips && C.clips[n]) || !!(C.mixer && C.mixer._actions && C.mixer._actions.some(a => a.getClip().name === n)) || true;
+const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _tg = new THREE.Vector3(), _p1 = new THREE.Vector3(), _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _n = new THREE.Vector3(), _q = new THREE.Quaternion(), _pq = new THREE.Quaternion(), _bq = new THREE.Quaternion(), _qU = new THREE.Quaternion(), _qF = new THREE.Quaternion();
+const GRIP_F = { cajado: 0.3, lanca: 0.3, espadao: 0.17, martelo: 0.32 };
+function rotWorld(bone, q) { bone.parent.getWorldQuaternion(_pq); bone.getWorldQuaternion(_bq); _bq.premultiply(q); bone.quaternion.copy(_pq.invert().multiply(_bq)); bone.updateWorldMatrix(false, true); }
+function twoHandIK(m, C, w) {
+  const U = C.bones.upperarm_l, F = C.bones.lowerarm_l, H = C.bones.hand_l, hold = m.weaponTip.parent; if (!U || !F || !H || !hold) return;
+  m.root.updateWorldMatrix(true, true); hold.getWorldPosition(_tg); m.weaponTip.getWorldPosition(_p1); _p1.sub(_tg); if (_p1.lengthSq() < 0.01) return; _tg.addScaledVector(_p1, GRIP_F[m.weaponKind] || 0.25);
+  _qU.copy(U.quaternion); _qF.copy(F.quaternion);
+  U.getWorldPosition(_a); F.getWorldPosition(_b); H.getWorldPosition(_c);
+  const l1 = _a.distanceTo(_b), l2 = _b.distanceTo(_c); let d = Math.min(_a.distanceTo(_tg), (l1 + l2) * 0.985); d = Math.max(d, Math.abs(l1 - l2) + 0.01);
+  _v1.copy(_a).sub(_b).normalize(); _v2.copy(_c).sub(_b).normalize(); const th0 = Math.acos(Math.max(-1, Math.min(1, _v1.dot(_v2)))), th1 = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2))));
+  _n.crossVectors(_v1, _v2); if (_n.lengthSq() < 1e-6) _n.set(0, 0, 1); _n.normalize(); _q.setFromAxisAngle(_n, th1 - th0); rotWorld(F, _q);
+  H.getWorldPosition(_c); _v1.copy(_c).sub(_a).normalize(); _v2.copy(_tg).sub(_a).normalize(); _q.setFromUnitVectors(_v1, _v2); rotWorld(U, _q);
+  if (w < 1) { U.quaternion.copy(_qU.slerp(U.quaternion, w)); F.quaternion.copy(_qF.slerp(F.quaternion, w)); }
 }

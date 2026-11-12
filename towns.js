@@ -50,7 +50,7 @@ function wallRing(ctx, g, o) {
   for (let i = 0; i < segs; i++) {
     const a = (i + 0.5) / segs * Math.PI * 2; if (!freeAt(ctx, a, o.gate || 0.13)) continue;
     const x = t.x + Math.cos(a) * R, z = t.z + Math.sin(a) * R, w = new THREE.Group();
-    w.add(o.piece()); place(ctx, g, w, x, z, -a + Math.PI / 2);
+    w.add(o.piece()); place(ctx, g, w, x, z, -a + Math.PI / 2); ctx.collideBox && ctx.collideBox(x, z, 2 * Math.PI * R / segs / 2 + 0.3, 1.3, a - Math.PI / 2);
   }
   if (o.tower) for (let i = 0; i < (o.towers || 8); i++) { const a = i / (o.towers || 8) * Math.PI * 2; const x = t.x + Math.cos(a) * R, z = t.z + Math.sin(a) * R; if (!freeAt(ctx, a, 0.2)) { if (o.gateFire) { [-0.16, 0.16].forEach(d => { const fx = t.x + Math.cos(a + d) * (R + 1), fz = t.z + Math.sin(a + d) * (R + 1); A(g, cyl(0.12, 0.14, 2.6, '#4a3a2a', 6)).position.set(fx, ctx.H(fx, fz) + 1.3, fz); g.add(makeFire(fx, ctx.H(fx, fz) + 2.7, fz, 0.5, o.gateFire, true)); }); } continue; } place(ctx, g, o.tower(), x, z, -a, 4); }
 }
@@ -106,7 +106,7 @@ function spireTower(c) {
 }
 function totem(colors) { const g = new THREE.Group(); colors.forEach((c, i) => { A(g, cyl(0.55, 0.6, 1.2, c, 8)).position.y = 0.6 + i * 1.2; }); const w = box(3.2, 0.3, 0.6, colors[0]); w.position.y = colors.length * 1.2 - 0.4; g.add(w); A(g, sph(0.5, '#efe8d8')).position.y = colors.length * 1.2 + 0.3; return g; }
 function crystal(color, s = 1) { const g = new THREE.Group(); for (let i = 0; i < 5; i++) { const c = mesh(new THREE.OctahedronGeometry(0.8 * s, 0), M(color, { em: new THREE.Color(color).getHex(), ei: 0.7, rough: 0.2 })); c.scale.set(0.5, 1.6 + (i % 3) * 0.5, 0.5); c.position.set(Math.cos(i * 1.3) * 0.7 * s, 1.2 * s, Math.sin(i * 1.3) * 0.7 * s); c.rotation.z = (i - 2) * 0.25; g.add(c); } return g; }
-function lampPost(ctx, g, x, z, color = '#ffffff', h = 3.4) { const y = ctx.H(x, z); A(g, cyl(0.1, 0.14, h, '#2a2420', 6)).position.set(x, y + h / 2, z); g.add(makeFire(x, y + h + 0.1, z, 0.42, color, false)); }
+function lampPost(ctx, g, x, z, color = '#ffffff', h = 3.4) { const y = ctx.H(x, z); ctx.collide(x, z, 0.4); A(g, cyl(0.1, 0.14, h, '#2a2420', 6)).position.set(x, y + h / 2, z); g.add(makeFire(x, y + h + 0.1, z, 0.42, color, false)); }
 
 // ---------- estilos de cidade por raça ----------
 const STYLES = {
@@ -254,10 +254,10 @@ export function buildLandmark(ctx, L) {
     for (let i = -2; i <= 2; i++) for (const s of [-1, 1]) {
       if (s === 1 && i === 0) continue; // portão
       const broken = (i * 7 + s * 3 + L.x) % 5 === 0;
-      const w1 = box(10.6, broken ? 4 : 8, 2, stone); w1.position.set(x + i * 10.4, y0 + (broken ? 2 : 4), z + s * S); g.add(w1);
-      const w2 = box(2, broken ? 3 : 8, 10.6, stone); w2.position.set(x + s * S, y0 + (broken ? 1.5 : 4), z + i * 10.4); g.add(w2);
+      const w1 = box(10.6, broken ? 4 : 8, 2, stone); w1.position.set(x + i * 10.4, y0 + (broken ? 2 : 4), z + s * S); g.add(w1); ctx.collideBox && ctx.collideBox(x + i * 10.4, z + s * S, 5.4, 1.3, 0);
+      const w2 = box(2, broken ? 3 : 8, 10.6, stone); w2.position.set(x + s * S, y0 + (broken ? 1.5 : 4), z + i * 10.4); g.add(w2); ctx.collideBox && ctx.collideBox(x + s * S, z + i * 10.4, 1.3, 5.4, 0);
     }
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { A(g, cyl(4, 4.4, 14, stone, 14)).position.set(x + sx * S, y0 + 7, z + sz * S); A(g, cone(4.8, 6, L.id === 'castelo_sangue' ? '#5a0a1a' : '#2a2a2a', 14)).position.set(x + sx * S, y0 + 17, z + sz * S); }
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { A(g, cyl(4, 4.4, 14, stone, 14)).position.set(x + sx * S, y0 + 7, z + sz * S); ctx.collide(x + sx * S, z + sz * S, 4.6); A(g, cone(4.8, 6, L.id === 'castelo_sangue' ? '#5a0a1a' : '#2a2a2a', 14)).position.set(x + sx * S, y0 + 17, z + sz * S); }
     const keep = box(14, 20, 14, stone); keep.position.set(x, y0 + 10, z - 4); g.add(keep);
     for (let i = -2; i <= 2; i++) A(g, box(1.4, 1.4, 1.4, stone)).position.set(x + i * 2.8, y0 + 20.7, z + 3);
     const f = flag(L.id === 'castelo_sangue' ? '#8a0a1a' : '#2a2a3a', 8); f.position.set(x, y0 + 20, z - 4); g.add(f);
@@ -265,7 +265,7 @@ export function buildLandmark(ctx, L) {
     ctx.collide(x, z - 4, 9);
   } else if (L.type === 'ruina') {
     const stone = L.id === 'templo_lua' ? '#b8b8d0' : '#9a9486';
-    for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2, r = 18, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r, h = (i % 3 === 0) ? 3 + (i % 4) : 10; const col = cyl(1, 1.2, h, stone, 12); col.position.set(px, y0 + h / 2, pz); g.add(col); if (h > 8 && i % 2) { const cap = box(2.6, 0.8, 2.6, stone); cap.position.set(px, y0 + h + 0.4, pz); g.add(cap); } ctx.collide(px, pz, 1.4); }
+    for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2, r = 18, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r, h = (i % 3 === 0) ? 3 + (i % 4) : 10; const col = cyl(1, 1.2, h, stone, 12); col.position.set(px, y0 + h / 2, pz); g.add(col); ctx.collide(px, pz, 1.35); if (h > 8 && i % 2) { const cap = box(2.6, 0.8, 2.6, stone); cap.position.set(px, y0 + h + 0.4, pz); g.add(cap); } ctx.collide(px, pz, 1.4); }
     for (let i = 0; i < 6; i++) { const fc = cyl(1, 1, 7, stone, 10); fc.rotation.z = Math.PI / 2; fc.rotation.y = i; fc.position.set(x + Math.cos(i * 1.7) * 10, y0 + 0.9, z + Math.sin(i * 1.7) * 10); g.add(fc); }
     for (let i = 0; i < 5; i++) { const w = box(8, 3 + (i % 3) * 2, 1.4, stone); const a = i * 1.3; w.position.set(x + Math.cos(a) * 26, y0 + 2, z + Math.sin(a) * 26); w.rotation.y = -a; g.add(w); }
     const alt = box(5, 1.6, 5, stone); alt.position.set(x, y0 + 0.8, z); g.add(alt);

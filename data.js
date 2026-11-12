@@ -23,6 +23,11 @@
 
   // ----- raças de Valtheria (masculino e feminino) -----
   // look: face 0-3, eyes 0-3, eye_color, hair 0-5, hair_color 0-9, skin, scar 0-3, beard 0-2
+  // afinidade elemental de cada raça (visual do corpo ao lutar + 5% de dano nas habilidades do mesmo elemento)
+  const RACE_ELEM = { humano: 'luz', elfo: 'vento', sombrio: 'sombra', orc: 'fogo', anao: 'terra', halfling: 'natureza', beastman: 'terra', draconato: 'fogo', sylph: 'raio', nocturno: 'sombra', gigante: 'gelo' };
+  // armas de duas mãos: não permitem escudo
+  const TWO_HANDED = ['espadao', 'lanca', 'arco', 'cajado', 'martelo', 'adaga', 'punhos'];
+  const TWO_HAND_GRIP = ['espadao', 'lanca', 'cajado', 'martelo'];
   const RACES = {
     humano: { name: 'Humanos', types: ['l', 'm'], hp: { l: 130, m: 95 }, mp: { l: 40, m: 100 }, patk: { l: 12, m: 6 }, matk: { l: 5, m: 13 }, pdef: 8, mdef: 8, spd: 1.0, h: 1.0, w: 1.0,
       skins: ['#f6d2b4', '#e8b993', '#c98e66', '#9a6440', '#6b4128'], eyes: ['#5a3a22', '#3a6a8a', '#4a7a4a', '#7a6a5a', '#2a2a2a', '#8a6a2a'], feat: {}, excl: ['Templário', 'Arcanista'],
@@ -621,6 +626,6 @@
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
     RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
-    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, NEON, NEON_MOBS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
+    RACE_ELEM, TWO_HANDED, TWO_HAND_GRIP, WORLD, TOWNS, CORE_TOWNS, LANDMARKS, NEON, NEON_MOBS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);
