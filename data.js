@@ -25,6 +25,22 @@
   // look: face 0-3, eyes 0-3, eye_color, hair 0-5, hair_color 0-9, skin, scar 0-3, beard 0-2
   // afinidade elemental de cada raça (visual do corpo ao lutar + 5% de dano nas habilidades do mesmo elemento)
   const RACE_ELEM = { humano: 'luz', elfo: 'vento', sombrio: 'sombra', orc: 'fogo', anao: 'terra', halfling: 'natureza', beastman: 'terra', draconato: 'fogo', sylph: 'raio', nocturno: 'sombra', gigante: 'gelo' };
+  // ----- clãs / legiões -----
+  const CLAN = {
+    req: { 2: { points: 200, members: 2, aurum: 10000 }, 3: { points: 800, members: 3, aurum: 30000 }, 4: { points: 2000, members: 5, aurum: 80000, items: { gema: 5 } }, 5: { points: 5000, members: 6, aurum: 150000, items: { gema: 10 } },
+      6: { points: 10000, members: 8, aurum: 300000, items: { gema: 15, fragmento: 3 } }, 7: { points: 20000, members: 10, aurum: 500000, items: { fragmento: 6 } }, 8: { points: 35000, members: 12, aurum: 800000, items: { fragmento: 10 } },
+      9: { points: 55000, members: 15, aurum: 1200000, items: { gema: 30, fragmento: 15 } }, 10: { points: 80000, members: 18, aurum: 2000000, items: { fragmento: 25 } } },
+    // cor do nome do clã por nível
+    color: l => l >= 10 ? '#ff5ad8' : l >= 8 ? '#ffb03a' : l >= 6 ? '#c07aff' : l >= 4 ? '#5ab8ff' : l >= 2 ? '#7aff9a' : '#d8d8d8',
+    title: l => ['', 'Bando', 'Companhia', 'Irmandade', 'Ordem', 'Legião', 'Legião de Ferro', 'Legião Real', 'Legião Imperial', 'Legião Lendária', 'Legião Celestial'][l] || '',
+    perks: { 1: 'Conversa e tesouro do clã • até 12 membros', 2: 'Nome do clã em verde • +1% de vida e ataque', 3: 'Bandeira do clã ao lado do nome de todos os membros', 4: 'Guerra de castelos liberada • nome azul', 5: 'Título de Legião • +2,5% de vida e ataque',
+      6: 'Nome roxo • aura do clã no personagem', 7: '+3,5% de vida e ataque', 8: 'Nome dourado', 9: '+4,5% de vida e ataque', 10: 'Nome celestial rosa • +5% de vida e ataque' },
+    ranks: { lider: ['Líder', '👑', 'Tudo: nomeia cargos, define bandeira, evolui o clã, toma o trono'], vice: ['Vice-líder', '⚜️', 'Convida, remove, evolui o clã, toma o trono (1 vaga)'], general: ['General', '⚔️', 'Convida membros e comanda na guerra (2 vagas)'],
+      tesoureiro: ['Tesoureiro', '💰', 'Cuida do tesouro (1 vaga)'], capitao: ['Capitão', '🛡️', 'Lidera grupos de caça (4 vagas)'], membro: ['Membro', '🗡️', 'Membro efetivo'], recruta: ['Recruta', '🌱', 'Recém-chegado'] },
+    bonus: l => 0.005 * l, castleBonus: 0.03, cap: l => 8 + 4 * l,
+    flags: ['🦅', '🐉', '🦁', '🐺', '🦂', '🐍', '🦇', '🔥', '⚡', '❄️', '🌙', '☀️', '⭐', '💀', '👑', '⚔️', '🛡️', '🌹', '🍀', '🔱'],
+  };
+  const CASTLES = ['castelo_corvos', 'forte_bandido', 'castelo_sangue'];
   // armas de duas mãos: não permitem escudo
   const TWO_HANDED = ['espadao', 'lanca', 'arco', 'cajado', 'martelo', 'adaga', 'punhos'];
   const TWO_HAND_GRIP = ['espadao', 'lanca', 'cajado', 'martelo'];
@@ -442,13 +458,13 @@
   const CORE_TOWNS = TOWNS.slice(0, 6);
   // locais especiais: castelos, ruínas e covis com chefes e drops exclusivos
   const LANDMARKS = [
-    { id: 'castelo_corvos', name: 'Castelo dos Corvos', type: 'castelo', x: 1180, z: 2250, lvl: 18, boss: 'rei_corvo' },
+    { r: 62, id: 'castelo_corvos', name: 'Castelo dos Corvos', type: 'castelo', x: 1180, z: 2250, lvl: 18, boss: 'rei_corvo' },
     { id: 'ruinas_velhas', name: 'Ruínas de Vel\'Anor', type: 'ruina', x: 1880, z: 2330, lvl: 15, boss: 'guardiao_ruinas' },
-    { id: 'forte_bandido', name: 'Forte dos Saqueadores', type: 'castelo', x: 420, z: 1750, lvl: 35, boss: 'chefe_saqueador' },
+    { r: 62, id: 'forte_bandido', name: 'Forte dos Saqueadores', type: 'castelo', x: 420, z: 1750, lvl: 35, boss: 'chefe_saqueador' },
     { id: 'cripta_reis', name: 'Cripta dos Reis', type: 'ruina', x: 2620, z: 2250, lvl: 50, boss: 'rei_lich' },
     { id: 'templo_lua', name: 'Templo da Lua Partida', type: 'ruina', x: 1800, z: 1180, lvl: 59, boss: 'sacerdotisa_lua' },
     { id: 'covil_hidra', name: 'Pântano da Hidra', type: 'covil', x: 950, z: 1150, lvl: 70, boss: 'hidra' },
-    { id: 'castelo_sangue', name: 'Castelo do Sangue Eterno', type: 'castelo', x: 2650, z: 820, lvl: 80, boss: 'conde_carmesim' },
+    { r: 62, id: 'castelo_sangue', name: 'Castelo do Sangue Eterno', type: 'castelo', x: 2650, z: 820, lvl: 80, boss: 'conde_carmesim' },
     { id: 'trono_gelo', name: 'Trono do Inverno', type: 'covil', x: 520, z: 520, lvl: 80, boss: 'wyrm_gelo' },
   ];
   const SAFE_R = 70;
@@ -626,6 +642,6 @@
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
     RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
-    RACE_ELEM, TWO_HANDED, TWO_HAND_GRIP, WORLD, TOWNS, CORE_TOWNS, LANDMARKS, NEON, NEON_MOBS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
+    CLAN, CASTLES, RACE_ELEM, TWO_HANDED, TWO_HAND_GRIP, WORLD, TOWNS, CORE_TOWNS, LANDMARKS, NEON, NEON_MOBS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

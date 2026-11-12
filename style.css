@@ -185,3 +185,11 @@ body.touch .phead button{font-size:22px;padding:2px 12px}
 /* celular deitado: os dois lados cabem (antes o lado direito sumia e não dava para entrar no mundo) */
 @media (max-height:500px){body.touch .screen.clear{padding:6px;align-items:stretch}body.touch .side,body.touch .side.right{width:38vw;padding:8px 10px;font-size:12px}body.touch .side .logo.small{font-size:16px}body.touch .side button.primary{padding:9px 10px;font-size:14px}}
 @media (orientation:portrait){body.touch .screen.clear{flex-direction:column;padding:6px;gap:6px;justify-content:flex-start;overflow:auto}body.touch .side,body.touch .side.right{width:100%;max-height:48vh}}
+
+/* ---- clã ---- */
+.ctabs{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap}.ctabs button{background:#1d1812;border:1px solid #5a4630;border-radius:3px;color:#c8b8a0;font-size:12px;padding:5px 9px;cursor:pointer}.ctabs button.on{background:#3a2c1c;color:#f2c46d;border-color:#f2c46d}
+.chead{display:flex;gap:10px;align-items:center;margin-bottom:8px}.cflag{width:54px;height:54px;border:2px solid;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:30px;background:#0006}
+.cbox{background:#0005;border:1px solid #5a4630;border-radius:4px;padding:8px 10px;margin:6px 0}.cbox.war{border-color:#c33;background:#3a0a0a66}
+.cprog{position:relative;height:16px;background:#000a;border:1px solid #5a4630;border-radius:3px;margin:2px 0 6px}.cprog i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(#7ac85a,#3a7a2a);border-radius:2px}.cprog span{position:absolute;inset:0;text-align:center;font-size:10px;line-height:15px}
+.cflags{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}.cflags button{width:34px;height:34px;font-size:19px;background:#1d1812;border:1px solid #5a4630;border-radius:4px;cursor:pointer}.cflags button.on{border-color:#f2c46d;background:#3a2c1c}
+#p-body select{background:#1d1812;color:#eee;border:1px solid #5a4630;border-radius:3px;padding:3px}

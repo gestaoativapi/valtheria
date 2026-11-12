@@ -250,19 +250,40 @@ export function buildTownArchitecture(ctx) {
 export function buildLandmark(ctx, L) {
   const g = new THREE.Group(), x = L.x, z = L.z, y0 = ctx.H(x, z);
   if (L.type === 'castelo') {
-    const stone = L.id === 'castelo_sangue' ? '#3a3036' : L.id === 'forte_bandido' ? '#6a5a4a' : '#5a5650', S = 26;
-    for (let i = -2; i <= 2; i++) for (const s of [-1, 1]) {
-      if (s === 1 && i === 0) continue; // portão
-      const broken = (i * 7 + s * 3 + L.x) % 5 === 0;
-      const w1 = box(10.6, broken ? 4 : 8, 2, stone); w1.position.set(x + i * 10.4, y0 + (broken ? 2 : 4), z + s * S); g.add(w1); ctx.collideBox && ctx.collideBox(x + i * 10.4, z + s * S, 5.4, 1.3, 0);
-      const w2 = box(2, broken ? 3 : 8, 10.6, stone); w2.position.set(x + s * S, y0 + (broken ? 1.5 : 4), z + i * 10.4); g.add(w2); ctx.collideBox && ctx.collideBox(x + s * S, z + i * 10.4, 1.3, 5.4, 0);
+    // castelo de clã: muralha alta com portão, torres, pátio com arsenal, tesouro e quartel, e o salão do trono
+    const dark = L.id === 'castelo_sangue', stone = dark ? '#3a3036' : L.id === 'forte_bandido' ? '#6a5a4a' : '#5a5650', lite = dark ? '#5a4a52' : '#8a8478', roofC = dark ? '#5a0a1a' : '#2a2a3a', S = 38, WH = 9;
+    const cb = (px, pz, hw, hd, gate) => ctx.collideBox && ctx.collideBox(px, pz, hw, hd, 0, gate), P = (o, px, py, pz) => { o.position.set(px, y0 + py, pz); g.add(o); return o; };
+    g.userData.flags = []; g.userData.banners = []; const flagC = dark ? '#8a0a1a' : '#3a3a4a';
+    for (let i = -3; i <= 3; i++) for (const s of [-1, 1]) {
+      if (s === 1 && i === 0) { P(box(10.6, 3, 2.6, stone), x, WH - 1.5, z + S); cb(x, z + S, 5.3, 1.5, L.id); [-1, 1].forEach(d => { const lf = P(box(0.35, 6, 4.8, '#3a2a1e'), x + d * 5, 3, z + S + 2.4); lf.rotation.y = d * 0.25; }); }
+      else { P(box(10.6, WH, 2.4, stone), x + i * 10.4, WH / 2, z + s * S); cb(x + i * 10.4, z + s * S, 5.3, 1.5); for (let k = -2; k <= 2; k++) P(box(1.2, 1.2, 2.5, stone), x + i * 10.4 + k * 2.2, WH + 0.6, z + s * S); }
+      P(box(2.4, WH, 10.6, stone), x + s * S, WH / 2, z + i * 10.4); cb(x + s * S, z + i * 10.4, 1.5, 5.3); for (let k = -2; k <= 2; k++) P(box(2.5, 1.2, 1.2, stone), x + s * S, WH + 0.6, z + i * 10.4 + k * 2.2);
     }
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { A(g, cyl(4, 4.4, 14, stone, 14)).position.set(x + sx * S, y0 + 7, z + sz * S); ctx.collide(x + sx * S, z + sz * S, 4.6); A(g, cone(4.8, 6, L.id === 'castelo_sangue' ? '#5a0a1a' : '#2a2a2a', 14)).position.set(x + sx * S, y0 + 17, z + sz * S); }
-    const keep = box(14, 20, 14, stone); keep.position.set(x, y0 + 10, z - 4); g.add(keep);
-    for (let i = -2; i <= 2; i++) A(g, box(1.4, 1.4, 1.4, stone)).position.set(x + i * 2.8, y0 + 20.7, z + 3);
-    const f = flag(L.id === 'castelo_sangue' ? '#8a0a1a' : '#2a2a3a', 8); f.position.set(x, y0 + 20, z - 4); g.add(f);
-    [-4, 4].forEach(d => g.add(makeFire(x + d, y0 + 3.6, z + S + 1.4, 0.55, L.id === 'castelo_sangue' ? '#ff5a5a' : '#ffffff', true)));
-    ctx.collide(x, z - 4, 9);
+    const tower = (tx, tz, r, h) => { P(cyl(r, r * 1.1, h, stone, 16), tx, h / 2, tz); P(cyl(r * 1.15, r * 1.15, 1.2, stone, 16), tx, h + 0.4, tz); P(cone(r * 1.3, r * 1.3, roofC, 16), tx, h + 1 + r * 0.65, tz); for (let k = 0; k < 3; k++) P(box(0.5, 1.4, 0.2, '#ffd27a', { em: 0xffb040, ei: 1.6 }), tx + Math.sin(k * 2.1) * r, h * (0.45 + k * 0.17), tz + Math.cos(k * 2.1) * r).rotation.y = k * 2.1;
+      const f = flag(flagC, 5); f.position.set(tx, y0 + h + 1 + r * 1.3, tz); g.add(f); g.userData.flags.push(f.children[1]); ctx.collide(tx, tz, r * 1.12); };
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) tower(x + sx * S, z + sz * S, 5, 17); [-1, 1].forEach(d => tower(x + d * 8, z + S, 3.2, 13));
+    [-3.4, 3.4].forEach(d => g.add(makeFire(x + d, y0 + 4.2, z + S + 1.6, 0.6, dark ? '#ff5a5a' : '#ffffff', true)));
+    // salão do trono (construção oca: dá para entrar pelo portal)
+    const hx = x, hz = z - 18, HW = 13, HD = 10, HH = 11;
+    P(box(27.6, HH, 1.6, lite), hx, HH / 2, hz - HD); cb(hx, hz - HD, 13.8, 1.2); [-1, 1].forEach(d => { P(box(1.6, HH, 20, lite), hx + d * HW, HH / 2, hz); cb(hx + d * HW, hz, 1.2, 10.4); P(box(9.6, HH, 1.6, lite), hx + d * 8.3, HH / 2, hz + HD); cb(hx + d * 8.3, hz + HD, 4.8, 1.2);
+      for (let k = -1; k <= 1; k++) P(box(0.2, 3.6, 1.6, '#ffd27a', { em: 0xffb040, ei: 1.2 }), hx + d * (HW + 0.75), 6, hz + k * 6); P(cone(1.6, 5, roofC, 8), hx + d * HW, HH + 3.2, hz + HD); P(cone(1.6, 5, roofC, 8), hx + d * HW, HH + 3.2, hz - HD); });
+    P(box(7.2, HH - 6.4, 1.6, lite), hx, 6.4 + (HH - 6.4) / 2, hz + HD); cb(hx, hz + HD, 3.5, 1.2, L.id); P(box(29, 0.9, 22.6, roofC), hx, HH + 0.45, hz); P(box(20, 2.4, 14, roofC), hx, HH + 2, hz);
+    tower(hx, hz - HD - 4.5, 4.6, 24);
+    P(box(25.6, 0.16, 19.6, dark ? '#2a2428' : '#4a4640', { rough: 0.7 }), hx, -0.04, hz).receiveShadow = true; P(box(74, 0.12, 74, dark ? '#332c30' : '#5a554c', { rough: 0.95 }), x, -0.1, z).receiveShadow = true;
+    P(box(3.6, 0.06, 17, dark ? '#5a0a14' : '#7a1420', { rough: 0.9 }), hx, 0.08, hz + 1); P(box(9, 0.5, 5.4, lite), hx, 0.25, hz - 6.8); P(box(6, 0.3, 3.4, dark ? '#5a0a14' : '#7a1420'), hx, 0.62, hz - 6.8);
+    { const th = new THREE.Group(), gold = { metal: 0.85, rough: 0.25, em: 0x6a4a10, ei: 0.5 }; A(th, box(1.7, 0.5, 1.5, '#c8a03a', gold)).position.y = 0.9; A(th, box(1.9, 3.6, 0.35, '#c8a03a', gold)).position.set(0, 2.4, -0.7); [-1, 1].forEach(d => { A(th, box(0.3, 1.1, 1.5, '#c8a03a', gold)).position.set(d * 0.9, 1.4, 0); A(th, cone(0.22, 0.9, '#ffd27a', 6, gold)).position.set(d * 0.8, 4.6, -0.7); });
+      A(th, box(1.3, 0.2, 1.1, dark ? '#7a0a1a' : '#8a1a2a')).position.y = 1.2; A(th, sph(0.28, dark ? '#ff3a4a' : '#5ab8ff', { em: dark ? 0xff2a3a : 0x3a8aff, ei: 2 })).position.set(0, 4.5, -0.7); th.position.set(hx, y0 + 0.75, hz - 7.6); g.add(th); ctx.collide(hx, hz - 8.2, 1.2);
+      ctx.pickable && ctx.pickable(th, { type: 'trono', name: 'Trono — ' + L.name, x: hx, z: hz - 5.6, castle: L.id }); }
+    for (const d of [-1, 1]) for (const k of [-1, 0, 1]) { const px = hx + d * 6.2, pz = hz + k * 5.6; P(cyl(0.6, 0.75, HH, lite, 12), px, HH / 2, pz); ctx.collide(px, pz, 0.85); g.add(makeFire(px - d * 1.1, y0 + 2.6, pz, 0.4, dark ? '#ff5a5a' : '#ffd27a', k === 0)); }
+    for (const k of [-1, 0, 1]) { const bn = P(box(2.2, 6, 0.12, flagC, { rough: 0.9 }), hx + k * 7.5, 6.4, hz - HD + 0.95); g.userData.banners.push(bn); }
+    // salas do pátio: arsenal, tesouro e quartel (três paredes, abertas para o centro)
+    const room = (rx, rz, face, roof, props) => { const W = 10, D = 8, RH = 5; P(box(W, RH, 0.8, lite), rx, RH / 2, rz - D / 2); cb(rx, rz - D / 2, W / 2, 0.7); P(box(W, RH, 0.8, lite), rx, RH / 2, rz + D / 2); cb(rx, rz + D / 2, W / 2, 0.7); P(box(0.8, RH, D, lite), rx - face * W / 2, RH / 2, rz); cb(rx - face * W / 2, rz, 0.7, D / 2);
+      const rf = P(box(W + 1.2, 0.5, D + 1.4, roof), rx, RH + 0.4, rz); rf.rotation.z = face * 0.08; props.forEach(([n, sc, dx, dz], i) => place(ctx, g, glbB(n, sc, null), rx + dx, rz + dz, i * 1.3, 0.7)); };
+    room(x - 27, z - 2, -1, '#4a3a2a', [['b_crate', 3.4, -2.5, -2], ['b_barrel', 3.4, -3, 2], ['d_barrel', 1.2, 0, -2.6]]); room(x + 27, z - 2, 1, '#6a5a1a', [['d_chest_gold', 1.4, 2.6, -2], ['d_chest_gold', 1.4, 3, 1.6], ['b_bags', 3.4, 0.5, -2.6]]); room(x - 27, z + 18, -1, '#3a3a4a', [['b_hay', 3.4, -2.6, 2], ['b_bench_1', 3.2, -1, -2.4], ['b_cauldron', 3.4, -3, -1]]);
+    if (ctx.npc) { const G = { armor: 'pesada_b', weapon: 'lanca_b', helm: 'elmo_pesada_b', idle: 'Idle_Shield_Loop', castle: L.id };
+      ctx.npc('guarda', 'Guarda do Portão', x - 4.2, z + S + 4, 0, G); ctx.npc('guarda', 'Guarda do Portão', x + 4.2, z + S + 4, 0, G); ctx.npc('guarda', 'Guarda Real', hx - 4.6, hz + HD + 1.6, 0, G); ctx.npc('guarda', 'Guarda Real', hx + 4.6, hz + HD + 1.6, 0, G);
+      ctx.npc('senescal', 'Senescal do Castelo', hx - 3.4, hz - 3.6, 0.5, { armor: 'robe_a', idle: 'Idle_Talking_Loop', beard: 1, castle: L.id }); ctx.npc('ferreiro', 'Armeiro do Castelo', x - 25, z - 2, Math.PI / 2, { armor: 'pesada_c', weapon: 'martelo_c', idle: 'Idle_FoldArms_Loop', beard: 2, castle: L.id });
+      ctx.npc('mercador', 'Tesoureiro do Castelo', x + 25, z - 2, -Math.PI / 2, { armor: 'robe_s', idle: 'Idle_Talking_Loop', castle: L.id }); ctx.npc('guarda', 'Capitão da Guarda', x - 25, z + 18, Math.PI / 2, { ...G, weapon: 'espada_b' }); }
   } else if (L.type === 'ruina') {
     const stone = L.id === 'templo_lua' ? '#b8b8d0' : '#9a9486';
     for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2, r = 18, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r, h = (i % 3 === 0) ? 3 + (i % 4) : 10; const col = cyl(1, 1.2, h, stone, 12); col.position.set(px, y0 + h / 2, pz); g.add(col); ctx.collide(px, pz, 1.35); if (h > 8 && i % 2) { const cap = box(2.6, 0.8, 2.6, stone); cap.position.set(px, y0 + h + 0.4, pz); g.add(cap); } ctx.collide(px, pz, 1.4); }

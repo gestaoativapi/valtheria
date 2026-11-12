@@ -238,7 +238,7 @@ function perfTick(dt) {
 const npcs = [], houses = [];
 const townGroups = [];
 const PLAZA = { humano: '#a8a08e', halfling: '#b8a878', anao: '#6a645a', elfo: '#e8e8e0', orc: '#8a6a4a', sylph: '#f0f4fa', beastman: '#a8885a', sombrio: '#3a3448', draconato: '#3a3232', nocturno: '#3a3640', gigante: '#d8e4ec' };
-const PORTALS = []; // portais dimensionais: entrar no anel teleporta
+const CASTLE_G = {}; const PORTALS = []; // portais dimensionais: entrar no anel teleporta
 async function portalTick() {
   if (!me || S.dead || S.portalBusy || (S.portalCd || 0) > Date.now()) return;
   for (const P of PORTALS) { if (Math.hypot(P.x - me.x, P.z - me.z) > 2.6) continue; S.portalBusy = true; S.portalCd = Date.now() + 6000;
@@ -248,7 +248,11 @@ async function portalTick() {
 }
 function townCtx(t) {
   const roadAngles = WG.ROADS.filter(([a, b]) => a === t || b === t).map(([a, b]) => { const o = a === t ? b : a; return Math.atan2(o.z - t.z, o.x - t.x); });
-  return { t, roadAngles, H: (x, z) => WG.height(x, z), collide: (x, z, r) => houses.push({ x, z, r }), collideBox: (x, z, hw, hd, rot) => houses.push({ x, z, hw, hd, c: Math.cos(rot), s: Math.sin(rot), br: Math.hypot(hw, hd), r: Math.max(hw, hd) }),
+  return { t, roadAngles, H: (x, z) => WG.height(x, z), collide: (x, z, r) => houses.push({ x, z, r }), collideBox: (x, z, hw, hd, rot, gate) => houses.push({ x, z, hw, hd, c: Math.cos(rot), s: Math.sin(rot), br: Math.hypot(hw, hd), r: Math.max(hw, hd), gate }),
+    npc: (type, name, x, z, rot, o = {}) => { const m = buildHumanoid({ glb: false, npc: true, race: o.race || 'humano', gender: o.gender || 'm', hair: 1, hair_color: 2, skin: 1, look: { beard: o.beard }, armor: o.armor, weapon: o.weapon, idle: o.idle, equip: o.helm ? { elmo: o.helm } : null });
+      m.root.position.set(x, WG.height(x, z), z); m.root.rotation.y = rot; scene.add(m.root); const l = makeLabel(name, type === 'guarda' ? '#c8d8e8' : '#ffe36a', 26); l.position.set(0, 2.5, 0); m.root.add(l);
+      const npc = { type, name, town: t, x, z, model: m, castle: o.castle }; m.root.traverse(q => q.userData.pick = npc); npcs.push(npc); },
+    pickable: (obj, npc) => { npc.town = t; obj.traverse(q => q.userData.pick = npc); npcs.push(npc); },
     statue: (race, x, z, s, rot) => { const m = buildHumanoid({ glb: false, race, gender: 'm', skinColor: '#8a8478', armor: 'pesada_c', weapon: 'martelo_c', look: { beard: 2 } }); m.root.scale.setScalar(s); m.root.position.set(x, WG.height(x, z) + 1.2, z); m.root.rotation.y = rot; const base = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.8, 1.2, 12), mat('#6a645a')); base.position.set(x, WG.height(x, z) + 0.6, z); scene.add(m.root, base); houses.push({ x, z, r: 2.8 }); },
     dragonStatue: (x, z, s, rot) => { const R = buildMob({ ...FAM.dragao, color: '#2a2626', boss: false, ghost: false }); R.root.scale.setScalar(s); R.root.position.set(x, WG.height(x, z), z); R.root.rotation.y = rot; scene.add(R.root); houses.push({ x, z, r: 4 }); } };
 }
@@ -277,7 +281,7 @@ function buildTowns() {
       if (type === 'portal') { const ring = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.18, 8, 30), mat('#7ad0ff', { emissive: 0x3aa0ff, ei: 1.2 })); ring.position.set(x + Math.cos(a) * 4, y + 2.4, z + Math.sin(a) * 4); ring.rotation.y = -a; ring.userData.spin2 = true; scene.add(ring); npcs.push({ crystal: ring }); }
     });
   }
-  for (const L of GD.LANDMARKS) { const neon = L.type === 'neon', g = neon ? buildNeon(townCtx({ x: L.x, z: L.z, race: 'humano' }), L, GD.NEON) : stoneify(buildLandmark(townCtx({ x: L.x, z: L.z, race: 'humano' }), L)); scene.add(g); townGroups.push({ g, x: L.x, z: L.z, far: neon ? 1500 : 0 });
+  for (const L of GD.LANDMARKS) { const neon = L.type === 'neon', g = neon ? buildNeon(townCtx({ x: L.x, z: L.z, race: 'humano' }), L, GD.NEON) : stoneify(buildLandmark(townCtx({ x: L.x, z: L.z, race: 'humano' }), L)); scene.add(g); townGroups.push({ g, x: L.x, z: L.z, far: neon ? 1500 : 0 }); if (L.type === 'castelo') CASTLE_G[L.id] = g;
     if (neon && g.userData.backPortal) PORTALS.push({ ...g.userData.backPortal, dest: 'portal:aurora', name: 'Vila Aurora', col: '#ffb03a' });
     const lb = makeLabel(({ castelo: '🏰 ', ruina: '🏛️ ', tumba: '⚰️ ', pantano: '🐸 ', destrocos: '🛒 ', estranho: '🔮 ', neon: '🌆 ' }[L.type] || '💀 ') + L.name, neon ? '#7af8ff' : '#ffcf8a', 34); lb.position.set(L.x, WG.height(L.x, L.z) + (neon ? 32 : 26), L.z + (neon ? 30 : 0)); lb.scale.multiplyScalar(1.8); scene.add(lb); townGroups.push({ g: lb, x: L.x, z: L.z }); }
   // portal dimensional em Vila Aurora → Era Neon
@@ -293,10 +297,23 @@ const ring = (color) => { const m = new THREE.Mesh(new THREE.RingGeometry(0.9, 1
 const selRing = ring(0xff4040); scene.add(selRing); selRing.visible = false;
 const destRing = ring(0xffffff); scene.add(destRing); destRing.visible = false;
 function stats() { const s = GD.charStats(S.c, buffVals()), cf = compFx();
+  { const k = myClan(); if (k) { const b = GD.CLAN.bonus(k.level) + (ownCastle() ? GD.CLAN.castleBonus : 0); s.maxHp = Math.round(s.maxHp * (1 + b)); s.patk *= 1 + b; s.matk *= 1 + b; s.atk = s.magic ? s.matk : s.patk; s.clanBonus = b; } }
   if (Object.keys(cf).length) { s.fx = { ...s.fx }; for (const [k, v] of Object.entries(cf)) s.fx[k] = (s.fx[k] || 0) + v;
     if (cf.crit) s.crit += cf.crit; if (cf.atkspd) s.atkInterval /= 1 + cf.atkspd; if (cf.matkPct) { s.matk *= 1 + cf.matkPct; } if (cf.hpPct) s.maxHp = Math.round(s.maxHp * (1 + cf.hpPct)); if (cf.speed) s.speed *= 1 + cf.speed; if (cf.pdefPct) s.pdef *= 1 + cf.pdefPct; s.atk = s.magic ? s.matk : s.patk; }
   return s; }
 function buffVals() { const o = {}, t = now(); for (const [k, b] of Object.entries(S.buffs)) { if (b.until < t) { delete S.buffs[k]; continue; } for (const [s, v] of Object.entries(b.vals)) o[s] = (o[s] || 0) + v; } return o; }
+// ---------- clã: estado e identificação ----------
+const myClan = () => S.clanInfo && S.clanInfo.clan || null;
+const ownCastle = () => { const k = myClan(); return !!k && (S.clanInfo.castles || []).some(c => c.owner === k.id); };
+const clanTag = () => { const k = myClan(); return k ? [k.tag, k.name, k.level, k.level >= 3 && k.flag && k.flag.e || ''] : null; };
+const flagOf = cl => cl && cl[3] ? cl[3] + ' ' : '';
+function clanLabel(cl, h) { if (!cl) return null; const l = makeLabel(`‹ ${GD.CLAN.title(cl[2])} ${cl[1]} ›`, GD.CLAN.color(cl[2]), 20); l.position.y = 2.25 * h + 0.3; return l; }
+function castleOpen(id) { const ci = S.clanInfo; if (!ci || !ci.castles) return true; const ca = ci.castles.find(c => c.id === id); if (!ca || !ca.owner) return true; if (ci.siege && ci.siege.open) return true; if (S.c && S.c.is_gm) return true; return !!ci.clan && ci.clan.id === ca.owner; }
+async function loadClan(quiet) { try { S.clanInfo = await B.clan('info'); } catch (e) { if (!quiet) toast(e.message, 'err'); return; } afterClan(); }
+function afterClan() { relabelMe(); S.posForce = 1; for (const ca of (S.clanInfo.castles || [])) { const g = CASTLE_G[ca.id]; if (!g) continue; const col = ca.owner ? (ca.owner_flag && ca.owner_flag.c) || GD.CLAN.color(ca.owner_level || 1) : null;
+    if (col) [...(g.userData.flags || []), ...(g.userData.banners || [])].forEach(m => { m.material = m.material.clone(); m.material.color.set(col); }); }
+  if (panelState.kind === 'clan') renderPanel(); }
+async function clanDo(fn, args, ok) { const r = await safe(() => B.clan(fn, args), ok); if (!r) return false; S.clanInfo = r; await refresh(); afterClan(); updateHud(); return true; }
 function nameColor(c) { return c.gm ? '#ffcf4a' : c.karma ? '#ff4a4a' : c.flag ? '#d38cff' : '#ffffff'; }
 function makeMe() {
   if (me) { scene.remove(me.root); }
@@ -304,7 +321,7 @@ function makeMe() {
   me.label = makeLabel(c.name, nameColor({ gm: S.c.is_gm, karma: S.c.karma, flag: false }), 30); me.label.position.y = 2.15 * GD.RACES[c.race].h; me.root.add(me.label);
   scene.add(me.root);
 }
-function relabelMe() { if (!me) return; me.root.remove(me.label); me.label = makeLabel(S.c.name, nameColor({ gm: S.c.is_gm, karma: S.c.karma, flag: S.flagUntil > Date.now() }), 30); me.label.position.y = 2.25 * GD.RACES[S.c.race].h; me.root.add(me.label); }
+function relabelMe() { if (!me) return; me.root.remove(me.label); if (me.clanLabel) me.root.remove(me.clanLabel); me.clanLabel = clanLabel(clanTag(), GD.RACES[S.c.race].h); if (me.clanLabel) me.root.add(me.clanLabel); me.label = makeLabel(flagOf(clanTag()) + S.c.name, nameColor({ gm: S.c.is_gm, karma: S.c.karma, flag: S.flagUntil > Date.now() }), 30); me.label.position.y = 2.25 * GD.RACES[S.c.race].h; me.root.add(me.label); }
 
 // ---------- câmera ----------
 const cam = { yaw: 0, pitch: 0.38, dist: 12, drag: false, lx: 0, ly: 0 };
@@ -401,7 +418,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyR') toggleRide(); if (e.code === 'KeyV') toggleFly(); if (e.code === 'KeyU') toggleEquip(EQX);
   if (S.fly && e.code === 'Space') { e.preventDefault(); return; }
   if (e.code === 'Space' || e.code === 'KeyF') { e.preventDefault(); attackKey(); }
-  const P = { KeyC: 'char', KeyI: 'bag', KeyK: 'skills', KeyL: 'quests', KeyM: 'map', KeyH: 'lore', KeyJ: 'codex', KeyG: 'gm' }[e.code];
+  const P = { KeyY: 'clan', KeyC: 'char', KeyI: 'bag', KeyK: 'skills', KeyL: 'quests', KeyM: 'map', KeyH: 'lore', KeyJ: 'codex', KeyG: 'gm' }[e.code];
   if (P && (P !== 'gm' || S.c.is_gm)) { if (panelState.kind === P) closePanel(); else openPanel(P); }
 });
 addEventListener('keyup', e => keys[e.code] = false);
@@ -786,7 +803,7 @@ function updateMobs(dt) {
 function stuckIn(x, z) { return WG.height(x, z) > WG.WATER + 0.25 && blocked(x, z); }
 function blocked(x, z, fly) { if (x < 20 || z < 20 || x > 2980 || z > 2980) return true; if (!fly && WG.height(x, z) < WG.WATER + 0.25) return true;
   if (fly && S.alt > 9) return false; // voando alto passa por cima
-  for (const h of houses) { const dx = x - h.x, dz = z - h.z; if (h.hw) { if (Math.abs(dx) > h.br || Math.abs(dz) > h.br) continue; const lx = dx * h.c + dz * h.s, lz = -dx * h.s + dz * h.c; if (Math.abs(lx) < h.hw && Math.abs(lz) < h.hd) return true; } else if (dx * dx + dz * dz < h.r * h.r) return true; }
+  for (const h of houses) { const dx = x - h.x, dz = z - h.z; if (h.gate && castleOpen(h.gate)) continue; if (h.hw) { if (Math.abs(dx) > h.br || Math.abs(dz) > h.br) continue; const lx = dx * h.c + dz * h.s, lz = -dx * h.s + dz * h.c; if (Math.abs(lx) < h.hw && Math.abs(lz) < h.hd) return true; } else if (dx * dx + dz * dz < h.r * h.r) return true; }
   const c = chunks.get(Math.floor(x / CH) + ',' + Math.floor(z / CH)); if (c && c.cols) { const a = c.cols; for (let k = 0; k < a.length; k += 3) { const dx = x - a[k], dz = z - a[k + 1]; if (dx * dx + dz * dz < a[k + 2] * a[k + 2]) return true; } }
   return false; }
 function teleport(x, z) { me.x = x; me.z = z; S.dest = null; S.target = null; S.autoAtk = false; S.mobs.forEach(freeMob); S.mobs = []; updateChunks(x, z, true); saveNow(); }
@@ -870,12 +887,12 @@ async function gather(n) {
 function onPos(p) {
   if (!p || !S.c || p.id === S.c.id) return;
   let o = S.others[p.id];
-  const sig = [p.ra, p.ge, p.h, p.hc, p.sk, p.w, p.a, p.k, p.f, p.g, p.n, JSON.stringify(p.lk || {}), JSON.stringify(p.ex || {}), p.en || 0].join('|');
+  const sig = [(p.cl || []).join('~'), p.ra, p.ge, p.h, p.hc, p.sk, p.w, p.a, p.k, p.f, p.g, p.n, JSON.stringify(p.lk || {}), JSON.stringify(p.ex || {}), p.en || 0].join('|');
   if (!o) { o = S.others[p.id] = { id: p.id, x: p.x, z: p.z, ry: p.r }; }
   if (o.sig !== sig) {
     if (o.model) scene.remove(o.model.root);
     o.model = buildHumanoid({ race: p.ra, gender: p.ge, hair: p.h, hair_color: p.hc, skin: p.sk, look: p.lk || undefined, weapon: p.w, armor: p.a, equip: p.ex || {}, enc: p.en || 0 });
-    const l = makeLabel(p.n, nameColor({ gm: p.g, karma: p.k, flag: p.f }), 30); l.position.y = 2.25 * (GD.RACES[p.ra]?.h || 1); o.model.root.add(l);
+    const l = makeLabel(flagOf(p.cl) + p.n, nameColor({ gm: p.g, karma: p.k, flag: p.f }), 30); l.position.y = 2.25 * (GD.RACES[p.ra]?.h || 1); o.model.root.add(l); { const cl2 = clanLabel(p.cl, GD.RACES[p.ra]?.h || 1); if (cl2) o.model.root.add(cl2); }
     const sub = makeLabel(`${GD.CLASSES[p.c]?.name || ''} Nv.${p.l}`, '#bcd', 20); sub.position.y = 2.0 * (GD.RACES[p.ra]?.h || 1); o.model.root.add(sub);
     o.model.root.traverse(x => x.userData.pick = { kind: 'player', ref: o }); scene.add(o.model.root); o.sig = sig;
   }
@@ -893,7 +910,7 @@ let lastSent = { x: 0, z: 0, t: 0, st: '' };
 function netTick() {
   if (!S.inGame) return; const t = Date.now(), st = me.anim.state;
   if (Math.hypot(me.x - lastSent.x, me.z - lastSent.z) > 0.05 || st !== lastSent.st || t - lastSent.t > 2000 || me.anim.atk >= 0) {
-    const c = S.c; B.sendPos({ id: c.id, n: c.name, x: +me.x.toFixed(2), z: +me.z.toFixed(2), r: +me.root.rotation.y.toFixed(2), st, ra: c.race, ge: c.gender, h: c.hair, hc: c.hair_color, sk: c.skin, lk: c.look || null, c: c.class_id, l: c.level,
+    const c = S.c; B.sendPos({ id: c.id, n: c.name, x: +me.x.toFixed(2), z: +me.z.toFixed(2), r: +me.root.rotation.y.toFixed(2), st, ra: c.race, ge: c.gender, h: c.hair, hc: c.hair_color, sk: c.skin, lk: c.look || null, c: c.class_id, l: c.level, cl: clanTag(),
       w: c.equipment.arma || null, a: c.equipment.armadura || null, ex: { elmo: c.equipment.elmo, luvas: c.equipment.luvas, botas: c.equipment.botas, escudo: c.equipment.escudo }, en: encOf(c), k: (c.karma || 0) > 0, f: S.flagUntil > t, g: !!c.is_gm, hp: Math.round(100 * S.hp / stats().maxHp), atk: me.anim.atk >= 0 ? me.anim.kind : null });
     lastSent = { x: me.x, z: me.z, t, st };
   }
@@ -1092,7 +1109,8 @@ function updateVillagers(dt) {
 function greetNpcs() { if (!me || S.dead) return; const t = Date.now(); for (const n of npcs) { if (!n.model || !n.type) continue; const d = Math.hypot(n.x - me.x, n.z - me.z); if (d < 7 && t - (n.greet || 0) > 90000) { npcSay(n); break; } } }
 function openNpc(n) {
   if (Date.now() - (n.greet || 0) > 8000) npcSay(n);
-  const map = { portal: 'teleport', classe: 'classe', ferreiro: 'craft', refino: 'craft', mercador: 'shop', leilao: 'market', arauto: 'arauto' };
+  if (n.type === 'guarda') return;
+  const map = { portal: 'teleport', classe: 'classe', ferreiro: 'craft', refino: 'craft', mercador: 'shop', leilao: 'market', arauto: 'arauto', senescal: 'clan', trono: 'clan' }; if (map[n.type] === 'clan') { openPanel('clan', { tab: 'guerra', castle: n.castle }); return; }
   openPanel(map[n.type], { npc: n, station: n.type === 'ferreiro' ? 'forja' : n.type === 'refino' ? 'refinaria' : null, tab: 'buy' });
 }
 const nearNpc = (type) => S.c.is_gm || npcs.some(n => n.type === type && Math.hypot(n.x - me.x, n.z - me.z) < 8);
@@ -1115,12 +1133,12 @@ function itemDesc(id) {
 }
 function renderPanel() {
   const k = panelState.kind; if (!k) return; const body = $('#p-body'); body.onclick = null;
-  const T = { codex: 'Compêndio de Valtheria', char: 'Personagem', bag: 'Inventário', skills: 'Habilidades', quests: 'Diário de Missões', map: 'Mapa do Reino', lore: 'Crônicas de Valtheria', gm: 'Painel do GM', sys: 'Sistema', teleport: 'Guardião do Portal', classe: 'Mestre de Classes', craft: panelState.station === 'forja' ? 'Ferreiro' : 'Refinador e Alquimista', shop: 'Mercador', market: 'Casa de Leilões', arauto: 'Arauto do Eclipse' };
+  const T = { clan: 'Clã / Legião', codex: 'Compêndio de Valtheria', char: 'Personagem', bag: 'Inventário', skills: 'Habilidades', quests: 'Diário de Missões', map: 'Mapa do Reino', lore: 'Crônicas de Valtheria', gm: 'Painel do GM', sys: 'Sistema', teleport: 'Guardião do Portal', classe: 'Mestre de Classes', craft: panelState.station === 'forja' ? 'Ferreiro' : 'Refinador e Alquimista', shop: 'Mercador', market: 'Casa de Leilões', arauto: 'Arauto do Eclipse' };
   { const G = [['char', 'skills', 'quests'], ['bag', 'codex'], ['map', 'lore']].find(g => g.includes(k)), ic = { char: '🧝 Personagem', skills: '📘 Habilidades', quests: '📜 Missões', bag: '🎒 Bolsa', codex: '📚 Compêndio', map: '🗺️ Mapa', lore: '📖 História' };
     let tb = $('#p-tabs'); if (!tb) { tb = document.createElement('div'); tb.id = 'p-tabs'; body.parentNode.insertBefore(tb, body); tb.onclick = e => { const b = e.target.closest('[data-tab]'); if (b) b.dataset.tab === 'equip' ? toggleEquip(EQX) : openPanel(b.dataset.tab); }; }
     tb.hidden = !G; if (G) tb.innerHTML = G.map(t => `<button data-tab="${t}" class="${t === k ? 'on' : ''}">${ic[t]}</button>`).join('') + (G[0] === 'char' || G[0] === 'bag' ? '<button data-tab="equip">🛡️ Equipamento (U)</button>' : ''); }
   $('#p-title').textContent = T[k] || k; body.innerHTML = '';
-  ({ codex: pCodex, char: pChar, bag: pBag, skills: pSkills, quests: pQuests, map: pMap, lore: pLore, gm: pGm, sys: pSys, teleport: pTeleport, classe: pClasse, craft: pCraft, shop: pShop, market: pMarket, arauto: pArauto })[k](body);
+  ({ clan: pClan, codex: pCodex, char: pChar, bag: pBag, skills: pSkills, quests: pQuests, map: pMap, lore: pLore, gm: pGm, sys: pSys, teleport: pTeleport, classe: pClasse, craft: pCraft, shop: pShop, market: pMarket, arauto: pArauto })[k](body);
   numberPanel();
 }
 // painéis de NPC: as 9 primeiras ações ganham número e respondem às teclas 1 a 9
@@ -1128,6 +1146,54 @@ const NPC_PANELS = ['teleport', 'classe', 'craft', 'shop', 'market', 'arauto'];
 function numberPanel() { document.body.classList.toggle('npc-open', NPC_PANELS.includes(panelState.kind)); if (!NPC_PANELS.includes(panelState.kind)) return; let n = 0;
   $('#p-body').querySelectorAll('button.btn:not(.alt), button[data-tp], button[data-buy], button[data-craft], [data-act]').forEach(b => { if (n >= 9 || b.offsetParent === null || b.querySelector('.nk')) return; n++; b.dataset.num = n; b.insertAdjacentHTML('afterbegin', `<span class="nk">${n}</span>`); }); }
 function NPC_KEYS(key) { if (!NPC_PANELS.includes(panelState.kind) || !/^[1-9]$/.test(key)) return false; const b = $('#p-body').querySelector(`[data-num="${key}"]`); if (b) b.click(); return !!b; }
+// ---------- painel do clã ----------
+function pClan(b) {
+  const ci = S.clanInfo; if (!ci) { b.innerHTML = '<div class="small">Carregando…</div>'; loadClan(); return; }
+  const k = ci.clan, tab = panelState.tab || 'geral', C = GD.CLAN, fmt = n => Number(n || 0).toLocaleString('pt-BR'), inm = id => (IT(id) ? IT(id).icon + ' ' + IT(id).name : id);
+  const tabs = `<div class="ctabs">${[['geral', '🏰 Visão geral'], ['membros', '👥 Membros'], ['evolucao', '📈 Evolução'], ['guerra', '⚔️ Guerra e castelos']].map(([t, n]) => `<button data-ct="${t}" class="${t === tab ? 'on' : ''}">${n}</button>`).join('')}</div>`;
+  const castles = () => { const near = GD.LANDMARKS.find(L => GD.CASTLES.includes(L.id) && Math.hypot(L.x - me.x, L.z - me.z) < 30), nx = ci.siege && ci.siege.next ? new Date(ci.siege.next) : null;
+    return `<div class="cbox ${ci.siege?.open ? 'war' : ''}"><b>${ci.siege?.open ? '⚔️ A GUERRA DE CASTELOS ESTÁ ABERTA!' : '🕊️ Tempo de paz'}</b><div class="small">A guerra acontece no primeiro fim de semana de cada mês (sábado e domingo), das 16h às 22h.${nx ? ' Próxima: <b>' + nx.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }) + ' às 16h</b>.' : ''} Durante a guerra os portões ficam abertos: o líder ou vice de um clã nível 4+ que chegar ao trono toma o castelo.</div></div>` +
+      ci.castles.map(ca => `<div class="row"><div class="grow"><b>🏰 ${esc(ca.name)}</b><div class="small">${ca.owner ? `Domínio de <b style="color:${C.color(ca.owner_level || 1)}">${ca.owner_flag?.e || ''} ${esc(ca.owner_name)} [${esc(ca.owner_tag)}]</b>` : 'Sem dono — ocupado por monstros'}</div></div>${near && near.id === ca.id && k && ['lider', 'vice'].includes(k.my_rank) && (!ca.owner || ca.owner !== k.id) ? `<button class="btn red" data-cap="${ca.id}">👑 Tomar o trono</button>` : `<button class="btn" data-go="${ca.id}">Ver no mapa</button>`}</div>`).join('') +
+      `<div class="small" style="margin-top:6px">Quem domina um castelo: +3% de vida e ataque para todo o clã, portões fechados para os outros, bandeiras com a cor do clã, e o Armeiro, o Tesoureiro e o Senescal do castelo à disposição.</div>`; };
+  if (!k) {
+    b.innerHTML = `<div class="cbox"><b>Você ainda não tem clã</b><div class="small">Fundar custa 5.000 de aurum e exige nível 10. O clã evolui do nível 1 ao 10, ganha cor no nome, bandeira, bônus e pode conquistar castelos.</div>
+      <div class="row" style="margin-top:6px"><input id="cl-name" maxlength="20" placeholder="Nome do clã" style="flex:2"><input id="cl-tag" maxlength="4" placeholder="SIGLA" style="width:70px;text-transform:uppercase"><button class="btn primary" id="cl-create">Fundar</button></div></div>
+      ${ci.invites.length ? '<h4>Convites recebidos</h4>' + ci.invites.map(i => `<div class="row"><div class="grow"><b style="color:${C.color(i.level)}">${esc(i.name)} [${esc(i.tag)}]</b> <span class="small">nível ${i.level} • convite de ${esc(i.by || '')}</span></div><button class="btn primary" data-acc="${i.clan_id}">Entrar</button><button class="btn" data-rej="${i.clan_id}">Recusar</button></div>`).join('') : ''}
+      <h4>Maiores clãs</h4>${ci.top.length ? ci.top.map((t, i) => `<div class="row"><div class="grow">${i + 1}º <b style="color:${C.color(t.level)}">${t.level >= 3 && t.flag?.e || ''} ${esc(t.name)} [${esc(t.tag)}]</b></div><span class="small">nível ${t.level} • ${t.n} membros • ${fmt(t.points)} pts</span></div>`).join('') : '<div class="small">Nenhum clã fundado ainda. Seja o primeiro!</div>'}
+      <h4>Castelos</h4>${castles()}`;
+  } else {
+    const col = C.color(k.level), lead = k.my_rank === 'lider', off = ['lider', 'vice'].includes(k.my_rank), R = C.ranks;
+    let h = tabs + `<div class="chead"><div class="cflag" style="border-color:${col}">${k.level >= 3 && k.flag?.e || '🏳️'}</div><div class="grow"><b style="color:${col};font-size:17px">${esc(k.name)} [${esc(k.tag)}]</b><div class="small">${C.title(k.level)} • nível ${k.level} • ${k.members.length}/${C.cap(k.level)} membros • seu cargo: ${R[k.my_rank][1]} ${R[k.my_rank][0]}</div><div class="small">⭐ ${fmt(k.points)} pontos de caça • 🪙 tesouro ${fmt(k.bank)} • 💎 ${k.items.gema || 0} gemas • 🔷 ${k.items.fragmento || 0} fragmentos</div></div></div>`;
+    if (tab === 'geral') h += `<div class="cbox"><b>Bônus ativo:</b> +${((stats().clanBonus || 0) * 100).toFixed(1)}% de vida e ataque${ownCastle() ? ' (inclui +3% do castelo)' : ''}<div class="small">${C.perks[k.level]}</div></div>
+      <h4>Mural</h4><div class="small">${esc(k.notice) || '— sem recado —'}</div>${off ? `<div class="row"><input id="cl-notice" maxlength="200" placeholder="Novo recado do mural" class="grow"><button class="btn" id="cl-setnotice">Publicar</button></div>` : ''}
+      <h4>Doar ao tesouro</h4><div class="row"><input id="cl-au" type="number" min="1" placeholder="aurum" style="width:110px"><button class="btn" id="cl-don">🪙 Doar aurum</button><button class="btn" data-di="gema">💎 Doar 1 gema (${S.inv.gema || 0})</button><button class="btn" data-di="fragmento">🔷 Doar 1 fragmento (${S.inv.fragmento || 0})</button></div><div class="small">Caçar dá pontos ao clã: 1 por monstro e 25 por chefe.</div>
+      <h4>Bandeira ${k.level < 3 ? '<span class="small">(liberada no nível 3)</span>' : ''}</h4>${k.level >= 3 && lead ? `<div class="cflags">${C.flags.map(f => `<button data-flag="${f}" class="${k.flag?.e === f ? 'on' : ''}">${f}</button>`).join('')}</div><div class="row small">Cor das bandeiras do castelo: ${['#c83a3a', '#3a7ac8', '#3aa85a', '#c8a03a', '#8a3ac8', '#e8e8e8', '#2a2a2a'].map(c2 => `<button data-fcol="${c2}" style="background:${c2};width:22px;height:22px;border:2px solid ${k.flag?.c === c2 ? '#fff' : '#0000'};border-radius:3px"></button>`).join(' ')}</div>` : `<div class="small">${k.level >= 3 ? 'Só o líder escolhe a bandeira. Ela aparece ao lado do nome de todos os membros.' : 'No nível 3 o líder escolhe um símbolo que aparece ao lado do nome de todos os membros.'}</div>`}
+      <div class="row" style="margin-top:10px"><button class="btn red" id="cl-leave">${lead && k.members.length === 1 ? 'Dissolver o clã' : 'Sair do clã'}</button></div>`;
+    else if (tab === 'membros') h += (['lider', 'vice', 'general'].includes(k.my_rank) ? `<div class="row"><input id="cl-inv" maxlength="20" placeholder="Nome do personagem para convidar" class="grow"><button class="btn primary" id="cl-invite">Convidar</button></div>${k.pending.length ? `<div class="small">Convites pendentes: ${k.pending.map(esc).join(', ')}</div>` : ''}` : '') +
+      k.members.map(m => `<div class="row"><div class="grow">${R[m.rank][1]} <b>${esc(m.name)}</b> <span class="small">${R[m.rank][0]} • ${GD.CLASSES[m.class_id]?.name || ''} nv ${m.level} • contribuição ${fmt(m.contrib)}</span></div>${lead && m.rank !== 'lider' ? `<select data-rank="${m.id}">${['vice', 'general', 'tesoureiro', 'capitao', 'membro', 'recruta'].map(r => `<option value="${r}" ${r === m.rank ? 'selected' : ''}>${R[r][0]}</option>`).join('')}</select><button class="btn" data-lead="${m.id}" title="Passar a liderança">👑</button>` : ''}${off && m.rank !== 'lider' && m.id !== S.c.id ? `<button class="btn red" data-kick="${m.id}">✕</button>` : ''}</div>`).join('') +
+      `<h4>Cargos</h4>${Object.values(R).map(r => `<div class="small">${r[1]} <b>${r[0]}</b> — ${r[2]}</div>`).join('')}`;
+    else if (tab === 'evolucao') { const rq = k.req || C.req[k.level + 1], bar = (v, n) => `<div class="cprog"><i style="width:${Math.min(100, 100 * v / n)}%"></i><span>${fmt(v)} / ${fmt(n)}</span></div>`;
+      h += rq ? `<div class="cbox"><b>Para o nível ${k.level + 1} — ${C.title(k.level + 1)}</b> <span class="small">${rq.items ? 'missão de caça + itens' : 'missão de caça'}</span>
+        <div class="small">⭐ Pontos de caça</div>${bar(k.points, rq.points)}<div class="small">👥 Membros</div>${bar(k.members.length, rq.members)}<div class="small">🪙 Tesouro (é gasto ao evoluir)</div>${bar(k.bank, rq.aurum)}
+        ${Object.entries(rq.items || {}).map(([i, n]) => `<div class="small">${inm(i)} doados (são gastos)</div>${bar(k.items[i] || 0, n)}`).join('')}
+        ${off ? '<button class="btn primary" id="cl-up" style="margin-top:6px">Evoluir o clã</button>' : '<div class="small">Só o líder ou o vice evoluem o clã.</div>'}</div>` : '<div class="cbox"><b>Nível máximo alcançado!</b></div>';
+      h += '<h4>O que cada nível libera</h4>' + Object.entries(C.perks).map(([l, t]) => `<div class="small" style="opacity:${+l <= k.level ? 1 : 0.6}"><b style="color:${C.color(+l)}">Nv ${l} ${C.title(+l)}</b> — ${t}${C.req[l] ? ` <i>(${fmt(C.req[l].points)} pts, ${C.req[l].members} membros, ${fmt(C.req[l].aurum)} aurum${C.req[l].items ? ', ' + Object.entries(C.req[l].items).map(([i, n]) => n + ' ' + (IT(i)?.name || i)).join(', ') : ''})</i>` : ''}</div>`).join(''); }
+    else h += castles();
+    b.innerHTML = h;
+  }
+  const v = id => (b.querySelector(id)?.value || '').trim();
+  b.onchange = e => { const r = e.target.dataset.rank; if (r) clanDo('manage', { p_target: r, p_action: 'rank', p_rank: e.target.value }, 'Cargo alterado'); };
+  b.onclick = async e => { const t = e.target.closest('button'); if (!t) return; const d = t.dataset;
+    if (d.ct) { panelState.tab = d.ct; renderPanel(); } else if (t.id === 'cl-create') clanDo('create', { p_name: v('#cl-name'), p_tag: v('#cl-tag') }, 'Clã fundado!');
+    else if (d.acc) clanDo('answer', { p_clan: d.acc, p_accept: true }, 'Bem-vindo ao clã!'); else if (d.rej) clanDo('answer', { p_clan: d.rej, p_accept: false });
+    else if (t.id === 'cl-invite') clanDo('invite', { p_name: v('#cl-inv') }, 'Convite enviado'); else if (d.kick) { if (confirm('Remover este membro do clã?')) clanDo('manage', { p_target: d.kick, p_action: 'kick' }, 'Membro removido'); }
+    else if (d.lead) { if (confirm('Passar a liderança do clã para este membro?')) clanDo('manage', { p_target: d.lead, p_action: 'leader' }, 'Liderança transferida'); }
+    else if (t.id === 'cl-don') { const n = Math.floor(+v('#cl-au')); if (n > 0) clanDo('donate', { p_aurum: n }, 'Doação feita'); } else if (d.di) clanDo('donate', { p_aurum: 0, p_item: d.di, p_qty: 1 }, 'Doação feita');
+    else if (t.id === 'cl-up') { if (await clanDo('levelup', {}, 'O clã evoluiu!')) { sfx('levelup'); postFlash(0.6); } } else if (d.flag) clanDo('set', { p_flag: { e: d.flag, c: myClan().flag?.c || '#c83a3a' } }, 'Bandeira definida'); else if (d.fcol) clanDo('set', { p_flag: { e: myClan().flag?.e || '⚔️', c: d.fcol } }, 'Cor definida');
+    else if (t.id === 'cl-setnotice') clanDo('set', { p_notice: v('#cl-notice') }, 'Recado publicado'); else if (t.id === 'cl-leave') { if (confirm('Tem certeza?')) clanDo('leave', {}, 'Você saiu do clã'); }
+    else if (d.cap) { await saveNow(); if (await clanDo('capture', { p_castle: d.cap }, '👑 Castelo conquistado!')) { sfx('levelup'); postFlash(0.8); shake(0.5); } }
+    else if (d.go) { const L = GD.LANDMARKS.find(L => L.id === d.go); toast(`🏰 ${L.name} fica em (${L.x}, ${L.z}) — use o Guardião do Portal de uma cidade`); } };
+}
 function pChar(b) {
   const c = S.c, st = stats(), cl = st.cls, eq = c.equipment, P = c.profs || {};
   const es = (s, l) => eq[s] ? slot(eq[s], (c.enchant || {})[eq[s]] ? '+' + c.enchant[eq[s]] : null, `data-slot="${s}"`) : `<div class="slot" data-slot="${s}"><div class="ic">▫️</div><div class="nm">${l}</div></div>`;
@@ -1542,7 +1608,7 @@ async function enterWorld(id) {
   S.bar = null; makeMe(); const s = stats(); S.hp = S.c.hp > 0 && S.c.hp <= s.maxHp ? S.c.hp : s.maxHp; S.mp = S.c.mp > 0 && S.c.mp <= s.maxMp ? S.c.mp : s.maxMp;
   if (me.x < 20 || me.z < 20 || me.x > 2980 || me.z > 2980 || WG.height(me.x, me.z) < WG.WATER + 0.25 || S.c.hp <= 0) { const t = WG.nearestTown(me.x, me.z).town; me.x = t.x; me.z = t.z + 25; }
   updateChunks(me.x, me.z, true); loadQuests(); renderTracker(); buildBar(); S.fly = false; S.alt = 0; restoreComp();
-  show('#hud'); S.inGame = true; if (!S.uiInit) { S.uiInit = 1; initUI(); initBars(); } $('#btn-gm').hidden = !S.c.is_gm;
+  show('#hud'); S.inGame = true; loadClan(true); if (!S.uiInit) { S.uiInit = 1; initUI(); initBars(); buildBar(); } $('#btn-gm').hidden = !S.c.is_gm;
   B.join({ id: S.c.id, name: S.c.name, is_gm: S.c.is_gm }, { onPos, onLeave: id => { const o = S.others[id]; if (o) { o.model && scene.remove(o.model.root); delete S.others[id]; } }, onPresence: p => S.presence = p, onChat, onNode, onEvent, onFx: remoteFx });
   $('#chat-log').innerHTML = ''; (await safe(() => B.chatRecent()) || []).forEach(addChat);
   addChat({ kind: 'q', msg: `Bem-vindo(a) a Aurora, ${S.c.name}. Fale com o Arauto do Eclipse na praça para começar sua jornada (H abre a história).` });
@@ -1555,7 +1621,7 @@ setInterval(() => { if (!S.inGame) return; const t = Date.now(); for (const [id,
 
 // ---------- ambiente: ciclo dia/noite, sol, lua, vento, fogo ----------
 const fogBase = new THREE.Color(), nightFog = new THREE.Color('#1c2640'), sunWarm = new THREE.Color('#ffb070'), sunHigh = new THREE.Color('#fff2d8'), moonC = new THREE.Color('#8aa4ff'), hemiDay = new THREE.Color(0xcfe3ff), hemiNight = new THREE.Color(0x6a7ab0), tmpC = new THREE.Color();
-function grassOk(x, z) { if (WG.inNeon(x, z, 6)) return false; const th = THEMES[WG.nearestTown(x, z).town.theme]; if (!th.grass) return false; const h = WG.height(x, z); return h > 1.6 && h < 34 && WG.nearestTown(x, z).dist > 31 && WG.roadDist(x, z) > 4.5 && !houses.some(o => Math.abs(o.x - x) < o.r && Math.abs(o.z - z) < o.r); }
+function grassOk(x, z) { if (WG.inNeon(x, z, 6)) return false; { const NL = WG.nearestLandmark(x, z); if (NL.lm && NL.lm.type === 'castelo' && Math.abs(x - NL.lm.x) < 40 && Math.abs(z - NL.lm.z) < 40) return false; } const th = THEMES[WG.nearestTown(x, z).town.theme]; if (!th.grass) return false; const h = WG.height(x, z); return h > 1.6 && h < 34 && WG.nearestTown(x, z).dist > 31 && WG.roadDist(x, z) > 4.5 && !houses.some(o => Math.abs(o.x - x) < o.r && Math.abs(o.z - z) < o.r); }
 function grassColor(x, z, out) { const th = THEMES[WG.nearestTown(x, z).town.theme]; out.set(th.grass || '#5a9a3a'); }
 function updateEnvironment(dt) {
   const t = clock.elapsedTime, ph = dayPhase(), { sun: sd, moon: md } = sunVectors(ph);
@@ -1616,4 +1682,4 @@ initComp({ scene, S, GD, WG, me: () => me, toast, petHit, now, keys });
 const POI_AMB = { tumba: { particles: '#aaffbb' }, pantano: { particles: '#c8ff7a' }, destrocos: { particles: '#ffaa5a' }, estranho: { particles: '#c89aff' } };
 initAmbient({ scene, S, WG, me: () => me, isNight: () => { const p = dayPhase(); return p < 0.23 || p > 0.79; }, theme: (x, z) => WG.nearestTown(x, z).town.theme,
   nearPoi: (x, z) => { const L = GD.LANDMARKS.find(L => L.poi && Math.hypot(L.x - x, L.z - z) < 70); return L ? { x: L.x, z: L.z, amb: POI_AMB[L.type] } : null; } });
-window.__game = { meteor, elemImpact, castBurst, blocked, playAttack, openEquip: () => toggleEquip(EQX), VIL, stats, WEATHER, POST, COMP, summonPet, setMount, setWings, toggleFly, toggleRide, townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, keys, refreshGear: () => { me.enc = encOf(S.c); setGear(me, S.c.equipment.arma, S.c.equipment.armadura, S.c.equipment); buildBar(); }, attackKey: () => attackKey(), dodge, startGuide, stopGuide, PERF, applyQuality, saveQuests };
+window.__game = { get B() { return B; }, clanDo, loadClan, get clanInfo() { return S.clanInfo; }, meteor, elemImpact, castBurst, blocked, playAttack, openEquip: () => toggleEquip(EQX), VIL, stats, WEATHER, POST, COMP, summonPet, setMount, setWings, toggleFly, toggleRide, townGroups, houses, S, scene, camera, onPos: (p) => onPos(p), renderPanel: () => renderPanel(), teleport: (x, z) => teleport(x, z), spawnMob: (f, l, x, z) => spawnMob(FAM[f], l, x, z), get me() { return me; }, cam, command, openPanel, castSkill, keys, refreshGear: () => { me.enc = encOf(S.c); setGear(me, S.c.equipment.arma, S.c.equipment.armadura, S.c.equipment); buildBar(); }, attackKey: () => attackKey(), dodge, startGuide, stopGuide, PERF, applyQuality, saveQuests };

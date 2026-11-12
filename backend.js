@@ -24,7 +24,9 @@ class RemoteBackend {
   equip(i) { return this.rpc('game_equip', this.c({ p_item: i })); }
   unequip(s) { return this.rpc('game_unequip', this.c({ p_slot: s })); }
   useItem(i) { return this.rpc('game_use', this.c({ p_item: i })); }
-  kill(l, boss, fam) { return this.rpc('game_kill2', this.c({ p_mob_level: l, p_boss: !!boss, p_fam: fam || '' })); }
+  // clã: info | create | invite | answer | leave | manage | donate | levelup | set | capture
+  clan(fn, a) { return this.rpc('game_clan_' + fn, this.c(a || {})); }
+  kill(l, boss, fam) { return this.rpc('game_kill3', this.c({ p_mob_level: l, p_boss: !!boss, p_fam: fam || '' })); }
   die(pvp) { return this.rpc('game_die', this.c({ p_pvp: !!pvp })); }
   classChange(k) { return this.rpc('game_class_change', this.c({ p_class: k })); }
   teleport(d) { return this.rpc('game_teleport', this.c({ p_dest: d })); }
@@ -142,6 +144,18 @@ class LocalBackend {
   async chat(m) { setTimeout(() => this.h.onChat({ name: this.C.name, is_gm: true, kind: 'chat', msg: m }), 0); }
   async chatRecent() { return [{ name: 'Sistema', is_gm: true, kind: 'sistema', msg: 'Modo offline: só você está no mundo. Comandos de GM liberados para teste.' }]; }
   async pvp() { this.E('PvP só funciona no servidor online'); }
+  // clã no modo offline: um clã só seu, para testar as telas
+  async clan(fn, a = {}) { const c = this.C, d = this.d; d.castles = d.castles || {}; let k = d.clan;
+    const info = () => ({ clan: d.clan ? { ...d.clan, my_rank: 'lider', my_contrib: d.clan.points, req: GD.CLAN.req[d.clan.level + 1] || null, members: [{ id: c.id, name: c.name, level: c.level, class_id: c.class_id, race: c.race, rank: 'lider', contrib: d.clan.points }], pending: [] } : undefined, invites: [],
+      castles: GD.CASTLES.map(id => ({ id, name: GD.LANDMARKS.find(l => l.id === id).name, owner: d.castles[id] ? 'off' : null, owner_name: d.castles[id] ? d.clan?.name : null, owner_tag: d.castles[id] ? d.clan?.tag : null, owner_flag: d.clan?.flag, owner_level: d.clan?.level })), top: d.clan ? [{ ...d.clan, n: 1 }] : [], siege: { open: true, next: new Date(Date.now() + 864e5 * 20).toISOString() } });
+    if (fn === 'create') { if (c.aurum < 5000) this.E('Fundar um clã custa 5.000 de aurum'); c.aurum -= 5000; d.clan = { id: 'off', name: a.p_name, tag: String(a.p_tag).toUpperCase(), leader: c.id, level: 1, points: 0, bank: 0, items: {}, flag: null, notice: '' }; }
+    else if (fn === 'donate') { if (a.p_aurum) { if (c.aurum < a.p_aurum) this.E('Aurum insuficiente'); c.aurum -= a.p_aurum; k.bank += a.p_aurum; } if (a.p_item) { if ((c.inv[a.p_item] || 0) < a.p_qty) this.E('Itens insuficientes'); c.inv[a.p_item] -= a.p_qty; k.items[a.p_item] = (k.items[a.p_item] || 0) + a.p_qty; } }
+    else if (fn === 'levelup') { const r = GD.CLAN.req[k.level + 1]; if (!r) this.E('Nível máximo'); if (k.bank < r.aurum) this.E('Tesouro insuficiente'); k.bank -= r.aurum; k.level++; k.points = Math.max(k.points, r.points); }
+    else if (fn === 'set') { if (a.p_flag) k.flag = a.p_flag; if (a.p_notice != null) k.notice = a.p_notice; }
+    else if (fn === 'capture') { for (const i in d.castles) delete d.castles[i]; d.castles[a.p_castle] = 1; }
+    else if (fn === 'leave') { d.clan = null; d.castles = {}; }
+    else if (fn !== 'info') this.E('No modo offline o clã tem só você');
+    this._s(); return info(); }
   async questDone(id) {
     const c = this.C, Q = QD.QUESTS[id]; c.quests = c.quests || {};
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza' }).format(new Date()), daily = Q.kind === 'diaria'; if (daily ? c.quests[id] === today : c.quests[id]) this.E(daily ? 'Missão diária já concluída hoje' : 'Missão já concluída'); if (c.level < Q.lvl) this.E('Requer nível ' + Q.lvl); if (Q.prereq && !c.quests[Q.prereq]) this.E('Conclua a missão anterior primeiro');
