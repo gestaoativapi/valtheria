@@ -28,7 +28,9 @@ jobs:
           ../Godot_v${GODOT}_linux.x86_64 --headless --path . --import || true
           ../Godot_v${GODOT}_linux.x86_64 --headless --path . --export-release "Windows Desktop" build/Valtheria.exe
           test -s build/Valtheria.exe
-          cd build && zip -9 Valtheria-Windows.zip Valtheria.exe
+          test -s build/Valtheria.console.exe
+          cp windows/*.bat build/
+          cd build && zip -9 Valtheria-Windows.zip Valtheria.exe Valtheria.console.exe *.bat
       - name: Publicar em Releases
         env:
           GH_TOKEN: ${{ github.token }}
