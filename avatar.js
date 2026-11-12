@@ -37,7 +37,7 @@ function hornArc(g, p0, p1, p2, r0, mat, n = 6) { const P = t => [0, 1, 2].map(k
 // cabeça de dragão: crânio baixo, focinho largo e rombudo, mandíbula clara com presas, sobrancelha em crista que vira chifre curvo,
 // barbatanas na bochecha e crista dorsal. Tudo montado de um lado só e espelhado, para ficar simétrico.
 function dragonHead(head, col, eyeCol, hs, fem, ft, type = 0) {
-  const k = hs * 1.32, sc = toon(col), lite = toon('#' + new THREE.Color(col).lerp(new THREE.Color('#e6d3a8'), 0.72).getHexString()), dark = toon(shade(col, 0.5)), mid = toon(shade(col, 0.75)), horn = toon('#cdbf9f'), hornD = toon('#7d7260'), blk = toon('#120e0c'), wht = toon('#f4ecdc'), eye = toon(eyeCol, { emissive: new THREE.Color(eyeCol).getHex(), ei: 0.9 });
+  const k = hs * 1.12, sc = toon(col), lite = toon('#' + new THREE.Color(col).lerp(new THREE.Color('#e6d3a8'), 0.72).getHexString()), dark = toon(shade(col, 0.5)), mid = toon(shade(col, 0.75)), horn = toon('#cdbf9f'), hornD = toon('#7d7260'), blk = toon('#120e0c'), wht = toon('#f4ecdc'), eye = toon(eyeCol, { emissive: new THREE.Color(eyeCol).getHex(), ei: 0.9 });
   const H = new THREE.Group(); H.scale.setScalar(k); H.position.set(0, -0.05 * k, 0.012 * k); head.add(ft(H));
   const put = (g, m, x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0) => { m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.set(rx, ry, rz); g.add(m); return m; };
   put(H, ball(0.178, sc, 18, 14), 0, 0.1, 0.005, 0.98, 1.0, 1.14); put(H, ball(0.13, sc, 14, 10), 0, 0.085, 0.09, 1.05, 0.95, 1); // crânio e testa
@@ -73,7 +73,7 @@ function dragonHead(head, col, eyeCol, hs, fem, ft, type = 0) {
 }
 // cabeça de fera (leão, tigre, lobo ou crocodilo): crânio que cobre a cabeça humana, focinho, orelhas, olhos e pelagem
 function beastHead(head, kind, col, eyeCol, hs, fem, ft) {
-  hs *= 1.32; // a cabeça de fera precisa envolver a cabeça humana do modelo
+  hs *= 1.12; // a cabeça de fera envolve a cabeça humana (que é encolhida no esqueleto)
   const fur = toon(col), lite = toon(shade(col, 1.28)), dark = toon(shade(col, 0.55)), blk = toon('#1c1614'), wht = toon('#f2ead8'), eye = toon(eyeCol, { emissive: new THREE.Color(eyeCol).getHex(), ei: 0.25 });
   const add = (m, x, y, z, sx = 1, sy = 1, sz = 1) => { at(m, x * hs, (y - 0.05) * hs, (z + 0.012) * hs); m.scale.set(sx, sy, sz); head.add(ft(m)); return m; };
   const croc = kind === 'crocodilo', wolf = kind === 'lobo';
@@ -268,7 +268,10 @@ export function buildHumanoid(o) {
   }
   if (race === 'draconato') { const dk = toon(shade(skinCol, 0.55)); for (let i = 0; i < 5; i++) { const sp = at(cone(0.03, 0.1 - i * 0.008, dk, 4), 0, 0.62 - i * 0.11, -0.135 - Math.sin(i / 4 * Math.PI) * 0.02); sp.rotation.x = -1.25; sp.scale.x = 0.5; P.torso.add(ft(sp)); }
     for (const sd of [-1, 1]) for (let i = 0; i < 2; i++) { const sp = at(cone(0.028, 0.09, dk, 4), sd * (0.2 + i * 0.045), 0.64 - i * 0.02, -0.02); sp.rotation.z = -sd * (0.5 + i * 0.5); sp.scale.z = 0.6; P.torso.add(ft(sp)); }
-    if (P.tail) { P.tail.scale.set(1.35, 1.35, 1.3); let p = P.tail, k = 0; while (p.children.find(c => c.isGroup)) { p = p.children.find(c => c.isGroup); const sp = at(cone(0.022, 0.07, dk, 4), 0, 0.06 * (1 - k * 0.15), -0.07); sp.scale.x = 0.5; p.add(sp); k++; } } }
+    if (P.tail) { while (P.tail.children.length) P.tail.remove(P.tail.children[0]); const sm = toon(skinCol), cr = toon('#' + new THREE.Color(skinCol).lerp(new THREE.Color('#e6d3a8'), 0.72).getHexString()); let p = P.tail;
+      for (let i = 0; i < 8; i++) { const r = 0.085 * Math.pow(0.78, i) + 0.008, L = 0.15 - i * 0.006, seg = at(G(), 0, 0, i ? -(0.15 - (i - 1) * 0.006) : 0); seg.rotation.x = i === 0 ? 0.75 : i < 3 ? -0.05 : -0.26; p.add(seg);
+        const c = at(capsule(r, L, sm, 8), 0, 0, -L / 2); c.rotation.x = Math.PI / 2; seg.add(c); const u = at(capsule(r * 0.8, L, cr, 8), 0, -r * 0.3, -L / 2); u.rotation.x = Math.PI / 2; seg.add(u);
+        if (i < 7) { const sp = at(cone(r * 0.4, r * 1.3, dk, 4), 0, r * 1.05, -L / 2); sp.rotation.x = -0.5; sp.scale.x = 0.5; seg.add(sp); } p = seg; } } }
   if (beast && P.tail) { if (beast === 'crocodilo') P.tail.scale.set(1.7, 1.4, 1.15); else if (beast === 'leao') { let p = P.tail; while (p.children.find(c => c.isGroup)) p = p.children.find(c => c.isGroup); p.add(at(ball(0.06, toon(shade(skinCol, 0.5)), 8, 6), 0, 0, -0.14)); P.tail.scale.set(0.6, 0.6, 1.25); } else if (beast === 'tigre') P.tail.scale.set(0.7, 0.7, 1.3); }
   if (f.wings) {
     P.wings = at(G(), 0, 0.46, -0.12); P.torso.add(P.wings);
@@ -644,7 +647,7 @@ function applyGLB(m, C) {
   // proporções próprias de cada raça (escala de ossos; as animações não mexem em escala)
   const RB = { anao: { Head: 1.1, hand_l: 1.18, hand_r: 1.18, upperarm_l: 1.06, upperarm_r: 1.06 }, orc: { Head: 0.94, neck_01: 0.9, upperarm_l: 1.12, upperarm_r: 1.12, hand_l: 1.15, hand_r: 1.15, spine_03: 1.06 },
     halfling: { Head: 1.16, foot_l: 1.3, foot_r: 1.3 }, gigante: { hand_l: 1.25, hand_r: 1.25, upperarm_l: 1.1, upperarm_r: 1.1, spine_03: 1.08, Head: 0.92 }, elfo: { Head: 0.96, neck_01: 1.12 }, sombrio: { Head: 0.96, neck_01: 1.1 },
-    sylph: { Head: 0.98, neck_01: 1.1, foot_l: 0.85, foot_r: 0.85 }, draconato: { neck_01: 1.18, Head: 1.04, hand_l: 1.15, hand_r: 1.15 }, beastman: { hand_l: 1.15, hand_r: 1.15, neck_01: 0.92, spine_03: 1.05 }, nocturno: { neck_01: 1.06 } }[m.race] || {};
+    sylph: { Head: 0.98, neck_01: 1.1, foot_l: 0.85, foot_r: 0.85 }, draconato: { neck_01: 1.22, Head: 0.8, hand_l: 1.28, hand_r: 1.28, spine_03: 1.06, foot_l: 1.12, foot_r: 1.12 }, beastman: { hand_l: 1.15, hand_r: 1.15, neck_01: 0.92, spine_03: 1.05, Head: 0.8 }, nocturno: { neck_01: 1.06 } }[m.race] || {};
   for (const [b, k] of Object.entries(RB)) if (C.bones[b]) C.bones[b].scale.multiplyScalar(k);
   playClip(C, 'Idle_Loop'); C.mixer.update(0); m.root.updateMatrixWorld(true);
   const sock = (proc, bname) => { const b = C.bones[bname], s = new THREE.Object3D(); b.add(s); b.updateWorldMatrix(true, false);
@@ -663,7 +666,11 @@ function applyGLB(m, C) {
   { const rq = new THREE.Quaternion(), rs = new THREE.Vector3(); m.root.getWorldQuaternion(rq); m.root.getWorldScale(rs);
     const ws = bn => { const b = C.bones[bn]; if (!b) return null; const o = new THREE.Object3D(), q = new THREE.Quaternion(), sc = new THREE.Vector3(); b.add(o); b.getWorldQuaternion(q); b.getWorldScale(sc); o.quaternion.copy(q.invert().multiply(rq)); o.scale.setScalar(m.H * rs.y / ((sc.x + sc.y + sc.z) / 3)); return o; };
     m.WS = { chest: ws('spine_03'), pelvis: ws('pelvis'), shL: ws('upperarm_l'), shR: ws('upperarm_r'), thL: ws('thigh_l'), thR: ws('thigh_r'), faL: ws('lowerarm_l'), faR: ws('lowerarm_r'), caL: ws('calf_l'), caR: ws('calf_r'), ftL: ws('foot_l'), ftR: ws('foot_r') }; }
-  for (const f of m.FEAT) { const par = f.parent; if (!par) continue; const target = par === P.head ? head : par === P.hips ? hips : torso; target.add(f); }
+  if (m.race === 'draconato' || m.race === 'beastman') { // garras nas pontas dos dedos e nos pés
+    const cm = toon(m.race === 'draconato' ? '#2a2420' : '#3a3028');
+    for (const sd of ['l', 'r']) { for (const fg of ['thumb', 'index', 'middle', 'ring', 'pinky']) { const b = C.bones[fg + '_03_' + sd] || C.bones[fg + '_02_' + sd]; if (!b) continue; const d = b.position.clone(), len = d.length() || 0.03; d.normalize(); const cl = new THREE.Mesh(new THREE.ConeGeometry(len * 0.32, len * 1.5, 5), cm); cl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d); cl.position.copy(d).multiplyScalar(len * 1.25); cl.castShadow = true; b.add(cl); }
+    } }
+  for (const f of m.FEAT) { const par = f.parent; if (!par) continue; const target = par === P.head ? head : par === P.hips ? hips : torso; target.add(f); if (target === head && RB.Head && RB.Head < 1) { f.scale.multiplyScalar(1 / RB.Head); f.position.multiplyScalar(1 / RB.Head); } } // a cabeça humana encolhe por baixo da cabeça de fera
   m.body.visible = false;
   m.P = { ...P, head, skull: head, torso, hips, armR: { hand: handR, fa: faR, s: sR }, armL: { hand: handL, fa: faL, s: sL }, hair: null, base: null, legL: { l: hips, sh: hips }, legR: { l: hips, sh: hips } };
   m.glb = C; m.glbMode = true; ownMats(C.model); tintGLB(m);
