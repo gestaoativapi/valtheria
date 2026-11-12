@@ -1,5 +1,6 @@
 // ===== Valtheria — personagens 3D suaves (toon) com rosto, expressões e raças =====
 import * as THREE from './lib/three.module.min.js';
+import { customWeapon } from './weapons_custom.js';
 import { createCharacter, play as playClip, setOutfit, setPart, loadGLB } from './chars.js';
 const GD = window.GD;
 
@@ -323,12 +324,15 @@ export function setGear(m, weaponId, armorId, equip) {
     }
     m.weaponKind = k;
     // troca a arma procedural pelo modelo 3D (Quaternius Medieval Weapons, CC0) quando carregar
-    { const list = WGLB[k]; if (list) { const holder = m.gearParts.filter(x => x.parent === H || ((k === 'adaga' || k === 'duplas') && x.parent === HL)).filter(x => !x.isSprite); holder.forEach(hg => swapWeapon(m, hg, list[Math.min(g, list.length - 1)], WLEN[k], g, w.relic, false, w.neon)); } }
+    // arma lendária modelada em código: entra no lugar da versão comum
+    const cw = w.model && customWeapon(w.model);
+    if (cw) { const holder = m.gearParts.filter(x => x.parent === H && !x.isSprite); holder.forEach((hg, i) => { const o = i ? customWeapon(w.model) : cw; [...hg.children].forEach(c => hg.remove(c)); hg.add(o); const tp = o.getObjectByName('tip'); if (tp && !i) m.weaponTip = tp; }); }
+    else { const list = WGLB[k]; if (list) { const holder = m.gearParts.filter(x => x.parent === H || ((k === 'adaga' || k === 'duplas') && x.parent === HL)).filter(x => !x.isSprite); holder.forEach(hg => swapWeapon(m, hg, list[Math.min(g, list.length - 1)], WLEN[k], g, w.relic, false, w.neon)); } }
     if (w.neon) { const nc = new THREE.Color(w.neon), sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: nc, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.7 })); sp.material.opacity = 0.45; sp.scale.setScalar(0.5); sp.position.set(0, (WLEN[k] || 1) * 0.6, 0); add(H, sp); }
     // brilho do encantamento: +4 azul, +7 carmesim, +10 dourado, +13 abissal, +16 celestial — cada nível mais forte
     const en = m.enc || 0, T = GD.ENC_TIER(en);
     if (T) { const col = new THREE.Color(T.c), ei = 0.45 + T.k * 0.35 + (en % 3) * 0.12;
-      for (const part of m.gearParts) { if (part.parent !== H && part.parent !== HL) continue; part.traverse(o => { if (o.isMesh && o.material && o.material.emissive && !o.userData.outline) { o.material = o.material.clone(); o.material.emissive = col.clone(); o.material.emissiveIntensity = ei; } }); }
+      for (const part of m.gearParts) { if (part.parent !== H && part.parent !== HL) continue; part.traverse(o => { if (o.isMesh && o.material && o.material.emissive && !o.userData.outline && !['gold', 'grip', 'gem'].includes(o.material.name)) { o.material = o.material.clone(); o.material.emissive = col.clone(); o.material.emissiveIntensity = o.material.name === 'blade' ? ei * 0.35 : ei; } }); }
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: col, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: Math.min(0.85, 0.4 + T.k * 0.09) })); sp.scale.setScalar(0.42 + T.k * 0.08 + (en % 3) * 0.03); sp.position.set(0, 0.35, 0); add(H, sp); m.encGlow = sp;
       if (T.k >= 3) { const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: new THREE.Color(T.c2), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.6 })); sp2.scale.setScalar(0.35 + T.k * 0.12); sp2.position.set(0, (WLEN[k] || 1) * 0.6, 0); add(H, sp2); m.encGlow2 = sp2; } }
   } else m.weaponKind = null;

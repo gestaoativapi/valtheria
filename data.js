@@ -555,6 +555,9 @@
     const drops = [...Object.keys(NEON_GEAR), 'neon_traje', 'neon_visor', 'neon_luvas', 'neon_botas', 'a_neon', 'm_hover', 'p_drone', 'gema', 'fragmento'];
     SPECIAL_BOSSES.push({ id: 'mecha_omega', name: 'Mecha Ômega', model: 'golem', glb: 'mecha_omega', color: '#3af0ff', scale: 2.6, boss: true, special: true, neon: true, drops, lvl: 60 });
     POI_DROPS.mecha_omega = drops; }
+  // ----- armas lendárias (modelo próprio em código) -----
+  { const base = ITEMS.espada_s, st = {}; for (const [k, v] of Object.entries(base.stats)) st[k] = +(v * 1.3).toFixed(1);
+    ITEMS.lend_espada_harmonia = { id: 'lend_espada_harmonia', name: 'Espada Celestial da Harmonia', grade: 5, type: 'weapon', slot: 'arma', kind: 'espada', icon: '🗡️', stats: st, unique: true, relic: true, sa: ['vampiro', 'foco'], model: 'W001', neon: '#3ac8ff', legend: true, img: 'lend_espada_harmonia.webp' }; }
   const TROPHY = { drone_sent: ['Núcleo de Drone', '🔋'], andarilho: ['Servomotor Gasto', '⚙️'], vigia: ['Lente de Vigia', '🔭'], plasmoide: ['Gel de Plasma', '🧪'], mecha_batedor: ['Placa de Blindagem', '🔩'], colosso: ['Reator Sintético', '☢️'], javali: ['Presa de Javali', '🐗'], lobo: ['Pele de Lobo Cinzento', '🐺'], bandido: ['Insígnia de Bandido', '🏴'], aranha: ['Seda de Aranha', '🕸️'], golem: ['Núcleo de Golem', '🪨'], esqueleto: ['Osso Amaldiçoado', '🦴'], ent: ['Seiva Corrompida', '🌿'], lobo_esp: ['Essência Espectral', '👻'], demonio: ['Chifre Demoníaco', '😈'], lagarto: ['Escama de Lagarto', '🦎'], dragonete: ['Escama de Dragonete', '🐉'], caido: ['Selo do Cavaleiro Caído', '⚜️'] };
   NEON_MOBS.forEach(f => { f.grade = 3; ITEMS['tr_' + f.id] = { id: 'tr_' + f.id, name: TROPHY[f.id][0], grade: 3, type: 'trophy', icon: TROPHY[f.id][1], fam: f.id }; });
   MOBS.forEach((fs, g) => fs.forEach(f => { if (TROPHY[f.id]) ITEMS['tr_' + f.id] = { id: 'tr_' + f.id, name: TROPHY[f.id][0], grade: g, type: 'trophy', icon: TROPHY[f.id][1], fam: f.id }; }));

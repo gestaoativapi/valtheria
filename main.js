@@ -1129,7 +1129,7 @@ function openNpc(n) {
 }
 const nearNpc = (type) => S.c.is_gm || npcs.some(n => n.type === type && Math.hypot(n.x - me.x, n.z - me.z) < 8);
 function slot(id, q, extra = '') { const it = IT(id); return `<div class="slot" data-id="${id}" ${extra} style="border-color:${gcol(it.grade)}88"><span class="g" style="color:${gcol(it.grade)}">${GD.GRADES[it.grade].id}</span>${q != null ? `<span class="q">${q}</span>` : ''}<div class="ic">${icImg(it)}</div><div class="nm">${esc(it.name)}</div></div>`; }
-function icImg(it, big) { const u = icon3d(it); return u ? `<img src="${u}" class="ic3d${big ? ' big' : ''}" alt="">` : it.icon; }
+function icImg(it, big) { if (it.img) return `<img src="assets/icons/${it.img}" class="ic3d${big ? ' big' : ''}" alt="">`; const u = icon3d(it); return u ? `<img src="${u}" class="ic3d${big ? ' big' : ''}" alt="">` : it.icon; }
 onIconsReady(() => { if (panelState.kind && !document.activeElement?.matches('input')) renderPanel(); });
 function itemDesc(id) {
   const it = IT(id), s = it.stats || {}, p = [];
