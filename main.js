@@ -1419,7 +1419,7 @@ function pGm(b) {
   <h4>Editar personagem</h4><div class="small">Deixe o nome vazio para editar você mesmo. Trocar a raça ou o tipo coloca a classe inicial daquela combinação; escolher uma classe ajusta raça e tipo sozinho.</div>
   <div class="field"><input id="ge-alvo" placeholder="Jogador (vazio = você)"><select id="ge-race">${Object.entries(GD.RACES).map(([id, r]) => `<option value="${id}" ${id === S.c.race ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select><select id="ge-type"><option value="l" ${S.c.type === 'l' ? 'selected' : ''}>Guerreiro</option><option value="m" ${S.c.type === 'm' ? 'selected' : ''}>Mago</option></select><select id="ge-gender"><option value="m" ${S.c.gender === 'm' ? 'selected' : ''}>Masculino</option><option value="f" ${S.c.gender === 'f' ? 'selected' : ''}>Feminino</option></select><button class="btn" id="ge-apply">Aplicar raça / tipo / gênero</button></div>
   <div class="field"><select id="ge-class" class="grow"></select><button class="btn" id="ge-setclass">Definir classe</button></div>
-  <div class="field"><button class="btn alt" id="ge-max">Nível 80 + classe final</button><button class="btn alt" id="ge-heal">Curar tudo</button><button class="btn alt" id="ge-set">Receber set e espada lendários</button></div>
+  <div class="field"><button class="btn alt" id="ge-max">Nível 80 + classe final</button><button class="btn alt" id="ge-heal">Curar tudo</button><button class="btn alt" id="ge-set">Receber sets, espadas e asas lendários</button></div>
   <h4>Dar item</h4><div class="field"><select id="gi">${Object.values(GD.ITEMS).map(i => `<option value="${i.id}">[${GD.GRADES[i.grade].id}] ${esc(i.name)}</option>`).join('')}</select><input id="gq" type="number" value="10" style="max-width:70px"><input id="ga" placeholder="Jogador (vazio = você)"></div><button class="btn" id="gib">Entregar</button>
   <h4>Nível / Profissões / Aurum</h4><div class="field"><input id="gl" type="number" value="20" style="max-width:70px"><button class="btn" id="glb">Definir nível</button><select id="gp"><option value="coleta">Coleta</option><option value="refino">Refino</option><option value="forja">Forja</option></select><input id="gpl" type="number" value="20" style="max-width:60px"><button class="btn" id="gpb">Profissão</button></div>
   <div class="field"><input id="gau" type="number" value="100000"><button class="btn" id="gaub">Dar aurum</button></div>
@@ -1437,7 +1437,7 @@ function pGm(b) {
     if (t.id === 'ge-setclass') return applyEdit({ alvo: $('#ge-alvo').value.trim(), classe: $('#ge-class').value });
     if (t.id === 'ge-max') { await safe(() => B.gm('nivel', { nivel: 80 })); const last = Object.values(GD.CLASSES).filter(k => k.race === S.c.race && k.type === S.c.type).sort((x, y) => y.rank - x.rank)[0]; return applyEdit({ classe: last.id }); }
     if (t.id === 'ge-heal') { const st = stats(); S.hp = st.maxHp; S.mp = st.maxMp; S.dead = false; updateHud(); return toast('Vida e mana cheias', 'ok'); }
-    if (t.id === 'ge-set') { for (const it of ['lend_espada_harmonia', 'set_desbravador_estrelas_armadura', 'set_desbravador_estrelas_elmo', 'set_desbravador_estrelas_luvas', 'set_desbravador_estrelas_botas']) await safe(() => B.gm('give', { item: it, qtd: 1 })); await refresh(); return toast('Itens lendários na bolsa', 'ok'); }
+    if (t.id === 'ge-set') { for (const it of ['lend_espada_harmonia', 'lend_alvorecer_celestial', 'a_celeste', ...Object.keys(GD.LEGEND_SETS).flatMap(s => ['armadura', 'elmo', 'luvas', 'botas'].map(p => `${s}_${p}`))]) await safe(() => B.gm('give', { item: it, qtd: 1 })); await refresh(); return toast('Itens lendários na bolsa', 'ok'); }
     if (t.dataset.g) { if (t.dataset.g === 'ir') { const o = S.others[t.dataset.id]; if (o) { teleport(o.x + 2, o.z); closePanel(); } else toast('Sem posição desse jogador ainda', 'err'); } else if (t.dataset.g === 'puxar') say(await safe(() => B.gm('puxar', { alvo: t.dataset.n, x: me.x + 2, z: me.z }))); else { const r = await safe(() => B.gm(t.dataset.g, { alvo: t.dataset.n })); if (r) addChat({ kind: 'sys', msg: r }); } }
     if (t.id === 'gib') { say(await safe(() => B.gm('give', { item: $('#gi').value, qtd: +$('#gq').value || 1, alvo: $('#ga').value.trim() || undefined }))); await refresh(); }
     if (t.id === 'glb') { say(await safe(() => B.gm('nivel', { nivel: +$('#gl').value }))); await refresh(); S.hp = stats().maxHp; buildBar(); }
@@ -1472,6 +1472,7 @@ async function equipItem(id) { const it = IT(id), eq = S.c.equipment || {}, w = 
 async function useBagItem(id) { const it = IT(id); if (!it) return; if (!S.inv[id]) { toast(`Sem ${it.name} na bolsa`, 'err'); return; }
   if (it.type === 'scroll') { const r = await safe(() => B.useItem(id)); if (r) { S.inv[id]--; if (!S.inv[id]) delete S.inv[id]; toast('Retornando a ' + r.town, 'ok'); teleport(r.x, r.z); } }
   else if (it.type === 'potion') await usePotion(id.startsWith('pocao_mp') ? 'mp' : 'hp', id);
+  else if (it.comp) { if (S.c.level < it.comp.lvl) return toast(`Requer nível ${it.comp.lvl}`, 'err'); if (it.type === 'pet') await summonPet(id); else if (it.type === 'mount') await setMount(id); else setWings(id); }
   else if (it.slot) { const r = await equipItem(id); if (r) { S.c.equipment = r; statsAt = -1; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); } }
   buildBar(); }
 function buildBar() {
@@ -1505,7 +1506,7 @@ function buildBar2() { const el = $('#bar2'); if (!el) return; if (!S.bar2 || S.
 const EQX = { esc,
   data() { const c = S.c, eq = c.equipment || {}, st = stats(), slots = {}, locked = {};
     for (const k of ['elmo', 'armadura', 'luvas', 'botas', 'arma', 'escudo']) { const it = IT(eq[k]); if (it) slots[k] = { id: it.id, name: it.name, html: icImg(it, true), enc: (c.enchant || {})[it.id], desc: itemDesc(it.id) }; }
-    const cmp = (k, id) => { const it = IT(id); if (it) slots[k] = { id, name: it.name, html: it.icon, desc: itemDesc(id) }; }; cmp('asas', COMP.wingsId); cmp('montaria', COMP.mountId); cmp('pet', COMP.petId);
+    const cmp = (k, id) => { const it = IT(id); if (it) slots[k] = { id, name: it.name, html: it.img ? icImg(it, true) : it.icon, desc: itemDesc(id) }; }; cmp('asas', COMP.wingsId); cmp('montaria', COMP.mountId); cmp('pet', COMP.petId);
     const w = IT(eq.arma); if (w && GD.TWO_HANDED.includes(w.kind)) locked.escudo = 'Bloqueado: a arma atual usa as duas mãos';
     for (const k of ['colar', 'anel1', 'anel2', 'brinco', 'capa', 'reliquia']) locked[k] = 'Acessório especial — conquistado em chefes e eventos (em breve)'; locked.insignia = 'Insígnia do clã — chega com o sistema de clãs';
     const el = myElem(), E = ELEM[el], re = ELEM[GD.RACE_ELEM[c.race]];

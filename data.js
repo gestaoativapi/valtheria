@@ -444,9 +444,10 @@
     a_sombra: { name: 'Asas Sombrias', type: 'wings', color: '#6a3aaa', price: 150000, lvl: 40, icon: '🦇', fx: { crit: 0.02 } },
     a_fenix: { name: 'Asas da Fênix', type: 'wings', color: '#ff7a2a', price: 320000, lvl: 61, icon: '🔥', fx: { matkPct: 0.04 } },
     a_gelo: { name: 'Asas Glaciais', type: 'wings', color: '#9ad8ff', price: 320000, lvl: 61, icon: '❄️', fx: { pdefPct: 0.04 } },
+    a_celeste: { name: 'Asas da Graça Celestial', type: 'wings', color: '#e6edf8', lvl: 76, icon: '🕊️', img: 'asas_celeste.webp', fx: { speed: 0.05, pdefPct: 0.03 } },
     a_vazio: { name: 'Asas do Vazio', type: 'wings', color: '#4a1a8a', lvl: 52, icon: '🌌', fx: { crit: 0.03, speed: 0.04 } },
   };
-  for (const [id, c] of Object.entries(COMP)) ITEMS[id] = { id, name: c.name, grade: gradeForLevel(c.lvl), type: c.type, icon: c.icon, comp: c, unique: !c.price };
+  for (const [id, c] of Object.entries(COMP)) ITEMS[id] = { id, name: c.name, grade: gradeForLevel(c.lvl), type: c.type, icon: c.icon, comp: c, unique: !c.price, ...(c.img ? { img: c.img } : {}) };
   const SHOP = { pocao_hp: 25, pocao_mp: 60, retorno: 80, kit_ng: 150 };
   Object.keys(WEAPONS).forEach(k => SHOP[`${k}_ng`] = 300); Object.keys(ARMORS).forEach(k => SHOP[`${k}_ng`] = 350);
   Object.keys(PARTS).forEach(p => Object.keys(ARMORS).forEach(k => SHOP[`${p}_${k}_ng`] = 120)); SHOP.escudo_ng = 200; SHOP.egide_ng = 200;
@@ -561,13 +562,22 @@
       lore: 'Forjada com minério estelar e abençoada pelos Cosmos, protege aqueles que ousam explorar o desconhecido.',
       // paleta realista: aço escuro esfumaçado, frisos em ouro envelhecido e cristais de luz estelar fria
       cores: { principal: '#8a9099', detalhe: '#b9954e', brilho: '#a9c4ee', cristal: '#a8bad6', sombra: '#2a2c31' }, pecas: { elmo: 'Elmo', armadura: 'Armadura', luvas: 'Luvas', botas: 'Botas' }, two: { pdefPct: 0.06 }, four: { hpPct: 0.12, dmgRed: 0.08 } },
+    // prata polida com safiras e couro: o par da espada Alvorecer Celestial
+    set_alvorecer_celestial: { name: 'Alvorecer Celestial', classe: 'Guerreiro', kind: 'pesada', grade: 5, icon: '🌅', img: 'set_alvorecer',
+      lore: 'Placas de prata polida gravadas com asas, usadas pelos primeiros guardiões da aurora.',
+      cores: { principal: '#a4abb5', detalhe: '#d2d7de', brilho: '#3a6ae0', cristal: '#1c46b0', sombra: '#4a382a' }, pecas: { elmo: 'Elmo', armadura: 'Peitoral', luvas: 'Manoplas', botas: 'Grevas' }, two: { pdefPct: 0.05 }, four: { hpPct: 0.1, dmgRed: 0.07 } },
+    // grafite esfumaçado, couro marrom e frisos de bronze: armadura média de paladino
+    set_vigilia_paladino: { name: 'Paladino Vigilante', classe: 'Paladino', kind: 'pesada', grade: 5, icon: '🛡️', img: 'set_vigilia',
+      lore: 'Grafite esfumaçado sobre couro curtido. Leve o bastante para marchar a noite inteira.',
+      cores: { principal: '#5c6068', detalhe: '#8d6a3f', brilho: '#3a5ab0', cristal: '#1f3f8a', sombra: '#4a3424' }, pecas: { elmo: 'Elmo', armadura: 'Couraça', luvas: 'Luvas', botas: 'Botas' }, two: { pdefPct: 0.04 }, four: { hpPct: 0.08, dmgRed: 0.06 } },
   };
   for (const [sid, S] of Object.entries(LEGEND_SETS)) { const gs = GRADES[S.grade].id.toLowerCase();
     for (const [slot, pn] of Object.entries(S.pecas)) { const base = ITEMS[slot === 'armadura' ? `${S.kind}_${gs}` : `${slot}_${S.kind}_${gs}`], st = {}; for (const [k, v] of Object.entries(base.stats)) st[k] = v > 1 ? +(v * 1.2).toFixed(1) : v;
       const id = `${sid}_${slot}`; ITEMS[id] = { id, name: `${pn} do ${S.name}`, grade: S.grade, type: 'armor', slot, kind: S.kind, part: base.part, icon: base.icon, stats: st, unique: true, relic: true, set: sid, img: `${S.img}_${slot}.webp`, tint: S.cores.principal }; } }
   // ----- armas lendárias (modelo próprio em código) -----
   { const base = ITEMS.espada_s, st = {}; for (const [k, v] of Object.entries(base.stats)) st[k] = +(v * 1.3).toFixed(1);
-    ITEMS.lend_espada_harmonia = { id: 'lend_espada_harmonia', name: 'Espada Celestial da Harmonia', grade: 5, type: 'weapon', slot: 'arma', kind: 'espada', icon: '🗡️', stats: st, unique: true, relic: true, sa: ['vampiro', 'foco'], model: 'W001', neon: '#e8d9b0', legend: true, img: 'lend_espada_harmonia.webp' }; }
+    ITEMS.lend_espada_harmonia = { id: 'lend_espada_harmonia', name: 'Espada Celestial da Harmonia', grade: 5, type: 'weapon', slot: 'arma', kind: 'espada', icon: '🗡️', stats: st, unique: true, relic: true, sa: ['vampiro', 'foco'], model: 'W001', neon: '#e8d9b0', legend: true, img: 'lend_espada_harmonia.webp' };
+    ITEMS.lend_alvorecer_celestial = { id: 'lend_alvorecer_celestial', name: 'Alvorecer Celestial', grade: 5, type: 'weapon', slot: 'arma', kind: 'espada', icon: '🗡️', stats: st, unique: true, relic: true, sa: ['foco', 'vampiro'], model: 'W002', neon: '#cfd8ea', legend: true, img: 'lend_alvorecer_celestial.webp' }; }
   const TROPHY = { drone_sent: ['Núcleo de Drone', '🔋'], andarilho: ['Servomotor Gasto', '⚙️'], vigia: ['Lente de Vigia', '🔭'], plasmoide: ['Gel de Plasma', '🧪'], mecha_batedor: ['Placa de Blindagem', '🔩'], colosso: ['Reator Sintético', '☢️'], javali: ['Presa de Javali', '🐗'], lobo: ['Pele de Lobo Cinzento', '🐺'], bandido: ['Insígnia de Bandido', '🏴'], aranha: ['Seda de Aranha', '🕸️'], golem: ['Núcleo de Golem', '🪨'], esqueleto: ['Osso Amaldiçoado', '🦴'], ent: ['Seiva Corrompida', '🌿'], lobo_esp: ['Essência Espectral', '👻'], demonio: ['Chifre Demoníaco', '😈'], lagarto: ['Escama de Lagarto', '🦎'], dragonete: ['Escama de Dragonete', '🐉'], caido: ['Selo do Cavaleiro Caído', '⚜️'] };
   NEON_MOBS.forEach(f => { f.grade = 3; ITEMS['tr_' + f.id] = { id: 'tr_' + f.id, name: TROPHY[f.id][0], grade: 3, type: 'trophy', icon: TROPHY[f.id][1], fam: f.id }; });
   MOBS.forEach((fs, g) => fs.forEach(f => { if (TROPHY[f.id]) ITEMS['tr_' + f.id] = { id: 'tr_' + f.id, name: TROPHY[f.id][0], grade: g, type: 'trophy', icon: TROPHY[f.id][1], fam: f.id }; }));
