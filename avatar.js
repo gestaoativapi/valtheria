@@ -596,14 +596,15 @@ const OUTFIT_OF = { pesada: 'ranger', leve: 'ranger', robe: 'peasant' };
 function outfitFor(m, a) { const fem = m.o.gender === 'f'; if (!a) return 'peasant'; if (fem) return OUTFIT_OF[a.kind]; return a.kind === 'pesada' ? 'knight' : a.kind === 'leve' ? 'ranger' : a.grade >= 4 ? 'noble' : 'wizard'; }
 function helmFor(m, h) { if (!h) return null; if (h.set) return 'helm_knight'; if (h.relic) return 'helm_crown'; if (h.kind === 'pesada' && m.o.gender !== 'f') return 'helm_knight'; return null; }
 const GRADE_TINT = ['#ffffff', '#e8dcc4', '#d6e2f0', '#cfe0ff', '#ffd2d2', '#f0dcff'], HEAVY_TINT = ['#b8c0c8', '#a8b4c0', '#c0c8d4', '#a8c4e8', '#e0b0b0', '#d8c8f0'];
-const BASE_SKIN = new THREE.Color('#c49470');
+const BASE_SKIN = new THREE.Color('#c49470'), RACE_BODY = { draconato: 'dragonita' }, BODY_SKIN = { dragonita: new THREE.Color('#b0602c') };
 export function upgradeGLB(m) {
   if (m.glb || m.glbPending) return; m.glbPending = true;
   const o = m.o, fem = o.gender === 'f', f = (GD.RACES[m.race] || {}).feat || {}, look = m.look;
   const bv = fem || f.snout ? 0 : (look.beard ?? (f.beard ? 2 : 0)), beard = bv === 2 ? 'hair_beard' : bv === 1 ? 'hair_moustache' : null;
   const a = GD.ITEMS[o.armor];
-  createCharacter({ gender: fem ? 'f' : 'm', outfit: outfitFor(m, a), hair: f.noHair ? null : (fem ? HAIR_F : HAIR_M)[look.hair || 0] })
-    .then(async C => { C.outfitKind = outfitFor(m, a); if (beard) await setPart(C, 'beard', beard); if (m.disposed) return; applyGLB(m, C); })
+  const body = RACE_BODY[m.race]; // raças com corpo próprio (modelo 3D inteiro, sem roupa humana por cima)
+  createCharacter(body ? { gender: 'm', body } : { gender: fem ? 'f' : 'm', outfit: outfitFor(m, a), hair: f.noHair ? null : (fem ? HAIR_F : HAIR_M)[look.hair || 0] })
+    .then(async C => { C.outfitKind = outfitFor(m, a); if (beard && !body) await setPart(C, 'beard', beard); if (m.disposed) return; applyGLB(m, C); })
     .catch(e => { m.glbPending = false; console.warn('GLB', e); });
 }
 // padrão procedural sobre a pele: 1 escamas, 2 listras, 3 pelagem
@@ -623,10 +624,12 @@ function tintGLB(m) {
   const skinK = new THREE.Color(sk.r / BASE_SKIN.r, sk.g / BASE_SKIN.g, sk.b / BASE_SKIN.b);
   C.model.traverse(o => { if (!o.isMesh) return; const nm = (o.material.name || ''); ownMats(o);
     if (/Superhero|Regular/.test(nm)) { o.material.color.copy(skinK); const pat = m.race === 'draconato' ? 1 : m.race === 'beastman' ? ({ crocodilo: 1, tigre: 2 }[['leao', 'tigre', 'lobo', 'crocodilo'][(m.look.face || 0) % 4]] || 3) : 0; if (pat) { o.material.color.set('#ffffff'); skinPattern(o.material, pat, sk); } }
-    else if (/Hair/.test(nm)) o.material.color.copy(hc).multiplyScalar(1.6); });
+    else if (/Hair/.test(nm)) o.material.color.copy(hc).multiplyScalar(1.6);
+    else if (C.customBody && /Dragonita/.test(nm)) { const b0 = BODY_SKIN[C.customBody]; o.material.color.setRGB(Math.min(1.6, sk.r / b0.r), Math.min(1.6, sk.g / b0.g), Math.min(1.6, sk.b / b0.b)).lerp(new THREE.Color('#ffffff'), 0.25); } });
 }
 async function glbOutfit(m, a, equip) {
   const C = m.glb, kind = outfitFor(m, a);
+  if (C.customBody) return; // corpo próprio: ainda não veste as roupas feitas para o corpo humano
   if (C.outfitKind !== kind) { C.outfitKind = kind; await setOutfit(C, kind); ownMats(C.model); tintGLB(m); }
   const tint = new THREE.Color(a ? (a.set ? '#6a86ff' : a.neon ? '#8a96b8' : (a.kind === 'pesada' ? HEAVY_TINT : GRADE_TINT)[a.grade]) : '#ffffff');
   // set lendário: o desenho original da armadura vira máscara — partes claras (frisos, rebites, bordas) ficam em prata e o resto em azul do set
@@ -643,11 +646,12 @@ async function glbOutfit(m, a, equip) {
 }
 function applyGLB(m, C) {
   const P = m.P; m.glbPending = false;
+  if (C.customBody) { for (const f of m.FEAT) f.removeFromParent(); m.FEAT.length = 0; }
   const K = 1.98 / 1.81; C.root.scale.set(m.Wd * K, m.H * K, m.Wd * K); m.root.add(C.root);
   // proporções próprias de cada raça (escala de ossos; as animações não mexem em escala)
   const RB = { anao: { Head: 1.1, hand_l: 1.18, hand_r: 1.18, upperarm_l: 1.06, upperarm_r: 1.06 }, orc: { Head: 0.94, neck_01: 0.9, upperarm_l: 1.12, upperarm_r: 1.12, hand_l: 1.15, hand_r: 1.15, spine_03: 1.06 },
     halfling: { Head: 1.16, foot_l: 1.3, foot_r: 1.3 }, gigante: { hand_l: 1.25, hand_r: 1.25, upperarm_l: 1.1, upperarm_r: 1.1, spine_03: 1.08, Head: 0.92 }, elfo: { Head: 0.96, neck_01: 1.12 }, sombrio: { Head: 0.96, neck_01: 1.1 },
-    sylph: { Head: 0.98, neck_01: 1.1, foot_l: 0.85, foot_r: 0.85 }, draconato: { neck_01: 1.22, Head: 0.8, hand_l: 1.28, hand_r: 1.28, spine_03: 1.06, foot_l: 1.12, foot_r: 1.12 }, beastman: { hand_l: 1.15, hand_r: 1.15, neck_01: 0.92, spine_03: 1.05, Head: 0.8 }, nocturno: { neck_01: 1.06 } }[m.race] || {};
+    sylph: { Head: 0.98, neck_01: 1.1, foot_l: 0.85, foot_r: 0.85 }, draconato: { neck_01: 1.22, Head: 0.8, hand_l: 1.28, hand_r: 1.28, spine_03: 1.06, foot_l: 1.12, foot_r: 1.12 }, beastman: { hand_l: 1.15, hand_r: 1.15, neck_01: 0.92, spine_03: 1.05, Head: 0.8 }, nocturno: { neck_01: 1.06 } }[C.customBody ? '' : m.race] || {};
   for (const [b, k] of Object.entries(RB)) if (C.bones[b]) C.bones[b].scale.multiplyScalar(k);
   playClip(C, 'Idle_Loop'); C.mixer.update(0); m.root.updateMatrixWorld(true);
   const sock = (proc, bname) => { const b = C.bones[bname], s = new THREE.Object3D(); b.add(s); b.updateWorldMatrix(true, false);
@@ -666,7 +670,7 @@ function applyGLB(m, C) {
   { const rq = new THREE.Quaternion(), rs = new THREE.Vector3(); m.root.getWorldQuaternion(rq); m.root.getWorldScale(rs);
     const ws = bn => { const b = C.bones[bn]; if (!b) return null; const o = new THREE.Object3D(), q = new THREE.Quaternion(), sc = new THREE.Vector3(); b.add(o); b.getWorldQuaternion(q); b.getWorldScale(sc); o.quaternion.copy(q.invert().multiply(rq)); o.scale.setScalar(m.H * rs.y / ((sc.x + sc.y + sc.z) / 3)); return o; };
     m.WS = { chest: ws('spine_03'), pelvis: ws('pelvis'), shL: ws('upperarm_l'), shR: ws('upperarm_r'), thL: ws('thigh_l'), thR: ws('thigh_r'), faL: ws('lowerarm_l'), faR: ws('lowerarm_r'), caL: ws('calf_l'), caR: ws('calf_r'), ftL: ws('foot_l'), ftR: ws('foot_r') }; }
-  if (m.race === 'draconato' || m.race === 'beastman') { // garras nas pontas dos dedos e nos pés
+  if (!C.customBody && (m.race === 'draconato' || m.race === 'beastman')) { // garras nas pontas dos dedos e nos pés
     const cm = toon(m.race === 'draconato' ? '#2a2420' : '#3a3028');
     for (const sd of ['l', 'r']) { for (const fg of ['thumb', 'index', 'middle', 'ring', 'pinky']) { const b = C.bones[fg + '_03_' + sd] || C.bones[fg + '_02_' + sd]; if (!b) continue; const d = b.position.clone(), len = d.length() || 0.03; d.normalize(); const cl = new THREE.Mesh(new THREE.ConeGeometry(len * 0.32, len * 1.5, 5), cm); cl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d); cl.position.copy(d).multiplyScalar(len * 1.25); cl.castShadow = true; b.add(cl); }
     } }

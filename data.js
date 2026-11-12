@@ -74,7 +74,7 @@
     beastman: { name: 'Homens-Fera', types: ['l', 'm'], hp: { l: 140, m: 100 }, mp: { l: 38, m: 98 }, patk: { l: 14, m: 6 }, matk: { l: 4, m: 13 }, pdef: 9, mdef: 8, spd: 1.07, h: 1.08, w: 1.08,
       skins: ['#a8784a', '#7a5a3a', '#c8a070', '#8a8a8a', '#e8e0d0'], eyes: ['#e8b83a', '#8ac83a', '#e86a2a', '#4ab8e8', '#c83a3a', '#2a2a2a'], feat: { muzzle: 1, animalEars: 1, tail: 'fur', noHair: 1 }, especies: ['Leão', 'Tigre', 'Lobo', 'Crocodilo'], excl: ['Caçador Selvagem', 'Druida da Fera'],
       desc: 'Povos-fera das matas profundas: leões, tigres, lobos e crocodilos que andam como homens.' },
-    draconato: { name: 'Dragonitas', types: ['l', 'm'], hp: { l: 145, m: 105 }, mp: { l: 40, m: 100 }, patk: { l: 13, m: 6 }, matk: { l: 5, m: 14 }, pdef: 10, mdef: 9, spd: 0.98, h: 1.1, w: 1.12,
+    draconato: { name: 'Dragonitas', types: ['l', 'm'], hp: { l: 145, m: 105 }, mp: { l: 40, m: 100 }, patk: { l: 13, m: 6 }, matk: { l: 5, m: 14 }, pdef: 10, mdef: 9, spd: 0.98, h: 0.98, w: 0.98,
       skins: ['#b0602c', '#8a3a2e', '#a8843a', '#4a6a4a', '#3a5578', '#5a5a62'], eyes: ['#7ac8ff', '#ffcc33', '#ff7a2a', '#c8ff4a', '#ff4a4a', '#e8e8e8'], feat: { snout: 1, horns: 1, tail: 'scale', noHair: 1 }, especies: ['Chifre recurvado', 'Coroa de chifres', 'Espinhos', 'Mandíbula longa'], excl: ['Lanceiro Dracônico', 'Sacerdote do Sopro'],
       desc: 'Filhos do sangue dos dragões antigos, guerreiros de escamas e fogo.' },
     sylph: { hidden: true, name: 'Sylphs', types: ['l', 'm'], hp: { l: 105, m: 82 }, mp: { l: 50, m: 118 }, patk: { l: 12, m: 6 }, matk: { l: 6, m: 15 }, pdef: 7, mdef: 10, spd: 1.12, h: 0.96, w: 0.86,

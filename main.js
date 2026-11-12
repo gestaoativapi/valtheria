@@ -1405,6 +1405,7 @@ function pSys(b) {
   <div class="row"><div class="grow">Efeitos sonoros</div><button class="btn alt" id="sfxon">${SFX.on ? 'Ligados' : 'Desligados'}</button></div>
   <div class="row"><div class="grow">Música ambiente</div><button class="btn alt" id="muson">${SFX.music ? 'Ligada' : 'Desligada'}</button></div>
   <div class="row"><div class="grow">Vozes dos NPCs</div><button class="btn alt" id="vz">${VOICE.on ? 'Ligadas' : 'Desligadas'}</button></div>
+  <div class="small" style="opacity:.7;margin:6px 0">Créditos: modelo 3D do Dragonita criado com Meshy (meshy.ai), licença CC BY 4.0. Personagens, criaturas e cenários-base: Quaternius (CC0).</div>
   <div class="row"><div class="grow">Sombras</div><button class="btn alt" id="sh">${renderer.shadowMap.enabled ? 'Ligadas' : 'Desligadas'}</button></div>
   <div class="row"><div class="grow">Controles</div></div><div class="small">Clique esquerdo: andar / selecionar • clique de novo no alvo (ou duplo clique): atacar • Ctrl + clique: atacar jogador (PvP) • botão direito arrastando: girar câmera • roda: zoom • WASD: andar • Shift: correr • Q: esquivar • R: montar • V: voar (Espaço sobe, X desce) • J: compêndio • 1–7 ou F1–F7: habilidades • Espaço/F: atacar • Tab: próximo alvo • 8/9: poções • Enter: chat • C, I, K, L, M, H: janelas</div>
   <button class="primary" id="tochars">Trocar de personagem</button><button class="link" id="lo">Sair da conta</button>`;

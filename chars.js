@@ -36,6 +36,10 @@ export async function createCharacter(o = {}) {
   const bones = {}; model.traverse(x => { if (x.isBone) bones[x.name] = x; if (x.isMesh) { x.castShadow = true; x.frustumCulled = false; } });
   const C = { root, model, bones, parts: {}, mixer: new THREE.AnimationMixer(model), actions: {}, cur: null, gender: g };
   for (const [n, clip] of Object.entries(clips)) C.actions[n] = C.mixer.clipAction(clip);
+  if (o.body) { // corpo próprio da raça (ex.: dragonita): troca a malha humana e ajusta o comprimento dos ossos
+    const src = await loadGLB('body_' + o.body); model.traverse(x => { if (x.isSkinnedMesh) x.visible = false; });
+    src.scene.traverse(x => { if (x.isBone && bones[x.name]) bones[x.name].position.copy(x.position); });
+    C.parts.body = attachSkinned(model, bones, src); C.customBody = o.body; return C; }
   if (o.outfit) await setOutfit(C, o.outfit);
   if (o.hair) await setPart(C, 'hair', 'hair_' + o.hair);
   return C;
