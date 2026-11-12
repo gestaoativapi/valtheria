@@ -7,33 +7,39 @@ let X = null; // contexto do jogo: { scene, S, GD, WG, me(), toast, hurtMob, now
 export const COMP = { pet: null, mount: null, wings: null, petId: null, mountId: null, wingsId: null, riding: false };
 export function initComp(ctx) { X = ctx; }
 const key = () => 'vt_comp_' + X.S.c.id;
-export function saveComp() { try { localStorage.setItem(key(), JSON.stringify({ pet: COMP.petId, mount: COMP.mountId, wings: COMP.wingsId, xp: COMP.xp || {} })); } catch (_) {} }
+export function saveComp() { try { localStorage.setItem(key(), JSON.stringify({ pet: COMP.petId, mount: COMP.mountId, wings: COMP.wingsId, xp: COMP.xp || {}, tal: COMP.tal || {} })); } catch (_) {} }
 // ----- evolução dos pets: ganham experiência a cada abate do dono; evoluem no nível 10 e no 20 -----
 export const PET_MAX = 30, petXp = id => (COMP.xp || {})[id] || 0, petLevel = id => Math.min(PET_MAX, 1 + Math.floor(Math.sqrt(petXp(id) / 4))), petStage = id => { const l = petLevel(id); return l >= 20 ? 3 : l >= 10 ? 2 : 1; };
 export const PET_ROLE = { atk: 'Ataque', heal: 'Cura', buff: 'Reforço' }, PET_STAGE = ['', 'Filhote', 'Jovem', 'Ancestral'];
-export const petInfo = id => { const d = def(id); if (!d || d.type !== 'pet') return null; const l = petLevel(id), nx = 4 * l * l; return { level: l, stage: petStage(id), stageName: PET_STAGE[petStage(id)], role: PET_ROLE[d.role || 'atk'], xp: petXp(id), next: l >= PET_MAX ? 0 : nx }; };
-function petScale() { const P = COMP.pet; if (!P) return; const st = petStage(COMP.petId); P.root.scale.setScalar((P.baseScale || (P.baseScale = P.root.scale.x)) * (1 + (st - 1) * 0.22)); }
+// transformação: no estágio 2 e 3 o pet assume uma forma maior (e às vezes outro corpo); aprimoramento: 1 ponto por nível para Força, Vínculo ou Aura
+export const petForm = id => { const d = def(id), st = petStage(id), e = d && d.evo && d.evo[st - 2]; return { name: (e && e.name) || (d && d.name), model: (e && e.model) || (d && d.model), len: (e && e.len) || (d ? d.len * (1 + (st - 1) * 0.22) : 1) }; };
+export const petTal = id => Object.assign({ f: 0, v: 0, a: 0 }, (COMP.tal || {})[id]);
+export const petPoints = id => { const t = petTal(id); return Math.max(0, petLevel(id) - 1 - t.f - t.v - t.a); };
+export function petTalent(id, k) { if (!petPoints(id) || !['f', 'v', 'a'].includes(k)) return false; const t = petTal(id); if (t[k] >= 15) return false; t[k]++; COMP.tal = COMP.tal || {}; COMP.tal[id] = t; saveComp(); X.statsDirty && X.statsDirty(); return true; }
+export const petInfo = id => { const d = def(id); if (!d || d.type !== 'pet') return null; const l = petLevel(id), nx = 4 * l * l, f = petForm(id); return { level: l, stage: petStage(id), stageName: PET_STAGE[petStage(id)], role: PET_ROLE[d.role || 'atk'], xp: petXp(id), next: l >= PET_MAX ? 0 : nx, name: f.name, points: petPoints(id), tal: petTal(id), nextForm: d.evo && d.evo[petStage(id) - 1] ? d.evo[petStage(id) - 1].name : null, nextAt: petStage(id) === 1 ? 10 : petStage(id) === 2 ? 20 : 0 }; };
+function petScale() {} // o tamanho agora vem da forma (petForm)
 export function petKill(boss) { const id = COMP.petId; if (!id || !COMP.pet) return; COMP.xp = COMP.xp || {}; const l0 = petLevel(id), s0 = petStage(id); COMP.xp[id] = petXp(id) + (boss ? 25 : 1); const l1 = petLevel(id), d = def(id);
   if (l1 > l0) { const P = COMP.pet, y = X.WG.height(P.x, P.z); emit(P.x, y + 0.5, P.z, { n: 26, color: 0x9affc8, speed: 2, up: 2.4, life: 0.8, size: 0.18 });
-    if (petStage(id) > s0) { petScale(); emit(P.x, y + 0.6, P.z, { n: 70, color: 0xffe08a, speed: 3.2, up: 3.5, life: 1.2, size: 0.26 }); X.toast(`✨ ${d.name} evoluiu para ${PET_STAGE[petStage(id)]}!`, 'ok'); } else X.toast(`${d.icon} ${d.name} subiu para o nível ${l1}`, 'ok'); X.statsDirty && X.statsDirty(); }
+    if (petStage(id) > s0) { emit(P.x, y + 0.6, P.z, { n: 90, color: 0xffe08a, speed: 3.6, up: 4, life: 1.4, size: 0.3 }); X.toast(`✨ ${d.name} se transformou em ${petForm(id).name}!`, 'ok'); summonPet(id, true, true); } else X.toast(`${d.icon} ${d.name} subiu para o nível ${l1}`, 'ok'); X.statsDirty && X.statsDirty(); }
   saveComp(); }
 export async function restoreComp() {
   let o = {}; try { o = JSON.parse(localStorage.getItem(key())) || {}; } catch (_) {}
-  clearAll(); COMP.xp = o.xp || {}; if (o.pet && X.S.inv[o.pet]) await summonPet(o.pet, true); if (o.wings && X.S.inv[o.wings]) setWings(o.wings, true); COMP.mountId = o.mount && X.S.inv[o.mount] ? o.mount : null;
+  clearAll(); COMP.xp = o.xp || {}; COMP.tal = o.tal || {}; if (o.pet && X.S.inv[o.pet]) await summonPet(o.pet, true); if (o.wings && X.S.inv[o.wings]) setWings(o.wings, true); COMP.mountId = o.mount && X.S.inv[o.mount] ? o.mount : null;
 }
 function clearAll() { if (COMP.pet) X.scene.remove(COMP.pet.root); if (COMP.mount) X.scene.remove(COMP.mount.root); if (COMP.wings) COMP.wings.removeFromParent(); Object.assign(COMP, { pet: null, mount: null, wings: null, petId: null, wingsId: null, riding: false }); X.S.fly = false; X.S.alt = 0; }
 const def = id => X.GD.ITEMS[id]?.comp;
 // buffs passivos: pet sempre, asas equipadas, montaria só montado
 export function compFx() { const o = {}; const add = (d, k2 = 1) => d && d.fx && Object.entries(d.fx).forEach(([k, v]) => o[k] = (o[k] || 0) + v * k2);
-  if (COMP.petId) { const d = def(COMP.petId), st = petStage(COMP.petId); add(d, (d && d.role === 'buff' ? 1.5 : 1) * (1 + (st - 1) * 0.5)); } if (COMP.wingsId) add(def(COMP.wingsId)); if (COMP.riding) add(def(COMP.mountId)); return o; }
+  if (COMP.petId) { const d = def(COMP.petId), st = petStage(COMP.petId); add(d, (d && d.role === 'buff' ? 1.5 : 1) * (1 + (st - 1) * 0.5) * (1 + petTal(COMP.petId).a * 0.04)); } if (COMP.wingsId) add(def(COMP.wingsId)); if (COMP.riding) add(def(COMP.mountId)); return o; }
 
 // ---------- pets ----------
-export async function summonPet(id, quiet) {
-  if (COMP.petId === id) { dismissPet(); return; }
+export async function summonPet(id, quiet, reform) {
+  if (COMP.petId === id && !reform) { dismissPet(); return; }
+  const keep = reform && COMP.pet ? { x: COMP.pet.x, z: COMP.pet.z } : null;
   dismissPet(); const d = def(id); if (!d) return; COMP.petId = id;
-  const C = await makeCreature(d.model, { length: d.len, tint: d.tint, tintMix: 0.35, lift: d.hover, emissive: d.neon, ei: 0.4, keepMetal: !!d.neon }); if (COMP.petId !== id) return; if (d.neon) C.root.add(neonGlow(d.neon, d.len * 0.8, d.hover || 0));
-  const me = X.me(); C.x = me.x - 1.5; C.z = me.z - 1.5; C.ry = 0; C.nextAtk = 0; C.nextAid = 0; X.scene.add(C.root); COMP.pet = C; petScale(); if (d.aura) C.root.add(neonGlow(d.aura, d.len * 0.7, d.hover || (d.flyer ? 0.2 : 0)));
-  if (!quiet) { X.toast(`${d.icon} ${d.name} está com você`, 'ok'); emit(C.x, X.WG.height(C.x, C.z) + 0.5, C.z, { n: 30, color: 0xffe08a, speed: 2, up: 2, life: 0.8, size: 0.2 }); }
+  const F = petForm(id), C = await makeCreature(F.model, { length: F.len, tint: d.tint, tintMix: 0.35, lift: d.hover, emissive: d.neon, ei: 0.4, keepMetal: !!d.neon }); if (COMP.petId !== id) return; if (COMP.pet) X.scene.remove(COMP.pet.root); if (d.neon) C.root.add(neonGlow(d.neon, d.len * 0.8, d.hover || 0));
+  const me = X.me(); C.x = keep ? keep.x : me.x - 1.5; C.z = keep ? keep.z : me.z - 1.5; C.ry = 0; C.nextAtk = 0; C.nextAid = 0; X.scene.add(C.root); COMP.pet = C; petScale(); if (d.aura) C.root.add(neonGlow(d.aura, F.len * 0.7, d.hover || (d.flyer ? 0.2 : 0)));
+  if (!quiet) { X.toast(`${d.icon} ${F.name} está com você`, 'ok'); emit(C.x, X.WG.height(C.x, C.z) + 0.5, C.z, { n: 30, color: 0xffe08a, speed: 2, up: 2, life: 0.8, size: 0.2 }); }
   saveComp();
 }
 export function dismissPet() { if (COMP.pet) X.scene.remove(COMP.pet.root); COMP.pet = null; COMP.petId = null; saveComp(); }
@@ -112,11 +118,11 @@ export function updateComp(dt, moving, speed) {
     // histerese: só volta a andar quando o dono se afasta, e não ultrapassa o ponto de parada (sem tremer ao parar)
     if (!P.go && dist > (fighting || tg ? 1.4 : 2.6)) P.go = true; else if (P.go && dist < 0.35) P.go = false;
     const sp = !P.go ? 0 : dist > 6 ? speed * 1.15 : dist > 1.6 ? speed * 0.8 : Math.max(1.6, speed * 0.45); if (sp) { const stp = Math.min(sp * dt, dist); P.x += dx / dist * stp; P.z += dz / dist * stp; if (dist > 0.25) P.ry = Math.atan2(dx, dz); } else if (!moving && !fighting) P.ry = me.ry;
-    const lv = petLevel(COMP.petId), role = d?.role || 'atk';
-    if (fighting && t > P.nextAtk) { P.nextAtk = t + (role === 'atk' ? 1800 : 2600); P.play('attack', { once: true, fade: 0.08 }); P.atkUntil = t + 700; P.ry = Math.atan2(tg.x - P.x, tg.z - P.z); X.petHit(tg, (role === 'atk' ? 0.22 : 0.1) * (1 + lv * 0.04)); }
+    const lv = petLevel(COMP.petId), role = d?.role || 'atk', TL = petTal(COMP.petId);
+    if (fighting && t > P.nextAtk) { P.nextAtk = t + (role === 'atk' ? 1800 : 2600); P.play('attack', { once: true, fade: 0.08 }); P.atkUntil = t + 700; P.ry = Math.atan2(tg.x - P.x, tg.z - P.z); X.petHit(tg, (role === 'atk' ? 0.22 : 0.1) * (1 + lv * 0.04) * (1 + TL.f * 0.06)); }
     // ajuda automática: curandeiros recuperam a vida do dono; reforços recuperam mana
-    if (t > (P.nextAid || 0) && !S.dead) { if (role === 'heal' && X.petHeal && X.petHeal('hp', 0.03 + lv * 0.0015, 0.75)) { P.nextAid = t + 8000; emit(P.x, WG.height(P.x, P.z) + 0.6, P.z, { n: 14, color: 0x7dff9a, speed: 1.4, up: 2, life: 0.7, size: 0.16 }); }
-      else if (role === 'buff' && X.petHeal && X.petHeal('mp', 0.025 + lv * 0.001, 0.6)) { P.nextAid = t + 9000; emit(P.x, WG.height(P.x, P.z) + 0.6, P.z, { n: 14, color: 0x7ab8ff, speed: 1.4, up: 2, life: 0.7, size: 0.16 }); } else P.nextAid = t + 1000; }
+    if (t > (P.nextAid || 0) && !S.dead) { if (role === 'heal' && X.petHeal && X.petHeal('hp', (0.03 + lv * 0.0015) * (1 + TL.v * 0.06), 0.75)) { P.nextAid = t + 8000 * (1 - TL.v * 0.02); emit(P.x, WG.height(P.x, P.z) + 0.6, P.z, { n: 14, color: 0x7dff9a, speed: 1.4, up: 2, life: 0.7, size: 0.16 }); }
+      else if (role === 'buff' && X.petHeal && X.petHeal('mp', (0.025 + lv * 0.001) * (1 + TL.v * 0.06), 0.6)) { P.nextAid = t + 9000 * (1 - TL.v * 0.02); emit(P.x, WG.height(P.x, P.z) + 0.6, P.z, { n: 14, color: 0x7ab8ff, speed: 1.4, up: 2, life: 0.7, size: 0.16 }); } else P.nextAid = t + 1000; }
     else if (!(P.atkUntil > t)) { const want = sp > 6 ? 'run' : sp ? 'walk' : (Math.sin(t / 4000) > 0.7 ? 'eat' : 'idle'); if (want !== P.want) { P.want = want; P.wantAt = t; } if (P.wcur !== want && (t - P.wantAt > 140 || !P.wcur)) { P.wcur = want; } P.play(P.wcur || want); }
     let a = P.root.rotation.y, dd = P.ry - a; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); P.root.rotation.y = a + dd * Math.min(1, dt * 8);
     const py = WG.height(P.x, P.z) + (d?.flyer ? 1.4 + Math.sin(t / 300) * 0.15 : 0) + (S.fly && d?.flyer ? S.alt : 0); P.root.position.set(P.x, py, P.z); P.mixer.update(dt);

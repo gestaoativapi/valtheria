@@ -224,3 +224,5 @@ body.touch #login{padding-right:3vw}body.touch #title-tag{display:none}
 #eq-tip{min-height:30px;margin-top:6px;color:#e8dcc0;line-height:1.3}
 body.touch #equip{display:block}body.touch #equip>.eq-inv{border-left:0;border-top:1px solid #5a4630}body.touch #eq-grid{grid-template-columns:repeat(8,1fr);max-height:none}
 @media(max-width:1100px){body:not(.touch) #equip{width:500px;display:flex}body:not(.touch) #equip>.eq-inv{border-left:0;border-top:1px solid #5a4630}body:not(.touch) #eq-grid{max-height:150px}}
+
+.eq-pet{margin-top:8px;padding:8px;border:1px solid #5a4630;border-radius:4px;background:#1a1510;font-size:12px;line-height:1.5;color:#e8dcc0}.eq-pet .btn{padding:3px 8px;font-size:12px}

@@ -444,12 +444,12 @@
     p_sapo_real: { name: 'Sapo Real do Pântano', type: 'pet', model: 'e_frog', len: 0.8, lvl: 10, icon: '🐸', fx: { mpRegen: 0.25, mpCost: 0.05 }, tint: '#6aaa3a', role: 'buff' },
     p_rato_rei: { name: 'Rato da Coroa', type: 'pet', model: 'e_rat', len: 0.8, lvl: 10, icon: '🐀', fx: { crit: 0.04 }, tint: '#c8a040' },
     // pets místicos: evoluem (Filhote → Jovem → Ancestral) e ajudam sozinhos conforme o papel
-    p_raposa_espirito: { name: 'Raposa Espiritual', type: 'pet', model: 'a_fox', len: 0.85, price: 6000, lvl: 1, icon: '🦊', tint: '#bfe0ff', aura: '#7ac8ff', role: 'atk', fx: { crit: 0.02 } },
-    p_cervo_luz: { name: 'Cervo de Luz', type: 'pet', model: 'a_deer', len: 0.9, price: 12000, lvl: 5, icon: '🦌', tint: '#fff0c0', aura: '#ffe08a', role: 'heal', fx: { hpPct: 0.03 } },
-    p_fada_vespa: { name: 'Vespa Arcana', type: 'pet', model: 'e_wasp', len: 0.6, price: 18000, lvl: 10, icon: '✨', tint: '#b89aff', aura: '#9a6aff', flyer: true, role: 'buff', fx: { mpRegen: 0.15 } },
-    p_dragonete: { name: 'Filhote de Dragão', type: 'pet', model: 'z_raptor', len: 0.95, price: 60000, lvl: 20, icon: '🐉', tint: '#a8412a', aura: '#ff7a3a', role: 'atk', fx: { matkPct: 0.02, crit: 0.02 } },
-    p_lobo_lunar: { name: 'Lobinho Lunar', type: 'pet', model: 'm_wolf', len: 0.9, price: 60000, lvl: 20, icon: '🌙', tint: '#c2cff0', aura: '#8aa8ff', role: 'atk', fx: { atkspd: 0.03 } },
-    p_wyrm: { name: 'Wyrm Guardião', type: 'pet', model: 'z_apato', len: 1.1, price: 120000, lvl: 40, icon: '🐲', tint: '#4a9a7a', aura: '#5affb0', role: 'heal', fx: { pdefPct: 0.03, hpPct: 0.03 } },
+    p_raposa_espirito: { name: 'Raposa Espiritual', type: 'pet', model: 'a_fox', len: 0.85, price: 6000, lvl: 1, icon: '🦊', tint: '#bfe0ff', aura: '#7ac8ff', role: 'atk', fx: { crit: 0.02 }, evo: [{ name: 'Raposa das Brumas', len: 1.25 }, { name: 'Kitsune Ancestral', len: 1.75 }] },
+    p_cervo_luz: { name: 'Cervo de Luz', type: 'pet', model: 'a_deer', len: 0.9, price: 12000, lvl: 5, icon: '🦌', tint: '#fff0c0', aura: '#ffe08a', role: 'heal', fx: { hpPct: 0.03 }, evo: [{ name: 'Cervo Radiante', model: 'a_stag', len: 1.5 }, { name: 'Cervo Celestial', model: 'a_stag', len: 2.1 }] },
+    p_fada_vespa: { name: 'Vespa Arcana', type: 'pet', model: 'e_wasp', len: 0.6, price: 18000, lvl: 10, icon: '✨', tint: '#b89aff', aura: '#9a6aff', flyer: true, role: 'buff', fx: { mpRegen: 0.15 }, evo: [{ name: 'Fada-Vespa', len: 0.95 }, { name: 'Rainha Arcana', len: 1.4 }] },
+    p_dragonete: { name: 'Filhote de Dragão', type: 'pet', model: 'z_raptor', len: 0.95, price: 60000, lvl: 20, icon: '🐉', tint: '#a8412a', aura: '#ff7a3a', role: 'atk', fx: { matkPct: 0.02, crit: 0.02 }, evo: [{ name: 'Dragonete de Brasa', len: 1.6 }, { name: 'Dragão Jovem', model: 'z_trex', len: 2.4 }] },
+    p_lobo_lunar: { name: 'Lobinho Lunar', type: 'pet', model: 'm_wolf', len: 0.9, price: 60000, lvl: 20, icon: '🌙', tint: '#c2cff0', aura: '#8aa8ff', role: 'atk', fx: { atkspd: 0.03 }, evo: [{ name: 'Lobo Lunar', len: 1.4 }, { name: 'Fenrir da Lua Cheia', len: 2.0 }] },
+    p_wyrm: { name: 'Wyrm Guardião', type: 'pet', model: 'z_apato', len: 1.1, price: 120000, lvl: 40, icon: '🐲', tint: '#4a9a7a', aura: '#5affb0', role: 'heal', fx: { pdefPct: 0.03, hpPct: 0.03 }, evo: [{ name: 'Wyrm das Marés', len: 1.7 }, { name: 'Leviatã Guardião', len: 2.5 }] },
     // Era Neon (região futurista): só caem do Mecha Ômega
     p_drone: { name: 'Drone Companheiro', type: 'pet', model: 'x_drone', len: 0.9, lvl: 40, icon: '🛸', fx: { crit: 0.03 }, hover: 1.1, neon: '#3af0ff' },
     m_hover: { name: 'Moto Antigravidade', type: 'mount', model: 'n_rover_1', len: 2.8, speed: 2.15, hover: 0.7, neon: '#ff3ad8', lvl: 52, icon: '🏍️' },
