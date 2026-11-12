@@ -10,9 +10,12 @@ signal want_vsync
 signal want_crowd
 signal want_api
 signal want_exit_to_login
+signal want_new_char
+signal want_create(o: Dictionary)
+signal want_preview(o: Dictionary)
+signal want_back_to_chars
 
 const GOLD := Color(0.86, 0.72, 0.42)
-const RACES := {"humano": "Humano", "elfo": "Elfo Branco", "sombrio": "Elfo Negro", "orc": "Orc", "anao": "Anão", "beastman": "Homem-Fera", "gigante": "Gigante", "draconato": "Dragonita"}
 
 var font: Font
 var root: Control
@@ -29,6 +32,14 @@ var btn_vsync: Button
 var btn_api: Button
 var bar_info: Label
 var buttons: Array[Button] = []
+var info := {}
+var create_box: VBoxContainer
+var name_edit: LineEdit
+var opt := {}
+var race_ids: Array = []
+var place_label: Label
+var last_chars: Array = []
+var last_account := ""
 
 
 func _ready() -> void:
@@ -131,8 +142,8 @@ func _build_login() -> void:
 	panel.anchor_bottom = 0.5
 	panel.anchor_right = 0.06
 	panel.offset_right = 430
-	panel.offset_top = -290
-	panel.offset_bottom = 290
+	panel.offset_top = -330
+	panel.offset_bottom = 330
 	login_box.add_child(panel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 12)
@@ -170,6 +181,12 @@ func _build_login() -> void:
 	char_box.add_theme_constant_override("separation", 10)
 	char_box.visible = false
 	v.add_child(char_box)
+
+	create_box = VBoxContainer.new()
+	create_box.add_theme_constant_override("separation", 7)
+	create_box.visible = false
+	v.add_child(create_box)
+	_build_create()
 
 	status = _label("", 15, Color(1.0, 0.8, 0.5))
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -216,8 +233,12 @@ func _build_hud() -> void:
 	plate.add_theme_stylebox_override("panel", ps)
 	plate.position = Vector2(16, 16)
 	hud.add_child(plate)
+	var pv := VBoxContainer.new()
+	plate.add_child(pv)
 	who = _label("", 20, GOLD, true)
-	plate.add_child(who)
+	pv.add_child(who)
+	place_label = _label("", 14, Color(0.85, 0.88, 0.92))
+	pv.add_child(place_label)
 
 	var right := PanelContainer.new()
 	right.add_theme_stylebox_override("panel", ps)
@@ -266,10 +287,86 @@ func toggle_fullscreen() -> void:
 	w.mode = Window.MODE_WINDOWED if w.mode == Window.MODE_FULLSCREEN else Window.MODE_FULLSCREEN
 
 
+func _option(title: String, items: Array) -> OptionButton:
+	var h := HBoxContainer.new()
+	var l := _label(title, 15)
+	l.custom_minimum_size = Vector2(120, 0)
+	h.add_child(l)
+	var ob := OptionButton.new()
+	ob.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ob.add_theme_font_size_override("font_size", 15)
+	for it in items:
+		ob.add_item(str(it))
+	ob.item_selected.connect(func(_i): _preview())
+	h.add_child(ob)
+	create_box.add_child(h)
+	return ob
+
+
+func _build_create() -> void:
+	create_box.add_child(_label("Novo personagem", 18, GOLD, true))
+	name_edit = _edit("Nome (3 a 16 letras ou números)")
+	name_edit.max_length = 16
+	create_box.add_child(name_edit)
+	race_ids = (info.get("races", {}) as Dictionary).keys()
+	opt.race = _option("Raça", race_ids.map(func(k): return info.races[k].name))
+	opt.race.item_selected.connect(func(_i): _race_changed())
+	opt.gender = _option("Gênero", ["Masculino", "Feminino"])
+	opt.type = _option("Caminho", ["Lutador", "Místico"])
+	opt.skin = _option("Tom de pele", [])
+	opt.hair = _option("Cabelo", info.get("hair_styles", []))
+	opt.hair_color = _option("Cor do cabelo", ["Preto", "Castanho", "Loiro", "Platinado", "Ruivo", "Azul", "Branco", "Verde", "Rosa", "Roxo"])
+	var ok := _button("Criar personagem", true)
+	ok.pressed.connect(func():
+		var o := creation()
+		o.name = name_edit.text.strip_edges()
+		want_create.emit(o))
+	create_box.add_child(ok)
+	var back := _button("Voltar")
+	back.pressed.connect(func(): want_back_to_chars.emit())
+	create_box.add_child(back)
+	if not race_ids.is_empty():
+		_race_changed(false)
+
+
+func _race_changed(emit := true) -> void:
+	var rd: Dictionary = info.races[race_ids[opt.race.selected]]
+	opt.skin.clear()
+	for i in (rd.skins as Array).size():
+		opt.skin.add_item("Tom %d" % (i + 1))
+	opt.type.clear()
+	for t in rd.types:
+		opt.type.add_item(str(info.types[t]))
+	if emit:
+		_preview()
+
+
+func creation() -> Dictionary:
+	var race: String = race_ids[opt.race.selected]
+	var types: Array = info.races[race].types
+	var look := {"skin": opt.skin.selected, "hair": opt.hair.selected, "hair_color": opt.hair_color.selected, "face": 0, "beard": 0}
+	return {"race": race, "gender": "f" if opt.gender.selected == 1 else "m", "type": types[clampi(opt.type.selected, 0, types.size() - 1)], "look": look,
+		"skin": look.skin, "hair": look.hair, "hair_color": look.hair_color, "equipment": {"armadura": "pesada_ng" if types[clampi(opt.type.selected, 0, types.size() - 1)] == "l" else "robe_ng"}}
+
+
+func _preview() -> void:
+	want_preview.emit(creation())
+
+
+func show_create() -> void:
+	char_box.visible = false
+	login_box.find_child("Form", true, false).visible = false
+	create_box.visible = true
+	name_edit.text = ""
+	set_status("")
+	_preview()
+
+
 func show_login() -> void:
 	login_box.visible = true
 	hud.visible = false
 	char_box.visible = false
+	create_box.visible = false
 	login_box.find_child("Form", true, false).visible = true
 	pass_edit.text = ""
 	set_status("")
@@ -295,26 +392,32 @@ func busy(b: bool) -> void:
 
 func show_chars(list: Array, account: String) -> void:
 	busy(false)
+	last_chars = list
+	last_account = account
+	create_box.visible = false
+	login_box.visible = true
+	hud.visible = false
 	login_box.find_child("Form", true, false).visible = false
 	for c in char_box.get_children():
 		c.queue_free()
 	char_box.visible = true
 	char_box.add_child(_label("Conta: %s" % account, 15, Color(0.75, 0.78, 0.82)))
 	if list.is_empty():
-		var l := _label("Esta conta ainda não tem personagem. A criação de personagem continua na versão web; aqui você entra com um personagem de teste.", 15)
+		var l := _label("Esta conta ainda não tem personagem.", 15)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		char_box.add_child(l)
-		var t := _button("Entrar com personagem de teste", true)
-		t.pressed.connect(func(): want_char.emit({"name": account, "level": 1, "gender": "m", "race": "humano"}))
-		char_box.add_child(t)
 	else:
 		char_box.add_child(_label("Escolha o personagem", 18, GOLD, true))
 		for c in list:
 			var d: Dictionary = c
-			var race: String = RACES.get(str(d.get("race", "")), str(d.get("race", "")).capitalize())
+			var race: String = info.races[d.race].name if (info.get("races", {}) as Dictionary).has(str(d.get("race", ""))) else str(d.get("race", "")).capitalize()
 			var b := _button("%s   ·   Nv %s   ·   %s" % [d.get("name", "?"), str(int(d.get("level", 1))), race], true)
 			b.pressed.connect(func(): want_char.emit(d))
 			char_box.add_child(b)
+	if list.size() < 3:
+		var nb := _button("Criar personagem")
+		nb.pressed.connect(func(): want_new_char.emit())
+		char_box.add_child(nb)
 	var out := _button("Trocar de conta")
 	out.pressed.connect(func(): want_exit_to_login.emit())
 	char_box.add_child(out)

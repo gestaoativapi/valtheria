@@ -34,6 +34,12 @@ var shot_frames := 0
 var shot_wait := 40
 var smooth_fps := 60.0
 var compat := false
+var me := {}  # personagem em jogo (registro do servidor)
+var creating := false
+var save_t := 0.0
+var saved_pos := Vector3.ZERO
+var home := Vector3(1503.5, 0.0, 2556.0)
+var quitting := false
 var forward := true
 
 
@@ -43,20 +49,22 @@ func _ready() -> void:
 	world = World.new()
 	add_child(world)
 	world.build()
+	Character.RACES = world.info.races
+	Character.HAIR_COLORS = world.info.hair_colors
 	net = Net.new()
 	add_child(net)
 	cam = Camera3D.new()
 	cam.fov = 60.0
 	cam.near = 0.15
-	cam.far = 900.0
+	cam.far = 1500.0
 	add_child(cam)
 	cam.make_current()
-	player = Character.create("m")
+	player = Character.create({"equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}})
 	add_child(player)
-	_place_player(Vector3(3.5, 0.0, 6.0))
+	_place_player(home)
 	facing = 2.6
 	player.rotation.y = facing
-	_npcs()
+	get_tree().auto_accept_quit = false
 	marker = MeshInstance3D.new()
 	var tm := TorusMesh.new()
 	tm.inner_radius = 0.32
@@ -72,10 +80,18 @@ func _ready() -> void:
 	add_child(marker)
 
 	ui = UI.new()
+	ui.info = world.info
 	add_child(ui)
+	ui.want_new_char.connect(_new_char)
+	ui.want_preview.connect(_preview)
+	ui.want_create.connect(_create)
+	ui.want_back_to_chars.connect(func():
+		creating = false
+		_preview({"equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}})
+		ui.show_chars(ui.last_chars, ui.last_account))
 	ui.want_login.connect(_login)
 	ui.want_signup.connect(_signup)
-	ui.want_offline.connect(func(): _enter({"name": "Viajante", "level": 1, "gender": "m", "race": "humano"}))
+	ui.want_offline.connect(func(): _enter({"name": "Viajante", "level": 1, "equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}}))
 	ui.want_char.connect(_enter)
 	ui.want_quality.connect(func(): _set_quality((quality + 1) % QUALITY.size()))
 	ui.want_vsync.connect(_toggle_vsync)
@@ -83,8 +99,21 @@ func _ready() -> void:
 	ui.want_api.connect(_switch_api)
 	ui.want_exit_to_login.connect(_to_login)
 	_load_prefs()
-	_set_quality(quality)
 	_refresh_bar()
+	_set_quality(quality)
+	for i in 40:
+		world.stream(player.position, 12)
+	var test_race := "humano"
+	var test_gender := "m"
+	var test_armor := "pesada_ng"
+	var test_weapon := "espada_ng"
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--race="):
+			var rp := a.trim_prefix("--race=").split(",")
+			test_race = rp[0]
+			if rp.size() > 1: test_gender = rp[1]
+			if rp.size() > 2: test_armor = rp[2]
+			if rp.size() > 3: test_weapon = rp[3]
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="):
 			shot_path = a.trim_prefix("--shot=")
@@ -93,12 +122,27 @@ func _ready() -> void:
 			_set_quality(int(lite_q))
 			shot_wait = 4
 		elif a == "--play":
-			_enter({"name": "Viajante", "level": 1, "gender": "m", "race": "humano"})
+			_enter({"name": "Viajante", "level": 1, "race": test_race, "gender": test_gender, "skin": 1, "hair": 2, "hair_color": 1, "equipment": {"armadura": test_armor, "arma": test_weapon}})
+		elif a == "--lineup":  # teste: uma fileira com todas as raças
+			var ids: Array = world.info.races.keys()
+			for i in ids.size():
+				for gi in 2:
+					var c: Node3D = Character.create({"race": ids[i], "gender": "mf"[gi], "skin": 1, "hair": 2 - gi, "hair_color": i, "equipment": {"armadura": ["pesada_ng", "leve_ng", "robe_ng"][i % 3], "arma": ["espada_ng", "arco_ng", "cajado_ng", "espadao_ng", "martelo_ng"][i % 5]}})
+					add_child(c)
+					var px := player.position.x - 5.6 + i * 1.6
+					var pz := player.position.z + 3.2 + gi * 1.8
+					c.position = Vector3(px, world.height(px, pz), pz)
+					if gi == 0:
+						c.set_tag(world.info.races[ids[i]].name, Color(0.8, 0.92, 1.0))
+			facing = PI
 		elif a == "--crowd":
 			_spawn_crowd()
 		elif a.begins_with("--at="):
 			var p := a.trim_prefix("--at=").split(",")
-			_place_player(Vector3(float(p[0]), 0, float(p[1])))
+			home = Vector3(float(p[0]), 0, float(p[1]))
+			_place_player(home)
+			for i in 40:
+				world.stream(player.position, 12)
 			if p.size() > 2:
 				yaw = float(p[2])
 		elif a.begins_with("--dist="):
@@ -109,23 +153,10 @@ func _ready() -> void:
 			player.play(a.trim_prefix("--anim="))
 			player.current = "Dance"
 		elif a.begins_with("--chars"):
-			ui.show_chars([{"name": "Arthas", "level": 34, "race": "humano", "gender": "m"}, {"name": "Lyria", "level": 12, "race": "elfo", "gender": "f"}], "robson")
-
-
-func _npcs() -> void:
-	var spots := [[Vector3(-8.0, 0, 6.5), 0.9, "Idle_Talking", "f", "Mercadora"], [Vector3(-9.6, 0, -1.2), 1.4, "Idle_FoldArms", "m", "Ferreiro"], [Vector3(9.0, 0, -6.2), 0.6, "Idle", "f", "Viajante"], [Vector3(-2.2, 0, 2.2), 2.3, "Idle", "m", "Guarda"]]
-	for s in spots:
-		var n: Node3D = Character.create(s[3], s[4] == "Guarda")
-		add_child(n)
-		var p: Vector3 = s[0]
-		n.position = Vector3(p.x, world.height(p.x, p.z), p.z)
-		n.rotation.y = s[1]
-		n.play(s[2])
-		n.set_tag(s[4], Color(0.75, 0.9, 1.0))
+			_new_char()
 
 
 func _place_player(p: Vector3) -> void:
-	p = world.resolve(p)
 	player.position = Vector3(p.x, world.height(p.x, p.z), p.z)
 
 
@@ -164,31 +195,91 @@ func _list_chars() -> void:
 	ui.show_chars(r.chars, net.username)
 
 
-func _enter(c: Dictionary) -> void:
-	var gender := "f" if str(c.get("gender", "m")) == "f" else "m"
+func _swap_player(o: Dictionary) -> void:
 	var pos := player.position
 	player.queue_free()
-	player = Character.create(gender)
+	player = Character.create(o)
 	add_child(player)
 	player.position = pos
 	player.rotation.y = facing
-	var nm := str(c.get("name", "Viajante"))
+
+
+func _preview(o: Dictionary) -> void:
+	_swap_player(o)
+
+
+func _new_char() -> void:
+	creating = true
+	ui.show_create()
+
+
+func _create(o: Dictionary) -> void:
+	ui.busy(true)
+	ui.set_status("Criando o personagem...", false)
+	var err: String = await net.create_char(o)
+	if err != "":
+		ui.busy(false)
+		ui.set_status(err)
+		return
+	creating = false
+	await _list_chars()
+
+
+func _enter(c: Dictionary) -> void:
+	creating = false
+	me = c.duplicate(true)
+	if c.has("id") and net.token != "":
+		ui.busy(true)
+		ui.set_status("Carregando o personagem...", false)
+		var st: Dictionary = await net.state(str(c.id))
+		if st.is_empty():
+			ui.busy(false)
+			ui.set_status("Não foi possível carregar o personagem. Tente de novo.")
+			return
+		me = st
+	_swap_player(me)
+	var pos := Vector3(float(me.get("x", home.x)), 0.0, float(me.get("z", home.z)))
+	_place_player(pos)
+	saved_pos = player.position
+	for i in 40:
+		world.stream(player.position, 12)
+	var nm := str(me.get("name", "Viajante"))
 	player.set_tag(nm)
 	has_target = false
 	playing = true
 	yaw = facing + PI
 	pitch = -0.3
 	dist = 7.5
-	ui.show_hud("%s   ·   Nv %d" % [nm, int(c.get("level", 1))])
+	save_t = 0.0
+	ui.show_hud("%s   ·   Nv %d" % [nm, int(me.get("level", 1))])
+
+
+func _save_now() -> void:
+	if not me.has("id") or player.position.distance_to(saved_pos) < 0.5:
+		return
+	saved_pos = player.position
+	await net.save(player.position.x, player.position.z, float(me.get("hp", 100.0)), float(me.get("mp", 50.0)))
 
 
 func _to_login() -> void:
+	if playing:
+		await _save_now()
 	playing = false
+	creating = false
+	me = {}
 	net.logout()
-	player.set_tag("")
-	player.play("Idle")
+	_swap_player({"equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}})
+	_place_player(home)
 	ui.show_login()
 	_refresh_bar()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and not quitting:
+		quitting = true
+		if playing:
+			await _save_now()
+		get_tree().quit()
 
 
 # ---------- preferências ----------
@@ -237,8 +328,6 @@ func _set_quality(q: int) -> void:
 	world.sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if q == 1 else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	RenderingServer.directional_shadow_atlas_set_size([1024, 2048, 4096, 4096, 8192][q], q >= 2)
 	world.sun.directional_shadow_max_distance = [40.0, 42.0, 120.0, 170.0, 220.0][q]
-	world.fire.visible = q >= 1
-	cam.far = [240.0, 420.0, 900.0, 900.0, 900.0][q]
 	e.ssao_enabled = q >= 2 and (forward or compat)
 	e.glow_enabled = q >= 2
 	e.adjustment_enabled = q >= 2
@@ -246,6 +335,7 @@ func _set_quality(q: int) -> void:
 	e.ssil_enabled = q >= 4 and forward
 	e.sdfgi_enabled = q >= 4 and forward
 	world.set_detail(q)
+	cam.far = world.far_r + 400.0
 	ui.btn_quality.text = "Qualidade: " + QUALITY[q]
 	_save_prefs()
 
@@ -283,11 +373,12 @@ func _spawn_crowd() -> void:
 	rng.seed = crowd.size() + 1
 	var acts := ["Idle", "Walk", "Jog_Fwd", "Dance", "Idle_Talking", "Sword_Regular_A", "Idle_FoldArms"]
 	for i in 50:
-		var n: Node3D = Character.create("f" if rng.randf() < 0.5 else "m")
+		var races: Array = world.info.races.keys()
+		var n: Node3D = Character.create({"race": races[rng.randi() % races.size()], "gender": "f" if rng.randf() < 0.5 else "m", "skin": rng.randi() % 4, "hair": rng.randi() % 6, "hair_color": rng.randi() % 8, "equipment": {"armadura": ["pesada_ng", "leve_ng", "robe_ng"][rng.randi() % 3], "arma": ["espada_ng", "espadao_ng", "arco_ng", "cajado_ng", "martelo_ng"][rng.randi() % 5]}})
 		add_child(n)
 		var a := rng.randf() * TAU
 		var r := rng.randf_range(5.0, 17.0)
-		var p: Vector3 = world.resolve(Vector3(sin(a) * r, 0, cos(a) * r))
+		var p: Vector3 = player.position + Vector3(sin(a) * r, 0, cos(a) * r)
 		n.position = Vector3(p.x, world.height(p.x, p.z), p.z)
 		n.rotation.y = rng.randf() * TAU
 		var act: String = acts[rng.randi() % acts.size()]
@@ -394,7 +485,7 @@ func _physics_process(dt: float) -> void:
 		if has_target:  # nunca passa do destino
 			var left := Vector2(target.x - player.position.x, target.z - player.position.z).length()
 			step = minf(step, left)
-		var p: Vector3 = world.resolve(player.position + move * step)
+		var p: Vector3 = world.resolve(player.position + move * step, player.position)
 		player.position = Vector3(p.x, world.height(p.x, p.z), p.z)
 		facing = lerp_angle(facing, atan2(move.x, move.z), minf(1.0, dt * 12.0))
 		player.rotation.y = facing
@@ -406,31 +497,45 @@ func _physics_process(dt: float) -> void:
 
 
 func _process(dt: float) -> void:
+	world.stream(player.position, 2)
 	if playing:
-		var focus := player.position + Vector3(0, 1.45, 0)
+		var focus := player.position + Vector3(0, player.height_m * 0.82, 0)
 		var dir := Vector3(sin(yaw) * cos(pitch), -sin(pitch), cos(yaw) * cos(pitch))
 		var want := focus + dir * dist
-		var floor_y: float = world.height(want.x, want.z) + 0.35
+		var floor_y: float = maxf(world.height(want.x, want.z), 0.0) + 0.35
 		if want.y < floor_y:
 			want.y = floor_y
 		cam.position = cam.position.lerp(want, minf(1.0, dt * 14.0))
 		cam.look_at(focus)
 		if marker.visible:
 			marker.rotation.y += dt * 2.0
+		save_t += dt
+		if save_t > 20.0:
+			save_t = 0.0
+			_save_now()
+		if Engine.get_frames_drawn() % 30 == 0:
+			var nt: Dictionary = world.nearest_town(player.position.x, player.position.z)
+			var where: String = nt.town.name + ("  ·  zona segura" if nt.dist < 70.0 else "  ·  arredores (nível %d a %d)" % [int(nt.town.min), int(nt.town.max)])
+			ui.place_label.text = "%s\nPosição %d, %d" % [where, int(player.position.x), int(player.position.z)]
+	elif creating:
+		var f := Vector3(sin(facing), 0, cos(facing))
+		var side := Vector3(f.z, 0, -f.x)
+		cam.position = player.position + f * 3.8 - side * 0.9 + Vector3(0, player.height_m * 0.62, 0)
+		cam.look_at(player.position - side * 0.9 + Vector3(0, player.height_m * 0.52, 0))
 	else:
-		# tela de entrada: a câmera passeia devagar em volta da vila
+		# tela de entrada: a câmera passeia devagar em volta da praça
 		var t := Time.get_ticks_msec() * 0.00004
 		var a := 2.2 + sin(t * TAU) * 0.55
-		var c := Vector3(sin(a) * 15.0, 0, cos(a) * 15.0)
+		var c := Vector3(home.x - 3.5 + sin(a) * 15.0, 0, home.z - 6.0 + cos(a) * 15.0)
 		cam.position = Vector3(c.x, world.height(c.x, c.z) + 3.6, c.z)
-		cam.look_at(Vector3(-1.0, 2.6, 0.0))
+		cam.look_at(Vector3(home.x - 4.5, world.height(home.x, home.z) + 2.6, home.z - 6.0))
 	smooth_fps = lerpf(smooth_fps, Engine.get_frames_per_second(), 0.1)
 	if playing and Engine.get_frames_drawn() % 15 == 0:
 		var size := get_window().size
-		ui.stats.text = "%d FPS   ·   %.1f ms\n%s   ·   %d x %d\n%s\nObjetos desenhados: %d\nChamadas de desenho: %d\nTriângulos: %s\nÁrvores no mapa: %d\nTufos de grama: %s\nPersonagens animados: %d" % [
+		ui.stats.text = "%d FPS   ·   %.1f ms\n%s   ·   %d x %d\n%s\nObjetos desenhados: %d\nChamadas de desenho: %d\nTriângulos: %s\nBlocos de terreno: %d\nÁrvores carregadas: %d\nPersonagens animados: %d" % [
 			int(Engine.get_frames_per_second()), 1000.0 / maxf(1.0, Engine.get_frames_per_second()), _api_name(), size.x, size.y, RenderingServer.get_video_adapter_name(),
 			int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)), int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
-			_fmt(int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))), world.counts.arvores, _fmt(world.counts.grama), 5 + crowd.size()]
+			_fmt(int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))), world.chunks.size(), world.counts.arvores, 1 + crowd.size()]
 	if shot_path != "":
 		shot_frames += 1
 		if shot_frames == shot_wait:

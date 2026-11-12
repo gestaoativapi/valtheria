@@ -9,39 +9,88 @@ var anim: AnimationPlayer
 var current := ""
 var busy_until := 0.0
 var tag: Label3D
+var height_m := 1.8
 
 
-static func create(gender := "m", with_weapon := true) -> Node3D:
+static var RACES := {}
+static var HAIR_COLORS: Array = []
+const HAIR_M := ["hair_buzzed", "hair_simpleparted", "hair_long", "hair_slickback", "hair_bob", "hair_buns"]
+const HAIR_F := ["hair_buzzedfemale", "hair_bob", "hair_long", "hair_buns", "hair_long", "hair_buns"]
+const WEAPON := {"espada": ["w_sword", 1.0], "espadao": ["w_claymore", 1.45], "arco": ["w_bow_wooden", 1.3], "adaga": ["w_dagger", 0.5], "martelo": ["w_hammer_double", 1.2], "cajado": ["w_spear", 1.7], "machado": ["w_axe", 0.95]}
+
+
+# o: {race, gender, skin, hair, hair_color, look, equipment}; aceita o registro do personagem vindo do servidor
+static func create(o: Dictionary = {}) -> Node3D:
 	var c: Node3D = load("res://scripts/character.gd").new()
-	c._setup(gender, with_weapon)
+	c._setup(o)
 	return c
 
 
-func _setup(gender: String, with_weapon: bool) -> void:
-	var male := gender != "f"
-	var body: Node3D = (load(DIR + ("body_male" if male else "body_female") + ".glb") as PackedScene).instantiate()
+func _setup(o: Dictionary) -> void:
+	var race := str(o.get("race", "humano"))
+	var male := str(o.get("gender", "m")) != "f"
+	var rd: Dictionary = RACES.get(race, {})
+	var look: Dictionary = o.get("look") if o.get("look") is Dictionary else {}
+	var eq: Dictionary = o.get("equipment") if o.get("equipment") is Dictionary else {}
+	var skins: Array = rd.get("skins", ["#e8b993"])
+	var skin := Color(str(skins[clampi(int(o.get("skin", look.get("skin", 0))), 0, skins.size() - 1)]))
+	var hair_i := clampi(int(o.get("hair", look.get("hair", 1))), 0, 5)
+	var hc_i := int(o.get("hair_color", look.get("hair_color", 0)))
+	var hair_col := Color(str(HAIR_COLORS[clampi(hc_i, 0, HAIR_COLORS.size() - 1)])) if not HAIR_COLORS.is_empty() else Color(0.24, 0.15, 0.08)
+	var armor := str(eq.get("armadura", "pesada_ng"))
+	var g := "male" if male else "female"
+	var outfit := "peasant"
+	if armor.begins_with("pesada"):
+		outfit = "knight" if male else "ranger"
+	elif armor.begins_with("leve"):
+		outfit = "ranger"
+	elif armor.begins_with("robe"):
+		outfit = "wizard" if male else "peasant"
+	var dragon := race == "draconato"
+	var body: Node3D = (load(DIR + ("body_dragonita" if dragon else "body_%s_%s" % [g, outfit]) + ".glb") as PackedScene).instantiate()
 	body.name = "Corpo"
 	add_child(body)
 	skel = body.find_child("Skeleton3D", true, false) as Skeleton3D
-	_attach("outfit_male_knight" if male else "outfit_female_ranger")
-	_attach("hair_simpleparted" if male else "hair_long", Color(0.24, 0.15, 0.08) if male else Color(0.5, 0.28, 0.12))
-	var brows := skel.get_node_or_null("Eyebrows") as MeshInstance3D
-	if brows:
-		_tint(brows, Color(0.2, 0.13, 0.07))
+	if skel.get_parent() == body:  # as animações procuram o esqueleto em Armature/Skeleton3D
+		var arm := Node3D.new()
+		arm.name = "Armature"
+		body.add_child(arm)
+		body.remove_child(skel)
+		arm.add_child(skel)
+	if dragon:
+		for m in skel.find_children("*", "MeshInstance3D", true, false):
+			_tint(m as MeshInstance3D, Color(skin.r / 0.69, skin.g / 0.376, skin.b / 0.172))
+	else:
+		for m in skel.find_children("*", "MeshInstance3D", true, false):
+			var nm := String(m.name).to_lower()
+			if nm.contains("eyebrow"):
+				_tint(m as MeshInstance3D, hair_col.darkened(0.25))
+			elif not (nm.contains("eye") or nm.contains("teeth") or nm.contains("tongue")):
+				_tint(m as MeshInstance3D, Color(skin.r / 0.89, skin.g / 0.71, skin.b / 0.56))
+		_attach("outfit_%s_%s" % [g, outfit])
+		if not rd.get("no_hair", false):
+			_attach((HAIR_M if male else HAIR_F)[hair_i], hair_col)
+		if male and (race in ["anao", "gigante"] or int(look.get("beard", 0)) > 0):
+			_attach("hair_beard", hair_col)
 	for m in skel.get_children():
 		if m is MeshInstance3D:
 			# o corpo se mexe muito além da caixa de repouso; amplia para não sumir na borda da tela
 			(m as MeshInstance3D).extra_cull_margin = 1.5
+	var w: float = rd.get("w", 1.0)
+	var h: float = rd.get("h", 1.0) * (1.0 if male else 0.97)
+	body.scale = Vector3(w, h, w)
+	height_m = 1.8 * h
 	anim = AnimationPlayer.new()
 	body.add_child(anim)
 	anim.add_animation_library("", _clips(skel))
 	anim.playback_default_blend_time = 0.18
-	if with_weapon:
-		_weapon("w_sword", 1.0)
+	var wid := str(eq.get("arma", ""))
+	var kind := wid.split("_")[0]
+	if WEAPON.has(kind):
+		_weapon(WEAPON[kind][0], WEAPON[kind][1])
 	play("Idle")
 
 
-# liga as malhas de outro arquivo (roupa, cabelo) ao esqueleto do corpo, pelo nome dos ossos
 func _tint(mi: MeshInstance3D, col: Color) -> void:
 	for i in mi.mesh.get_surface_count():
 		var m := mi.mesh.surface_get_material(i)
@@ -163,7 +212,7 @@ func set_tag(text: String, color := Color(1, 0.92, 0.7)) -> void:
 	if not tag:
 		tag = Label3D.new()
 		tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		tag.position = Vector3(0, 2.05, 0)
+		tag.position = Vector3(0, height_m + 0.25, 0)
 		tag.pixel_size = 0.003
 		tag.font_size = 64
 		tag.outline_size = 14

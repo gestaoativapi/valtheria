@@ -8,6 +8,8 @@ const DOMAIN := "@jogadores.reinosdeaurora.app"
 
 var token := ""
 var username := ""
+var refresh := ""
+var char_id := ""
 
 
 func _post(path: String, body: Dictionary, bearer := "") -> Dictionary:
@@ -51,6 +53,7 @@ func login(user: String, password: String) -> String:
 			return "Usuário ou senha incorretos" if r.code != 0 else m
 		return m
 	token = str((r.data as Dictionary).get("access_token", ""))
+	refresh = str((r.data as Dictionary).get("refresh_token", ""))
 	username = user
 	return "" if token != "" else "Resposta inesperada do servidor"
 
@@ -67,17 +70,49 @@ func signup(user: String, password: String) -> String:
 	return await login(user, password)
 
 
-# lista de personagens da conta: {"ok", "chars": [...], "erro"}
+# chamada ao servidor do jogo; renova a sessão sozinho se ela venceu
+func rpc_call(fn: String, args := {}) -> Dictionary:
+	var r := await _post("/rest/v1/rpc/" + fn, args, token)
+	if r.code == 401 and refresh != "":
+		var t := await _post("/auth/v1/token?grant_type=refresh_token", {"refresh_token": refresh})
+		if t.ok:
+			token = str((t.data as Dictionary).get("access_token", ""))
+			refresh = str((t.data as Dictionary).get("refresh_token", refresh))
+			r = await _post("/rest/v1/rpc/" + fn, args, token)
+	return {"ok": r.ok, "data": r.data, "erro": "" if r.ok else _msg(r, "O servidor recusou o pedido")}
+
+
 func chars() -> Dictionary:
-	var r := await _post("/rest/v1/rpc/game_chars", {}, token)
-	if not r.ok:
-		return {"ok": false, "chars": [], "erro": _msg(r, "Não foi possível ler os personagens")}
+	var r := await rpc_call("game_chars")
 	var list: Array = []
-	if r.data is Dictionary and (r.data as Dictionary).get("chars") is Array:
+	if r.ok and r.data is Dictionary and (r.data as Dictionary).get("chars") is Array:
 		list = r.data.chars
-	return {"ok": true, "chars": list, "erro": ""}
+	return {"ok": r.ok, "chars": list, "erro": r.erro}
+
+
+func create_char(o: Dictionary) -> String:
+	var r := await rpc_call("game_create_char2", {"p_name": o.name, "p_race": o.race, "p_type": o.type, "p_gender": o.gender, "p_look": o.look})
+	return r.erro
+
+
+# estado completo do personagem (posição, vida, equipamento)
+func state(id: String) -> Dictionary:
+	char_id = id
+	var r := await rpc_call("game_state", {"p_char": id})
+	if r.ok and r.data is Dictionary and (r.data as Dictionary).get("char") is Dictionary:
+		return r.data.char
+	return {}
+
+
+func save(x: float, z: float, hp: float, mp: float) -> bool:
+	if token == "" or char_id == "":
+		return false
+	var r := await rpc_call("game_save", {"p_char": char_id, "p_x": x, "p_z": z, "p_hp": hp, "p_mp": mp})
+	return r.ok
 
 
 func logout() -> void:
 	token = ""
 	username = ""
+	refresh = ""
+	char_id = ""
