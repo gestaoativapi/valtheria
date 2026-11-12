@@ -33,9 +33,12 @@
   function region(x, z) {
     const { town, dist } = nearestTown(x, z), core = nearestCore(x, z), band = core.town.band;
     const k = Math.max(0, Math.min(1, (core.dist - GD.SAFE_R) / 450));
-    return { town, dist, safe: dist < GD.SAFE_R, level: Math.round(core.town.min + (core.town.max - core.town.min) * k), grade: band, core: core.town };
+    const N = GD.NEON, hub = N && Math.hypot(x - N.hub.x, z - N.hub.z) < N.hub.r;
+    return { town, dist, safe: dist < GD.SAFE_R || hub, hub, level: Math.round(core.town.min + (core.town.max - core.town.min) * k), grade: band, core: core.town };
   }
   function nearestLandmark(x, z) { let b = null, bd = 1e9; for (const l of LM) { const d = Math.hypot(x - l.x, z - l.z); if (d < bd) { bd = d; b = l; } } return { lm: b, dist: bd }; }
+  // Era Neon: dentro do distrito futurista (pad amplia a borda)
+  function inNeon(x, z, pad = 0) { const N = GD.NEON; return !!N && Math.hypot(x - N.x, z - N.z) < N.r + pad; }
   const TOWN_H = 6;
   function rawHeight(x, z) {
     const n = fbm(x / 420, z / 420, SEED, 4), m = fbm(x / 95, z / 95, SEED + 50, 3);
@@ -44,7 +47,7 @@
     // maciços: cordilheiras bem altas (até ~150 m), longe das cidades, marcos e estradas
     const mm = fbm(x / 640, z / 640, SEED + 333, 3); let mk = Math.max(0, Math.min(1, (mm - 0.5) / 0.15));
     if (mk > 0) {
-      mk *= Math.max(0, Math.min(1, (nearestTown(x, z).dist - 200) / 220)) * Math.max(0, Math.min(1, (nearestLandmark(x, z).dist - 110) / 160));
+      { const NL = nearestLandmark(x, z); mk *= Math.max(0, Math.min(1, (nearestTown(x, z).dist - 200) / 220)) * Math.max(0, Math.min(1, (NL.dist - 110 - ((NL.lm && NL.lm.r) || 50) + 50) / 160)); }
       if (mk > 0) mk *= Math.max(0, Math.min(1, (roadDist(x, z) - 26) / 110));
       if (mk > 0) { const pk = 1 - Math.abs(fbm(x / 170, z / 170, SEED + 444, 4) * 2 - 1), cr = fbm(x / 38, z / 38, SEED + 555, 2);
         h += mk * mk * (40 + Math.pow(pk, 2.2) * 105 + (cr - 0.5) * 14 * mk); }
@@ -56,7 +59,7 @@
     let h = rawHeight(x, z);
     const { town, dist } = nearestTown(x, z);
     if (dist < 150) { const k = Math.max(0, Math.min(1, (dist - 95) / 55)); h = TOWN_H + (h - TOWN_H) * k * k; }
-    const L = nearestLandmark(x, z); if (L.dist < 80) { const base = Math.max(4, rawHeight(L.lm.x, L.lm.z)), k = Math.max(0, Math.min(1, (L.dist - 50) / 30)); h = base + (h - base) * k * k; }
+    const L = nearestLandmark(x, z), r0 = (L.lm && L.lm.r) || 50, rw = L.lm && L.lm.r ? 50 : 30; if (L.dist < r0 + rw) { const base = Math.max(4, rawHeight(L.lm.x, L.lm.z)), k = Math.max(0, Math.min(1, (L.dist - r0) / rw)); h = base + (h - base) * k * k; }
     const rd = roadDist(x, z);
     if (rd < 14) { const k = rd / 14; const target = Math.max(1.2, h); h = target + (h - target) * k; if (h < 1.2) h = 1.2 + (h - 1.2) * k; }
     return h;
@@ -96,6 +99,6 @@
     for (let r = 10; r < 300; r += 10) { let ok = false; for (let a = 0; a < 16; a++) { const x = sp.x + Math.cos(a / 16 * 6.283) * r, z = sp.z + Math.sin(a / 16 * 6.283) * r; if (height(x, z) > 2.5) { sp.x = Math.round(x); sp.z = Math.round(z); ok = true; break; } } if (ok) break; }
   }));
 
-  const api = { hash2, fbm, mulberry32, height, rawHeight, isWater, region, nearestTown, nearestCore, nearestLandmark, nodeVisible, roadDist, genNodes, WATER, TOWN_H, ROADS };
+  const api = { inNeon, hash2, fbm, mulberry32, height, rawHeight, isWater, region, nearestTown, nearestCore, nearestLandmark, nodeVisible, roadDist, genNodes, WATER, TOWN_H, ROADS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.WG = api;
 })(typeof window !== 'undefined' ? window : globalThis);

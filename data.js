@@ -400,6 +400,10 @@
     p_vespa: { name: 'Vespa Guardiã', type: 'pet', model: 'e_wasp', len: 0.7, price: 30000, lvl: 30, icon: '🐝', fx: { atkspd: 0.03 }, flyer: true },
     p_sapo_real: { name: 'Sapo Real do Pântano', type: 'pet', model: 'e_frog', len: 0.8, lvl: 10, icon: '🐸', fx: { mpRegen: 0.25, mpCost: 0.05 }, tint: '#6aaa3a' },
     p_rato_rei: { name: 'Rato da Coroa', type: 'pet', model: 'e_rat', len: 0.8, lvl: 10, icon: '🐀', fx: { crit: 0.04 }, tint: '#c8a040' },
+    // Era Neon (região futurista): só caem do Mecha Ômega
+    p_drone: { name: 'Drone Companheiro', type: 'pet', model: 'x_drone', len: 0.9, lvl: 40, icon: '🛸', fx: { crit: 0.03 }, hover: 1.1, neon: '#3af0ff' },
+    m_hover: { name: 'Moto Antigravidade', type: 'mount', model: 'n_rover_1', len: 2.8, speed: 2.15, hover: 0.7, neon: '#ff3ad8', lvl: 52, icon: '🏍️' },
+    a_neon: { name: 'Asas Holográficas', type: 'wings', color: '#3af0ff', lvl: 52, icon: '💠', fx: { speed: 0.05, crit: 0.02 } },
     a_luz: { name: 'Asas de Luz', type: 'wings', color: '#fff2b0', price: 150000, lvl: 40, icon: '🪽', fx: { speed: 0.04 } },
     a_sombra: { name: 'Asas Sombrias', type: 'wings', color: '#6a3aaa', price: 150000, lvl: 40, icon: '🦇', fx: { crit: 0.02 } },
     a_fenix: { name: 'Asas da Fênix', type: 'wings', color: '#ff7a2a', price: 320000, lvl: 61, icon: '🔥', fx: { matkPct: 0.04 } },
@@ -487,7 +491,36 @@
       POI_DROPS[fid] = drops; }
   });
   // ----- troféus de caça (drop de cada família; servem para missões e venda) -----
-  const TROPHY = { javali: ['Presa de Javali', '🐗'], lobo: ['Pele de Lobo Cinzento', '🐺'], bandido: ['Insígnia de Bandido', '🏴'], aranha: ['Seda de Aranha', '🕸️'], golem: ['Núcleo de Golem', '🪨'], esqueleto: ['Osso Amaldiçoado', '🦴'], ent: ['Seiva Corrompida', '🌿'], lobo_esp: ['Essência Espectral', '👻'], demonio: ['Chifre Demoníaco', '😈'], lagarto: ['Escama de Lagarto', '🦎'], dragonete: ['Escama de Dragonete', '🐉'], caido: ['Selo do Cavaleiro Caído', '⚜️'] };
+  // ----- Era Neon: distrito futurista que atravessou uma fenda no tempo (portal em Vila Aurora) -----
+  const NEON = { x: 1900, z: 1600, r: 130, hub: { x: 1900, z: 1712, r: 20 }, portal: { x: 1516, z: 2566 } };
+  LANDMARKS.push({ id: 'era_neon', name: 'Era Neon — Distrito Ômega', type: 'neon', x: NEON.x, z: NEON.z, lvl: 60, boss: 'mecha_omega', r: NEON.r, neon: true });
+  const NEON_MOBS = [
+    { id: 'drone_sent', name: 'Drone Sentinela', model: 'golem', glb: 'drone_sent', color: '#3af0ff', scale: 0.9, aggro: true, neon: true, fly: true },
+    { id: 'andarilho', name: 'Andarilho Mecânico', model: 'golem', glb: 'andarilho', color: '#5a6a8a', scale: 1.0, aggro: true, neon: true },
+    { id: 'vigia', name: 'Vigia Voador', model: 'golem', glb: 'vigia', color: '#ff3ad8', scale: 0.95, aggro: true, neon: true, fly: true },
+    { id: 'plasmoide', name: 'Plasmoide Errante', model: 'golem', glb: 'plasmoide', color: '#7aff5a', scale: 1.0, aggro: false, neon: true, fly: true },
+    { id: 'mecha_batedor', name: 'Mecha Batedor', model: 'golem', glb: 'mecha_batedor', color: '#ffb03a', scale: 1.25, aggro: true, neon: true },
+    { id: 'colosso', name: 'Colosso Sintético', model: 'golem', glb: 'colosso', color: '#8a3aff', scale: 1.6, aggro: true, neon: true, elite: true },
+  ];
+  const NEON_GEAR = {
+    neon_espada: { name: 'Lâmina de Plasma Ômega', kind: 'espada', icon: '⚡', sa: ['trovao', 'furia'], neon: '#3af0ff' },
+    neon_espadao: { name: 'Montante de Fusão', kind: 'espadao', icon: '🔆', sa: ['chama', 'furia'], neon: '#ff5a3a' },
+    neon_arco: { name: 'Arco Fotônico', kind: 'arco', icon: '🏹', sa: ['trovao', 'precisao'], neon: '#7aff5a' },
+    neon_adaga: { name: 'Adagas de Íon', kind: 'adaga', icon: '🗡️', sa: ['sangria', 'foco'], neon: '#ff3ad8' },
+    neon_cajado: { name: 'Cetro Quântico', kind: 'cajado', icon: '🔮', sa: ['gelo', 'sabedoria'], neon: '#a05aff' },
+  };
+  { const g = gradeForLevel(60);
+    for (const [id, d] of Object.entries(NEON_GEAR)) { const base = ITEMS[`${d.kind}_${GRADES[g].id.toLowerCase()}`], st = {}; for (const [k, v] of Object.entries(base.stats)) st[k] = +(v * 1.25).toFixed(1);
+      ITEMS[id] = { id, name: d.name, grade: g, type: 'weapon', slot: 'arma', kind: d.kind, icon: d.icon, stats: st, unique: true, relic: true, sa: d.sa, neon: d.neon }; }
+    const suit = [['neon_traje', 'armadura', 'Traje Neon Ômega', '🦺', `leve_${GRADES[g].id.toLowerCase()}`], ['neon_visor', 'elmo', 'Visor Holográfico', '🥽', `elmo_leve_${GRADES[g].id.toLowerCase()}`], ['neon_luvas', 'luvas', 'Luvas de Circuito', '🧤', `luvas_leve_${GRADES[g].id.toLowerCase()}`], ['neon_botas', 'botas', 'Botas Magnéticas', '🥾', `botas_leve_${GRADES[g].id.toLowerCase()}`]];
+    for (const [id, slot, name, icon, bid] of suit) { const base = ITEMS[bid], st = {}; for (const [k, v] of Object.entries(base.stats)) st[k] = typeof v === 'number' && v > 1 ? +(v * 1.2).toFixed(1) : v;
+      ITEMS[id] = { id, name, grade: g, type: 'armor', slot, kind: 'leve', part: base.part, icon, stats: st, unique: true, neon: '#3af0ff' }; }
+    ITEMS.neon_botas.stats.spd = 0.06;
+    const drops = [...Object.keys(NEON_GEAR), 'neon_traje', 'neon_visor', 'neon_luvas', 'neon_botas', 'a_neon', 'm_hover', 'p_drone', 'gema', 'fragmento'];
+    SPECIAL_BOSSES.push({ id: 'mecha_omega', name: 'Mecha Ômega', model: 'golem', glb: 'mecha_omega', color: '#3af0ff', scale: 2.6, boss: true, special: true, neon: true, drops, lvl: 60 });
+    POI_DROPS.mecha_omega = drops; }
+  const TROPHY = { drone_sent: ['Núcleo de Drone', '🔋'], andarilho: ['Servomotor Gasto', '⚙️'], vigia: ['Lente de Vigia', '🔭'], plasmoide: ['Gel de Plasma', '🧪'], mecha_batedor: ['Placa de Blindagem', '🔩'], colosso: ['Reator Sintético', '☢️'], javali: ['Presa de Javali', '🐗'], lobo: ['Pele de Lobo Cinzento', '🐺'], bandido: ['Insígnia de Bandido', '🏴'], aranha: ['Seda de Aranha', '🕸️'], golem: ['Núcleo de Golem', '🪨'], esqueleto: ['Osso Amaldiçoado', '🦴'], ent: ['Seiva Corrompida', '🌿'], lobo_esp: ['Essência Espectral', '👻'], demonio: ['Chifre Demoníaco', '😈'], lagarto: ['Escama de Lagarto', '🦎'], dragonete: ['Escama de Dragonete', '🐉'], caido: ['Selo do Cavaleiro Caído', '⚜️'] };
+  NEON_MOBS.forEach(f => { f.grade = 3; ITEMS['tr_' + f.id] = { id: 'tr_' + f.id, name: TROPHY[f.id][0], grade: 3, type: 'trophy', icon: TROPHY[f.id][1], fam: f.id }; });
   MOBS.forEach((fs, g) => fs.forEach(f => { if (TROPHY[f.id]) ITEMS['tr_' + f.id] = { id: 'tr_' + f.id, name: TROPHY[f.id][0], grade: g, type: 'trophy', icon: TROPHY[f.id][1], fam: f.id }; }));
   // ----- pergaminhos de encantamento (estilo clássico: seguro até +3, máximo +10) -----
   GRADES.forEach((G, g) => {
@@ -588,6 +621,6 @@
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
     RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
-    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
+    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, NEON, NEON_MOBS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

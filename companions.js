@@ -22,20 +22,24 @@ export function compFx() { const o = {}; const add = d => d && d.fx && Object.en
 export async function summonPet(id, quiet) {
   if (COMP.petId === id) { dismissPet(); return; }
   dismissPet(); const d = def(id); if (!d) return; COMP.petId = id;
-  const C = await makeCreature(d.model, { length: d.len, tint: d.tint, tintMix: 0.35 }); if (COMP.petId !== id) return;
+  const C = await makeCreature(d.model, { length: d.len, tint: d.tint, tintMix: 0.35, lift: d.hover, emissive: d.neon, ei: 0.4, keepMetal: !!d.neon }); if (COMP.petId !== id) return; if (d.neon) C.root.add(neonGlow(d.neon, d.len * 0.8, d.hover || 0));
   const me = X.me(); C.x = me.x - 1.5; C.z = me.z - 1.5; C.ry = 0; C.nextAtk = 0; X.scene.add(C.root); COMP.pet = C;
   if (!quiet) { X.toast(`${d.icon} ${d.name} está com você`, 'ok'); emit(C.x, X.WG.height(C.x, C.z) + 0.5, C.z, { n: 30, color: 0xffe08a, speed: 2, up: 2, life: 0.8, size: 0.2 }); }
   saveComp();
 }
 export function dismissPet() { if (COMP.pet) X.scene.remove(COMP.pet.root); COMP.pet = null; COMP.petId = null; saveComp(); }
 
+// brilho de neon sob veículos e drones (anel aditivo + disco)
+function neonGlow(col, size, lift) { const g = new THREE.Group(), c = new THREE.Color(col);
+  const disk = new THREE.Mesh(new THREE.CircleGeometry(size * 0.6, 24), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); disk.rotation.x = -Math.PI / 2; disk.position.y = 0.05; g.add(disk);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(size * 0.45, 0.04, 6, 32), new THREE.MeshBasicMaterial({ color: c, toneMapped: false })); ring.rotation.x = -Math.PI / 2; ring.position.y = Math.max(0.15, lift * 0.6); g.add(ring); return g; }
 // ---------- montarias ----------
 export function setMount(id) { COMP.mountId = id; saveComp(); return toggleRide(true); }
 export async function toggleRide(force) {
   const me = X.me(); if (!COMP.mountId) { X.toast('Você não escolheu uma montaria — use uma na bolsa', 'err'); return; }
   if (COMP.riding && !force) { dismount(); return; }
   if (X.S.dead) return; const d = def(COMP.mountId);
-  if (!COMP.mount || COMP.mount.id !== COMP.mountId) { if (COMP.mount) X.scene.remove(COMP.mount.root); const C = await makeCreature(d.model, { length: d.len, tint: d.tint, tintMix: 0.3, ghost: d.ghost }); C.id = COMP.mountId; COMP.mount = C;
+  if (!COMP.mount || COMP.mount.id !== COMP.mountId) { if (COMP.mount) X.scene.remove(COMP.mount.root); const C = await makeCreature(d.model, { length: d.len, tint: d.tint, tintMix: 0.3, ghost: d.ghost, lift: d.hover, emissive: d.neon, ei: 0.25, keepMetal: !!d.neon }); C.id = COMP.mountId; COMP.mount = C; if (d.hover) C.h += d.hover * 0.2; if (d.neon) C.root.add(neonGlow(d.neon, d.len, d.hover || 0));
     if (d.fly) C.root.add(C.wingGroup = buildWings(d.wings || '#ffffff', 1.6, C.h * 0.78, C.len * 0.08)); }
   X.scene.add(COMP.mount.root); COMP.riding = true; X.S.autoAtk = false;
   emit(me.x, X.WG.height(me.x, me.z) + 0.6, me.z, { n: 30, color: 0xd8c8a0, speed: 3, up: 1.4, life: 0.7, size: 0.3 });

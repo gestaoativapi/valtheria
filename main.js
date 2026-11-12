@@ -3,6 +3,7 @@ import * as THREE from './lib/three.module.min.js';
 import { buildHumanoid, setGear, animHumanoid, playAttack, upgradeGLB, buildMob, animMob, buildNode, buildHouse, makeLabel, mat } from './models.js';
 import { updateWaterDepth, createSky, createWater, dayPhase, sunVectors, WIND, makeFire, updateFires, initLightPool, createGrass, layoutGrass, ROCK_GEOS, rockMat, TREE_KINDS, leafMat, treeTrunkMat } from './world3d.js';
 import { buildTownArchitecture, buildLandmark, updateTownAnim, stoneify } from './towns.js';
+import { buildNeon, buildPortal, updateNeon } from './neon.js';
 import { RoomEnvironment } from './lib/RoomEnvironment.js';
 import { NAT, loadNature, buildNatureChunk, disposeNature } from './nature.js';
 import { initFX, emit, slash, shock, beam, updateFX, updateTrail, crater } from './fx.js';
@@ -24,7 +25,7 @@ const NODES = WG.genNodes().filter(WG.nodeVisible); window.NODES_BY_ID = {}; NOD
 window.TELEPORTS = []; GD.TOWNS.forEach(t => { TELEPORTS.push({ id: 'town:' + t.id, name: t.name, x: t.x, z: t.z + 25, lvl: t.min, town: true }); t.spotsPos.forEach((s, i) => TELEPORTS.push({ id: `spot:${t.id}:${i}`, name: s.name, x: s.x, z: s.z, lvl: s.lvl })); });
 GD.LANDMARKS.forEach(L => TELEPORTS.push({ id: 'lm:' + L.id, name: L.name, x: L.x, z: L.z + 40, lvl: L.lvl, lm: true }));
 TELEPORTS.forEach(t => t.cost = GD.teleCost(t.lvl));
-const FAM = {}; GD.MOBS.forEach((g, gi) => g.forEach(f => { f.grade = gi; FAM[f.id] = f; })); GD.SPECIAL_BOSSES.forEach(f => { f.grade = Math.min(5, GD.gradeForLevel((GD.LANDMARKS.find(l => l.boss === f.id) || {}).lvl || 1)); FAM[f.id] = f; });
+const FAM = {}; GD.MOBS.forEach((g, gi) => g.forEach(f => { f.grade = gi; FAM[f.id] = f; })); GD.NEON_MOBS.forEach(f => { FAM[f.id] = f; }); GD.SPECIAL_BOSSES.forEach(f => { f.grade = Math.min(5, GD.gradeForLevel((GD.LANDMARKS.find(l => l.boss === f.id) || {}).lvl || 1)); FAM[f.id] = f; });
 const NPC_TYPES = [
   ['portal', 'Guardião do Portal', '#4a7ab0'], ['classe', 'Mestre de Classes', '#a87a2a'], ['ferreiro', 'Ferreiro', '#6a4a3a'],
   ['refino', 'Refinador e Alquimista', '#3a7a4a'], ['mercador', 'Mercador', '#8a6a2a'], ['leilao', 'Casa de Leilões', '#6a3a8a'], ['arauto', 'Arauto do Eclipse', '#b03a3a'],
@@ -76,6 +77,7 @@ const THEMES = {
   vulcao: { g: ['#3a3030', '#4a3a32'], top: 0x5a2a1a, bot: 0xd88a5a, fog: 0x8a5a4a, leaf: '#4a3a2a', trees: 4, kinds: ['morta'], grass: null, rocks: 16 },
   noite: { g: ['#3a4a3a', '#2e3a30'], top: 0x1a1a3a, bot: 0x5a4a6a, fog: 0x3a3a4a, leaf: '#2a3a2a', trees: 20, kinds: ['morta', 'conifera'], grass: '#2e3a2e', rocks: 6 },
   gelo: { g: ['#e8f0f4', '#d8e4ec'], top: 0x6a9ac8, bot: 0xe8f4ff, fog: 0xd8e8f4, leaf: '#e8f4ff', trees: 16, kinds: ['gelo'], grass: null, rocks: 8 },
+  neon: { g: ['#2a2a3a', '#22222e'], top: 0x0a0428, bot: 0x8a2a9a, fog: 0x2a1250, leaf: '#3af0ff', trees: 0, kinds: ['folhosa'], grass: null, rocks: 0 },
 };
 for (const k in THEMES) THEMES[k].key = k;
 const cA = new THREE.Color(), cB = new THREE.Color();
@@ -155,7 +157,7 @@ function buildChunk(cx, cz) {
   const th = THEMES[WG.nearestTown(ox, oz).town.theme], rng = WG.mulberry32((cx * 7919) ^ (cz * 104729) ^ 77), byKind = {};
   for (let i = 0; i < th.trees; i++) {
     const x = cx * CH + rng() * CH, z = cz * CH + rng() * CH, h = WG.height(x, z), kind = th.kinds[Math.floor(rng() * th.kinds.length)];
-    if (h < 1.8 || h > 42 || WG.nearestTown(x, z).dist < 115 || WG.nearestLandmark(x, z).dist < 60 || WG.roadDist(x, z) < 9) { rng(); rng(); continue; }
+    if (h < 1.8 || h > 42 || WG.nearestTown(x, z).dist < 115 || WG.nearestLandmark(x, z).dist < 60 || WG.inNeon(x, z, 30) || WG.roadDist(x, z) < 9) { rng(); rng(); continue; }
     (byKind[kind] = byKind[kind] || []).push([x, h, z, 0.7 + rng() * 0.8, rng() * 6]);
   }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new THREE.Vector3(), pv = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
@@ -166,7 +168,7 @@ function buildChunk(cx, cz) {
     if (kind === 'gelo') { const sn = new THREE.InstancedMesh(TREE_KINDS.gelo.leaf, leafMat('#f4f8ff'), pts.length); pts.forEach(([x, h, z, sc, r], i) => { q.setFromAxisAngle(up, r); sv.set(sc * 1.04, sc * 0.55, sc * 1.04); pv.set(x, h + 2.4 * sc, z); m4.compose(pv, q, sv); sn.setMatrixAt(i, m4); }); group.add(sn); }
   }
   const nRocks = th.rocks + Math.round(Math.max(0, WG.height(ox, oz) - 20) / 3), rocks = [[], [], []], hiRocks = [[], [], []];
-  for (let i = 0; i < nRocks; i++) { const x = cx * CH + rng() * CH, z = cz * CH + rng() * CH, h = WG.height(x, z); if (h < 0.5 || WG.nearestTown(x, z).dist < 100 || WG.roadDist(x, z) < 7) continue; (h > 24 ? hiRocks : rocks)[i % 3].push([x, h, z, 0.5 + rng() * rng() * 3.2, rng() * 6]); }
+  for (let i = 0; i < nRocks; i++) { const x = cx * CH + rng() * CH, z = cz * CH + rng() * CH, h = WG.height(x, z); if (h < 0.5 || WG.nearestTown(x, z).dist < 100 || WG.inNeon(x, z, 20) || WG.roadDist(x, z) < 7) continue; (h > 24 ? hiRocks : rocks)[i % 3].push([x, h, z, 0.5 + rng() * rng() * 3.2, rng() * 6]); }
   rocks.forEach((pts, k) => { if (!pts.length) return; const rm = new THREE.InstancedMesh(ROCK_GEOS[k], rockMat, pts.length); pts.forEach(([x, h, z, sc, r], i) => { q.setFromAxisAngle(up, r); sv.set(sc * 1.3, sc, sc); pv.set(x, h - sc * 0.25, z); m4.compose(pv, q, sv); rm.userData.pk = 'rock'; rm.setMatrixAt(i, m4); }); rm.castShadow = rm.receiveShadow = true; group.add(rm); });
   hiRocks.forEach((pts, k) => { if (!pts.length) return; const rm = new THREE.InstancedMesh(ROCK_GEOS[k], rockMat, pts.length); pts.forEach(([x, h, z, sc, r], i) => { q.setFromAxisAngle(up, r); sv.set(sc * 1.3, sc, sc); pv.set(x, h - sc * 0.25, z); m4.compose(pv, q, sv); rm.setMatrixAt(i, m4); }); rm.castShadow = rm.receiveShadow = true; group.add(rm); });
   scene.add(group); terrainMeshes.push(mesh);
@@ -176,7 +178,7 @@ function buildChunk(cx, cz) {
   // vegetação rasteira (só para os modelos GLB de perto): arbustos, samambaias, flores e cogumelos
   const under = [], r2 = WG.mulberry32((cx * 3571) ^ (cz * 7643) ^ 913), nU = { verde: 40, floresta: 70, outono: 34, noite: 22, rocha: 14, savana: 22, sombra: 6, gelo: 26, cristal: 10, vulcao: 6 }[th.key] || 0;
   for (let i = 0; i < nU; i++) { const x = cx * CH + r2() * CH, z = cz * CH + r2() * CH, h = WG.height(x, z), roll = r2(), sc = 0.7 + r2() * 0.6, r = r2() * 6;
-    if (h < 2 || h > 34 || WG.nearestTown(x, z).dist < 105 || WG.nearestLandmark(x, z).dist < 40 || WG.roadDist(x, z) < 6) continue;
+    if (h < 2 || h > 34 || WG.nearestTown(x, z).dist < 105 || WG.nearestLandmark(x, z).dist < 40 || WG.inNeon(x, z, 20) || WG.roadDist(x, z) < 6) continue;
     const k = th.key === 'noite' || th.key === 'sombra' ? (roll < 0.6 ? 2 : 6) : th.key === 'rocha' || th.key === 'savana' ? (roll < 0.5 ? 0 : 2) : roll < 0.28 ? 0 : roll < 0.4 ? 1 : roll < 0.62 ? 2 : roll < 0.74 ? 3 : roll < 0.84 ? 4 : roll < 0.94 ? 5 : 6;
     const sbb = subBiome(x, z, h, th.key, 999); if (sbb.name === 'deserto' && r2() < 0.7) continue; under.push([x, h, z, sc, r, k, sbb.name]); }
   chunks.set(cx + ',' + cz, { group, mesh, nodes, cx, cz, nat: null, natData: { trees: byKind, rocks, under, theme: th.key, rockTint: ROCK_TINT[th.key] || '#ffffff' } });
@@ -230,6 +232,14 @@ function perfTick(dt) {
 const npcs = [], houses = [];
 const townGroups = [];
 const PLAZA = { humano: '#a8a08e', halfling: '#b8a878', anao: '#6a645a', elfo: '#e8e8e0', orc: '#8a6a4a', sylph: '#f0f4fa', beastman: '#a8885a', sombrio: '#3a3448', draconato: '#3a3232', nocturno: '#3a3640', gigante: '#d8e4ec' };
+const PORTALS = []; // portais dimensionais: entrar no anel teleporta
+async function portalTick() {
+  if (!me || S.dead || S.portalBusy || (S.portalCd || 0) > Date.now()) return;
+  for (const P of PORTALS) { if (Math.hypot(P.x - me.x, P.z - me.z) > 2.6) continue; S.portalBusy = true; S.portalCd = Date.now() + 6000;
+    if (P.dest === 'lm:era_neon' && S.c.level < 52) toast('⚠️ A Era Neon é perigosa: monstros de nível 54 a 62', 'err');
+    emit(me.x, WG.height(me.x, me.z) + 1.5, me.z, { n: 60, color: new THREE.Color(P.col).getHex(), speed: 5, up: 3, life: 0.9, size: 0.3 }); sfx('magic'); postFlash && postFlash(0.6);
+    const r = await safe(() => B.teleport(P.dest)); S.portalBusy = false; if (!r) return; toast(`🌀 Você atravessou a fenda: ${r.name}`, 'ok'); teleport(r.x, r.z); return; }
+}
 function townCtx(t) {
   const roadAngles = WG.ROADS.filter(([a, b]) => a === t || b === t).map(([a, b]) => { const o = a === t ? b : a; return Math.atan2(o.z - t.z, o.x - t.x); });
   return { t, roadAngles, H: (x, z) => WG.height(x, z), collide: (x, z, r) => houses.push({ x, z, r }),
@@ -261,10 +271,15 @@ function buildTowns() {
       if (type === 'portal') { const ring = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.18, 8, 30), mat('#7ad0ff', { emissive: 0x3aa0ff, ei: 1.2 })); ring.position.set(x + Math.cos(a) * 4, y + 2.4, z + Math.sin(a) * 4); ring.rotation.y = -a; ring.userData.spin2 = true; scene.add(ring); npcs.push({ crystal: ring }); }
     });
   }
-  for (const L of GD.LANDMARKS) { const g = stoneify(buildLandmark(townCtx({ x: L.x, z: L.z, race: 'humano' }), L)); scene.add(g); townGroups.push({ g, x: L.x, z: L.z });
-    const lb = makeLabel(({ castelo: '🏰 ', ruina: '🏛️ ', tumba: '⚰️ ', pantano: '🐸 ', destrocos: '🛒 ', estranho: '🔮 ' }[L.type] || '💀 ') + L.name, '#ffcf8a', 34); lb.position.set(L.x, WG.height(L.x, L.z) + 26, L.z); lb.scale.multiplyScalar(1.8); scene.add(lb); townGroups.push({ g: lb, x: L.x, z: L.z }); }
+  for (const L of GD.LANDMARKS) { const neon = L.type === 'neon', g = neon ? buildNeon(townCtx({ x: L.x, z: L.z, race: 'humano' }), L, GD.NEON) : stoneify(buildLandmark(townCtx({ x: L.x, z: L.z, race: 'humano' }), L)); scene.add(g); townGroups.push({ g, x: L.x, z: L.z, far: neon ? 1500 : 0 });
+    if (neon && g.userData.backPortal) PORTALS.push({ ...g.userData.backPortal, dest: 'portal:aurora', name: 'Vila Aurora', col: '#ffb03a' });
+    const lb = makeLabel(({ castelo: '🏰 ', ruina: '🏛️ ', tumba: '⚰️ ', pantano: '🐸 ', destrocos: '🛒 ', estranho: '🔮 ', neon: '🌆 ' }[L.type] || '💀 ') + L.name, neon ? '#7af8ff' : '#ffcf8a', 34); lb.position.set(L.x, WG.height(L.x, L.z) + (neon ? 32 : 26), L.z + (neon ? 30 : 0)); lb.scale.multiplyScalar(1.8); scene.add(lb); townGroups.push({ g: lb, x: L.x, z: L.z }); }
+  // portal dimensional em Vila Aurora → Era Neon
+  { const P = GD.NEON.portal, T0 = GD.TOWNS[0], p = buildPortal('#3af0ff', 'Portal • Era Neon'); p.position.set(P.x, WG.height(P.x, P.z), P.z); p.rotation.y = Math.atan2(T0.x - P.x, T0.z - P.z); scene.add(p); townGroups.push({ g: p, x: P.x, z: P.z });
+    const lb = makeLabel('🌀 Portal Dimensional • Era Neon (nv 52+)', '#7af8ff', 30); lb.position.set(P.x, WG.height(P.x, P.z) + 7.6, P.z); lb.scale.multiplyScalar(1.3); scene.add(lb); townGroups.push({ g: lb, x: P.x, z: P.z });
+    PORTALS.push({ x: P.x, z: P.z, dest: 'lm:era_neon', name: 'Era Neon', col: '#3af0ff' }); }
 }
-function updateTownVisibility() { if (!me) return; for (const t of townGroups) t.g.visible = Math.hypot(t.x - me.x, t.z - me.z) < 620; }
+function updateTownVisibility() { if (!me) return; for (const t of townGroups) t.g.visible = Math.hypot(t.x - me.x, t.z - me.z) < (t.far || 620); }
 
 // ---------- personagem do jogador ----------
 let me = null; const pickables = [];
@@ -501,7 +516,7 @@ function powerLevel() {
 }
 function updatePower(dt) {
   if (S.dead || !me) return; const P = powerLevel(), t = performance.now() / 1000, gy = WG.height(me.x, me.z) + (S.alt || 0) + saddle();
-  const col = new THREE.Color(P.T ? P.T.c : P.relic ? '#ffd75a' : '#9ad0ff');
+  const col = new THREE.Color(P.T ? P.T.c : P.w?.neon || (P.relic ? '#ffd75a' : '#9ad0ff'));
   if (P.k >= 2) { if (!POWER.ring) { POWER.ring = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: runeTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); POWER.ring.rotation.x = -Math.PI / 2; POWER.ring.renderOrder = 4; scene.add(POWER.ring); }
     const r = POWER.ring; r.visible = true; r.material.color.copy(col); r.material.opacity = 0.35 + 0.15 * Math.sin(t * 2) + P.k * 0.06; r.scale.setScalar(1.6 + P.k * 0.35); r.rotation.z = t * (0.3 + P.k * 0.1); r.position.set(me.x, gy + 0.06, me.z); }
   else if (POWER.ring) POWER.ring.visible = false;
@@ -514,7 +529,7 @@ function updatePower(dt) {
   if (me.encGlow2) me.encGlow2.material.rotation = t * 2;
   // rastro luminoso da arma durante o golpe (cor da classe ou do encantamento)
   const tip = me.weaponTip; if (tip && tip.parent) { const base = tip.parent.getWorldPosition(_trB), tp = tip.getWorldPosition(_trT), act = performance.now() - (me.anim.atkAt || 0) < 420;
-    const tc = P.T ? P.T.c : P.w ? (P.relic ? '#ffd75a' : KIND_AURA[P.w.kind] || '#ffffff') : '#ffffff'; updateTrail(base, tp, act && !COMP.riding, tc, 0.6 + P.k * 0.2); }
+    const tc = P.T ? P.T.c : P.w ? (P.w.neon || (P.relic ? '#ffd75a' : KIND_AURA[P.w.kind]) || '#ffffff') : '#ffffff'; updateTrail(base, tp, act && !COMP.riding, tc, 0.6 + P.k * 0.2); }
 }
 const _trB = new THREE.Vector3(), _trT = new THREE.Vector3();
 function dodge() {
@@ -705,6 +720,7 @@ function spawner() {
   S.lmCd = S.lmCd || {};
   for (const L of GD.LANDMARKS) { const d = Math.hypot(L.x - me.x, L.z - me.z); if (d > 140 || (S.lmCd[L.id] || 0) > Date.now() || S.mobs.some(m => !m.dead && m.fam.id === L.boss)) continue;
     const m = spawnMob(FAM[L.boss], L.lvl, L.x + 2, L.z + 2); m.landmark = L.id; setTimeout(() => say(m.model.root, bossLine(L.type), { boss: true, race: 'orc', h: 3 * (FAM[L.boss].scale || 1) }), 600); addChat({ kind: 'sys', msg: `🏰 ${FAM[L.boss].name} guarda ${L.name}. Derrote-o para conseguir itens exclusivos!` }); S.lmCd[L.id] = Date.now() + 600000; }
+  if (WG.inNeon(me.x, me.z, 30)) { neonSpawner(); return; }
   const rg = WG.region(me.x, me.z); if (rg.dist < GD.SAFE_R + 20) return;
   // população variável: mais monstros à noite, perto de locais especiais e em níveis altos
   const cap = Math.round((9 + S.c.level / 10 + ENV.night * 5 + (WG.nearestLandmark(me.x, me.z).dist < 160 ? 4 : 0)) * (0.85 + 0.3 * Math.sin(Date.now() / 90000)));
@@ -718,6 +734,15 @@ function spawner() {
       if (!boss && Math.random() < 0.03) makeChampion(m); }
     break;
   }
+}
+function neonSpawner() {
+  const N = GD.NEON, cap = 10 + Math.round(S.c.level / 12); if (S.mobs.filter(m => !m.dead && !m.fam.boss).length >= cap) return;
+  for (let k = 0; k < 8; k++) { const a = Math.random() * Math.PI * 2, d = 30 + Math.random() * 45, x = me.x + Math.cos(a) * d, z = me.z + Math.sin(a) * d;
+    if (!WG.inNeon(x, z, -8) || Math.hypot(x - N.hub.x, z - N.hub.z) < N.hub.r + 12 || Math.hypot(x - N.x, z - N.z) < 18 || blocked(x, z)) continue;
+    const pool = GD.NEON_MOBS.filter(f => !f.elite), elite = Math.random() < 0.06, fam = elite ? FAM.colosso : pool[Math.floor(Math.random() * pool.length)];
+    const pack = elite ? 1 : 1 + Math.floor(Math.random() * 2.6);
+    for (let i = 0; i < pack; i++) { const m = spawnMob(fam, clamp(56 + Math.round(Math.random() * 4 - 2) + (elite ? 4 : 0), 1, 80), x + i * 2.4, z + (i % 2) * 2.2); if (!elite && Math.random() < 0.05) makeChampion(m); }
+    break; }
 }
 function updateMobs(dt) {
   const t = now(), st = me ? stats() : null, inTown = me && inSafe(me.x, me.z);
@@ -789,7 +814,7 @@ function updateMe(dt) {
   }
   // aura mística da arma: cada estilo de classe tem sua cor e partículas na ponta da arma (grau C em diante)
   { const w = GD.ITEMS[S.c.equipment?.arma], tip = me.weaponTip || me.orb; if (w && tip && !S.dead && (w.grade >= 2 || w.relic) && Math.random() < 0.12 + w.grade * 0.06) { const p = tip.getWorldPosition(_tipV);
-      emit(p.x, p.y, p.z, { n: 1, color: new THREE.Color(w.relic ? '#ffd75a' : KIND_AURA[w.kind] || '#ffffff').getHex(), speed: 0.25, up: 0.5, life: 0.7, size: 0.1 + w.grade * 0.015, grav: -0.3, drag: 1 }); } }
+      emit(p.x, p.y, p.z, { n: 1, color: new THREE.Color(w.neon || (w.relic ? '#ffd75a' : KIND_AURA[w.kind]) || '#ffffff').getHex(), speed: 0.25, up: 0.5, life: 0.7, size: 0.1 + w.grade * 0.015, grav: -0.3, drag: 1 }); } }
   // aura dos equipamentos: encantamento (+4 a +16) e armaduras poderosas dão sensação de poder
   updatePower(dt);
   if (!climbing && !sprint) S.sta = Math.min(100, S.sta + (moving ? 14 : 24) * dt);
@@ -811,7 +836,11 @@ function updateMe(dt) {
   const t = S.target && S.target.ref; if (t && !t.dead && (S.target.kind !== 'npc' || t.x)) { const p = S.target.kind === 'npc' ? t : S.target.kind === 'node' ? t : t; selRing.visible = true; selRing.position.set(p.x, WG.height(p.x, p.z) + 0.08, p.z); selRing.material.color.set(S.target.kind === 'mob' ? 0xff4040 : S.target.kind === 'player' ? 0x40a0ff : 0xffe36a); const sc = S.target.kind === 'mob' ? t.fam.scale * 1.2 : 1; selRing.scale.setScalar(sc); } else selRing.visible = false;
   // zona
   const rg = WG.region(me.x, me.z), zk = rg.town.id + (rg.safe ? 's' : '');
-  if (zk !== S.zoneKey) { S.zoneKey = zk; $('#zone').textContent = rg.safe ? `${rg.town.name} — zona segura` : `Arredores de ${rg.town.name} • Nv. ${rg.town.min}–${rg.town.max}`; const th = THEMES[rg.town.theme]; S.skyTo = th; if (rg.safe) questEvent('reach', rg.town.id); }
+  const neonZ = WG.inNeon(me.x, me.z, 10), zk2 = neonZ ? 'neon' + (rg.hub ? 's' : '') : zk;
+  if (zk2 !== S.zoneKey) { S.zoneKey = zk2;
+    if (neonZ) { $('#zone').textContent = rg.hub ? 'Posto Neon — zona segura' : 'Era Neon • Distrito Ômega • Nv. 54–62'; S.skyTo = THEMES.neon; if (!S.neonSeen) { S.neonSeen = 1; addChat({ kind: 'sys', msg: '🌆 Você chegou à Era Neon: um distrito do futuro que atravessou uma fenda no tempo. Cuidado com as máquinas — e com o Mecha Ômega no reator.' }); } }
+    else { $('#zone').textContent = rg.safe ? `${rg.town.name} — zona segura` : `Arredores de ${rg.town.name} • Nv. ${rg.town.min}–${rg.town.max}`; const th = THEMES[rg.town.theme]; S.skyTo = th; if (rg.safe) questEvent('reach', rg.town.id); } }
+  portalTick();
 }
 async function gather(n) {
   const r = await safe(() => B.gather(n.id, me.x, me.z)); if (!r) return;
@@ -1130,7 +1159,7 @@ function pCodex(b) {
   }
   if (tab === 'locais') {
     h += '<div class="small">Locais únicos espalhados pelo mundo. Cada um tem um chefe que aparece quando você chega perto e deixa itens próprios (arma relíquia com dois efeitos, pets, asas e montarias raras).</div>';
-    h += GD.LANDMARKS.map(L => { const f = FAM[L.boss]; const dr = (GD.POI_DROPS[L.boss] || (f && f.drops) || []).map(i => IT(i) ? `${IT(i).icon} ${esc(IT(i).name)}` : '').filter(Boolean).join(', '); return `<div class="row"><div class="grow"><b>${{ castelo: '🏰', ruina: '🏛️', covil: '💀', tumba: '⚰️', pantano: '🐸', destrocos: '🛒', estranho: '🔮' }[L.type] || '📍'} ${esc(L.name)}</b> <span class="small">nv ${L.lvl} • (${L.x}, ${L.z})</span><div class="small">Chefe: ${esc(f ? f.name : '?')} — ${dr}</div></div></div>`; }).join('');
+    h += GD.LANDMARKS.map(L => { const f = FAM[L.boss]; const dr = (GD.POI_DROPS[L.boss] || (f && f.drops) || []).map(i => IT(i) ? `${IT(i).icon} ${esc(IT(i).name)}` : '').filter(Boolean).join(', '); return `<div class="row"><div class="grow"><b>${{ castelo: '🏰', ruina: '🏛️', covil: '💀', tumba: '⚰️', pantano: '🐸', destrocos: '🛒', estranho: '🔮', neon: '🌆' }[L.type] || '📍'} ${esc(L.name)}</b> <span class="small">nv ${L.lvl} • (${L.x}, ${L.z})</span><div class="small">Chefe: ${esc(f ? f.name : '?')} — ${dr}</div></div></div>`; }).join('');
   }
   if (tab === 'mobs') {
     h += GD.MOBS.map((fs, gi) => `<h4 style="color:${GD.GRADES[gi].color}">${GD.GRADES[gi].name}</h4>` + fs.map(f => `<div class="small">${f.boss ? '👑' : f.aggro ? '⚔️' : '🐾'} <b>${esc(f.name)}</b>${f.boss ? ' — chefe' : f.aggro ? ' — agressivo' : ' — passivo'}${GD.TROPHY[f.id] ? ` • troféu: ${GD.TROPHY[f.id][1]} ${esc(GD.TROPHY[f.id][0])}` : ''}</div>`).join('')).join('');
@@ -1468,7 +1497,7 @@ setInterval(() => { if (!S.inGame) return; const t = Date.now(); for (const [id,
 
 // ---------- ambiente: ciclo dia/noite, sol, lua, vento, fogo ----------
 const fogBase = new THREE.Color(), nightFog = new THREE.Color('#1c2640'), sunWarm = new THREE.Color('#ffb070'), sunHigh = new THREE.Color('#fff2d8'), moonC = new THREE.Color('#8aa4ff'), hemiDay = new THREE.Color(0xcfe3ff), hemiNight = new THREE.Color(0x6a7ab0), tmpC = new THREE.Color();
-function grassOk(x, z) { const th = THEMES[WG.nearestTown(x, z).town.theme]; if (!th.grass) return false; const h = WG.height(x, z); return h > 1.6 && h < 34 && WG.nearestTown(x, z).dist > 31 && WG.roadDist(x, z) > 4.5 && !houses.some(o => Math.abs(o.x - x) < o.r && Math.abs(o.z - z) < o.r); }
+function grassOk(x, z) { if (WG.inNeon(x, z, 6)) return false; const th = THEMES[WG.nearestTown(x, z).town.theme]; if (!th.grass) return false; const h = WG.height(x, z); return h > 1.6 && h < 34 && WG.nearestTown(x, z).dist > 31 && WG.roadDist(x, z) > 4.5 && !houses.some(o => Math.abs(o.x - x) < o.r && Math.abs(o.z - z) < o.r); }
 function grassColor(x, z, out) { const th = THEMES[WG.nearestTown(x, z).town.theme]; out.set(th.grass || '#5a9a3a'); }
 function updateEnvironment(dt) {
   const t = clock.elapsedTime, ph = dayPhase(), { sun: sd, moon: md } = sunVectors(ph);
@@ -1487,8 +1516,13 @@ function updateEnvironment(dt) {
   renderer.toneMappingExposure = 1.05 + day * 0.05;
   WIND.time.value = t; WIND.strength.value = 0.7 + Math.sin(t * 0.07) * 0.35 + Math.sin(t * 0.31) * 0.15;
   updateWaterDepth(WG, WATER.mat, me.x, me.z, PERF.cur === 'baixa' ? 2 : 6); WATER.mat.uniforms.fogNear.value = scene.fog.near; WATER.mat.uniforms.fogFar.value = scene.fog.far; WATER.mat.uniforms.sunDir.value.copy(day > 0.05 ? sd : md); WATER.mat.uniforms.night.value = night; WATER.mat.uniforms.fogColor.value.copy(scene.fog.color); WATER.mat.uniforms.skyC.value.copy(skyMat.uniforms.bot.value).lerp(nightFog, night);
-  updateFires(dt, t, night, camera.position); updateTownAnim(t);
+  // Era Neon: crepúsculo eterno roxo, neblina colorida e reflexos fortes
+  { const nk = WG.inNeon(me.x, me.z, 60) ? 1 : 0; ENV.neon = (ENV.neon || 0) + (nk - (ENV.neon || 0)) * Math.min(1, dt * 0.8);
+    if (ENV.neon > 0.01) { const k2 = ENV.neon; sun.intensity *= 1 - 0.62 * k2; sun.color.lerp(neonSun, 0.5 * k2); hemi.color.lerp(neonHemi, 0.6 * k2); hemi.groundColor && hemi.groundColor.lerp(neonGround, 0.6 * k2); hemi.intensity *= 1 - 0.2 * k2;
+      scene.fog.color.lerp(neonFog, 0.85 * k2); scene.fog.near = scene.fog.near * (1 - 0.4 * k2); scene.fog.far = scene.fog.far * (1 + 0.6 * k2); renderer.toneMappingExposure = 1.05 + 0.1 * k2; } }
+  updateFires(dt, t, night, camera.position); updateTownAnim(t); updateNeon(t, camera);
 }
+const neonSun = new THREE.Color('#ff7ad8'), neonHemi = new THREE.Color('#5a6aff'), neonGround = new THREE.Color('#3a0a4a'), neonFog = new THREE.Color('#2a1250');
 // ---------- laço principal ----------
 const clock = new THREE.Clock(); const skyTop = new THREE.Color(), skyBot = new THREE.Color(), fogC = new THREE.Color();
 function loop() {
@@ -1506,7 +1540,7 @@ function loop() {
     sun.position.set(3, -490, 6); sun.target.position.set(0, -500, 0); sky.position.copy(camera.position);
   }
   if (POST.on && S.inGame && me) { const st = stats(), r = S.hp / st.maxHp, L = GD.LANDMARKS.find(L => L.poi && Math.hypot(L.x - me.x, L.z - me.z) < 75);
-    renderPost(dt, { lowHp: !S.dead && r < 0.3 ? (0.3 - r) / 0.3 : 0, night: ENV.night, tint: L ? { tumba: '#a8ffc0', pantano: '#b8d890', destrocos: '#ffc890', estranho: '#c8a0ff' }[L.type] : null }); }
+    renderPost(dt, { lowHp: !S.dead && r < 0.3 ? (0.3 - r) / 0.3 : 0, night: ENV.night, tint: WG.inNeon(me.x, me.z, 20) ? '#b8a0ff' : L ? { tumba: '#a8ffc0', pantano: '#b8d890', destrocos: '#ffc890', estranho: '#c8a0ff' }[L.type] : null }); }
   else if (POST.on) renderPost(dt, { lowHp: 0, night: 0, tint: null }); else renderer.render(scene, camera);
 }
 loop();
