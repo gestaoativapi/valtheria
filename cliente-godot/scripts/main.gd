@@ -6,7 +6,7 @@ const Character = preload("res://scripts/character.gd")
 const Net = preload("res://scripts/net.gd")
 const UI = preload("res://scripts/ui.gd")
 
-const QUALITY := ["Baixa", "Média", "Alta", "Ultra"]
+const QUALITY := ["Mínima", "Baixa", "Média", "Alta", "Ultra"]
 const WALK := 1.9
 const RUN := 5.2
 const SPRINT := 8.2
@@ -20,7 +20,7 @@ var marker: MeshInstance3D
 var crowd: Array = []
 
 var playing := false
-var quality := 2
+var quality := 3
 var vsync := true
 var yaw := 0.6
 var pitch := -0.32
@@ -33,9 +33,11 @@ var shot_path := ""
 var shot_frames := 0
 var shot_wait := 40
 var smooth_fps := 60.0
+var compat := false
 
 
 func _ready() -> void:
+	compat = RenderingServer.get_current_rendering_method() == "gl_compatibility"
 	world = World.new()
 	add_child(world)
 	world.build()
@@ -84,10 +86,9 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="):
 			shot_path = a.trim_prefix("--shot=")
-		elif a == "--lite":  # teste em máquina sem placa de vídeo
-			_set_quality(0)
-			world.set_grass_range(40.0)
-			world.sun.directional_shadow_max_distance = 60.0
+		elif a.begins_with("--lite"):
+			var lite_q := a.trim_prefix("--lite=") if a.contains("=") else "0"  # teste em máquina sem placa de vídeo
+			_set_quality(int(lite_q))
 			shot_wait = 4
 		elif a == "--play":
 			_enter({"name": "Viajante", "level": 1, "gender": "m", "race": "humano"})
@@ -193,7 +194,13 @@ func _load_prefs() -> void:
 	var cf := ConfigFile.new()
 	if cf.load("user://valtheria.cfg") == OK:
 		ui.user_edit.text = str(cf.get_value("conta", "usuario", ""))
-		quality = clampi(int(cf.get_value("video", "qualidade", 2)), 0, 3)
+		if cf.has_section_key("video", nkey()):
+			quality = clampi(int(cf.get_value("video", nkey(), 3)), 0, 4)
+		else:
+			quality = 0 if compat else 3
+	else:
+		quality = 0 if compat else 3  # primeira vez: modo compatibilidade começa no mínimo
+	if cf.has_section_key("video", "vsync"):
 		vsync = bool(cf.get_value("video", "vsync", true))
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED)
 	ui.btn_vsync.text = "VSync: " + ("ligado" if vsync else "desligado (FPS livre)")
@@ -202,7 +209,7 @@ func _load_prefs() -> void:
 func _save_prefs() -> void:
 	var cf := ConfigFile.new()
 	cf.set_value("conta", "usuario", ui.user_edit.text.strip_edges())  # a senha nunca é gravada
-	cf.set_value("video", "qualidade", quality)
+	cf.set_value("video", nkey(), quality)
 	cf.set_value("video", "vsync", vsync)
 	cf.save("user://valtheria.cfg")
 
@@ -218,16 +225,21 @@ func _set_quality(q: int) -> void:
 	quality = q
 	var vp := get_viewport()
 	var e: Environment = world.env
-	vp.scaling_3d_scale = 0.75 if q == 0 else 1.0
-	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X, Viewport.MSAA_4X][q]
-	RenderingServer.directional_shadow_atlas_set_size([2048, 4096, 4096, 8192][q], true)
-	world.sun.directional_shadow_max_distance = [90.0, 140.0, 170.0, 220.0][q]
-	e.ssao_enabled = q >= 1
-	e.glow_enabled = q >= 1
-	e.volumetric_fog_enabled = q >= 2
-	e.ssil_enabled = q >= 3
-	e.sdfgi_enabled = q >= 3
-	world.set_grass_range([0.0, 45.0, 70.0, 110.0][q])
+	vp.scaling_3d_scale = [0.6, 0.75, 1.0, 1.0, 1.0][q]
+	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X, Viewport.MSAA_4X][q]
+	world.sun.shadow_enabled = q >= 1
+	world.sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if q == 1 else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	RenderingServer.directional_shadow_atlas_set_size([1024, 2048, 4096, 4096, 8192][q], true)
+	world.sun.directional_shadow_max_distance = [40.0, 60.0, 140.0, 170.0, 220.0][q]
+	world.fire.visible = q >= 1
+	cam.far = [240.0, 420.0, 900.0, 900.0, 900.0][q]
+	e.ssao_enabled = q >= 2
+	e.glow_enabled = q >= 2
+	e.adjustment_enabled = q >= 2
+	e.volumetric_fog_enabled = q >= 3 and not compat
+	e.ssil_enabled = q >= 4 and not compat
+	e.sdfgi_enabled = q >= 4 and not compat
+	world.set_detail(q)
 	ui.btn_quality.text = "Qualidade: " + QUALITY[q]
 	_save_prefs()
 
@@ -425,3 +437,7 @@ func _fmt(n: int) -> String:
 	if n >= 1000:
 		return "%d mil" % (n / 1000)
 	return str(n)
+
+
+func nkey() -> String:
+	return "nivel_gl" if compat else "nivel"

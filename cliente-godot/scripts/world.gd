@@ -12,6 +12,9 @@ var env: Environment
 var sun: DirectionalLight3D
 var fire: OmniLight3D
 var grass_nodes: Array[MultiMeshInstance3D] = []
+var tree_nodes: Array[MultiMeshInstance3D] = []
+var detail_nodes: Array[MultiMeshInstance3D] = []
+var detail_range := {}
 var blockers := {}  # célula -> [Vector3(x, z, raio)]
 var counts := {"arvores": 0, "grama": 0, "objetos": 0}
 
@@ -270,7 +273,7 @@ func _bounds(parts: Array) -> AABB:
 
 
 # espalha um modelo em vários pontos de uma vez (um desenho por malha, não por objeto)
-func place(file: String, pts: Array, target_h: float, shadows := true, vis_end := 0.0) -> AABB:
+func place(file: String, pts: Array, target_h: float, shadows := true, vis_end := 0.0, kind := "") -> AABB:
 	var sc: Node3D = (load("res://assets/world/%s.glb" % file) as PackedScene).instantiate()
 	var parts: Array = []
 	_meshes(sc, Transform3D.IDENTITY, parts)
@@ -278,26 +281,66 @@ func place(file: String, pts: Array, target_h: float, shadows := true, vis_end :
 	var k := target_h / bb.size.y
 	var c := bb.get_center()
 	var norm := Transform3D(Basis.from_scale(Vector3.ONE * k), Vector3.ZERO) * Transform3D(Basis.IDENTITY, Vector3(-c.x, -bb.position.y, -c.z))
-	for p in parts:
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = p[0]
-		mm.instance_count = pts.size()
-		for i in pts.size():
-			mm.set_instance_transform(i, (pts[i] as Transform3D) * norm * (p[1] as Transform3D))
-		var mi := MultiMeshInstance3D.new()
-		mi.multimesh = mm
-		mi.name = file
-		if not shadows:
-			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		if vis_end > 0.0:
-			mi.visibility_range_end = vis_end
-			mi.visibility_range_end_margin = 12.0
-			mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		add_child(mi)
+	# divide em blocos de 64 m: a placa só desenha os blocos que estão na tela e perto
+	var cells := {}
+	for t in pts:
+		var o: Vector3 = (t as Transform3D).origin
+		var key := Vector2i(floori(o.x / 64.0), floori(o.z / 64.0)) if pts.size() > 12 else Vector2i.ZERO
+		if not cells.has(key):
+			cells[key] = []
+		cells[key].append(t)
+	for key in cells:
+		var list: Array = cells[key]
+		var center := Vector3.ZERO
+		for t in list:
+			center += (t as Transform3D).origin
+		center /= list.size()
+		var shift := Transform3D(Basis.IDENTITY, -center)
+		for p in parts:
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.mesh = p[0]
+			mm.instance_count = list.size()
+			for i in list.size():
+				mm.set_instance_transform(i, shift * (list[i] as Transform3D) * norm * (p[1] as Transform3D))
+			var mi := MultiMeshInstance3D.new()
+			mi.multimesh = mm
+			mi.name = file
+			mi.position = center
+			if not shadows:
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			if vis_end > 0.0:
+				mi.visibility_range_end = vis_end
+				mi.visibility_range_end_margin = 12.0
+				mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			add_child(mi)
+			if kind == "tree":
+				tree_nodes.append(mi)
+			elif kind == "detail":
+				detail_nodes.append(mi)
+				detail_range[mi] = vis_end
 	sc.free()
 	counts.objetos += pts.size()
 	return AABB(Vector3(-bb.size.x, 0, -bb.size.z) * k * 0.5, bb.size * k)
+
+
+# nível de detalhe do cenário: 0 = mínimo ... 4 = ultra
+func set_detail(q: int) -> void:
+	var tree_r: float = [120.0, 190.0, 0.0, 0.0, 0.0][q]
+	for t in tree_nodes:
+		t.visibility_range_end = tree_r
+		t.visibility_range_end_margin = 15.0 if tree_r > 0.0 else 0.0
+		t.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+		t.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if q >= 1 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var f: float = [0.0, 0.5, 1.0, 1.0, 1.4][q]
+	for d in detail_nodes:
+		d.visible = f > 0.0
+		d.visibility_range_end = float(detail_range[d]) * maxf(f, 0.1)
+		d.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF if q >= 2 else GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+	set_grass_range([0.0, 28.0, 45.0, 70.0, 110.0][q])
+	for g in grass_nodes:
+		g.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF if q >= 2 else GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+	env.fog_density = [0.0042, 0.0028, 0.0016, 0.0016, 0.0016][q]
 
 
 func at(x: float, z: float, yaw := 0.0, s := 1.0, sink := 0.0) -> Transform3D:
@@ -412,18 +455,18 @@ func _build_forest() -> void:
 	var trees := {"n_commontree_1": [520, 8.5], "n_commontree_2": [520, 9.5], "n_commontree_3": [420, 8.0], "n_pine_1": [520, 11.0], "n_pine_2": [460, 12.5], "n_pine_3": [380, 10.0], "q_birchtree_1": [260, 9.0], "q_willow_1": [90, 8.5]}
 	for f in trees:
 		var pts := _points(trees[f][0], 46.0, 0.75, 1.35, 0.45, -0.12)
-		place(f, pts, trees[f][1])
+		place(f, pts, trees[f][1], true, 0.0, "tree")
 		counts.arvores += pts.size()
 	place("n_rock_large_1", _points(70, 44.0, 0.6, 1.6, 1.6), 3.2)
-	place("n_rock_medium_1", _points(120, 40.0, 0.6, 1.5, 0.7), 1.3)
+	place("n_rock_medium_1", _points(120, 40.0, 0.6, 1.5, 0.7), 1.3, true, 0.0, "tree")
 	place("n_rock_medium_2", _points(120, 40.0, 0.6, 1.5, 0.7), 1.2)
 	place("n_rock_medium_3", _points(120, 40.0, 0.6, 1.5, 0.7), 1.1)
-	place("n_bush_common", _points(700, 36.0, 0.7, 1.4), 1.2, true, 150.0)
-	place("n_bush_common_flowers", _points(500, 34.0, 0.7, 1.4), 1.2, true, 150.0)
-	place("n_fern_1", _points(1600, 34.0, 0.7, 1.5), 0.7, false, 90.0)
-	place("n_flower_3_group", _points(1300, 22.0, 0.8, 1.4), 0.5, false, 80.0)
-	place("n_flower_4_group", _points(1300, 22.0, 0.8, 1.4), 0.5, false, 80.0)
-	place("n_mushroom_common", _points(500, 40.0, 0.7, 1.6), 0.35, false, 60.0)
+	place("n_bush_common", _points(700, 36.0, 0.7, 1.4), 1.2, true, 150.0, "detail")
+	place("n_bush_common_flowers", _points(500, 34.0, 0.7, 1.4), 1.2, true, 150.0, "detail")
+	place("n_fern_1", _points(1600, 34.0, 0.7, 1.5), 0.7, false, 90.0, "detail")
+	place("n_flower_3_group", _points(1300, 22.0, 0.8, 1.4), 0.5, false, 80.0, "detail")
+	place("n_flower_4_group", _points(1300, 22.0, 0.8, 1.4), 0.5, false, 80.0, "detail")
+	place("n_mushroom_common", _points(500, 40.0, 0.7, 1.6), 0.35, false, 60.0, "detail")
 
 
 # ---------- grama ----------
