@@ -252,7 +252,7 @@ function townCtx(t) {
   return { t, roadAngles, H: (x, z) => WG.height(x, z), collide: (x, z, r) => houses.push({ x, z, r }), collideBox: (x, z, hw, hd, rot, gate) => houses.push({ x, z, hw, hd, c: Math.cos(rot), s: Math.sin(rot), br: Math.hypot(hw, hd), r: Math.max(hw, hd), gate }),
     npc: (type, name, x, z, rot, o = {}) => { const m = buildHumanoid({ glb: false, npc: true, race: o.race || 'humano', gender: o.gender || 'm', hair: 1, hair_color: 2, skin: 1, look: { beard: o.beard }, armor: o.armor, weapon: o.weapon, idle: o.idle, equip: o.helm ? { elmo: o.helm } : null });
       m.root.position.set(x, WG.height(x, z), z); m.root.rotation.y = rot; scene.add(m.root); const l = makeLabel(name, type === 'guarda' ? '#c8d8e8' : '#ffe36a', 26); l.position.set(0, 2.5, 0); m.root.add(l);
-      const npc = { type, name, town: t, x, z, model: m, castle: o.castle }; m.root.traverse(q => q.userData.pick = npc); npcs.push(npc); },
+      const npc = { type, name, town: t, x, z, model: m, castle: o.castle }; m.root.traverse(q => q.userData.pick = npc); npcs.push(npc); townGroups.push({ g: m.root, x, z, far: 240 }); },
     pickable: (obj, npc) => { npc.town = t; obj.traverse(q => q.userData.pick = npc); npcs.push(npc); },
     statue: (race, x, z, s, rot) => { const m = buildHumanoid({ glb: false, race, gender: 'm', skinColor: '#8a8478', armor: 'pesada_c', weapon: 'martelo_c', look: { beard: 2 } }); m.root.scale.setScalar(s); m.root.position.set(x, WG.height(x, z) + 1.2, z); m.root.rotation.y = rot; const base = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.8, 1.2, 12), mat('#6a645a')); base.position.set(x, WG.height(x, z) + 0.6, z); scene.add(m.root, base); houses.push({ x, z, r: 2.8 }); },
     dragonStatue: (x, z, s, rot) => { const R = buildMob({ ...FAM.dragao, color: '#2a2626', boss: false, ghost: false }); R.root.scale.setScalar(s); R.root.position.set(x, WG.height(x, z), z); R.root.rotation.y = rot; scene.add(R.root); houses.push({ x, z, r: 4 }); } };
@@ -282,7 +282,7 @@ function buildTowns() {
       if (type === 'portal') { const ring = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.18, 8, 30), mat('#7ad0ff', { emissive: 0x3aa0ff, ei: 1.2 })); ring.position.set(x + Math.cos(a) * 4, y + 2.4, z + Math.sin(a) * 4); ring.rotation.y = -a; ring.userData.spin2 = true; scene.add(ring); npcs.push({ crystal: ring }); }
     });
   }
-  for (const L of GD.LANDMARKS) { const neon = L.type === 'neon', g = neon ? buildNeon(townCtx({ x: L.x, z: L.z, race: 'humano' }), L, GD.NEON) : stoneify(buildLandmark(townCtx({ x: L.x, z: L.z, race: 'humano' }), L)); scene.add(g); townGroups.push({ g, x: L.x, z: L.z, far: neon ? 1500 : 0 }); if (L.type === 'castelo') CASTLE_G[L.id] = g;
+  for (const L of GD.LANDMARKS) { const neon = L.type === 'neon', g = neon ? buildNeon(townCtx({ x: L.x, z: L.z, race: 'humano' }), L, GD.NEON) : stoneify(buildLandmark(townCtx({ x: L.x, z: L.z, race: 'humano' }), L)); scene.add(g); townGroups.push({ g, x: L.x, z: L.z, far: neon ? 900 : 0 }); if (L.type === 'castelo') CASTLE_G[L.id] = g;
     if (neon && g.userData.backPortal) PORTALS.push({ ...g.userData.backPortal, dest: 'portal:aurora', name: 'Vila Aurora', col: '#ffb03a' });
     const lb = makeLabel(({ castelo: '🏰 ', ruina: '🏛️ ', tumba: '⚰️ ', pantano: '🐸 ', destrocos: '🛒 ', estranho: '🔮 ', neon: '🌆 ' }[L.type] || '💀 ') + L.name, neon ? '#7af8ff' : '#ffcf8a', 34); lb.position.set(L.x, WG.height(L.x, L.z) + (neon ? 32 : 26), L.z + (neon ? 30 : 0)); lb.scale.multiplyScalar(1.8); scene.add(lb); townGroups.push({ g: lb, x: L.x, z: L.z }); }
   // portal dimensional em Vila Aurora → Era Neon
@@ -297,7 +297,10 @@ let me = null; const pickables = [];
 const ring = (color) => { const m = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.15, 28), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.renderOrder = 5; return m; };
 const selRing = ring(0xff4040); scene.add(selRing); selRing.visible = false;
 const destRing = ring(0xffffff); scene.add(destRing); destRing.visible = false;
-function stats() { const s = GD.charStats(S.c, buffVals()), cf = compFx();
+// os atributos são recalculados no máximo uma vez por quadro (antes eram refeitos dezenas de vezes)
+let FRAME = 0, statsAt = -1, statsVal = null;
+function stats() { if (statsAt === FRAME && statsVal) return statsVal; statsVal = statsRaw(); statsAt = FRAME; return statsVal; }
+function statsRaw() { const s = GD.charStats(S.c, buffVals()), cf = compFx();
   { const k = myClan(); if (k) { const b = GD.CLAN.bonus(k.level) + (ownCastle() ? GD.CLAN.castleBonus : 0); s.maxHp = Math.round(s.maxHp * (1 + b)); s.patk *= 1 + b; s.matk *= 1 + b; s.atk = s.magic ? s.matk : s.patk; s.clanBonus = b; } }
   if (Object.keys(cf).length) { s.fx = { ...s.fx }; for (const [k, v] of Object.entries(cf)) s.fx[k] = (s.fx[k] || 0) + v;
     if (cf.crit) s.crit += cf.crit; if (cf.atkspd) s.atkInterval /= 1 + cf.atkspd; if (cf.matkPct) { s.matk *= 1 + cf.matkPct; } if (cf.hpPct) s.maxHp = Math.round(s.maxHp * (1 + cf.hpPct)); if (cf.speed) s.speed *= 1 + cf.speed; if (cf.pdefPct) s.pdef *= 1 + cf.pdefPct; s.atk = s.magic ? s.matk : s.patk; }
@@ -795,7 +798,7 @@ function updateMobs(dt) {
     else if (m.aggro) { if (dP > reach) { tx = me.x; tz = me.z; spd *= 1.25; } else if (t >= m.nextAtk) { m.nextAtk = t + 1500; m.model.anim.atk = now(); m.ry = Math.atan2(me.x - m.x, me.z - m.z); const d = dmgVs(m.st.atk * (1 + debOf(m, 'atk')), 1, st.pdef, 0.05); hurtMe(d.v); } }
     else { if (!m.wander || t > m.wanderT) { m.wanderT = t + 3000 + Math.random() * 4000; m.wander = Math.random() < 0.5 ? null : { x: m.home.x + (Math.random() - 0.5) * 30, z: m.home.z + (Math.random() - 0.5) * 30 }; } if (m.wander) { tx = m.wander.x; tz = m.wander.z; spd *= 0.35; } }
     let moving = false;
-    if (tx != null) { const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz); if (d > 0.5) { const nx = m.x + dx / d * spd * dt, nz = m.z + dz / d * spd * dt; if (!blocked(nx, nz) && !inSafe(nx, nz)) { m.x = nx; m.z = nz; moving = true; } else if (m.returning) { m.x = m.home.x; m.z = m.home.z; } else m.wander = null; m.ry = Math.atan2(dx, dz); } }
+    if (tx != null) { const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz); if (d > 0.5) { const nx = m.x + dx / d * spd * dt, nz = m.z + dz / d * spd * dt; if (!blocked(nx, nz) && !inSafe(nx, nz)) { m.x = nx; m.z = nz; moving = true; } else if (!blocked(nx, m.z) && !inSafe(nx, m.z)) { m.x = nx; moving = true; } else if (!blocked(m.x, nz) && !inSafe(m.x, nz)) { m.z = nz; moving = true; } else if (m.returning) { m.x = m.home.x; m.z = m.home.z; } else m.wander = null; m.ry = Math.atan2(dx, dz); } }
     m.model.root.position.set(m.x, WG.height(m.x, m.z), m.z); m.model.root.rotation.y = m.ry;
     m.model.fast = m.aggro || m.returning; animMob(m.model, dt, moving);
   }
@@ -804,9 +807,12 @@ function updateMobs(dt) {
 // ---------- movimento ----------
 // preso dentro de um objeto (ex.: chegou por teleporte): deixa sair andando
 function stuckIn(x, z) { return WG.height(x, z) > WG.WATER + 0.25 && blocked(x, z); }
+const HG = { n: -1, m: new Map() };
+function rebuildHG() { HG.n = houses.length; HG.m.clear(); for (const h of houses) { const r = (h.hw ? h.br : h.r) + 0.5, x0 = ((h.x - r) / 32) | 0, x1 = ((h.x + r) / 32) | 0, z0 = ((h.z - r) / 32) | 0, z1 = ((h.z + r) / 32) | 0;
+  for (let i = x0; i <= x1; i++) for (let j = z0; j <= z1; j++) { const k = i + ',' + j; let a = HG.m.get(k); if (!a) HG.m.set(k, a = []); a.push(h); } } }
 function blocked(x, z, fly) { if (x < 20 || z < 20 || x > 2980 || z > 2980) return true; if (!fly && WG.height(x, z) < WG.WATER + 0.25) return true;
   if (fly && S.alt > 9) return false; // voando alto passa por cima
-  for (const h of houses) { const dx = x - h.x, dz = z - h.z; if (h.gate && castleOpen(h.gate)) continue; if (h.hw) { if (Math.abs(dx) > h.br || Math.abs(dz) > h.br) continue; const lx = dx * h.c + dz * h.s, lz = -dx * h.s + dz * h.c; if (Math.abs(lx) < h.hw && Math.abs(lz) < h.hd) return true; } else if (dx * dx + dz * dz < h.r * h.r) return true; }
+  if (HG.n !== houses.length) rebuildHG(); const cell = HG.m.get(((x / 32) | 0) + ',' + ((z / 32) | 0)); if (cell) for (const h of cell) { const dx = x - h.x, dz = z - h.z; if (h.gate && castleOpen(h.gate)) continue; if (h.hw) { if (Math.abs(dx) > h.br || Math.abs(dz) > h.br) continue; const lx = dx * h.c + dz * h.s, lz = -dx * h.s + dz * h.c; if (Math.abs(lx) < h.hw && Math.abs(lz) < h.hd) return true; } else if (dx * dx + dz * dz < h.r * h.r) return true; }
   const c = chunks.get(Math.floor(x / CH) + ',' + Math.floor(z / CH)); if (c && c.cols) { const a = c.cols; for (let k = 0; k < a.length; k += 3) { const dx = x - a[k], dz = z - a[k + 1]; if (dx * dx + dz * dz < a[k + 2] * a[k + 2]) return true; } }
   return false; }
 function teleport(x, z) { if (S.inGame) { FADE.style.transition = 'none'; FADE.style.background = '#cfeaff'; FADE.style.opacity = 0.95; requestAnimationFrame(() => { FADE.style.transition = 'opacity 700ms'; FADE.style.opacity = 0; }); S.camIntro = performance.now() - 900;
@@ -1212,7 +1218,7 @@ function pChar(b) {
   <tr><td>PvP</td><td>${c.pvp || 0}</td><td>PK / Karma</td><td style="color:${c.karma ? '#f66' : ''}">${c.pk || 0} / ${c.karma || 0}</td></tr></table>
   <h4>Efeitos dos equipamentos</h4>${st.effects.length ? st.effects.map(e => `<div class="small">${e.icon} <b>${esc(e.name)}</b> — ${esc(e.desc)}</div>`).join('') : '<div class="small">Nenhum. Armas de grau D ou maior têm habilidades especiais, e 2 ou 4 peças do mesmo conjunto dão bônus.</div>'}
   <h4>Profissões</h4><table>${Object.entries(GD.PROFS).map(([k, n]) => { const l = GD.profLevel(P[k]); return `<tr><td>${n}</td><td>nível ${l}</td><td class="small">libera até grau ${GD.GRADES[Math.min(5, Math.floor(l / 4))].id}</td></tr>`; }).join('')}</table>`;
-  b.onclick = async e => { const s = e.target.closest('[data-slot]'); if (!s || !eq[s.dataset.slot]) return; const r = await safe(() => B.unequip(s.dataset.slot), 'Desequipado'); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); renderPanel(); } };
+  b.onclick = async e => { const s = e.target.closest('[data-slot]'); if (!s || !eq[s.dataset.slot]) return; const r = await safe(() => B.unequip(s.dataset.slot), 'Desequipado'); if (r) { S.c.equipment = r; statsAt = -1; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); renderPanel(); } };
 }
 function itemSource(id) {
   const it = IT(id); const src = [];
@@ -1268,7 +1274,7 @@ function pBag(b) {
   b.onclick = async e => {
     if (e.target.dataset.f) { panelState.f = e.target.dataset.f; return renderPanel(); }
     const a = e.target.dataset.a, id = panelState.sel;
-    if (a === 'eq') { const r = await equipItem(id); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); S.hp = Math.min(S.hp, stats().maxHp); buildBar(); renderPanel(); } return; }
+    if (a === 'eq') { const r = await equipItem(id); if (r) { S.c.equipment = r; statsAt = -1; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); S.hp = Math.min(S.hp, stats().maxHp); buildBar(); renderPanel(); } return; }
     if (a === 'bar') { addToBar({ t: 'i', id }); return; }
     const enc = e.target.dataset.enc; if (enc) { await doEnchant(enc); return; }
     if (a === 'use' && IT(id).comp) { const it = IT(id); if (S.c.level < it.comp.lvl) return toast(`Requer nível ${it.comp.lvl}`, 'err'); if (it.type === 'pet') await summonPet(id); else if (it.type === 'mount') await setMount(id); else setWings(id); renderPanel(); return; }
@@ -1449,7 +1455,7 @@ async function equipItem(id) { const it = IT(id), eq = S.c.equipment || {}, w = 
 async function useBagItem(id) { const it = IT(id); if (!it) return; if (!S.inv[id]) { toast(`Sem ${it.name} na bolsa`, 'err'); return; }
   if (it.type === 'scroll') { const r = await safe(() => B.useItem(id)); if (r) { S.inv[id]--; if (!S.inv[id]) delete S.inv[id]; toast('Retornando a ' + r.town, 'ok'); teleport(r.x, r.z); } }
   else if (it.type === 'potion') await usePotion(id.startsWith('pocao_mp') ? 'mp' : 'hp', id);
-  else if (it.slot) { const r = await equipItem(id); if (r) { S.c.equipment = r; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); } }
+  else if (it.slot) { const r = await equipItem(id); if (r) { S.c.equipment = r; statsAt = -1; await refresh(); (me.enc = encOf(S.c), setGear(me, r.arma, r.armadura, r)); } }
   buildBar(); }
 function buildBar() {
   buildBar2();
@@ -1486,16 +1492,17 @@ const EQX = { esc,
     const w = IT(eq.arma); if (w && GD.TWO_HANDED.includes(w.kind)) locked.escudo = 'Bloqueado: a arma atual usa as duas mãos';
     for (const k of ['colar', 'anel1', 'anel2', 'brinco', 'capa', 'reliquia']) locked[k] = 'Acessório especial — conquistado em chefes e eventos (em breve)'; locked.insignia = 'Insígnia do clã — chega com o sistema de clãs';
     const el = myElem(), E = ELEM[el], re = ELEM[GD.RACE_ELEM[c.race]];
-    return { slots, locked, sig: JSON.stringify([eq, COMP.wingsId, c.enchant && c.enchant[eq.arma], c.race]),
+    return { slots, locked, sig: JSON.stringify([c.id, c.race, c.gender, COMP.wingsId]), gearSig: JSON.stringify([eq, c.enchant && c.enchant[eq.arma]]),
       stats: `<b>${esc(c.name)}</b> • Nv. ${c.level}<br>⚔️ ${Math.round(st.patk)} &nbsp;🔮 ${Math.round(st.matk)} &nbsp;🛡️ ${Math.round(st.pdef)} &nbsp;✨ ${Math.round(st.mdef)}<br>${E ? `${E.icon} Elemento da classe: <b>${E.name}</b>` : ''}${re ? ` • ${re.icon} Afinidade da raça: <b>${re.name}</b>` : ''}<br>${w ? (GD.TWO_HAND_GRIP.includes(w.kind) ? '🤲 Pegada de duas mãos' : GD.TWO_HANDED.includes(w.kind) ? '⚔️ Uma arma em cada mão' : '✋ Uma mão — pode usar escudo') : '👊 Desarmado'}`,
       foot: `<button class="btn" data-act="bag">🎒 Abrir bolsa</button> ${COMP.wingsId ? `<button class="btn" data-act="fly">🪽 ${S.fly ? 'Pousar' : 'Voar'} (V)</button>` : '<span class="small">Equipe asas (use-as na bolsa) para voar</span>'} ${COMP.mountId ? '<button class="btn" data-act="ride">🐎 Montar (R)</button>' : ''}` }; },
   async onSlot(k) { const eq = S.c.equipment || {};
-    if (['elmo', 'armadura', 'luvas', 'botas', 'arma', 'escudo'].includes(k)) { if (!eq[k]) { openPanel('bag'); return; } const r = await safe(() => B.unequip(k), 'Desequipado'); if (r) { S.c.equipment = r; await refresh(); me.enc = encOf(S.c); setGear(me, r.arma, r.armadura, r); buildBar(); renderEquip(); } }
+    if (['elmo', 'armadura', 'luvas', 'botas', 'arma', 'escudo'].includes(k)) { if (!eq[k]) { openPanel('bag'); return; } const r = await safe(() => B.unequip(k), 'Desequipado'); if (r) { S.c.equipment = r; statsAt = -1; await refresh(); me.enc = encOf(S.c); setGear(me, r.arma, r.armadura, r); buildBar(); renderEquip(); } }
     else if (k === 'asas') { COMP.wingsId ? setWings(COMP.wingsId) : openPanel('bag'); renderEquip(); } else if (k === 'montaria') { COMP.mountId ? toggleRide() : openPanel('bag'); } else if (k === 'pet') { COMP.petId ? summonPet(COMP.petId) : openPanel('bag'); renderEquip(); }
     else toast('Este espaço será liberado com acessórios de chefes, eventos e do clã', 'err'); },
   onAct(a) { if (a === 'bag') openPanel('bag'); else if (a === 'fly') { toggleFly(); renderEquip(); } else if (a === 'ride') toggleRide(); },
   makeDoll() { const c = S.c, d = buildHumanoid({ ...c, glb: true, weapon: c.equipment.arma, armor: c.equipment.armadura, equip: c.equipment, enc: encOf(c) }); upgradeGLB(d); d.height = 1.8 * (GD.RACES[c.race]?.h || 1);
     if (COMP.wingsId) { const wd = IT(COMP.wingsId)?.comp, h = GD.RACES[c.race]?.h || 1; if (wd) d.root.add(buildWings(wd.color, 0.9 * h, 1.32 * h, -0.16)); } return d; },
+  regear(d) { const c = S.c; d.enc = encOf(c); d.o.weapon = c.equipment.arma; d.o.armor = c.equipment.armadura; setGear(d, c.equipment.arma, c.equipment.armadura, c.equipment); },
   animDoll(d, dt) { animHumanoid(d, dt); } };
 let eqSig = '';
 function equipWatch() { if (!equipOpen()) return; const s = JSON.stringify([S.c.equipment, COMP.wingsId, COMP.mountId, COMP.petId, S.fly, S.c.enchant]); if (s !== eqSig) { eqSig = s; renderEquip(); } }
@@ -1665,6 +1672,8 @@ const clock = new THREE.Clock(); const skyTop = new THREE.Color(), skyBot = new 
 function loop() {
   requestAnimationFrame(loop);
   const tnow = performance.now(); const dt = Math.min(0.05, clock.getDelta()) * (tnow < TIME.stopUntil ? 0.06 : tnow < TIME.slowUntil ? 0.35 : 1);
+  FRAME++;
+  if (TITLE.g && TITLE.g.visible !== !S.inGame) TITLE.g.visible = !S.inGame;
   if (S.inGame && me) {
     perfTick(dt); if (S.guide && (S.guideT = (S.guideT || 0) + dt) > 0.25) { S.guideT = 0; guideTick(); }
     updateMe(dt); updateMobs(dt); updateOthers(dt); updateFx(dt); updateFX(dt); updateElements(dt); updateEquip(dt); equipWatch(); if (!S.dead && Date.now() - Math.max(S.lastCombat || 0, S.auraAt || 0) < 5000) bodyAura(myElem(), me.x, me.z, 1.8 * (GD.RACES[S.c.race]?.h || 1) + (S.alt || 0), dt, PERF.cur === 'baixa' ? 0.5 : 1); updateAmbient(dt); updateDialog(); greetNpcs(); updateTraps(); setMood(S.mobs.some(m => m.aggro && !m.dead) ? 'combate' : 'calma'); if (S.inGame && me) updateVillagers(dt); updateCamera(); updateChunks(me.x, me.z, false);

@@ -42,7 +42,7 @@
   };
   const CASTLES = ['castelo_corvos', 'forte_bandido', 'castelo_sangue'];
   // armas de duas mãos: não permitem escudo
-  const TWO_HANDED = ['espadao', 'lanca', 'arco', 'cajado', 'martelo', 'adaga', 'punhos'];
+  const TWO_HANDED = ['espadao', 'lanca', 'arco', 'cajado', 'martelo', 'adaga', 'punhos', 'duplas', 'garras'];
   const TWO_HAND_GRIP = ['espadao', 'lanca', 'cajado', 'martelo'];
   const RACES = {
     humano: { name: 'Humanos', types: ['l', 'm'], hp: { l: 130, m: 95 }, mp: { l: 40, m: 100 }, patk: { l: 12, m: 6 }, matk: { l: 5, m: 13 }, pdef: 8, mdef: 8, spd: 1.0, h: 1.0, w: 1.0,
@@ -331,6 +331,11 @@
     cajado: { name: 'Cajado', icon: '🪄', range: 18, spd: 1.4, magic: true, inputs: { tabua: 5, tecido: 3, barra: 1 } },
     punhos: { name: 'Punhos', icon: '🥊', range: 2.2, spd: 0.7, inputs: { barra: 4, couro: 3 } },
     martelo: { name: 'Martelo', icon: '🔨', range: 2.7, spd: 1.1, inputs: { barra: 7, tabua: 2 } },
+    // pegadas novas: uma mão (aceitam escudo) e pares de armas
+    cetro: { name: 'Cetro Arcano', icon: '🔮', range: 16, spd: 1.2, magic: true, k: 0.86, inputs: { tabua: 3, tecido: 3, barra: 2 } },
+    punhal: { name: 'Adaga', icon: '🔪', range: 2.3, spd: 0.85, k: 0.9, inputs: { barra: 3, couro: 1 } },
+    duplas: { name: 'Espadas Gêmeas', icon: '⚔️', range: 2.6, spd: 0.82, k: 0.95, inputs: { barra: 10, couro: 3 } },
+    garras: { name: 'Garras', icon: '🐾', range: 2.2, spd: 0.68, k: 0.92, inputs: { barra: 6, couro: 3 } },
   };
   const ARMORS = {
     pesada: { name: 'Armadura Pesada', icon: '🦾', inputs: { barra: 10, couro: 2 } },
@@ -355,7 +360,7 @@
     for (const [k, w] of Object.entries(WEAPONS)) {
       const id = `${k}_${g(i)}`;
       ITEMS[id] = { id, name: `${w.name} ${GRADE_NAMES[i]}`, grade: i, type: 'weapon', slot: 'arma', kind: k, icon: w.icon,
-        stats: w.magic ? { matk: Math.round(9 * G.gp * 10) / 10 } : { patk: Math.round(8 * G.gp * 10) / 10 } };
+        stats: w.magic ? { matk: Math.round(9 * G.gp * (w.k || 1) * 10) / 10 } : { patk: Math.round(8 * G.gp * (w.k || 1) * 10) / 10 } };
       const inp = {}; for (const [m, q] of Object.entries(w.inputs)) inp[`${m}_${g(i)}`] = q; Object.assign(inp, extra);
       RECIPES[id] = { id, out: id, qty: 1, station: 'forja', prof: 'forja', grade: i, inputs: inp, xp: 22 * (i + 1) };
     }
@@ -378,6 +383,8 @@
     }
     { const id = `escudo_${g(i)}`; ITEMS[id] = { id, name: `Escudo ${GRADE_NAMES[i]}`, grade: i, type: 'armor', slot: 'escudo', kind: 'escudo', icon: '🛡️', stats: { pdef: Math.round(6 * G.gp * 10) / 10, mdef: Math.round(2 * G.gp * 10) / 10, hp: Math.round(10 * G.gp) } };
       const inp = { [`barra_${g(i)}`]: 5, [`tabua_${g(i)}`]: 2 }; if (i >= 3) inp.gema = 1; RECIPES[id] = { id, out: id, qty: 1, station: 'forja', prof: 'forja', grade: i, inputs: inp, xp: 16 * (i + 1) }; }
+    { const id = `egide_${g(i)}`; ITEMS[id] = { id, name: `Égide Arcana ${GRADE_NAMES[i]}`, grade: i, type: 'armor', slot: 'escudo', kind: 'egide', icon: '🔵', stats: { pdef: Math.round(3 * G.gp * 10) / 10, mdef: Math.round(6 * G.gp * 10) / 10, mp: Math.round(14 * G.gp) } };
+      const inp = { [`tecido_${g(i)}`]: 4, [`barra_${g(i)}`]: 2 }; if (i >= 3) inp.gema = 1; RECIPES[id] = { id, out: id, qty: 1, station: 'forja', prof: 'forja', grade: i, inputs: inp, xp: 16 * (i + 1) }; }
     const kid = `kit_${g(i)}`;
     ITEMS[kid] = { id: kid, name: `Kit de Coleta ${G.id}`, grade: i, type: 'tool', icon: '⛏️' };
     RECIPES[kid] = { id: kid, out: kid, qty: 1, station: 'forja', prof: 'forja', grade: i, inputs: { [`tabua_${g(i)}`]: 3, [`barra_${g(i)}`]: 3 }, xp: 15 * (i + 1) };
@@ -434,7 +441,7 @@
   for (const [id, c] of Object.entries(COMP)) ITEMS[id] = { id, name: c.name, grade: gradeForLevel(c.lvl), type: c.type, icon: c.icon, comp: c, unique: !c.price };
   const SHOP = { pocao_hp: 25, pocao_mp: 60, retorno: 80, kit_ng: 150 };
   Object.keys(WEAPONS).forEach(k => SHOP[`${k}_ng`] = 300); Object.keys(ARMORS).forEach(k => SHOP[`${k}_ng`] = 350);
-  Object.keys(PARTS).forEach(p => Object.keys(ARMORS).forEach(k => SHOP[`${p}_${k}_ng`] = 120)); SHOP.escudo_ng = 200;
+  Object.keys(PARTS).forEach(p => Object.keys(ARMORS).forEach(k => SHOP[`${p}_${k}_ng`] = 120)); SHOP.escudo_ng = 200; SHOP.egide_ng = 200;
   for (const [id, c] of Object.entries(COMP)) if (c.price) SHOP[id] = c.price;
   const npcPrice = (it) => it.comp ? Math.round((it.comp.price || 200000) * 0.25) : Math.round(({ raw: 3, refined: 9, tool: 40, potion: 6, scroll: 20, special: 400, trophy: 30, enchant: 150 }[it.type] || 120) * Math.pow(2.2, it.grade));
 
@@ -583,7 +590,7 @@
     precisao: { name: 'Precisão', icon: '🏹', v: { crit: 0.05, range: 2 }, d: v => `+${pc(v.crit)} de crítico e +${v.range} m de alcance` },
   };
   const pc = x => Math.round(x * 100) + '%';
-  const SA_BY = { espada: ['foco', 'rapidez', 'chama'], lanca: ['furia', 'vampiro', 'trovao'], machado: ['chama', 'furia', 'vampiro'], espadao: ['trovao', 'furia', 'chama'], arco: ['precisao', 'gelo', 'rapidez'],
+  const SA_BY = { cetro: ['poder', 'sabedoria', 'gelo'], punhal: ['sangria', 'foco', 'vampiro'], duplas: ['foco', 'rapidez', 'chama'], garras: ['rapidez', 'sangria', 'furia'], espada: ['foco', 'rapidez', 'chama'], lanca: ['furia', 'vampiro', 'trovao'], machado: ['chama', 'furia', 'vampiro'], espadao: ['trovao', 'furia', 'chama'], arco: ['precisao', 'gelo', 'rapidez'],
     adaga: ['sangria', 'foco', 'vampiro'], cajado: ['poder', 'sabedoria', 'gelo'], punhos: ['rapidez', 'vampiro', 'trovao'], martelo: ['trovao', 'vampiro', 'furia'] };
   const SETS = {
     pesada: { name: 'Conjunto Pesado', icon: '🛡️', two: { pdefPct: 0.06 }, four: { hpPct: 0.12, dmgRed: 0.06 } },
@@ -626,7 +633,7 @@
       pdef: (R.pdef + (as.pdef || 0)) * f * B('pdef'), mdef: (R.mdef + (as.mdef || 0)) * f * B('mdef'),
       speed: 6.2 * R.spd * (1 + (as.spd || 0)) * B('speed'),
       range: wk.range, atkInterval: wk.spd / B('atkspd'), magic: !!(w && WEAPONS[w.kind].magic) || (!w && t === 'm'),
-      crit: (w && w.kind === 'adaga' ? 0.15 : 0.08) + (ws.crit || 0) + (buffs.crit || 0), weaponKind: w ? w.kind : null, armorKind: a ? a.kind : null,
+      crit: (w && (w.kind === 'adaga' || w.kind === 'garras') ? 0.15 : w && w.kind === 'punhal' ? 0.13 : 0.08) + (ws.crit || 0) + (buffs.crit || 0), weaponKind: w ? w.kind : null, armorKind: a ? a.kind : null,
       arch: ARCH[cl.arch], cls: cl,
     };
     // aplica os efeitos dos equipamentos

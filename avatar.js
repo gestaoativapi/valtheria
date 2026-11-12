@@ -230,9 +230,9 @@ const TRIM = ['#555', '#7a5a2a', '#9aa2ac', '#c9b26a', '#e8c25a', '#ffd86a'];
 const GLOW = [0, 0, 0, 0x2a6aff, 0xff2a2a, 0xb04aff];
 let _glowTex = null;
 function glowTex() { if (_glowTex) return _glowTex; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.4, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); _glowTex = new THREE.CanvasTexture(c); return _glowTex; }
-const WGLB = { espada: ['w_sword', 'w_sword', 'w_sword_2', 'w_sword_big', 'w_sword_big', 'w_sword_golden'], espadao: ['w_claymore'], machado: ['w_axe', 'w_axe', 'w_axe_double'], lanca: ['w_spear'], adaga: ['w_dagger'], martelo: ['w_hammer_double'],
+const WGLB = { duplas: ['w_sword', 'w_sword', 'w_sword_2', 'w_sword_big', 'w_sword_big', 'w_sword_golden'], punhal: ['w_dagger'], espada: ['w_sword', 'w_sword', 'w_sword_2', 'w_sword_big', 'w_sword_big', 'w_sword_golden'], espadao: ['w_claymore'], machado: ['w_axe', 'w_axe', 'w_axe_double'], lanca: ['w_spear'], adaga: ['w_dagger'], martelo: ['w_hammer_double'],
   escudo: ['w_shield_round', 'w_shield_round', 'w_shield_heater', 'w_shield_heater', 'w_shield_heater', 'w_shield_celtic_golden'] };
-const WLEN = { espada: 1.0, espadao: 1.45, machado: 1.1, lanca: 2.4, adaga: 0.42, martelo: 1.05 };
+const WLEN = { duplas: 1.0, punhal: 0.46, espada: 1.0, espadao: 1.45, machado: 1.1, lanca: 2.4, adaga: 0.42, martelo: 1.05 };
 const WMAT = new Map();
 const KAURA = { espada: '#ffd75a', espadao: '#ff6a2a', machado: '#ff3a2a', lanca: '#7ad0ff', arco: '#7aff9a', adaga: '#c03aff', cajado: '#5a8aff', punhos: '#ffb03a', martelo: '#3ad8c8' };
 function swapWeapon(m, holder, name, len, g, relic, shield, neon) {
@@ -245,7 +245,7 @@ function swapWeapon(m, holder, name, len, g, relic, shield, neon) {
     src.traverse(o => { if (!o.isMesh) return; o.castShadow = true; const key = o.material.name + ':' + g + ':' + (shield ? 's' : m.weaponKind) + ':' + (shield ? 0 : en >= 4 ? ecol : 0) + (relic ? 'r' : '') + (neon || '');
       if (!WMAT.has(key)) { const mt = o.material.clone(); mt.metalness = Math.min(mt.metalness, 0.6); mt.envMapIntensity = 1.2; const metal = /metal|steel|iron|blade|silver|gold/i.test(mt.name) || mt.metalness > 0.3;
         if (metal && g >= 2 && !shield) { mt.emissive = new THREE.Color(relic ? '#ffd75a' : KAURA[m.weaponKind] || GLOW[g]); mt.emissiveIntensity = 0.18 + g * 0.06; }
-        if (metal && g >= 3 && shield) { mt.emissive = new THREE.Color(GLOW[g]); mt.emissiveIntensity = 0.35; }
+        if (metal && g >= 3 && shield) { mt.emissive = new THREE.Color(GLOW[g]); mt.emissiveIntensity = 0.08; }
         if (neon && !shield) { if (metal) { mt.color = new THREE.Color('#d8f8ff'); mt.emissive = new THREE.Color(neon); mt.emissiveIntensity = 1.6; mt.metalness = 0.3; mt.roughness = 0.15; } else { mt.color = new THREE.Color('#1a1e2a'); mt.metalness = 0.8; mt.roughness = 0.3; mt.emissive = new THREE.Color(neon); mt.emissiveIntensity = 0.12; } }
         if (metal && !shield && ET) { mt.emissive = new THREE.Color(ecol); mt.emissiveIntensity = 0.5 + ET.k * 0.4 + (en % 3) * 0.15; }
         WMAT.set(key, mt); }
@@ -307,6 +307,15 @@ export function setGear(m, weaponId, armorId, equip) {
       const s = G(); s.add(at(tube(0.026, 0.032, 1.7, wood, 8), 0, 0.3, 0));
       const orb = at(new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 2), new THREE.MeshStandardMaterial({ color: ['#88f', '#c6f', '#6cf', '#5af', '#f55', '#e6f'][g], emissive: [0x2222aa, 0x6622aa, 0x2288cc, 0x2a6aff, 0xff2a2a, 0xb04aff][g], emissiveIntensity: 0.9, roughness: 0.2 })), 0, 1.2, 0);
       s.add(orb, at(new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.016, 8, 20), gold), 0, 1.2, 0)); add(H, s); m.orb = orb;
+    } else if (k === 'cetro') { // cetro de uma mão: haste curta com cristal — deixa a outra mão livre para a égide
+      const s = G(); s.add(at(tube(0.02, 0.026, 0.62, gold, 8), 0, 0.22, 0)); const orb = at(new THREE.Mesh(new THREE.OctahedronGeometry(0.085, 0), new THREE.MeshStandardMaterial({ color: ['#88f', '#c6f', '#6cf', '#5af', '#f55', '#e6f'][g], emissive: [0x2222aa, 0x6622aa, 0x2288cc, 0x2a6aff, 0xff2a2a, 0xb04aff][g], emissiveIntensity: 1.4, roughness: 0.15 })), 0, 0.64, 0); orb.scale.y = 1.5;
+      s.add(orb, at(new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.012, 6, 16), gold), 0, 0.52, 0)); s.children.at(-1).rotation.x = Math.PI / 2; s.rotation.x = 1.9; add(H, s); m.orb = orb;
+    } else if (k === 'punhal') {
+      const s = G(); s.add(at(tube(0.018, 0.018, 0.12, wood, 8), 0, 0, 0), at(new THREE.Mesh(bladeGeo(0.36, 0.055), blade), 0, 0.06, -0.008)); s.rotation.x = Math.PI / 2; add(H, s);
+    } else if (k === 'duplas') {
+      [H, HL].forEach(h => { const s = G(); s.add(at(tube(0.022, 0.022, 0.18, wood, 8), 0, -0.02, 0), at(ball(0.03, gold, 10, 8), 0, -0.12, 0)); const bl = at(new THREE.Mesh(bladeGeo(0.8, 0.065), blade), 0, 0.1, -0.009); bl.castShadow = true; s.add(bl); s.rotation.x = 2.0; add(h, s); });
+    } else if (k === 'garras') {
+      [H, HL].forEach(h => { const s = G(); s.add(at(ball(0.07, toon(ARMOR_COL.pesada[g], { metal: 0.6 }), 10, 8), 0, 0, 0)); for (let i = -1; i <= 1; i++) { const c = at(new THREE.Mesh(bladeGeo(0.3, 0.03), blade), i * 0.035, -0.02, 0.05); c.rotation.x = Math.PI / 2 + 0.25; c.rotation.z = i * 0.12; s.add(c); } add(h, s); });
     } else if (k === 'punhos') {
       [H, HL].forEach(h => add(h, ball(0.075, toon(ARMOR_COL.pesada[g], { metal: 0.6, emissive: GLOW[g], ei: g >= 3 ? 0.4 : 0 }), 12, 10)));
     } else if (k === 'martelo') {
@@ -314,7 +323,7 @@ export function setGear(m, weaponId, armorId, equip) {
     }
     m.weaponKind = k;
     // troca a arma procedural pelo modelo 3D (Quaternius Medieval Weapons, CC0) quando carregar
-    { const list = WGLB[k]; if (list) { const holder = m.gearParts.filter(x => x.parent === H || (k === 'adaga' && x.parent === HL)).filter(x => !x.isSprite); holder.forEach(hg => swapWeapon(m, hg, list[Math.min(g, list.length - 1)], WLEN[k], g, w.relic, false, w.neon)); } }
+    { const list = WGLB[k]; if (list) { const holder = m.gearParts.filter(x => x.parent === H || ((k === 'adaga' || k === 'duplas') && x.parent === HL)).filter(x => !x.isSprite); holder.forEach(hg => swapWeapon(m, hg, list[Math.min(g, list.length - 1)], WLEN[k], g, w.relic, false, w.neon)); } }
     if (w.neon) { const nc = new THREE.Color(w.neon), sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: nc, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.7 })); sp.material.opacity = 0.45; sp.scale.setScalar(0.5); sp.position.set(0, (WLEN[k] || 1) * 0.6, 0); add(H, sp); }
     // brilho do encantamento: +4 azul, +7 carmesim, +10 dourado, +13 abissal, +16 celestial — cada nível mais forte
     const en = m.enc || 0, T = GD.ENC_TIER(en);
@@ -336,7 +345,12 @@ export function setGear(m, weaponId, armorId, equip) {
     if (E('elmo')?.neon) { const vis = add(P.head, at(M(new THREE.CylinderGeometry(0.175, 0.17, 0.07, 28, 1, true, -1.15, 2.3), new THREE.MeshBasicMaterial({ color: nc, transparent: true, opacity: 0.75, side: THREE.DoubleSide, toneMapped: false, blending: THREE.AdditiveBlending, depthWrite: false }), false), 0, 0.03, 0.01)); vis.userData.neonVisor = 1;
       add(P.head, at(M(new THREE.TorusGeometry(0.175, 0.008, 6, 30), gm, false), 0, 0.075, 0)).rotation.x = Math.PI / 2; [-1, 1].forEach(sd => add(P.head, at(M(new THREE.SphereGeometry(0.022, 8, 6), gm2, false), sd * 0.17, 0.03, -0.02))); } } }
   const sh = E('escudo');
-  if (sh) { const g = sh.grade, sm = toon(sh.relic ? '#6a7a6a' : ARMOR_COL.pesada[g], { metal: 0.5 }), tm = toon(TRIM[g]);
+  if (sh && sh.kind === 'egide') { // escudo mágico: disco de energia com runas, flutuando no antebraço
+    const g = sh.grade, col = ['#8888ff', '#c66aff', '#66ccff', '#5aaaff', '#ff5a5a', '#e66aff'][g], grp = G();
+    const disk = new THREE.Mesh(new THREE.CircleGeometry(0.3, 28), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.28, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.012, 6, 36), new THREE.MeshBasicMaterial({ color: col, toneMapped: false })), in2 = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.008, 6, 6), new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false })), core = new THREE.Mesh(new THREE.OctahedronGeometry(0.045), new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }));
+    grp.add(disk, rim, in2, core); grp.rotation.y = -Math.PI / 2; add(P.armL.fa, at(grp, -0.16, -0.16, 0)); m.egide = in2; }
+  else if (sh) { const g = sh.grade, sm = toon(sh.relic ? '#6a7a6a' : ARMOR_COL.pesada[g], { metal: 0.5 }), tm = toon(TRIM[g]);
     const kite = new THREE.Shape(); kite.moveTo(0, 0.32); kite.quadraticCurveTo(0.26, 0.3, 0.25, 0.05); kite.quadraticCurveTo(0.2, -0.22, 0, -0.38); kite.quadraticCurveTo(-0.2, -0.22, -0.25, 0.05); kite.quadraticCurveTo(-0.26, 0.3, 0, 0.32);
     const body = new THREE.Mesh(new THREE.ExtrudeGeometry(kite, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 2 }), sm); body.castShadow = true; ol(body);
     const em = at(ball(0.06, tm, 12, 8), 0, 0.04, 0.06); em.scale.z = 0.4; const grp = G(); grp.add(body, em); if (g >= 3) grp.add(at(ball(0.035, toon('#fff', { emissive: GLOW[g], ei: 1 }), 10, 8), 0, 0.04, 0.09));
@@ -502,6 +516,10 @@ function applyGLB(m, C) {
   m.anim.idleClip = m.o.idle || (!m.o.npc && { orc: 'Idle_FoldArms_Loop', gigante: 'Idle_FoldArms_Loop', anao: 'Idle_Shield_Loop', mago: null }[m.race]) || (m.o.npc ? (['Idle_Loop', 'Idle_FoldArms_Loop', 'Idle_Talking_Loop'][Math.floor(Math.random() * 3)]) : 'Idle_Loop');
   if (m.onGLB) m.onGLB(m);
 }
+const RACE_STYLE = { humano: { clips: ['Sword_Regular_A', 'Sword_Regular_B', 'Sword_Regular_C', 'Sword_Attack'], spd: 1, ready: 'Sword_Idle' }, elfo: { clips: ['Sword_Regular_A', 'Sword_Regular_B', 'Sword_Dash'], spd: 1.18, ready: 'Sword_Idle' }, sombrio: { clips: ['Sword_Regular_B', 'Sword_Dash', 'Sword_Regular_C'], spd: 1.2, ready: 'Crouch_Idle_Loop' },
+  sylph: { clips: ['Sword_Regular_A', 'Sword_Dash'], spd: 1.22, ready: 'Sword_Idle' }, halfling: { clips: ['Sword_Regular_A', 'Sword_Regular_C'], spd: 1.15, ready: 'Crouch_Idle_Loop' }, anao: { clips: ['Sword_Regular_C', 'Sword_Attack', 'Melee_Hook'], spd: 0.95, ready: 'Idle_Shield_Loop' },
+  orc: { clips: ['Sword_Attack', 'Melee_Hook', 'Sword_Regular_C'], spd: 0.88, ready: 'Idle_FoldArms_Loop' }, gigante: { clips: ['Sword_Attack', 'Melee_Hook'], spd: 0.8, ready: 'Idle_FoldArms_Loop' }, beastman: { clips: ['Melee_Hook', 'Sword_Attack', 'Sword_Regular_B'], spd: 1.02, ready: 'Crouch_Idle_Loop' },
+  draconato: { clips: ['Sword_Attack', 'Sword_Regular_Combo', 'Sword_Regular_C'], spd: 0.92, ready: 'Sword_Idle' }, nocturno: { clips: ['Sword_Regular_B', 'Sword_Regular_Combo', 'Sword_Dash'], spd: 1.08, ready: 'Sword_Idle' } };
 const ATK_CLIPS = ['Sword_Regular_A', 'Sword_Regular_B', 'Sword_Regular_C', 'Sword_Attack'];
 function animGLB(m, dt) {
   const A = m.anim, C = m.glb, t = performance.now();
@@ -509,20 +527,25 @@ function animGLB(m, dt) {
   else if (A.atk >= 0 && A.atkSeen !== A.atk) {
     A.atkSeen = A.atk; const wk = m.weaponKind;
     const SK = A.kind === 'skill' ? ['Sword_Regular_Combo', 'Melee_Hook', 'Sword_Dash'].filter(n => C.clips ? true : true) : null;
-    const clip = SK && wk && wk !== 'punhos' && wk !== 'cajado' && wk !== 'arco' ? SK[Math.floor(Math.random() * SK.length)] : A.kind === 'cast' || A.kind === 'skill' && wk === 'cajado' ? 'Spell_Simple_Shoot' : A.kind === 'bow' ? 'Spell_Simple_Shoot' : wk === 'punhos' || !wk ? (Math.random() < 0.5 ? 'Punch_Jab' : 'Punch_Cross') : ATK_CLIPS[Math.floor(Math.random() * ATK_CLIPS.length)];
+    // expressão corporal por raça e por pegada: brutos golpeiam de cima e devagar, elfos cortam rápido, anões batem curto; pares de armas alternam as mãos
+    const RS = RACE_STYLE[m.race] || RACE_STYLE.humano, dual = wk === 'adaga' || wk === 'duplas' || wk === 'garras', magicW = wk === 'cajado' || wk === 'cetro'; A.dualN = (A.dualN || 0) + 1;
+    let clip = A.kind === 'cast' || magicW ? 'Spell_Simple_Shoot' : A.kind === 'bow' ? 'Spell_Simple_Shoot' : wk === 'punhos' || !wk ? (Math.random() < 0.5 ? 'Punch_Jab' : 'Punch_Cross')
+      : wk === 'garras' ? ['Punch_Jab', 'Punch_Cross', 'Melee_Hook'][A.dualN % 3] : dual ? (A.kind === 'skill' ? 'Sword_Regular_Combo' : ['Sword_Regular_A', 'Punch_Cross', 'Sword_Regular_B', 'Melee_Hook'][A.dualN % 4])
+      : A.kind === 'skill' ? ['Sword_Regular_Combo', 'Melee_Hook', 'Sword_Dash'][Math.floor(Math.random() * 3)] : RS.clips[Math.floor(Math.random() * RS.clips.length)];
+    const aspd = (dual ? 1.25 : 1) * RS.spd;
     if (wk === 'arco' && C.clips && CLIP_OK(C, 'OverhandThrow')) { // arqueiro: leva a mão à aljava, pega a flecha, puxa e solta
       playClip(C, 'OverhandThrow', { once: true, fade: 0.06, speed: 2.3 }); A.cur = 'atk'; A.bowT = t + 300; A.atkEnd = t + 900; if (m.arrowInHand) m.arrowInHand.visible = true; }
-    else { const act = playClip(C, clip, { once: true, fade: 0.08, speed: 1.35 }); A.cur = 'atk'; A.atkEnd = t + (act ? act.getClip().duration / 1.35 * 1000 - 120 : 500); }
+    else { const act = playClip(C, clip, { once: true, fade: 0.08, speed: 1.35 * aspd }); A.cur = 'atk'; A.atkEnd = t + (act ? act.getClip().duration / (1.35 * aspd) * 1000 - 120 : 500); A.readyUntil = t + 5000; }
   }
   else if (A.cur === 'atk' && t < A.atkEnd) { if (A.bowT && t >= A.bowT) { A.bowT = 0; const act = playClip(C, 'Spell_Simple_Shoot', { once: true, fade: 0.12, speed: 1.6 }); A.atkEnd = t + (act ? act.getClip().duration / 1.6 * 1000 - 100 : 400); if (m.arrowInHand) m.arrowInHand.visible = false; } }
   else if (A.hitAt && t - A.hitAt < 60 && A.cur !== 'hit' && A.state !== 'climb') { A.hitAt = 0; if (playClip(C, Math.random() < 0.5 ? 'Hit_Chest' : 'Hit_Head', { once: true, fade: 0.06, speed: 1.4 })) { A.cur = 'hit'; A.atkEnd = t + 380; } }
   else if (A.cur === 'hit' && t < A.atkEnd) { }
-  else { const want = A.state === 'mount' ? 'Sitting_Idle_Loop' : A.state === 'fly' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'climb' ? 'ClimbUp_1m' : A.state === 'swim' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'roll' ? 'Roll' : A.state === 'sprint' ? 'Sprint_Loop' : A.state === 'run' ? (A.walk ? 'Walk_Loop' : 'Jog_Fwd_Loop') : A.state === 'gather' ? 'Interact' : (A.idleClip || 'Idle_Loop'); if (A.cur !== want) { if (playClip(C, want, { fade: 0.22, once: want === 'Roll', speed: A.state === 'run' ? 1.15 * ({ halfling: 1.3, anao: 1.18, gigante: 0.85, orc: 0.95, sylph: 1.08 }[m.race] || 1) : A.state === 'climb' ? 0.8 : want === 'Roll' ? 1.3 : 1 })) A.cur = want; else if (A.cur !== 'Jog_Fwd_Loop' && A.state !== 'idle') { playClip(C, 'Jog_Fwd_Loop', { fade: 0.2 }); A.cur = 'Jog_Fwd_Loop'; } } }
+  else { const want = A.state === 'mount' ? 'Sitting_Idle_Loop' : A.state === 'fly' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'climb' ? 'ClimbUp_1m' : A.state === 'swim' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'roll' ? 'Roll' : A.state === 'sprint' ? 'Sprint_Loop' : A.state === 'run' ? (A.walk ? 'Walk_Loop' : 'Jog_Fwd_Loop') : A.state === 'gather' ? 'Interact' : (A.readyUntil > t && m.weaponKind ? (m.weaponKind === 'cajado' || m.weaponKind === 'cetro' ? 'Spell_Simple_Idle_Loop' : (m.o.equip || {}).escudo ? 'Idle_Shield_Loop' : (RACE_STYLE[m.race] || RACE_STYLE.humano).ready) : (A.idleClip || 'Idle_Loop')); if (A.cur !== want) { if (playClip(C, want, { fade: 0.22, once: want === 'Roll', speed: A.state === 'run' ? 1.15 * ({ halfling: 1.3, anao: 1.18, gigante: 0.85, orc: 0.95, sylph: 1.08 }[m.race] || 1) : A.state === 'climb' ? 0.8 : want === 'Roll' ? 1.3 : 1 })) A.cur = want; else if (A.cur !== 'Jog_Fwd_Loop' && A.state !== 'idle') { playClip(C, 'Jog_Fwd_Loop', { fade: 0.2 }); A.cur = 'Jog_Fwd_Loop'; } } }
   C.mixer.update(dt);
   // pegada de duas mãos: durante o golpe, a mão esquerda vai até o cabo da arma (cajado, espadão, lança, martelo)
   { const two = m.weaponKind && m.weaponTip && GD.TWO_HAND_GRIP.includes(m.weaponKind), want = two && A.cur === 'atk' && t < A.atkEnd ? 1 : 0; A.ikW = (A.ikW || 0) + (want - (A.ikW || 0)) * Math.min(1, dt * 14); if (two && A.ikW > 0.03) twoHandIK(m, C, A.ikW); }
 }
-const CLIP_OK = (C, n) => !!(C.clips && C.clips[n]) || !!(C.mixer && C.mixer._actions && C.mixer._actions.some(a => a.getClip().name === n)) || true;
+const CLIP_OK = () => true;
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _tg = new THREE.Vector3(), _p1 = new THREE.Vector3(), _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _n = new THREE.Vector3(), _q = new THREE.Quaternion(), _pq = new THREE.Quaternion(), _bq = new THREE.Quaternion(), _qU = new THREE.Quaternion(), _qF = new THREE.Quaternion();
 const GRIP_F = { cajado: 0.3, lanca: 0.3, espadao: 0.17, martelo: 0.32 };
 function rotWorld(bone, q) { bone.parent.getWorldQuaternion(_pq); bone.getWorldQuaternion(_bq); _bq.premultiply(q); bone.quaternion.copy(_pq.invert().multiply(_bq)); bone.updateWorldMatrix(false, true); }

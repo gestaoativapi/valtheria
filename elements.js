@@ -50,8 +50,7 @@ function spikes(x, z, r, n, mat, h, life, sharp) { const g = new THREE.Group(); 
   push(g, life, (_, k, dt, t) => { for (const s of list) { const up = Math.min(1, Math.max(0, (t - s.userData.d) / 0.18)), down = k > 0.8 ? (k - 0.8) / 0.2 : 0; const e = up * (2 - up) * (1 - down); s.position.y = sharp ? s.userData.by - s.userData.hh / 2 + s.userData.hh * 0.9 * e : s.userData.by - s.userData.hh * 0.45 + s.userData.hh * 0.6 * e; } }); }
 const rockM = new THREE.MeshStandardMaterial({ color: '#6a5a48', roughness: 0.95, flatShading: true }), iceM = new THREE.MeshStandardMaterial({ color: '#cfefff', roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.85, emissive: 0x3a8acc, emissiveIntensity: 0.5, flatShading: true });
 function bolt(x, y, z, h = 16) { const pts = []; let px = x + (Math.random() - 0.5) * 3, pz = z + (Math.random() - 0.5) * 3; for (let i = 0; i <= 9; i++) { const k = i / 9; pts.push(new THREE.Vector3(px + (x - px) * k + (Math.random() - 0.5) * (1 - k) * 1.6, y + h * (1 - k), pz + (z - pz) * k + (Math.random() - 0.5) * (1 - k) * 1.6)); }
-  const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0), 18, 0.07, 4); push(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xeaf4ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })), 0.28, (o, k) => { o.material.opacity = k < 0.3 ? 1 : (1 - k) * (Math.random() < 0.3 ? 0.3 : 1.2); });
-  const fl = new THREE.PointLight(0xbfdcff, 60, 30); fl.position.set(x, y + 3, z); push(fl, 0.2, (o, k) => o.intensity = 60 * (1 - k)); }
+  const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0), 18, 0.07, 4); push(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xeaf4ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })), 0.28, (o, k) => { o.material.opacity = k < 0.3 ? 1 : (1 - k) * (Math.random() < 0.3 ? 0.3 : 1.2); }); }
 
 // ---------- impacto por elemento ----------
 export function elemImpact(el, x, z, r = 3, power = 1) {
@@ -68,7 +67,6 @@ export function elemImpact(el, x, z, r = 3, power = 1) {
 const metGeo = new THREE.IcosahedronGeometry(1, 1), metMat = new THREE.MeshStandardMaterial({ color: '#2a1810', emissive: 0xff5a10, emissiveIntensity: 2.4, roughness: 0.8, flatShading: true });
 export function meteor(x, z, r = 5, onHit, size = 1) {
   const y = X.H(x, z), from = new THREE.Vector3(x - 16, y + 38, z - 9), to = new THREE.Vector3(x, y, z), m = new THREE.Mesh(metGeo, metMat); m.userData.shared = true; m.scale.setScalar(0.9 * size); m.position.copy(from);
-  const light = new THREE.PointLight(0xff7a2a, 80, 40); m.add(light);
   const warn = new THREE.Mesh(new THREE.RingGeometry(0.92, 1, 48), new THREE.MeshBasicMaterial({ color: 0xff5a1a, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false, toneMapped: false })); warn.rotation.x = -Math.PI / 2; warn.position.set(x, y + 0.12, z); warn.scale.setScalar(r);
   push(warn, 0.62, (o, k) => { o.material.opacity = 0.4 + 0.4 * Math.sin(k * 30); o.scale.setScalar(r * (1.15 - 0.15 * k)); });
   push(m, 0.6, (o, k) => { const e = k * k; o.position.lerpVectors(from, to, e); o.rotation.x += 0.3; o.rotation.z += 0.2;
@@ -81,7 +79,6 @@ export function meteor(x, z, r = 5, onHit, size = 1) {
     const g = new THREE.Group(), rim = []; for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283 + Math.random() * 0.3, rr = r * (0.75 + Math.random() * 0.25), px = x + Math.cos(a) * rr, pz = z + Math.sin(a) * rr, s = 0.5 + Math.random() * 0.8, k = new THREE.Mesh(metGeo, rockM); k.userData.shared = true; k.scale.set(s, s * 0.7, s); k.rotation.set(Math.random(), Math.random() * 6, Math.random()); k.userData.by = X.H(px, pz); k.userData.s = s; k.position.set(px, k.userData.by - s, pz); k.castShadow = true; g.add(k); rim.push(k); }
     const core = new THREE.Mesh(metGeo, metMat.clone()); core.userData.shared = true; core.scale.setScalar(0.7 * size); core.position.set(x, y + 0.1, z); g.add(core);
     push(g, 9, (_, k) => { for (const q of rim) q.position.y = q.userData.by - q.userData.s + q.userData.s * 1.1 * Math.min(1, k * 40) * (k > 0.8 ? 1 - (k - 0.8) / 0.2 : 1); core.material.emissiveIntensity = 2.4 * Math.max(0, 1 - k * 1.6); core.position.y = y + 0.1 - (k > 0.7 ? (k - 0.7) * 3 : 0); });
-    const fl = new THREE.PointLight(0xff8a3a, 160, 50); fl.position.set(x, y + 3, z); push(fl, 0.5, (o, k) => o.intensity = 160 * (1 - k));
     groundFire(x, z, r * 0.9, 6); X.shake(0.9); X.sfx('boom', 1); X.sfx('fire', 0.8); onHit && onHit(); });
 }
 // ---------- energia saindo do corpo: rajada ao conjurar e aura contínua em combate ----------

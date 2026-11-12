@@ -90,7 +90,8 @@ export function renderEquip() {
   const cell = ([k, label, ic]) => { const it = d.slots[k]; return `<div class="eq-slot ${it ? 'has' : ''} ${d.locked[k] ? 'lock' : ''}" data-eq="${k}" data-id="${it ? it.id : ''}" title="${it ? X.esc(it.name) + (it.desc ? ' — ' + X.esc(it.desc) : '') + ' (clique para tirar)' : d.locked[k] || label}"><div class="ic">${it ? it.html : ic}</div><div class="nm">${it ? X.esc(it.name) + (it.enc ? ' <b>+' + it.enc + '</b>' : '') : label}</div></div>`; };
   $('#eq-l').innerHTML = SLOTS_L.map(cell).join(''); $('#eq-r').innerHTML = SLOTS_R.map(cell).join(''); $('#eq-acc').innerHTML = ACC.map(cell).join('');
   $('#eq-stats').innerHTML = d.stats; $('#eq-foot').innerHTML = d.foot;
-  const sig = d.sig; if (sig !== EQ.sig) { EQ.sig = sig; if (EQ.doll) { EQ.scene.remove(EQ.doll.root); EQ.doll.disposed = true; } EQ.doll = X.makeDoll(); EQ.scene.add(EQ.doll.root); }
+  const sig = d.sig; if (sig === EQ.sig && d.gearSig !== EQ.gearSig && EQ.doll) { EQ.gearSig = d.gearSig; X.regear(EQ.doll); }
+  if (sig !== EQ.sig) { EQ.sig = sig; EQ.gearSig = d.gearSig; if (EQ.doll) { EQ.scene.remove(EQ.doll.root); EQ.doll.disposed = true; } EQ.doll = X.makeDoll(); EQ.scene.add(EQ.doll.root); }
 }
 export function updateEquip(dt) {
   if (!EQ.open || EQ.win.classList.contains('ui-min') || !EQ.doll) return; EQ.t += dt; if (EQ.t < 1 / 30) return; const d = EQ.t; EQ.t = 0;
