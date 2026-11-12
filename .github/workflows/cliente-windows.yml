@@ -1,0 +1,37 @@
+name: Cliente Windows (Godot)
+on:
+  push:
+    branches: [main]
+    paths: ['cliente-godot/**', '.github/workflows/cliente-windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GODOT: 4.7.2-stable
+      TPL: 4.7.2.stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Baixar o Godot e os modelos de exportacao
+        run: |
+          curl -sSfL -o godot.zip https://github.com/godotengine/godot/releases/download/$GODOT/Godot_v${GODOT}_linux.x86_64.zip
+          unzip -q godot.zip
+          curl -sSfL -o tpl.tpz https://github.com/godotengine/godot/releases/download/$GODOT/Godot_v${GODOT}_export_templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/$TPL
+          unzip -qj tpl.tpz templates/version.txt templates/windows_release_x86_64.exe templates/windows_release_x86_64_console.exe -d ~/.local/share/godot/export_templates/$TPL
+      - name: Gerar o executavel
+        run: |
+          cd cliente-godot
+          mkdir -p build
+          ../Godot_v${GODOT}_linux.x86_64 --headless --path . --import || true
+          ../Godot_v${GODOT}_linux.x86_64 --headless --path . --export-release "Windows Desktop" build/Valtheria.exe
+          test -s build/Valtheria.exe
+          cd build && zip -9 Valtheria-Windows.zip Valtheria.exe
+      - name: Publicar em Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete cliente-prototipo --yes --cleanup-tag || true
+          gh release create cliente-prototipo cliente-godot/build/Valtheria-Windows.zip --prerelease --title "Valtheria - cliente Windows (prototipo)" --notes "Cliente nativo de teste (Godot, DirectX 12 ou Vulkan). Baixe o zip, extraia e abra Valtheria.exe. O Windows pode mostrar o aviso de editor desconhecido: clique em Mais informacoes e depois em Executar assim mesmo."
