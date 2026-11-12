@@ -114,7 +114,7 @@ body.touch #target{top:52px;width:220px}
 body.touch #zone{top:100px;font-size:12px}
 @media (orientation:portrait){body.touch #hud::after{content:'↻ Gire o celular para jogar na horizontal';position:absolute;left:50%;top:45%;transform:translateX(-50%);background:#000c;color:#f2c46d;padding:10px 16px;border-radius:6px;font-size:14px;pointer-events:none;white-space:nowrap}}
 
-@media (max-height:500px){body.touch #mm-wrap{transform:scale(.85);transform-origin:right top}body.touch .side.right{display:none}}
+@media (max-height:500px){body.touch #mm-wrap{transform:scale(.85);transform-origin:right top}}
 
 img.ic3d{width:40px;height:40px;border-radius:6px;display:block;margin:0 auto;image-rendering:auto}img.ic3d.big{width:64px;height:64px}
 .slot .ic img.ic3d{width:46px;height:46px}
@@ -176,3 +176,12 @@ body.touch #bar2-wrap{display:none}
 .eq-foot{padding:6px 8px 8px;border-top:1px solid #5a4630;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 @media(max-width:1500px){body:not(.touch) #menu{flex-wrap:wrap;width:150px;justify-content:flex-end}body:not(.touch) #menu button{width:34px;height:34px;font-size:15px}}
 @media(max-height:760px){#eq-cv{height:300px!important;width:205px!important}.eq-slot{min-height:62px}}
+/* ---- celular: equipamento em tela cheia, abas roláveis ---- */
+body.touch #equip{left:0!important;top:0!important;right:0;bottom:0;width:auto;border-radius:0;overflow-y:auto}
+body.touch .eq-body{padding:4px}body.touch #eq-cv{width:150px!important;height:215px!important}body.touch .eq-col{width:78px;gap:3px}body.touch .eq-slot{min-height:50px;padding:2px}body.touch .eq-slot .ic{font-size:20px;height:26px}
+body.touch .eq-acc{grid-template-columns:repeat(8,1fr)}body.touch #equip .phead button{font-size:22px;padding:2px 12px}
+body.touch #p-tabs{overflow-x:auto;flex-wrap:nowrap}body.touch #p-tabs button{white-space:nowrap;font-size:13px;padding:7px 10px}
+body.touch .phead button{font-size:22px;padding:2px 12px}
+/* celular deitado: os dois lados cabem (antes o lado direito sumia e não dava para entrar no mundo) */
+@media (max-height:500px){body.touch .screen.clear{padding:6px;align-items:stretch}body.touch .side,body.touch .side.right{width:38vw;padding:8px 10px;font-size:12px}body.touch .side .logo.small{font-size:16px}body.touch .side button.primary{padding:9px 10px;font-size:14px}}
+@media (orientation:portrait){body.touch .screen.clear{flex-direction:column;padding:6px;gap:6px;justify-content:flex-start;overflow:auto}body.touch .side,body.touch .side.right{width:100%;max-height:48vh}}
