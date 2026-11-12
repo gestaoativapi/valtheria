@@ -7,11 +7,11 @@ import * as THREE from './lib/three.module.min.js';
 function espadaHarmonia() {
   const group = new THREE.Group(); group.name = 'Espada_Celestial_da_Harmonia';
   const steel = new THREE.MeshStandardMaterial({ name: 'blade', color: 0xd5dde6, metalness: 1, roughness: 0.2 });
-  const gold = new THREE.MeshStandardMaterial({ name: 'gold', color: 0xd6a03c, metalness: 1, roughness: 0.28 });
-  const grip = new THREE.MeshStandardMaterial({ name: 'grip', color: 0x0c1420, metalness: 0.1, roughness: 0.75 });
-  const chan = new THREE.MeshStandardMaterial({ name: 'gem', color: 0x0b3a78, metalness: 0.6, roughness: 0.25, emissive: 0x0a4ab0, emissiveIntensity: 0.55 });
-  const glow = new THREE.MeshStandardMaterial({ name: 'gem', color: 0x7fe8ff, emissive: 0x2ac8ff, emissiveIntensity: 2.2, metalness: 0, roughness: 0.3 });
-  const gem = new THREE.MeshStandardMaterial({ name: 'gem', color: 0x1a8aee, emissive: 0x0a5ae0, emissiveIntensity: 0.55, metalness: 0.2, roughness: 0.08, flatShading: true });
+  const gold = new THREE.MeshStandardMaterial({ name: 'gold', color: 0xb9954e, metalness: 1, roughness: 0.34 });
+  const grip = new THREE.MeshStandardMaterial({ name: 'grip', color: 0x2a1e16, metalness: 0.1, roughness: 0.75 });
+  const chan = new THREE.MeshStandardMaterial({ name: 'gem', color: 0x3a3d44, metalness: 0.9, roughness: 0.4, emissive: 0x000000, emissiveIntensity: 0 });
+  const glow = new THREE.MeshStandardMaterial({ name: 'gem', color: 0xe8d9b0, emissive: 0xd8b060, emissiveIntensity: 0.7, metalness: 0, roughness: 0.3 });
+  const gem = new THREE.MeshStandardMaterial({ name: 'gem', color: 0xa8bad6, emissive: 0x8fa8d8, emissiveIntensity: 0.35, metalness: 0.2, roughness: 0.08, flatShading: true });
   const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; group.add(m); return m; };
   const ext = (shape, depth, bevel = 0) => { const g = new THREE.ExtrudeGeometry(shape, { depth, steps: 1, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 1, curveSegments: 10 }); g.translate(0, 0, -depth / 2); return g; };
   const Y0 = 0.135, Y1 = 1.0, half = y => { const k = (y - Y0) / (Y1 - Y0); return k < 0.68 ? 0.036 + 0.012 * Math.sin(k / 0.68 * Math.PI * 0.5) : 0.048 * Math.pow(1 - (k - 0.68) / 0.32, 0.8); };

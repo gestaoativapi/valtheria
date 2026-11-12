@@ -836,7 +836,7 @@ function updateMe(dt) {
     }
     if (S.gatherAt && Math.hypot(S.gatherAt.x - me.x, S.gatherAt.z - me.z) < 3.2) { S.dest = null; S.channel = { node: S.gatherAt, start: now(), end: now() + 2000 }; S.gatherAt = null; playAttack(me, 'melee'); }
     if (S.npcAt && Math.hypot(S.npcAt.x - me.x, S.npcAt.z - me.z) < 4) { S.dest = null; const n = S.npcAt; S.npcAt = null; faceTo(n.x, n.z); openNpc(n); }
-    if (S.dest) { const dx = S.dest.x - me.x, dz = S.dest.z - me.z, d = Math.hypot(dx, dz); const stop = S.npcAt ? 3.5 : S.gatherAt ? 2.6 : 0.3; if (d < stop) { S.dest = null; destRing.visible = false; } else { vx = dx / d; vz = dz / d; } }
+    if (S.dest) { const dx = S.dest.x - me.x, dz = S.dest.z - me.z, d = Math.hypot(dx, dz); const stop = S.npcAt ? 3.5 : S.gatherAt ? 2.6 : 0.3; if (d < stop) { S.dest = null; destRing.visible = false; S._dd = 0; } else { vx = dx / d; vz = dz / d; S._dd = Math.max(0.01, d - (stop > 0.3 ? stop - 0.2 : 0)); } } else S._dd = 0;
   }
   // fôlego: corrida (Shift), esquiva (Q) e escalada automática em encostas íngremes
   const sprint = (keys.ShiftLeft || keys.ShiftRight || S.sprintBtn) && (vx || vz) && S.sta > 5 && !S.dead;
@@ -845,6 +845,7 @@ function updateMe(dt) {
   if (vx || vz) {
     const l = Math.hypot(vx, vz), h0 = WG.height(me.x, me.z);
     let sp = st.speed * dt * (S.roll && now() < S.roll.end ? 2.6 : sprint ? 1.45 : 1) * mountSpeed() * (S.fly ? (COMP.riding ? 1.15 : 1.7) : 1);
+    if (S.dest && S._dd && !(S.roll && now() < S.roll.end)) sp = Math.min(sp, S._dd); // não passa do destino (evita o vai-e-volta ao parar)
     const px = me.x + vx / l * sp, pz = me.z + vz / l * sp, grade = (WG.height(px, pz) - h0) / Math.max(sp, 1e-4);
     if (S.fly) { /* voando: sem obstáculo de terreno */ }
     else if (grade > 0.95 && COMP.riding) { sp = 0; if (now() - (S.staWarn || 0) > 2500) { S.staWarn = now(); toast('A montaria não escala paredes — desmonte (R) para escalar', 'err'); } }

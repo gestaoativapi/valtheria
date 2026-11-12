@@ -100,9 +100,11 @@ export function updateComp(dt, moving, speed) {
     if (tg && Math.hypot(tg.x - me.x, tg.z - me.z) < 14) { tx = tg.x + 1.2; tz = tg.z + 1.2; fighting = Math.hypot(tg.x - P.x, tg.z - P.z) < 2.4; }
     const dx = tx - P.x, dz = tz - P.z, dist = Math.hypot(dx, dz);
     if (dist > 30) { P.x = tx; P.z = tz; }
-    const sp = dist > 6 ? speed * 1.15 : dist > 1.2 ? speed * 0.7 : 0; if (sp) { P.x += dx / dist * sp * dt; P.z += dz / dist * sp * dt; P.ry = Math.atan2(dx, dz); }
+    // histerese: só volta a andar quando o dono se afasta, e não ultrapassa o ponto de parada (sem tremer ao parar)
+    if (!P.go && dist > (fighting || tg ? 1.4 : 2.6)) P.go = true; else if (P.go && dist < 0.35) P.go = false;
+    const sp = !P.go ? 0 : dist > 6 ? speed * 1.15 : dist > 1.6 ? speed * 0.8 : Math.max(1.6, speed * 0.45); if (sp) { const stp = Math.min(sp * dt, dist); P.x += dx / dist * stp; P.z += dz / dist * stp; if (dist > 0.25) P.ry = Math.atan2(dx, dz); } else if (!moving && !fighting) P.ry = me.ry;
     if (fighting && t > P.nextAtk) { P.nextAtk = t + 2200; P.play('attack', { once: true, fade: 0.08 }); P.atkUntil = t + 700; P.ry = Math.atan2(tg.x - P.x, tg.z - P.z); X.petHit(tg, 0.18); }
-    else if (!(P.atkUntil > t)) P.play(sp > 6 ? 'run' : sp ? 'walk' : (Math.sin(t / 4000) > 0.7 ? 'eat' : 'idle'));
+    else if (!(P.atkUntil > t)) { const want = sp > 6 ? 'run' : sp ? 'walk' : (Math.sin(t / 4000) > 0.7 ? 'eat' : 'idle'); if (want !== P.want) { P.want = want; P.wantAt = t; } if (P.cur !== want && (t - P.wantAt > 140 || !P.cur)) { P.cur = want; } P.play(P.cur || want); }
     let a = P.root.rotation.y, dd = P.ry - a; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); P.root.rotation.y = a + dd * Math.min(1, dt * 8);
     const py = WG.height(P.x, P.z) + (d?.flyer ? 1.4 + Math.sin(t / 300) * 0.15 : 0) + (S.fly && d?.flyer ? S.alt : 0); P.root.position.set(P.x, py, P.z); P.mixer.update(dt);
   }
