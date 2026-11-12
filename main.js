@@ -29,7 +29,7 @@ const NODES = WG.genNodes().filter(WG.nodeVisible); window.NODES_BY_ID = {}; NOD
 window.TELEPORTS = []; GD.TOWNS.forEach(t => { TELEPORTS.push({ id: 'town:' + t.id, name: t.name, x: t.x, z: t.z + 25, lvl: t.min, town: true }); t.spotsPos.forEach((s, i) => TELEPORTS.push({ id: `spot:${t.id}:${i}`, name: s.name, x: s.x, z: s.z, lvl: s.lvl })); });
 GD.LANDMARKS.forEach(L => TELEPORTS.push({ id: 'lm:' + L.id, name: L.name, x: L.x, z: L.z + 40, lvl: L.lvl, lm: true }));
 TELEPORTS.forEach(t => t.cost = GD.teleCost(t.lvl));
-const FAM = {}; GD.MOBS.forEach((g, gi) => g.forEach(f => { f.grade = gi; FAM[f.id] = f; })); GD.NEON_MOBS.forEach(f => { FAM[f.id] = f; }); GD.SPECIAL_BOSSES.forEach(f => { f.grade = Math.min(5, GD.gradeForLevel((GD.LANDMARKS.find(l => l.boss === f.id) || {}).lvl || 1)); FAM[f.id] = f; });
+const FAM = {}; GD.MOBS.forEach((g, gi) => g.forEach(f => { f.grade = gi; FAM[f.id] = f; })); GD.NEON_MOBS.forEach(f => { FAM[f.id] = f; }); setTimeout(() => Object.values(FAM).forEach(f => Object.assign(f, GD.mobKind(f.id))), 0); GD.SPECIAL_BOSSES.forEach(f => { f.grade = Math.min(5, GD.gradeForLevel((GD.LANDMARKS.find(l => l.boss === f.id) || {}).lvl || 1)); FAM[f.id] = f; });
 const NPC_TYPES = [
   ['portal', 'Guardião do Portal', '#4a7ab0'], ['classe', 'Mestre de Classes', '#a87a2a'], ['ferreiro', 'Ferreiro', '#6a4a3a'],
   ['refino', 'Refinador e Alquimista', '#3a7a4a'], ['mercador', 'Mercador', '#8a6a2a'], ['leilao', 'Casa de Leilões', '#6a3a8a'], ['arauto', 'Arauto do Eclipse', '#b03a3a'],
@@ -452,7 +452,7 @@ function hitTarget(t, mult, st, proj, sk) {
       const targets = sk && sk.aoe ? S.mobs.filter(o => !o.dead && Math.hypot(o.x - (sk.self ? me.x : m.x), o.z - (sk.self ? me.z : m.z)) < sk.aoe + 0.8) : [m];
       targets.forEach(o => {
         let mul = mult; if (sk && sk.execute && o.hp / o.maxHp < 0.3) mul *= 2;
-        const F = st.fx || {}; if (o.frozenUntil > now()) mul *= 1.4;
+        const F = st.fx || {}; if (o.frozenUntil > now()) mul *= 1.4; { const em = GD.elemMult(elemOf(sk), o.fam.elem); if (em !== 1) { mul *= em; floatText(o.x, WG.height(o.x, o.z) + 2.9 * o.fam.scale, o.z, em > 1 ? '💥 Eficaz!' : '🛡️ Resistiu', em > 1 ? '#ffe36a' : '#9ab', 20); } }
         const d = dmgVs(st.atk, mul, o.st.def * (1 + debOf(o, 'def')), st.crit, st.critDmg); hurtMob(o, d.v, d.crit); hitFx(o, st, d.crit, sk);
         // efeitos especiais da arma
         if (!o.dead || o.hp > -1e9) {
@@ -737,7 +737,7 @@ function spawnMob(fam, L, x, z) {
   const R = buildMob(fam), st = GD.mobStats(L, fam.boss);
   const m = { id: ++S.mobSeq, kind: 'mob', fam, L, st, hp: st.hp, maxHp: st.hp, x, z, ry: Math.random() * 6, home: { x, z }, model: R, aggro: false, nextAtk: 0, stunUntil: 0, slowUntil: 0, dots: [], wander: null, wanderT: 0, dead: false };
   const diff = L - S.c.level, col = diff >= 5 ? '#ff5050' : diff >= 2 ? '#ffd050' : diff >= -2 ? '#ffffff' : diff >= -5 ? '#7fd0ff' : '#6fa86f';
-  const lb = makeLabel(`${fam.boss ? '👑 ' : ''}${fam.name} Nv.${L}`, col, fam.boss ? 34 : 26); lb.position.y = (fam.model === 'golem' ? 3 : fam.model === 'ent' ? 4.4 : fam.model === 'dragon' ? 2.8 : 2.1) + 0.2; lb.scale.multiplyScalar(1 / fam.scale); R.root.add(lb);
+  const lb = makeLabel(`${fam.boss ? '👑 ' : ''}${ELEM[fam.elem]?.icon || ''}${fam.role === 'mago' ? '🪄' : ''} ${fam.name} Nv.${L}`, col, fam.boss ? 34 : 26); lb.position.y = (fam.model === 'golem' ? 3 : fam.model === 'ent' ? 4.4 : fam.model === 'dragon' ? 2.8 : 2.1) + 0.2; lb.scale.multiplyScalar(1 / fam.scale); R.root.add(lb);
   R.root.position.set(x, WG.height(x, z), z); R.root.traverse(o => o.userData.pick = { kind: 'mob', ref: m }); scene.add(R.root); S.mobs.push(m);
   if (fam.boss) { addChat({ kind: 'sys', msg: `⚠ ${fam.name} (Nv. ${L}) surgiu por perto!` }); }
   return m;
@@ -769,6 +769,7 @@ function spawner() {
     break;
   }
 }
+const EL_FX = { fogo: 'fire', gelo: 'ice', raio: 'arcane', agua: 'ice', vento: 'wind', terra: 'earth', luz: 'holy', sombra: 'dark', natureza: 'nature' };
 function neonSpawner() {
   const N = GD.NEON, cap = 10 + Math.round(S.c.level / 12); if (S.mobs.filter(m => !m.dead && !m.fam.boss).length >= cap) return;
   for (let k = 0; k < 8; k++) { const a = Math.random() * Math.PI * 2, d = 30 + Math.random() * 45, x = me.x + Math.cos(a) * d, z = me.z + Math.sin(a) * d;
@@ -789,13 +790,15 @@ function updateMobs(dt) {
     if (m.aggro && (S.dead || inTown || dH > 70)) { m.aggro = false; m.returning = true; }
     if (m.returning) { m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.25 * dt); if (dH < 3) { m.returning = false; m.hp = m.maxHp; m.wander = null; } }
     let tx = null, tz = null, spd = m.st.speed * (t < m.slowUntil ? 0.55 : 1) * (1 + Math.max(-0.9, debOf(m, 'speed'))) * (m.fam.boss ? 0.9 : 1);
-    const reach = 1.6 * m.fam.scale + 0.6;
+    const mage = m.fam.role === 'mago', reach = mage ? 9.5 : 1.6 * m.fam.scale + 0.6;
+    if (m.aggro && m.fam.elem && Math.random() < dt * 3) { const E = ELEM[m.fam.elem]; if (E) emit(m.x + (Math.random() - 0.5) * m.fam.scale, WG.height(m.x, m.z) + Math.random() * 1.6 * m.fam.scale, m.z + (Math.random() - 0.5) * m.fam.scale, { n: 1, color: E.c, speed: 0.3, up: 1.4, life: 0.8, size: 0.16 + 0.05 * m.fam.scale, grav: -0.8 }); }
     if (t < m.stunUntil) { /* atordoado */ }
     else if (t < (m.fearUntil || 0)) { tx = m.x + (m.x - me.x); tz = m.z + (m.z - me.z); spd *= 1.1; }
     else if (t < (m.confUntil || 0)) { if (!m.wander || t > m.wanderT) { m.wanderT = t + 900; m.wander = { x: m.x + (Math.random() - 0.5) * 10, z: m.z + (Math.random() - 0.5) * 10 }; } tx = m.wander.x; tz = m.wander.z; spd *= 0.6; }
     else if (t < (m.rootUntil || 0) && dP > reach) { /* enraizado: não anda, mas ataca se estiver perto */ }
     else if (m.returning) { tx = m.home.x; tz = m.home.z; spd *= 1.6; }
-    else if (m.aggro) { if (dP > reach) { tx = me.x; tz = me.z; spd *= 1.25; } else if (t >= m.nextAtk) { m.nextAtk = t + 1500; m.model.anim.atk = now(); m.ry = Math.atan2(me.x - m.x, me.z - m.z); const d = dmgVs(m.st.atk * (1 + debOf(m, 'atk')), 1, st.pdef, 0.05); hurtMe(d.v); } }
+    else if (m.aggro) { if (dP > reach) { tx = me.x; tz = me.z; spd *= 1.25; } else if (t >= m.nextAtk) { m.nextAtk = t + 1500; m.model.anim.atk = now(); m.ry = Math.atan2(me.x - m.x, me.z - m.z); if (mage) { const d = dmgVs(m.st.atk * (1 + debOf(m, 'atk')), 0.9, st.mdef, 0.05), el = m.fam.elem; m.nextAtk = t + 2100; castBurst(el, m.x, m.z, 1.6 * m.fam.scale); projectile(m.x, m.z, me.x, me.z, 'magic', EL_FX[el], () => { if (!S.dead && Math.hypot(me.x - m.x, me.z - m.z) < 30) { hurtMe(d.v); elemImpact(el, me.x, me.z, 1.3, 0.4); } }); }
+      else { const pw = Math.random() < 0.2, d = dmgVs(m.st.atk * (1 + debOf(m, 'atk')), pw ? 1.15 : 1, st.pdef, 0.05); hurtMe(d.v); if (pw) elemImpact(m.fam.elem, me.x, me.z, 1.2, 0.4); } } }
     else { if (!m.wander || t > m.wanderT) { m.wanderT = t + 3000 + Math.random() * 4000; m.wander = Math.random() < 0.5 ? null : { x: m.home.x + (Math.random() - 0.5) * 30, z: m.home.z + (Math.random() - 0.5) * 30 }; } if (m.wander) { tx = m.wander.x; tz = m.wander.z; spd *= 0.35; } }
     let moving = false;
     if (tx != null) { const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz); if (d > 0.5) { const nx = m.x + dx / d * spd * dt, nz = m.z + dz / d * spd * dt; if (!blocked(nx, nz) && !inSafe(nx, nz)) { m.x = nx; m.z = nz; moving = true; } else if (!blocked(nx, m.z) && !inSafe(nx, m.z)) { m.x = nx; moving = true; } else if (!blocked(m.x, nz) && !inSafe(m.x, nz)) { m.z = nz; moving = true; } else if (m.returning) { m.x = m.home.x; m.z = m.home.z; } else m.wander = null; m.ry = Math.atan2(dx, dz); } }
@@ -1517,7 +1520,7 @@ function updateHud() {
   const bv = Object.entries(S.buffs).filter(([k]) => !['invuln', 'lifesteal', 'dodge', 'gmspeed'].includes(k)).map(([k, b]) => `${b.icon || '✨'}${Math.ceil((b.until - now()) / 1000)}s`).join(' ');
   $('#st-extra').innerHTML = `🪙 ${Number(c.aurum).toLocaleString('pt-BR')}${c.karma ? ` • <span style="color:#f66">Karma ${c.karma}</span>` : ''}${S.flagUntil > Date.now() ? ' • <span style="color:#d38cff">PvP</span>' : ''} ${bv}`;
   const t = S.target; $('#target').hidden = !t || t.ref.dead;
-  if (t && !t.ref.dead) { if (t.kind === 'mob') { $('#tg-name').innerHTML = `${t.ref.fam.boss ? '👑 ' : ''}${esc(t.ref.fam.name)} <span class="small">Nv. ${t.ref.L}</span>`; $('#tg-hp').style.width = 100 * t.ref.hp / t.ref.maxHp + '%'; $('#tg-act').innerHTML = ''; }
+  if (t && !t.ref.dead) { if (t.kind === 'mob') { $('#tg-name').innerHTML = `${t.ref.fam.boss ? '👑 ' : ''}${esc(t.ref.fam.name)} <span class="small">Nv. ${t.ref.L} • ${ELEM[t.ref.fam.elem]?.icon || ''} ${ELEM[t.ref.fam.elem]?.name || ''} • ${t.ref.fam.role === 'mago' ? 'Mago' : 'Guerreiro'}</span>`; $('#tg-hp').style.width = 100 * t.ref.hp / t.ref.maxHp + '%'; $('#tg-act').innerHTML = ''; }
     else if (t.kind === 'player') { $('#tg-name').innerHTML = `${esc(t.ref.n)} <span class="small">Nv. ${t.ref.l}${t.ref.k ? ' • Karma' : ''}${t.ref.f ? ' • PvP' : ''}</span>`; $('#tg-hp').style.width = (t.ref.hpPct ?? 100) + '%'; $('#tg-act').innerHTML = '<button class="btn red" id="tg-atk">Atacar (Ctrl+clique)</button>'; $('#tg-atk').onclick = () => S.autoAtk = true; }
     else if (t.kind === 'npc') { $('#tg-name').textContent = t.ref.name; $('#tg-hp').style.width = '100%'; $('#tg-act').innerHTML = ''; }
     else if (t.kind === 'node') { $('#tg-name').innerHTML = `${{ madeira: 'Árvore', minerio: 'Veio de Minério', fibra: 'Algodoeiro' }[t.ref.type]} <span class="small">grau ${GD.GRADES[t.ref.grade].id}</span>`; $('#tg-hp').style.width = '100%'; $('#tg-act').innerHTML = ''; } }

@@ -14,8 +14,8 @@ export function toon(color, o = {}) {
   }
   return tcache.get(k);
 }
-const OUT = new THREE.MeshBasicMaterial({ color: 0x1a1210, side: THREE.BackSide });
-OUT.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normal * 0.011;'); };
+const OUT = new THREE.MeshBasicMaterial({ color: 0x241a16, side: THREE.BackSide, transparent: true, opacity: 0.7 });
+OUT.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normal * 0.0065;'); };
 function ol(mesh) { // contorno estilo anime
   const o = new THREE.Mesh(mesh.geometry, OUT); o.raycast = () => {}; mesh.add(o); return mesh;
 }

@@ -52,6 +52,10 @@ export const MOB_GLB = {
   plasmoide: { m: 'x_glub', len: 1.3, tint: '#5aff7a', tintMix: 0.35, emissive: 0x2aff5a, ei: 0.55, lift: 0.9 }, andarilho: { m: 'x_walker', len: 1.5, emissive: 0x2a8aff, ei: 0.3, keepMetal: true },
   mecha_batedor: { m: 'x_mech', len: 2.4, emissive: 0xffa02a, ei: 0.25, keepMetal: true }, colosso: { m: 'x_brute', len: 3.6, tint: '#4a2a8a', tintMix: 0.35, emissive: 0x8a3aff, ei: 0.35, keepMetal: true },
   mecha_omega: { m: 'x_leela', len: 3.4, emissive: 0x3af0ff, ei: 0.35, keepMetal: true },
+  // dragões e répteis (Quaternius Animated Dinosaur Pack, CC0) e golens
+  dragonete: { m: 'z_raptor', len: 2.3, tint: '#6a4a9a', tintMix: 0.6, emissive: 0x3a1a7a, ei: 0.25 }, dragao: { m: 'z_trex', len: 2.6, tint: '#d0b060', tintMix: 0.55, emissive: 0x7a4a10, ei: 0.3 },
+  wyrm_gelo: { m: 'z_trex', len: 2.6, tint: '#9ad0f0', tintMix: 0.7, emissive: 0x2a6a9a, ei: 0.35 }, hidra: { m: 'z_apato', len: 3.2, tint: '#3a7a4a', tintMix: 0.6, emissive: 0x0a3a1a, ei: 0.2 },
+  golem: { m: 'x_brute', len: 2.2, tint: '#8a8478', tintMix: 0.85 }, golem_anc: { m: 'x_brute', len: 2.3, tint: '#5a6a7a', tintMix: 0.85, emissive: 0x2a5a8a, ei: 0.25 }, guardiao_ruinas: { m: 'x_brute', len: 2.3, tint: '#6a7a6a', tintMix: 0.85, emissive: 0x2a6a3a, ei: 0.25 },
   sapo_g: { m: 'e_frog', len: 1.8, tint: '#2a4a1a', tintMix: 0.45, emissive: 0x1a3a0a }, rato_g: { m: 'e_rat', len: 1.9, tint: '#4a3a2a', tintMix: 0.4 }, vespa_g: { m: 'e_wasp', len: 1.8, tint: '#3a1a6a', tintMix: 0.5, emissive: 0x5a2aaa },
 };
 export async function attachMobGLB(R, fam, def) {

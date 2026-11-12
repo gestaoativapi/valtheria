@@ -37,7 +37,7 @@ export function initPost(renderer, scene, camera) {
   const rt = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: 0 });
   const comp = new EffectComposer(renderer, rt);
   comp.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.45, 0.55, 0.86); comp.addPass(bloom);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.36, 0.5, 0.9); comp.addPass(bloom);
   comp.addPass(new OutputPass());
   const grade = new ShaderPass(GradeShader); comp.addPass(grade);
   const fxaa = new ShaderPass(FXAAShader); comp.addPass(fxaa);
@@ -47,7 +47,7 @@ export function initPost(renderer, scene, camera) {
 export function setPostQuality(level) { // alta: bloom + MSAA; media: bloom leve + FXAA; baixa: desligado
   if (!POST.composer) return; POST.on = level !== 'baixa';
   POST.rt.samples = level === 'alta' ? 4 : 0; POST.fxaa.enabled = level !== 'alta'; POST.bloom.enabled = true;
-  POST.bloom.strength = level === 'alta' ? 0.5 : 0.38; resizePost();
+  POST.bloom.strength = level === 'alta' ? 0.4 : 0.3; resizePost();
 }
 export function resizePost() {
   if (!POST.composer) return; const r = POST.renderer, s = r.getDrawingBufferSize(new THREE.Vector2()), pr = r.getPixelRatio();
@@ -61,6 +61,6 @@ export function renderPost(dt, o) {
   const u = POST.grade.material.uniforms; G.hurt = Math.max(0, G.hurt - dt * 1.8); G.flash = Math.max(0, G.flash - dt * 2.5);
   u.time.value += dt; u.hurt.value = G.hurt; u.flash.value = G.flash; u.lowHp.value = o.lowHp; u.night.value = o.night;
   u.tintAmt.value += ((o.tint ? 0.35 : 0) - u.tintAmt.value) * Math.min(1, dt * 1.5); if (o.tint) u.tint.value.set(o.tint);
-  POST.bloom.threshold = 0.86 - o.night * 0.18; // à noite as luzes e magias brilham mais
+  POST.bloom.threshold = 0.9 - o.night * 0.14; // à noite as luzes e magias brilham mais
   POST.composer.render(dt);
 }

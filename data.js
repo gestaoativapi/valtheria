@@ -41,6 +41,14 @@
     flags: ['🦅', '🐉', '🦁', '🐺', '🦂', '🐍', '🦇', '🔥', '⚡', '❄️', '🌙', '☀️', '⭐', '💀', '👑', '⚔️', '🛡️', '🌹', '🍀', '🔱'],
   };
   const CASTLES = ['castelo_corvos', 'forte_bandido', 'castelo_sangue'];
+  // ----- monstros: papel (guerreiro corpo a corpo ou mago à distância) e elemento -----
+  const MOB_KIND = { javali: 'g/terra', lobo: 'g/vento', rei_javali: 'g/terra', bandido: 'g/fogo', aranha: 'm/natureza', rainha: 'm/natureza', golem: 'g/terra', esqueleto: 'g/sombra', golem_anc: 'g/terra', ent: 'm/natureza', lobo_esp: 'g/gelo', ent_mil: 'm/natureza',
+    demonio: 'm/fogo', lagarto: 'g/agua', senhor_dem: 'm/fogo', dragonete: 'm/raio', caido: 'g/sombra', dragao: 'm/fogo', drone_sent: 'm/raio', andarilho: 'g/raio', vigia: 'm/raio', plasmoide: 'm/agua', mecha_batedor: 'g/fogo', colosso: 'g/terra', mecha_omega: 'm/raio',
+    rei_corvo: 'g/vento', guardiao_ruinas: 'g/terra', chefe_saqueador: 'g/fogo', rei_lich: 'm/gelo', sacerdotisa_lua: 'm/luz', hidra: 'm/agua', conde_carmesim: 'm/sombra', wyrm_gelo: 'm/gelo', tumba: 'g/sombra', pantano: 'm/agua', destrocos: 'g/terra', estranho: 'm/raio' };
+  const mobKind = id => { const v = (MOB_KIND[id] || MOB_KIND[String(id).split('_')[0]] || 'g/terra').split('/'); return { role: v[0] === 'm' ? 'mago' : 'guerreiro', elem: v[1] }; };
+  // um elemento é forte contra outro: fogo derrete gelo, gelo trava vento, vento corrói terra, terra aterra raio, raio corre na água, água apaga fogo; luz e sombra se ferem
+  const ELEM_STRONG = { fogo: 'gelo', gelo: 'vento', vento: 'terra', terra: 'raio', raio: 'agua', agua: 'fogo', luz: 'sombra', sombra: 'luz', natureza: 'agua' };
+  const elemMult = (atk, def) => !atk || !def ? 1 : ELEM_STRONG[atk] === def ? 1.2 : ELEM_STRONG[def] === atk ? 0.85 : 1;
   // armas de duas mãos: não permitem escudo
   const TWO_HANDED = ['espadao', 'lanca', 'arco', 'cajado', 'martelo', 'adaga', 'punhos', 'duplas', 'garras'];
   const TWO_HAND_GRIP = ['espadao', 'lanca', 'cajado', 'martelo'];
@@ -649,6 +657,6 @@
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
     RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
-    CLAN, CASTLES, RACE_ELEM, TWO_HANDED, TWO_HAND_GRIP, WORLD, TOWNS, CORE_TOWNS, LANDMARKS, NEON, NEON_MOBS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
+    mobKind, ELEM_STRONG, elemMult, CLAN, CASTLES, RACE_ELEM, TWO_HANDED, TWO_HAND_GRIP, WORLD, TOWNS, CORE_TOWNS, LANDMARKS, NEON, NEON_MOBS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);
