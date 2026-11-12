@@ -31,6 +31,29 @@ const tube = (r1, r2, h, m, s = 12) => M(new THREE.CylinderGeometry(r1, r2, h, s
 
 // ---------- rosto desenhado (olhos, sobrancelhas, boca, cicatrizes) ----------
 const faceCache = new Map();
+// cabeça de dragão: crânio alongado, focinho em cunha, mandíbula com dentes, chifres para trás, crista e olhos de pupila em fenda
+function dragonHead(head, col, eyeCol, hs, fem, ft) {
+  hs *= 1.32;
+  const sc = toon(col), lite = toon(shade(col, 1.35)), dark = toon(shade(col, 0.55)), horn = toon('#d8cdb4'), hornD = toon('#8a7f6a'), blk = toon('#14100e'), wht = toon('#f2ead8'), eye = toon(eyeCol, { emissive: new THREE.Color(eyeCol).getHex(), ei: 0.6 });
+  const add = (m, x, y, z, sx = 1, sy = 1, sz = 1) => { at(m, x * hs, (y - 0.05) * hs, (z + 0.012) * hs); m.scale.set(sx, sy, sz); head.add(ft(m)); return m; };
+  add(ball(0.158 * hs, sc, 18, 14), 0, 0.03, 0, 0.98, 0.94, 1.12); // crânio
+  add(ball(0.105 * hs, sc, 14, 10), 0, -0.15, -0.03, 1.12, 0.95, 1.1); add(ball(0.08 * hs, lite, 12, 8), 0, -0.16, 0.035, 1, 0.9, 0.7); // pescoço e papo claro
+  const up = add(cone(0.1 * hs, 0.34 * hs, sc, 6), 0, 0.0, 0.2, 1.05, 1, 0.66); up.rotation.x = Math.PI / 2; // focinho em cunha
+  add(ball(0.07 * hs, sc, 12, 10), 0, 0.015, 0.11, 1.15, 0.8, 1.2);
+  const jaw = add(cone(0.07 * hs, 0.26 * hs, lite, 6), 0, -0.07, 0.17, 1.0, 1, 0.42); jaw.rotation.x = Math.PI / 2;
+  for (const s of [-1, 1]) {
+    add(ball(0.02 * hs, dark, 8, 6), s * 0.026, 0.03, 0.33, 1, 0.8, 1.2); // narinas
+    for (let i = 0; i < 6; i++) { const t = add(cone(0.008 * hs, 0.03 * hs, wht, 5), s * (0.058 - i * 0.007), -0.045, 0.13 + i * 0.03); t.rotation.x = Math.PI; }
+    const br = add(capsule(0.02 * hs, 0.085 * hs, dark, 6), s * 0.075, 0.105, 0.105, 1, 1, 0.9); br.rotation.x = Math.PI / 2 - 0.25; br.rotation.y = s * 0.35; // arco da sobrancelha
+    add(ball(0.036 * hs, eye, 10, 8), s * 0.088, 0.068, 0.112, 0.7, 0.72, 0.85); add(ball(0.018 * hs, blk, 8, 6), s * 0.1, 0.068, 0.132, 0.28, 1, 0.5); // olho com pupila em fenda
+    const h1 = add(cone(0.042 * hs, 0.4 * hs, horn, 8), s * 0.115, 0.21, -0.16); h1.rotation.x = -2.05; h1.rotation.z = s * 0.55; // chifres principais
+    const h1b = add(cone(0.05 * hs, 0.09 * hs, hornD, 8), s * 0.082, 0.135, -0.03); h1b.rotation.x = -2.05; h1b.rotation.z = s * 0.55;
+    const h2 = add(cone(0.02 * hs, 0.15 * hs, horn, 6), s * 0.135, 0.0, -0.07); h2.rotation.x = -1.7; h2.rotation.z = -s * 0.55; // chifres da bochecha
+    for (let i = 0; i < 3; i++) { const fr = add(cone(0.02 * hs, 0.085 * hs, dark, 4), s * (0.125 + i * 0.006), -0.06 - i * 0.035, -0.02 - i * 0.02, 1, 1, 0.45); fr.rotation.z = -s * (1.9 + i * 0.2); } // babado lateral
+  }
+  for (let i = 0; i < 6; i++) { const c = add(cone(0.02 * hs, (0.07 - i * 0.004) * hs, dark, 4), 0, 0.165 - i * i * 0.006, 0.07 - i * 0.045, 0.6, 1, 1); c.rotation.x = -0.25 - i * 0.3; } // crista
+  const ch = add(cone(0.014 * hs, 0.06 * hs, horn, 5), 0, -0.115, 0.1); ch.rotation.x = Math.PI - 0.5; // espinho do queixo
+}
 // cabeça de fera (leão, tigre, lobo ou crocodilo): crânio que cobre a cabeça humana, focinho, orelhas, olhos e pelagem
 function beastHead(head, kind, col, eyeCol, hs, fem, ft) {
   hs *= 1.32; // a cabeça de fera precisa envolver a cabeça humana do modelo
@@ -169,7 +192,8 @@ export function buildHumanoid(o) {
   if (!f.snout && !beast) { const eL = ear(-1), eR = ear(1); P.head.add(eL, eR); if (f.ears || f.animalEars) FEAT.push(eL, eR); }
   if (beast) beastHead(P.head, beast, skinCol, GD.RACES[race].eyes[look.eye_color] || '#e8b83a', hs, fem, ft);
   else if (f.muzzle) { const mz = at(ball(0.075 * hs, toon(shade(skinCol, 1.12)), 16, 12), 0, -0.05 * hs, 0.12 * hs); mz.scale.set(1, 0.75, 1.1); P.head.add(ft(mz), ft(at(ball(0.025, toon('#222'), 10, 8), 0, -0.02 * hs, 0.2 * hs))); }
-  if (f.snout) {
+  if (race === 'draconato') dragonHead(P.head, skinCol, GD.RACES[race].eyes[look.eye_color] || '#ffcc33', hs, fem, ft);
+  else if (f.snout) {
     const sn = at(capsule(0.05 * hs, 0.07, toon(skinCol)), 0, -0.065 * hs, 0.135 * hs); sn.rotation.x = Math.PI / 2; sn.scale.set(1.15, 1, 0.75); P.head.add(ft(sn));
     [-1, 1].forEach(s => { const h = at(cone(0.03, 0.22, toon('#e8dcc0'), 10), s * 0.08 * hs, 0.12 * hs, -0.1); h.rotation.x = -2.2; h.rotation.z = s * 0.25; P.head.add(ft(h)); });
     const crest = at(cone(0.05, 0.16, toon(shade(skinCol, 0.7)), 4), 0, 0.15 * hs, -0.06); crest.rotation.x = -0.9; P.head.add(ft(crest));
@@ -212,6 +236,9 @@ export function buildHumanoid(o) {
     P.tail = at(G(), 0, 0.02, -0.14); P.hips.add(P.tail);
     let p = P.tail; for (let i = 0; i < 4; i++) { const r = (f.tail === 'fur' ? 0.055 : 0.07) * (1 - i * 0.18); const seg = at(G(), 0, 0, i ? -0.14 : 0); p.add(seg); seg.add(at(capsule(r, 0.1, tm, 8), 0, 0, -0.07)).children.at(-1).rotation.x = Math.PI / 2; seg.rotation.x = 0.35; p = seg; }
   }
+  if (race === 'draconato') { const dk = toon(shade(skinCol, 0.55)); for (let i = 0; i < 5; i++) { const sp = at(cone(0.03, 0.1 - i * 0.008, dk, 4), 0, 0.62 - i * 0.11, -0.135 - Math.sin(i / 4 * Math.PI) * 0.02); sp.rotation.x = -1.25; sp.scale.x = 0.5; P.torso.add(ft(sp)); }
+    for (const sd of [-1, 1]) for (let i = 0; i < 2; i++) { const sp = at(cone(0.028, 0.09, dk, 4), sd * (0.2 + i * 0.045), 0.64 - i * 0.02, -0.02); sp.rotation.z = -sd * (0.5 + i * 0.5); sp.scale.z = 0.6; P.torso.add(ft(sp)); }
+    if (P.tail) { P.tail.scale.set(1.35, 1.35, 1.3); let p = P.tail, k = 0; while (p.children.find(c => c.isGroup)) { p = p.children.find(c => c.isGroup); const sp = at(cone(0.022, 0.07, dk, 4), 0, 0.06 * (1 - k * 0.15), -0.07); sp.scale.x = 0.5; p.add(sp); k++; } } }
   if (beast && P.tail) { if (beast === 'crocodilo') P.tail.scale.set(1.7, 1.4, 1.15); else if (beast === 'leao') { let p = P.tail; while (p.children.find(c => c.isGroup)) p = p.children.find(c => c.isGroup); p.add(at(ball(0.06, toon(shade(skinCol, 0.5)), 8, 6), 0, 0, -0.14)); P.tail.scale.set(0.6, 0.6, 1.25); } else if (beast === 'tigre') P.tail.scale.set(0.7, 0.7, 1.3); }
   if (f.wings) {
     P.wings = at(G(), 0, 0.46, -0.12); P.torso.add(P.wings);
