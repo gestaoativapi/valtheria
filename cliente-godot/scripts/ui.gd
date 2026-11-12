@@ -14,6 +14,7 @@ signal want_new_char
 signal want_create(o: Dictionary)
 signal want_preview(o: Dictionary)
 signal want_back_to_chars
+signal want_skill(i: int)
 
 const GOLD := Color(0.86, 0.72, 0.42)
 
@@ -40,6 +41,16 @@ var race_ids: Array = []
 var place_label: Label
 var last_chars: Array = []
 var last_account := ""
+var bar_hp: ProgressBar
+var bar_mp: ProgressBar
+var bar_xp: ProgressBar
+var bar_txt := {}
+var tgt_box: PanelContainer
+var tgt_name: Label
+var tgt_bar: ProgressBar
+var hot: Array[Button] = []
+var toast: Label
+var toast_until := 0.0
 
 
 func _ready() -> void:
@@ -239,6 +250,57 @@ func _build_hud() -> void:
 	pv.add_child(who)
 	place_label = _label("", 14, Color(0.85, 0.88, 0.92))
 	pv.add_child(place_label)
+	bar_hp = _bar(pv, Color(0.78, 0.2, 0.18), "hp")
+	bar_mp = _bar(pv, Color(0.2, 0.42, 0.85), "mp")
+	bar_xp = _bar(pv, Color(0.8, 0.66, 0.25), "xp")
+
+	tgt_box = PanelContainer.new()
+	tgt_box.add_theme_stylebox_override("panel", ps)
+	tgt_box.anchor_left = 0.5
+	tgt_box.anchor_right = 0.5
+	tgt_box.offset_left = -170
+	tgt_box.offset_right = 170
+	tgt_box.offset_top = 16
+	tgt_box.visible = false
+	hud.add_child(tgt_box)
+	var tv := VBoxContainer.new()
+	tgt_box.add_child(tv)
+	tgt_name = _label("", 16, Color(1, 0.92, 0.8))
+	tgt_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tv.add_child(tgt_name)
+	tgt_bar = _bar(tv, Color(0.78, 0.2, 0.18), "tgt")
+
+	var hb := HBoxContainer.new()
+	hb.anchor_left = 0.5
+	hb.anchor_right = 0.5
+	hb.anchor_top = 1.0
+	hb.anchor_bottom = 1.0
+	hb.offset_left = -330
+	hb.offset_right = 330
+	hb.offset_top = -112
+	hb.offset_bottom = -44
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 6)
+	hud.add_child(hb)
+	for i in 6:
+		var b := _button("")
+		b.custom_minimum_size = Vector2(104, 64)
+		b.add_theme_font_size_override("font_size", 12)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.focus_mode = Control.FOCUS_NONE
+		b.pressed.connect(func(): want_skill.emit(i))
+		hb.add_child(b)
+		hot.append(b)
+
+	toast = _label("", 22, Color(1, 0.93, 0.7), true)
+	toast.anchor_left = 0.0
+	toast.anchor_right = 1.0
+	toast.offset_top = 96
+	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	toast.add_theme_constant_override("outline_size", 8)
+	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(toast)
 
 	var right := PanelContainer.new()
 	right.add_theme_stylebox_override("panel", ps)
@@ -271,7 +333,7 @@ func _build_hud() -> void:
 	back.pressed.connect(func(): want_exit_to_login.emit())
 	v.add_child(back)
 
-	var help := _label("W A S D ou clique no chão: andar   ·   Shift: correr   ·   botão direito + arrastar: girar a câmera   ·   roda do mouse: zoom   ·   1 2 3: golpes   ·   E: dançar", 14, Color(0.9, 0.9, 0.92))
+	var help := _label("W A S D ou clique no chão: andar   ·   clique no monstro: alvo (2º clique ou F: atacar)   ·   Tab: próximo alvo   ·   1 a 6: habilidades   ·   botão direito: câmera   ·   roda: zoom", 14, Color(0.9, 0.9, 0.92))
 	help.anchor_top = 1.0
 	help.anchor_bottom = 1.0
 	help.anchor_right = 1.0
@@ -280,6 +342,80 @@ func _build_hud() -> void:
 	help.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	help.add_theme_constant_override("outline_size", 6)
 	hud.add_child(help)
+
+
+func _bar(parent: Control, col: Color, key: String) -> ProgressBar:
+	var b := ProgressBar.new()
+	b.custom_minimum_size = Vector2(250, 18)
+	b.show_percentage = false
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0, 0, 0, 0.55)
+	bg.set_corner_radius_all(3)
+	var fg := StyleBoxFlat.new()
+	fg.bg_color = col
+	fg.set_corner_radius_all(3)
+	b.add_theme_stylebox_override("background", bg)
+	b.add_theme_stylebox_override("fill", fg)
+	var l := _label("", 12, Color.WHITE)
+	l.set_anchors_preset(Control.PRESET_FULL_RECT)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	b.add_child(l)
+	bar_txt[key] = l
+	parent.add_child(b)
+	return b
+
+
+func set_bars(hp: float, max_hp: float, mp: float, max_mp: float, xp: float, need: float) -> void:
+	bar_hp.max_value = max_hp
+	bar_hp.value = hp
+	bar_txt.hp.text = "Vida %d / %d" % [int(hp), int(max_hp)]
+	bar_mp.max_value = max_mp
+	bar_mp.value = mp
+	bar_txt.mp.text = "Mana %d / %d" % [int(mp), int(max_mp)]
+	bar_xp.max_value = maxf(need, 1.0)
+	bar_xp.value = xp
+	bar_txt.xp.text = "XP %.1f%%" % (xp / maxf(need, 1.0) * 100.0)
+
+
+func set_target(m) -> void:
+	tgt_box.visible = m != null
+	if m != null:
+		tgt_name.text = "%s   ·   Nv %d" % [m.fam.name, int(m.L)]
+		tgt_bar.max_value = m.maxHp
+		tgt_bar.value = maxf(0.0, m.hp)
+		bar_txt.tgt.text = "%d / %d" % [int(maxf(0.0, m.hp)), int(m.maxHp)]
+
+
+func set_skills(list: Array) -> void:
+	for i in hot.size():
+		hot[i].visible = i < list.size()
+		if i < list.size():
+			hot[i].set_meta("nome", "%d  %s" % [i + 1, list[i].name])
+			hot[i].text = hot[i].get_meta("nome")
+			hot[i].tooltip_text = "%s\nMana %d   ·   recarga %ds" % [list[i].name, int(list[i].mp), int(list[i].cd)]
+
+
+func set_cooldowns(cds: Array, now: float) -> void:
+	for i in hot.size():
+		if i < cds.size() and hot[i].visible:
+			var left: float = float(cds[i]) - now
+			hot[i].disabled = left > 0.0
+			hot[i].text = ("%s\n%.0fs" % [hot[i].get_meta("nome"), ceilf(left)]) if left > 0.0 else str(hot[i].get_meta("nome"))
+
+
+func say(t: String) -> void:
+	toast.text = t
+	toast_until = Time.get_ticks_msec() * 0.001 + 2.2
+
+
+func set_who(c: Dictionary) -> void:
+	who.text = "%s   ·   Nv %d" % [str(c.get("name", "Viajante")), int(c.get("level", 1))]
+
+
+func _process(_dt: float) -> void:
+	if toast and toast.text != "" and Time.get_ticks_msec() * 0.001 > toast_until:
+		toast.text = ""
 
 
 func toggle_fullscreen() -> void:

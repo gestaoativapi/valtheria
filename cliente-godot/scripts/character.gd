@@ -34,6 +34,8 @@ func _setup(o: Dictionary) -> void:
 	var eq: Dictionary = o.get("equipment") if o.get("equipment") is Dictionary else {}
 	var skins: Array = rd.get("skins", ["#e8b993"])
 	var skin := Color(str(skins[clampi(int(o.get("skin", look.get("skin", 0))), 0, skins.size() - 1)]))
+	if o.has("skin_color"):
+		skin = Color(str(o.skin_color))
 	var hair_i := clampi(int(o.get("hair", look.get("hair", 1))), 0, 5)
 	var hc_i := int(o.get("hair_color", look.get("hair_color", 0)))
 	var hair_col := Color(str(HAIR_COLORS[clampi(hc_i, 0, HAIR_COLORS.size() - 1)])) if not HAIR_COLORS.is_empty() else Color(0.24, 0.15, 0.08)

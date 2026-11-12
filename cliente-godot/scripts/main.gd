@@ -5,6 +5,7 @@ const World = preload("res://scripts/world.gd")
 const Character = preload("res://scripts/character.gd")
 const Net = preload("res://scripts/net.gd")
 const UI = preload("res://scripts/ui.gd")
+const Combat = preload("res://scripts/combat.gd")
 
 const QUALITY := ["Mínima", "Baixa", "Média", "Alta", "Ultra"]
 const WALK := 1.9
@@ -40,6 +41,9 @@ var save_t := 0.0
 var saved_pos := Vector3.ZERO
 var home := Vector3(1503.5, 0.0, 2556.0)
 var quitting := false
+var combat: Node3D
+var chasing := false
+var test_fight := false
 var log_file: FileAccess
 var log_t := 0.0
 var forward := true
@@ -86,6 +90,11 @@ func _ready() -> void:
 	ui = UI.new()
 	ui.info = world.info
 	add_child(ui)
+	combat = Combat.new()
+	add_child(combat)
+	combat.setup(self)
+	combat.message.connect(func(t): ui.say(t))
+	ui.want_skill.connect(func(i): combat.use_skill(i))
 	ui.want_new_char.connect(_new_char)
 	ui.want_preview.connect(_preview)
 	ui.want_create.connect(_create)
@@ -127,6 +136,10 @@ func _ready() -> void:
 			shot_wait = 4
 		elif a == "--play":
 			_enter({"name": "Viajante", "level": 1, "race": test_race, "gender": test_gender, "skin": 1, "hair": 2, "hair_color": 1, "equipment": {"armadura": test_armor, "arma": test_weapon}})
+		elif a.begins_with("--frames="):
+			shot_wait = int(a.trim_prefix("--frames="))
+		elif a == "--fight":
+			test_fight = true
 		elif a == "--lineup":  # teste: uma fileira com todas as raças
 			var ids: Array = world.info.races.keys()
 			for i in ids.size():
@@ -256,14 +269,18 @@ func _enter(c: Dictionary) -> void:
 	pitch = -0.3
 	dist = 7.5
 	save_t = 0.0
-	ui.show_hud("%s   ·   Nv %d" % [nm, int(me.get("level", 1))])
+	if not me.has("level"):
+		me.level = 1
+	ui.show_hud("")
+	ui.set_who(me)
+	combat.start()
 
 
 func _save_now() -> void:
 	if not me.has("id") or player.position.distance_to(saved_pos) < 0.5:
 		return
 	saved_pos = player.position
-	await net.save(player.position.x, player.position.z, float(me.get("hp", 100.0)), float(me.get("mp", 50.0)))
+	await net.save(player.position.x, player.position.z, maxf(1.0, combat.hp), combat.mp)
 
 
 func _to_login() -> void:
@@ -271,6 +288,7 @@ func _to_login() -> void:
 		await _save_now()
 	playing = false
 	creating = false
+	combat.clear()
 	me = {}
 	net.logout()
 	_swap_player({"equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}})
@@ -403,14 +421,12 @@ func _unhandled_input(ev: InputEvent) -> void:
 		match ev.keycode:
 			KEY_ESCAPE:
 				_to_login()
-			KEY_1:
-				player.action("Sword_Regular_A")
-			KEY_2:
-				player.action("Sword_Regular_B")
-			KEY_3:
-				player.action("Sword_Regular_C")
-			KEY_E:
-				player.play("Dance")
+			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6:
+				combat.use_skill(ev.keycode - KEY_1)
+			KEY_TAB:
+				combat.next_target()
+			KEY_F:
+				combat.engage(combat.target)
 	if not playing:
 		return
 	if ev is InputEventMouseButton:
@@ -421,7 +437,15 @@ func _unhandled_input(ev: InputEvent) -> void:
 		elif ev.button_index == MOUSE_BUTTON_WHEEL_DOWN and ev.pressed:
 			dist = minf(40.0, dist * 1.1)
 		elif ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
-			var hit: Variant = _ground_under(ev.position)
+			var mob = combat.pick(cam.project_ray_origin(ev.position), cam.project_ray_normal(ev.position))
+			if mob != null:
+				if combat.target == mob:
+					combat.engage(mob)
+				else:
+					combat.target = mob
+				return
+			combat.stop_auto()
+			var hit: Variant = _ground_under(ev.position) if not combat.dead else null
 			if hit != null:
 				target = hit
 				has_target = true
@@ -466,7 +490,8 @@ func _physics_process(dt: float) -> void:
 	if Input.is_physical_key_pressed(KEY_W): input.y -= 1.0
 	if Input.is_physical_key_pressed(KEY_S): input.y += 1.0
 	var move := Vector3.ZERO
-	if input.length() > 0.1:
+	if input.length() > 0.1 and not combat.dead:
+		combat.stop_auto()
 		has_target = false
 		marker.visible = false
 		var f := Vector3(-sin(yaw), 0, -cos(yaw))
@@ -478,6 +503,9 @@ func _physics_process(dt: float) -> void:
 		if to.length() < 0.25:
 			has_target = false
 			marker.visible = false
+		elif chasing:
+			marker.visible = false
+			move = to.normalized()
 		else:
 			move = to.normalized()
 	if player.is_busy():
@@ -485,7 +513,7 @@ func _physics_process(dt: float) -> void:
 	if move != Vector3.ZERO:
 		var sprint := Input.is_physical_key_pressed(KEY_SHIFT)
 		var walk := Input.is_physical_key_pressed(KEY_CTRL)
-		var speed := WALK if walk else (SPRINT if sprint else RUN)
+		var speed: float = WALK if walk else float(combat.st.get("speed", RUN)) * (1.0 if not sprint else 1.0)
 		var step := speed * dt
 		if has_target:  # nunca passa do destino
 			var left := Vector2(target.x - player.position.x, target.z - player.position.z).length()
@@ -494,10 +522,8 @@ func _physics_process(dt: float) -> void:
 		player.position = Vector3(p.x, world.height(p.x, p.z), p.z)
 		facing = lerp_angle(facing, atan2(move.x, move.z), minf(1.0, dt * 12.0))
 		player.rotation.y = facing
-		player.play("Walk" if walk else ("Sprint" if sprint else "Jog_Fwd"), 1.0 if not walk else 1.1)
-	elif not player.is_busy() and player.current != "Dance":
-		player.play("Idle")
-	elif not player.is_busy() and player.current == "Dance" and has_target:
+		player.play("Walk" if walk else "Jog_Fwd", 1.1 if walk else speed / 5.2)
+	elif not player.is_busy() and not combat.dead:
 		player.play("Idle")
 
 
@@ -507,6 +533,13 @@ func _process(dt: float) -> void:
 	if log_t > 2.0:
 		log_t = 0.0
 		note("fps %d | RAM %d MB | vídeo %d MB | blocos %d | grama %d | nós %d" % [int(Engine.get_frames_per_second()), int(OS.get_static_memory_usage() / 1048576.0), int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED) / 1048576.0), world.chunks.size(), world.grass.size(), int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))])
+	if playing and log_t == 0.0:
+		note("combate: nv %d xp %d | vida %d/%d | monstros %d | alvo %s" % [int(me.get("level", 1)), int(me.get("xp", 0)), int(combat.hp), int(combat.st.get("maxHp", 0)), combat.mobs.size(), str(combat.target.fam.name) if combat.target else "-"])
+		if test_fight:
+			if combat.target == null:
+				combat.next_target()
+			combat.engage(combat.target)
+			combat.use_skill(0)
 	if playing:
 		var focus := player.position + Vector3(0, player.height_m * 0.82, 0)
 		var dir := Vector3(sin(yaw) * cos(pitch), -sin(pitch), cos(yaw) * cos(pitch))
@@ -518,6 +551,9 @@ func _process(dt: float) -> void:
 		cam.look_at(focus)
 		if marker.visible:
 			marker.rotation.y += dt * 2.0
+		ui.set_bars(combat.hp, combat.st.get("maxHp", 1.0), combat.mp, combat.st.get("maxMp", 1.0), float(me.get("xp", 0.0)), float(world.info.xpneed[clampi(int(me.get("level", 1)) - 1, 0, 79)]))
+		ui.set_target(combat.target)
+		ui.set_cooldowns(combat.cds, combat.now())
 		save_t += dt
 		if save_t > 20.0:
 			save_t = 0.0
