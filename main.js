@@ -1616,7 +1616,7 @@ function renderCreate() {
   chips('#c-race', Object.entries(GD.RACES).filter(([k, r]) => !r.hidden || k === CO.race).map(([k, r]) => [k, r.name]), 'race'); $('#c-race-desc').textContent = R.desc;
   chips('#c-type', R.types.map(t => [t, GD.TYPES[t]]), 'type'); chips('#c-gender', [['m', 'Masculino'], ['f', 'Feminino']], 'gender');
   chips('#c-hair', GD.HAIR_STYLES.map((n, i) => [i, n]), 'hair');
-  chips('#c-face', (R.especies || GD.FACES).map((n, i) => [i, n]), 'face'); { const fl = $('#c-face').previousElementSibling; if (fl) fl.textContent = R.especies ? 'Espécie' : 'Rosto'; } $('#c-hair').parentElement && ($('#c-hair').style.display = R.feat.noHair ? 'none' : '', $('#c-hair').previousElementSibling && ($('#c-hair').previousElementSibling.style.display = R.feat.noHair ? 'none' : '')); chips('#c-eyes', GD.EYE_SHAPES.map((n, i) => [i, n]), 'eyes');
+  chips('#c-face', (R.especies || GD.FACES).map((n, i) => [i, n]), 'face'); { const fl = $('#c-face').previousElementSibling; if (fl) fl.textContent = R.especies ? (CO.race === 'draconato' ? 'Tipo de cabeça' : 'Espécie') : 'Rosto'; } $('#c-hair').parentElement && ($('#c-hair').style.display = R.feat.noHair ? 'none' : '', $('#c-hair').previousElementSibling && ($('#c-hair').previousElementSibling.style.display = R.feat.noHair ? 'none' : '')); chips('#c-eyes', GD.EYE_SHAPES.map((n, i) => [i, n]), 'eyes');
   chips('#c-ecol', R.eyes.map((c, i) => [i, '&nbsp;&nbsp;', `background:${c};min-width:26px`]), 'eye_color'); chips('#c-scar', GD.SCARS.map((n, i) => [i, n]), 'scar');
   $('#c-beard-wrap').hidden = CO.gender === 'f' || !!R.feat.snout; chips('#c-beard', GD.BEARDS.map((n, i) => [i, n]), 'beard');
   chips('#c-expr', Object.entries(GD.EXPRESSIONS), 'expr');
