@@ -342,12 +342,40 @@ export function setGear(m, weaponId, armorId, equip) {
   { const sIt = ['armadura', 'elmo', 'luvas', 'botas'].map(E).filter(it => it && it.set), S0 = sIt[0] && GD.LEGEND_SETS[sIt[0].set]; if (S0) { const C = S0.cores;
     const cry = new THREE.MeshStandardMaterial({ color: '#5a3cff', emissive: C.brilho, emissiveIntensity: 0.55, roughness: 0.12, metalness: 0.1, flatShading: true, transparent: true, opacity: 0.92 }), silver = new THREE.MeshStandardMaterial({ color: C.detalhe, metalness: 1, roughness: 0.28 }), plate = new THREE.MeshStandardMaterial({ color: C.principal, metalness: 0.85, roughness: 0.32 });
     const shard = (h, r) => M(new THREE.ConeGeometry(r, h, 5), cry, false), cluster = (n, h, spread) => { const g = G(); for (let i = 0; i < n; i++) { const k = i - (n - 1) / 2, c = shard(h * (1 - Math.abs(k) * 0.22), h * 0.2); c.position.set(k * spread, h * 0.45 * (1 - Math.abs(k) * 0.2), 0); c.rotation.z = -k * 0.32; g.add(c); } return g; };
-    if (E('armadura')?.set) { [-1, 1].forEach(sd => { const pad = add(P.torso, at(M(new THREE.SphereGeometry(0.105, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), plate, false), sd * 0.235, 0.56, 0)); pad.scale.set(1.15, 0.8, 1.05); pad.rotation.z = -sd * 0.35;
-        add(P.torso, at(M(new THREE.TorusGeometry(0.108, 0.01, 6, 20), silver, false), sd * 0.235, 0.555, 0)).rotation.set(Math.PI / 2, 0, -sd * 0.35); const cl = add(P.torso, at(cluster(3, 0.17, 0.045), sd * 0.25, 0.62, -0.01)); cl.rotation.z = -sd * 0.45; });
-      const ch = add(P.torso, at(cluster(3, 0.1, 0.035), 0, 0.4, 0.175)); ch.rotation.x = 0.15; const bg = add(P.torso, at(M(new THREE.OctahedronGeometry(0.035, 0), cry, false), 0, 0.06, 0.165)); bg.scale.set(1, 1.3, 0.5); add(P.torso, at(M(new THREE.OctahedronGeometry(0.05, 0), silver, false), 0, 0.06, 0.15)).scale.set(1, 1.3, 0.3);
- }
-    if (E('elmo')?.set) { const cr = add(P.head, at(cluster(5, 0.2, 0.028), 0, 0.14, 0.02)); cr.rotation.y = Math.PI / 2; cr.rotation.x = 0; add(P.head, at(M(new THREE.TorusGeometry(0.172, 0.009, 6, 28), silver, false), 0, 0.06, 0)).rotation.x = Math.PI / 2; }
-    if (E('luvas')?.set) [P.armL, P.armR].forEach(A => { add(A.fa, at(M(new THREE.TorusGeometry(0.062, 0.011, 6, 20), silver, false), 0, -0.1, 0)).rotation.x = Math.PI / 2; add(A.fa, at(cluster(3, 0.07, 0.022), 0, -0.2, 0.05)); });
+    const W = m.glbMode && m.WS && m.WS.chest ? m.WS : null, DS = THREE.DoubleSide; plate.side = DS; silver.side = DS;
+    const dark = new THREE.MeshStandardMaterial({ color: '#10142c', metalness: 0.5, roughness: 0.6, side: DS });
+    // placa curva (arco de cilindro) com frisos de prata em cima e embaixo
+    const arc = (rt, rb, h, ang, mat = plate) => M(new THREE.CylinderGeometry(rt, rb, h, 14, 1, true, -ang, ang * 2), mat, false);
+    const rimmed = (rt, rb, h, ang) => { const g = G(); g.add(arc(rt, rb, h, ang)); const a = arc(rt * 1.03, rt * 1.03, h * 0.09, ang, silver); a.position.y = h / 2; const b = arc(rb * 1.03, rb * 1.03, h * 0.09, ang, silver); b.position.y = -h / 2; g.add(a, b); return g; };
+    const dome = (r, mat = plate) => M(new THREE.SphereGeometry(r, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.52), mat, false);
+    if (W) {
+      if (E('armadura')?.set) {
+        // ombreiras em três lâminas sobrepostas, com friso e cristais
+        [[W.shL, 1], [W.shR, -1]].forEach(([so, sd]) => { const g = G(); [[0.115, 0.03, 0.0, 1], [0.1, -0.035, 0.02, 0.92], [0.088, -0.09, 0.03, 0.85]].forEach(([r, y, x, k]) => { const d = dome(r); d.scale.set(1.05, 0.62, 1.1 * k); d.position.set(sd * x, y, 0); d.rotation.z = -sd * 0.42; const rm = M(new THREE.TorusGeometry(r * 0.985, 0.008, 6, 24), silver, false); rm.rotation.set(Math.PI / 2, 0, 0); rm.scale.set(1.05, 1.1 * k, 1); rm.position.set(sd * x, y - 0.004, 0); const h = G(); h.add(d); rm.rotation.y = 0; const rr = G(); rr.add(rm); rr.rotation.z = -sd * 0.42; rr.position.set(0, 0, 0); g.add(d, rr); });
+          const cl = cluster(3, 0.15, 0.04); cl.position.set(sd * 0.01, 0.07, -0.01); cl.rotation.z = -sd * 0.5; g.add(cl); g.position.set(sd * 0.035, 0.035, 0); add(so, g); });
+        // peitoral: placa bombeada, gola, divisas de prata e cristais no centro
+        { const g = G(), cp = M(new THREE.SphereGeometry(0.2, 20, 12, -Math.PI * 0.5, Math.PI, Math.PI * 0.2, Math.PI * 0.56), plate, false); cp.rotation.y = Math.PI / 2 * 0 ; cp.scale.set(1.0, 1.02, 0.72); cp.rotation.y = -Math.PI / 2 + Math.PI / 2; g.add(cp);
+          const bk = M(new THREE.SphereGeometry(0.2, 20, 12, Math.PI * 0.5, Math.PI, Math.PI * 0.2, Math.PI * 0.56), plate, false); bk.scale.set(1.0, 1.02, 0.62); g.add(bk);
+          const col = M(new THREE.TorusGeometry(0.085, 0.016, 8, 24), silver, false); col.rotation.x = Math.PI / 2; col.position.set(0, 0.165, 0); col.scale.set(1.15, 1, 1); g.add(col);
+          [-1, 1].forEach(sd => { const v = M(new THREE.BoxGeometry(0.15, 0.014, 0.012), silver, false); v.position.set(sd * 0.065, 0.02, 0.137); v.rotation.z = sd * 0.62; v.rotation.y = sd * 0.35; g.add(v); const v2 = M(new THREE.BoxGeometry(0.12, 0.012, 0.012), silver, false); v2.position.set(sd * 0.06, -0.07, 0.13); v2.rotation.z = sd * 0.5; v2.rotation.y = sd * 0.35; g.add(v2);
+            const dm = M(new THREE.OctahedronGeometry(0.022, 0), cry, false); dm.scale.set(1, 1.3, 0.4); dm.position.set(sd * 0.11, 0.09, 0.115); g.add(dm); });
+          const cc = cluster(3, 0.085, 0.03); cc.position.set(0, 0.03, 0.148); cc.rotation.x = 0.12; g.add(cc); g.position.set(0, 0.0, 0.005); add(W.chest, g); }
+        // cinto com gema e saiote de placas (frente, lados e costas)
+        { const g = G(), belt = M(new THREE.TorusGeometry(0.155, 0.02, 8, 28), silver, false); belt.rotation.x = Math.PI / 2; belt.scale.set(1.08, 0.82, 1.4); belt.position.y = 0.075; g.add(belt);
+          const bg = M(new THREE.OctahedronGeometry(0.034, 0), cry, false); bg.scale.set(1, 1.25, 0.45); bg.position.set(0, 0.075, 0.135); const bs = M(new THREE.OctahedronGeometry(0.048, 0), silver, false); bs.scale.set(1, 1.25, 0.3); bs.position.set(0, 0.075, 0.126); g.add(bg, bs);
+          [[0, 0.13, 0.2, 0.11], [1.15, 0.125, 0.17, 0.13], [-1.15, 0.125, 0.17, 0.13], [Math.PI, 0.13, 0.17, 0.14]].forEach(([a, r, h, w]) => { const t = rimmed(r, r * 1.08, h, w / r * 0.5 + 0.25); t.rotation.y = a; t.position.y = 0.06 - h / 2; t.scale.set(1.12, 1, 0.88); g.add(t); });
+          add(W.pelvis, g); }
+        // coxotes
+        [[W.thL, 1], [W.thR, -1]].forEach(([so]) => { if (!so) return; const t = rimmed(0.094, 0.078, 0.27, 1.7); t.position.set(0, -0.26, 0.008); add(so, t); });
+      }
+      if (E('luvas')?.set) [W.faL, W.faR].forEach(so => { if (!so) return; const cf = G(); cf.add(M(new THREE.CylinderGeometry(0.058, 0.046, 0.15, 14, 1, true), plate, false)); const r1 = M(new THREE.TorusGeometry(0.059, 0.008, 6, 22), silver, false); r1.rotation.x = Math.PI / 2; r1.position.y = 0.075; const r2 = M(new THREE.TorusGeometry(0.047, 0.007, 6, 22), silver, false); r2.rotation.x = Math.PI / 2; r2.position.y = -0.075;
+        const hc = cluster(3, 0.055, 0.018); hc.position.set(0, -0.03, 0.05); hc.rotation.x = 0.3; cf.add(r1, r2, hc); cf.position.set(0, -0.14, 0.01); cf.rotation.x = -0.12; add(so, cf); });
+      if (E('botas')?.set) [[W.caL, W.ftL], [W.caR, W.ftR]].forEach(([ca, ft]) => { if (!ca) return;
+        const kn = G(), kd = dome(0.062); kd.rotation.x = Math.PI / 2; kd.scale.set(1, 0.8, 1.15); const kr = M(new THREE.TorusGeometry(0.062, 0.007, 6, 20), silver, false); const ks = shard(0.07, 0.016); ks.position.set(0, 0.05, 0.03); kn.add(kd, kr, ks); kn.position.set(0, 0.0, 0.045); add(ca, kn);
+        const gr = rimmed(0.07, 0.056, 0.3, 1.5); gr.position.set(0, -0.22, 0.006); add(ca, gr); const rdg = M(new THREE.BoxGeometry(0.012, 0.28, 0.012), silver, false); rdg.position.set(0, -0.22, 0.068); add(ca, rdg); const gc = cluster(3, 0.075, 0.022); gc.position.set(0, -0.17, 0.07); gc.rotation.x = 0.1; add(ca, gc);
+        if (ft) { const toe = dome(0.058); toe.scale.set(1, 0.75, 1.55); toe.position.set(0, -0.065, 0.085); const st = M(new THREE.TorusGeometry(0.056, 0.008, 6, 18, Math.PI), silver, false); st.position.set(0, -0.055, 0.03); add(ft, toe); add(ft, st); } });
+    } else if (E('armadura')?.set) { [-1, 1].forEach(sd => { const cl = add(P.torso, at(cluster(3, 0.17, 0.045), sd * 0.25, 0.62, -0.01)); cl.rotation.z = -sd * 0.45; }); add(P.torso, at(cluster(3, 0.1, 0.035), 0, 0.4, 0.175)); }
+    if (E('elmo')?.set) { const cr = add(P.head, at(cluster(5, 0.2, 0.028), 0, 0.14, 0.02)); cr.rotation.y = Math.PI / 2; add(P.head, at(M(new THREE.TorusGeometry(0.172, 0.009, 6, 28), silver, false), 0, 0.06, 0)).rotation.x = Math.PI / 2; }
     m.legendSet = sIt.length >= 4 ? S0 : null; } else m.legendSet = null; }
   // traje futurista (Era Neon): faixas de luz no peito, cinto, braços e pernas; visor holográfico
   { const nItems = ['armadura', 'elmo', 'luvas', 'botas'].map(E).filter(it => it && it.neon); if (nItems.length) { const nc = nItems[0].neon, gm = new THREE.MeshBasicMaterial({ color: nc, toneMapped: false }), gm2 = new THREE.MeshBasicMaterial({ color: '#ff3ad8', toneMapped: false });
@@ -495,7 +523,7 @@ async function glbOutfit(m, a, equip) {
   if (C.outfitKind !== kind) { C.outfitKind = kind; await setOutfit(C, kind); ownMats(C.model); tintGLB(m); }
   const tint = new THREE.Color(a ? (a.set ? '#6a86ff' : a.neon ? '#8a96b8' : (a.kind === 'pesada' ? HEAVY_TINT : GRADE_TINT)[a.grade]) : '#ffffff');
   // set lendário: o desenho original da armadura vira máscara — partes claras (frisos, rebites, bordas) ficam em prata e o resto em azul do set
-  if (a && a.set) { const S0 = GD.LEGEND_SETS[a.set], cA = new THREE.Color(S0.cores.principal), cB = new THREE.Color(S0.cores.detalhe); for (const o of C.parts.outfit || []) { ownMats(o); const mt = o.material; if (/Superhero|Regular|Hair|Eye/.test(mt.name)) continue;
+  if (a && a.set) { const S0 = GD.LEGEND_SETS[a.set], cA = new THREE.Color(S0.cores.principal).multiplyScalar(0.55), cB = new THREE.Color(S0.cores.principal).multiplyScalar(1.05); for (const o of C.parts.outfit || []) { ownMats(o); const mt = o.material; if (/Superhero|Regular|Hair|Eye/.test(mt.name)) continue;
       if (mt.userData.map0) { mt.map = mt.userData.map0; mt.userData.map0 = null; } mt.color.set('#ffffff'); mt.metalness = 0.82; mt.roughness = 0.34; mt.envMapIntensity = 1.25; mt.userData.legset = a.set;
       mt.onBeforeCompile = sh => { sh.uniforms.uSetA = { value: cA }; sh.uniforms.uSetB = { value: cB }; sh.fragmentShader = 'uniform vec3 uSetA; uniform vec3 uSetB;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#ifdef USE_MAP\n vec4 tx = texture2D( map, vMapUv ); float lum = dot( tx.rgb, vec3( 0.299, 0.587, 0.114 ) );\n diffuseColor.rgb = mix( uSetA * ( 0.7 + 1.6 * lum ), uSetB, smoothstep( 0.3, 0.55, lum ) );\n#else\n diffuseColor.rgb = uSetA;\n#endif'); };
       mt.customProgramCacheKey = () => 'legset:' + a.set; mt.needsUpdate = true; if (/Hood/.test(o.name)) o.visible = false; } }
@@ -528,6 +556,9 @@ function applyGLB(m, C) {
     s.quaternion.copy(qB.invert().multiply(qW)); const sc = new THREE.Vector3(); scaleRef.getWorldScale(sc); const bs = new THREE.Vector3(); b.getWorldScale(bs); s.scale.set(sc.x / bs.x, sc.y / bs.y, sc.z / bs.z); };
   for (const [hs, side, proc] of [[handR, 'r', P.armR.hand], [handL, 'l', P.armL.hand]]) { frame(hs, 'hand_' + side, side, proc); const mid = C.bones['middle_01_' + side]; if (mid) hs.position.copy(mid.position).multiplyScalar(0.55); }
   const faL = sock(P.armL.fa, 'lowerarm_l'), faR = sock(P.armR.fa, 'lowerarm_r'); frame(faL, 'lowerarm_l', 'l', P.armL.fa); faL.position.set(0, 0, 0); const sL = sock(P.armL.s, 'upperarm_l'), sR = sock(P.armR.s, 'upperarm_r');
+  { const rq = new THREE.Quaternion(), rs = new THREE.Vector3(); m.root.getWorldQuaternion(rq); m.root.getWorldScale(rs);
+    const ws = bn => { const b = C.bones[bn]; if (!b) return null; const o = new THREE.Object3D(), q = new THREE.Quaternion(), sc = new THREE.Vector3(); b.add(o); b.getWorldQuaternion(q); b.getWorldScale(sc); o.quaternion.copy(q.invert().multiply(rq)); o.scale.setScalar(m.H * rs.y / ((sc.x + sc.y + sc.z) / 3)); return o; };
+    m.WS = { chest: ws('spine_03'), pelvis: ws('pelvis'), shL: ws('upperarm_l'), shR: ws('upperarm_r'), thL: ws('thigh_l'), thR: ws('thigh_r'), faL: ws('lowerarm_l'), faR: ws('lowerarm_r'), caL: ws('calf_l'), caR: ws('calf_r'), ftL: ws('foot_l'), ftR: ws('foot_r') }; }
   for (const f of m.FEAT) { const par = f.parent; if (!par) continue; const target = par === P.head ? head : par === P.hips ? hips : torso; target.add(f); }
   m.body.visible = false;
   m.P = { ...P, head, skull: head, torso, hips, armR: { hand: handR, fa: faR, s: sR }, armL: { hand: handL, fa: faL, s: sL }, hair: null, base: null, legL: { l: hips, sh: hips }, legR: { l: hips, sh: hips } };
