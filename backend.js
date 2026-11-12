@@ -24,6 +24,7 @@ class RemoteBackend {
   equip(i) { return this.rpc('game_equip', this.c({ p_item: i })); }
   unequip(s) { return this.rpc('game_unequip', this.c({ p_slot: s })); }
   useItem(i) { return this.rpc('game_use', this.c({ p_item: i })); }
+  gmEdit(a) { return this.rpc('game_gm_edit', this.c({ p_alvo: a.alvo || '', p_race: a.race || '', p_type: a.type || '', p_gender: a.gender || '', p_class: a.classe || '' })); }
   // clã: info | create | invite | answer | leave | manage | donate | levelup | set | capture
   clan(fn, a) { return this.rpc('game_clan_' + fn, this.c(a || {})); }
   kill(l, boss, fam) { return this.rpc('game_kill3', this.c({ p_mob_level: l, p_boss: !!boss, p_fam: fam || '' })); }
@@ -144,6 +145,9 @@ class LocalBackend {
   async chat(m) { setTimeout(() => this.h.onChat({ name: this.C.name, is_gm: true, kind: 'chat', msg: m }), 0); }
   async chatRecent() { return [{ name: 'Sistema', is_gm: true, kind: 'sistema', msg: 'Modo offline: só você está no mundo. Comandos de GM liberados para teste.' }]; }
   async pvp() { this.E('PvP só funciona no servidor online'); }
+  async gmEdit(a) { const c = this.C; if (a.classe) { const k = GD.CLASSES[a.classe]; if (!k) this.E('Classe inexistente'); c.race = k.race; c.type = k.type; c.class_id = k.id; }
+    else { const nr = a.race || c.race, nt = a.type || c.type; if (nr !== c.race || nt !== c.type) { c.race = nr; c.type = nt; c.class_id = Object.values(GD.CLASSES).filter(k => k.race === nr && k.type === nt).sort((x, y) => x.rank - y.rank)[0].id; } }
+    if (a.gender) c.gender = a.gender; this._s(); return { name: c.name, race: c.race, type: c.type, class_id: c.class_id, gender: c.gender, self: true }; }
   // clã no modo offline: um clã só seu, para testar as telas
   async clan(fn, a = {}) { const c = this.C, d = this.d; d.castles = d.castles || {}; let k = d.clan;
     const info = () => ({ clan: d.clan ? { ...d.clan, my_rank: 'lider', my_contrib: d.clan.points, req: GD.CLAN.req[d.clan.level + 1] || null, members: [{ id: c.id, name: c.name, level: c.level, class_id: c.class_id, race: c.race, rank: 'lider', contrib: d.clan.points }], pending: [] } : undefined, invites: [],

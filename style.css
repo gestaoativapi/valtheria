@@ -210,3 +210,17 @@ body.touch #login{padding-right:3vw}body.touch #title-tag{display:none}
 #loading{background:radial-gradient(ellipse at 50% 40%,#0b061455 0,#0b0614dd 80%)}
 .screen.clear{background:linear-gradient(90deg,#0b0a0fcc 0,#0b0a0f33 30%,transparent 50%,#0b0a0f33 70%,#0b0a0fcc 100%)}
 @media(max-height:520px){#emblem{width:46px;height:46px}#login .logo{font-size:26px}#login .card{max-height:96vh;overflow:auto;padding-top:8px;padding-bottom:8px}}
+
+/* ---- equipamento: grade de itens ao lado do boneco ---- */
+#equip{width:760px;display:grid;grid-template-columns:500px 1fr;grid-template-rows:auto auto auto auto}
+#equip>.phead{grid-column:1/3}#equip>.eq-body,#equip>.eq-acc,#equip>.eq-foot{grid-column:1}
+#equip>.eq-inv{grid-column:2;grid-row:2/5;border-left:1px solid #5a4630;padding:8px;display:flex;flex-direction:column;min-height:0}
+.eq-itabs{display:flex;gap:3px;align-items:center;margin-bottom:6px}.eq-itabs button{background:#1d1812;border:1px solid #5a4630;border-radius:3px;color:#c8b8a0;font-size:12px;padding:4px 9px;cursor:pointer}.eq-itabs button.on{background:#3a2c1c;color:#f2c46d;border-color:#f2c46d}
+#eq-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;overflow-y:auto;max-height:420px;align-content:start}
+.eq-cell{aspect-ratio:1;background:#16120e;border:1px solid #4a3a28;border-radius:3px;position:relative;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
+.eq-cell img{width:86%;height:86%;object-fit:contain}.eq-cell.empty{cursor:default;opacity:.5}.eq-cell:not(.empty):hover{border-color:#f2c46d;background:#2a2016}
+.eq-cell.g3{border-color:#3a6aa8}.eq-cell.g4{border-color:#a83a3a}.eq-cell.g5{border-color:#c8a03a}.eq-cell.lg{box-shadow:inset 0 0 8px #f2c46d88;border-color:#f2c46d}
+.eq-cell .q{position:absolute;right:2px;bottom:0;font-size:10px;color:#fff;text-shadow:0 0 3px #000}.eq-cell .e{position:absolute;left:2px;top:0;font-size:10px;color:#7af;font-weight:700;text-shadow:0 0 3px #000}
+#eq-tip{min-height:30px;margin-top:6px;color:#e8dcc0;line-height:1.3}
+body.touch #equip{display:block}body.touch #equip>.eq-inv{border-left:0;border-top:1px solid #5a4630}body.touch #eq-grid{grid-template-columns:repeat(8,1fr);max-height:none}
+@media(max-width:1100px){body:not(.touch) #equip{width:500px;display:flex}body:not(.touch) #equip>.eq-inv{border-left:0;border-top:1px solid #5a4630}body:not(.touch) #eq-grid{max-height:150px}}

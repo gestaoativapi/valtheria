@@ -71,7 +71,9 @@ function openEquip(X) {
     const w = EQ.win = document.createElement('div'); w.id = 'equip'; w.className = 'win';
     w.innerHTML = `<div class="phead"><span>Equipamento</span><span><button data-a="min" title="Compactar">▁</button><button data-a="close">✕</button></span></div>
       <div class="eq-body"><div class="eq-col" id="eq-l"></div><div class="eq-view"><canvas id="eq-cv" width="260" height="380"></canvas><div class="small eq-hint">arraste para girar</div><div id="eq-stats" class="small"></div></div><div class="eq-col" id="eq-r"></div></div>
-      <div class="eq-acc" id="eq-acc"></div><div class="eq-foot" id="eq-foot"></div>`;
+      <div class="eq-acc" id="eq-acc"></div><div class="eq-foot" id="eq-foot"></div>
+      <div class="eq-inv"><div class="eq-itabs"><button data-it="equip" class="on">Equipáveis</button><button data-it="all">Tudo</button><span id="eq-icount" class="small"></span></div><div id="eq-grid"></div><div id="eq-tip" class="small"></div></div>`;
+    EQ.itab = 'equip';
     document.body.appendChild(w); movable(w, 'equip', w.querySelector('.phead'));
     w.querySelector('.phead').onclick = e => { const a = e.target.dataset.a; if (a === 'close') closeEquip(); else if (a === 'min') w.classList.toggle('ui-min'); };
     const cv = w.querySelector('#eq-cv'); EQ.r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); EQ.r.setPixelRatio(Math.min(2, devicePixelRatio)); EQ.r.outputColorSpace = THREE.SRGBColorSpace; EQ.r.toneMapping = THREE.ACESFilmicToneMapping; EQ.r.toneMappingExposure = 1.15;
@@ -80,7 +82,8 @@ function openEquip(X) {
     const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.12, 40), new THREE.MeshStandardMaterial({ color: '#2a2230', metalness: 0.4, roughness: 0.5 })); ped.position.y = -0.06; EQ.scene.add(ped);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.78, 0.015, 6, 60), new THREE.MeshBasicMaterial({ color: '#f2c46d' })); ring.rotation.x = Math.PI / 2; EQ.scene.add(ring);
     let drag = null; cv.addEventListener('pointerdown', e => { drag = e.clientX; cv.setPointerCapture(e.pointerId); }); cv.addEventListener('pointermove', e => { if (drag == null) return; EQ.yaw += (e.clientX - drag) * 0.012; drag = e.clientX; }); cv.addEventListener('pointerup', () => drag = null);
-    w.addEventListener('click', e => { const s = e.target.closest('[data-eq]'); if (s) X.onSlot(s.dataset.eq, s.dataset.id || ''); const b = e.target.closest('[data-act]'); if (b) X.onAct(b.dataset.act); });
+    w.addEventListener('click', e => { const tb = e.target.closest('[data-it]'); if (tb) { EQ.itab = tb.dataset.it; w.querySelectorAll('[data-it]').forEach(b => b.classList.toggle('on', b === tb)); renderEquip(); return; } const gi = e.target.closest('[data-item]'); if (gi) { X.onItem(gi.dataset.item); return; }
+      const s = e.target.closest('[data-eq]'); if (s) X.onSlot(s.dataset.eq, s.dataset.id || ''); const b = e.target.closest('[data-act]'); if (b) X.onAct(b.dataset.act); });
   }
   EQ.win.hidden = false; EQ.open = true; EQ.sig = ''; renderEquip();
 }
@@ -91,6 +94,9 @@ export function renderEquip() {
   const cell = ([k, label, ic]) => { const it = d.slots[k]; return `<div class="eq-slot ${it ? 'has' : ''} ${d.locked[k] ? 'lock' : ''}" data-eq="${k}" data-id="${it ? it.id : ''}" title="${it ? X.esc(it.name) + (it.desc ? ' — ' + X.esc(it.desc) : '') + ' (clique para tirar)' : d.locked[k] || label}"><div class="ic">${it ? it.html : ic}</div><div class="nm">${it ? X.esc(it.name) + (it.enc ? ' <b>+' + it.enc + '</b>' : '') : label}</div></div>`; };
   $('#eq-l').innerHTML = SLOTS_L.map(cell).join(''); $('#eq-r').innerHTML = SLOTS_R.map(cell).join(''); $('#eq-acc').innerHTML = ACC.map(cell).join('');
   $('#eq-stats').innerHTML = d.stats; $('#eq-foot').innerHTML = d.foot;
+  { const list = d.inv.filter(i => EQ.itab === 'all' || i.eq), cells = list.map(i => `<div class="eq-cell g${i.grade}${i.legend ? ' lg' : ''}" data-item="${i.id}" data-tip="${X.esc(i.name + (i.desc ? ' — ' + i.desc : ''))}">${i.html}${i.qty > 1 ? `<span class="q">${i.qty}</span>` : ''}${i.enc ? `<span class="e">+${i.enc}</span>` : ''}</div>`);
+    for (let k = cells.length; k < Math.max(30, Math.ceil(cells.length / 6) * 6); k++) cells.push('<div class="eq-cell empty"></div>'); $('#eq-grid').innerHTML = cells.join(''); $('#eq-icount').textContent = `(${d.inv.length} itens)`;
+    const tip = $('#eq-tip'); $('#eq-grid').onmouseover = e => { const c = e.target.closest('[data-tip]'); tip.textContent = c ? c.dataset.tip + ' • clique para equipar ou usar' : ''; }; }
   const sig = d.sig; if (sig === EQ.sig && d.gearSig !== EQ.gearSig && EQ.doll) { EQ.gearSig = d.gearSig; X.regear(EQ.doll); }
   if (sig !== EQ.sig) { EQ.sig = sig; EQ.gearSig = d.gearSig; if (EQ.doll) { EQ.scene.remove(EQ.doll.root); EQ.doll.disposed = true; } EQ.doll = X.makeDoll(); EQ.scene.add(EQ.doll.root); }
 }

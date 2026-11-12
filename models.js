@@ -19,7 +19,7 @@ const grp = (...c) => { const g = new THREE.Group(); c.forEach(x => g.add(x)); r
 const at = (o, x, y, z) => { o.position.set(x, y, z); return o; };
 
 export { buildHumanoid, setGear, animHumanoid, playAttack, setExpr, toon, upgradeGLB, GLB } from './avatar.js';
-import { buildHumanoid, animHumanoid, GLB } from './avatar.js';
+import { buildHumanoid, animHumanoid, playAttack, GLB } from './avatar.js';
 import { MOB_GLB, attachMobGLB, animMobGLB } from './creatures.js';
 
 // ---------- monstros ----------
