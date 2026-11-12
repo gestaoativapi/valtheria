@@ -34,10 +34,12 @@ var shot_frames := 0
 var shot_wait := 40
 var smooth_fps := 60.0
 var compat := false
+var forward := true
 
 
 func _ready() -> void:
 	compat = RenderingServer.get_current_rendering_method() == "gl_compatibility"
+	forward = RenderingServer.get_current_rendering_method() == "forward_plus"
 	world = World.new()
 	add_child(world)
 	world.build()
@@ -225,20 +227,24 @@ func _set_quality(q: int) -> void:
 	quality = q
 	var vp := get_viewport()
 	var e: Environment = world.env
-	vp.scaling_3d_scale = [0.6, 0.75, 1.0, 1.0, 1.0][q]
+	vp.scaling_3d_scale = [0.6, 0.77, 1.0, 1.0, 1.0][q]
+	# FSR 1: desenha em resolução menor e amplia com nitidez (só nos modos Vulkan/DirectX completos)
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if (forward and q <= 1) else Viewport.SCALING_3D_MODE_BILINEAR
+	RenderingServer.directional_soft_shadow_filter_set_quality([RenderingServer.SHADOW_QUALITY_HARD, RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW, RenderingServer.SHADOW_QUALITY_SOFT_LOW, RenderingServer.SHADOW_QUALITY_SOFT_MEDIUM, RenderingServer.SHADOW_QUALITY_SOFT_HIGH][q])
+	world.sun.directional_shadow_blend_splits = q >= 3
 	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X, Viewport.MSAA_4X][q]
 	world.sun.shadow_enabled = q >= 1
 	world.sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if q == 1 else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-	RenderingServer.directional_shadow_atlas_set_size([1024, 2048, 4096, 4096, 8192][q], true)
-	world.sun.directional_shadow_max_distance = [40.0, 60.0, 140.0, 170.0, 220.0][q]
+	RenderingServer.directional_shadow_atlas_set_size([1024, 2048, 4096, 4096, 8192][q], q >= 2)
+	world.sun.directional_shadow_max_distance = [40.0, 42.0, 120.0, 170.0, 220.0][q]
 	world.fire.visible = q >= 1
 	cam.far = [240.0, 420.0, 900.0, 900.0, 900.0][q]
-	e.ssao_enabled = q >= 2
+	e.ssao_enabled = q >= 2 and (forward or compat)
 	e.glow_enabled = q >= 2
 	e.adjustment_enabled = q >= 2
-	e.volumetric_fog_enabled = q >= 3 and not compat
-	e.ssil_enabled = q >= 4 and not compat
-	e.sdfgi_enabled = q >= 4 and not compat
+	e.volumetric_fog_enabled = q >= 3 and forward
+	e.ssil_enabled = q >= 4 and forward
+	e.sdfgi_enabled = q >= 4 and forward
 	world.set_detail(q)
 	ui.btn_quality.text = "Qualidade: " + QUALITY[q]
 	_save_prefs()
@@ -246,7 +252,8 @@ func _set_quality(q: int) -> void:
 
 func _api_name() -> String:
 	var d := RenderingServer.get_current_rendering_driver_name()
-	return {"d3d12": "DirectX 12", "vulkan": "Vulkan", "opengl3": "OpenGL", "opengl3_angle": "OpenGL (ANGLE)", "metal": "Metal"}.get(d, d)
+	var n: String = {"d3d12": "DirectX 12", "vulkan": "Vulkan", "opengl3": "OpenGL", "opengl3_angle": "OpenGL (ANGLE)", "metal": "Metal"}.get(d, d)
+	return n + (" leve" if RenderingServer.get_current_rendering_method() == "mobile" else "")
 
 
 func _refresh_bar() -> void:
@@ -440,4 +447,4 @@ func _fmt(n: int) -> String:
 
 
 func nkey() -> String:
-	return "nivel_gl" if compat else "nivel"
+	return "nivel_gl" if compat else ("nivel" if forward else "nivel_leve")
