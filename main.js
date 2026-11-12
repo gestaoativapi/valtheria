@@ -17,7 +17,7 @@ import { WEATHER, initWeather, updateWeather } from './weather.js';
 import { SFX, play as sfx, rain as sfxRain, setMood, saveSfx } from './sfx.js';
 import { icon3d, onIconsReady, KIND_AURA } from './icons.js';
 import { say, npcLine, bossLine, updateDialog, VOICE, setVoice } from './dialog.js';
-import { COMP, initComp, restoreComp, compFx, summonPet, setMount, toggleRide, dismount, setWings, toggleFly, updateComp, saddle, mountSpeed, canFly } from './companions.js';
+import { COMP, initComp, restoreComp, compFx, summonPet, setMount, toggleRide, dismount, setWings, toggleFly, updateComp, saddle, mountSpeed, canFly, petKill, petInfo } from './companions.js';
 const GD = window.GD, WG = window.WG, QD = window.QD, CFG = window.GAME_CONFIG || {};
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -505,7 +505,7 @@ function hurtMob(m, v, crit) { S.auraAt = Date.now();
   if (m.hp <= 0) killMob(m);
 }
 function freeMob(m) { m.model.disposed = true; scene.remove(m.model.root); m.model.root.traverse(o => { if (o.isSprite && o.material) { o.material.map?.dispose(); o.material.dispose(); } }); }
-function killMob(m) {
+function killMob(m) { petKill(!!(m.fam && m.fam.boss));
   m.dead = true; m.model.anim.state = 'dead'; { const y = WG.height(m.x, m.z); emit(m.x, y + 0.8 * m.fam.scale, m.z, { n: m.fam.boss ? 80 : 26, color: m.fam.boss ? 0xffc040 : 0x8a7aff, speed: 2.2, up: 3, life: 1.2, size: 0.2, grav: -1.5, drag: 1 }); sfx('death', m.fam.boss ? 1 : 0.5); if (m.fam.boss) { sfx('boom'); shock(m.x, y, m.z, 0xffc040, 10, 1); beam(m.x, y, m.z, 0xffc040, 2); slowMo(1400); postFlash(1); shake(0.8); } } if (S.target && S.target.ref === m) { S.target = null; S.autoAtk = false; }
   setTimeout(() => { freeMob(m); S.mobs = S.mobs.filter(x => x !== m); }, 2500);
   S.killQ.push({ L: m.L, boss: !!m.fam.boss || !!m.champion, fam: m.fam.id });
@@ -1506,7 +1506,7 @@ function buildBar2() { const el = $('#bar2'); if (!el) return; if (!S.bar2 || S.
 const EQX = { esc,
   data() { const c = S.c, eq = c.equipment || {}, st = stats(), slots = {}, locked = {};
     for (const k of ['elmo', 'armadura', 'luvas', 'botas', 'arma', 'escudo']) { const it = IT(eq[k]); if (it) slots[k] = { id: it.id, name: it.name, html: icImg(it, true), enc: (c.enchant || {})[it.id], desc: itemDesc(it.id) }; }
-    const cmp = (k, id) => { const it = IT(id); if (it) slots[k] = { id, name: it.name, html: it.img ? icImg(it, true) : it.icon, desc: itemDesc(id) }; }; cmp('asas', COMP.wingsId); cmp('montaria', COMP.mountId); cmp('pet', COMP.petId);
+    const cmp = (k, id) => { const it = IT(id); if (it) slots[k] = { id, name: it.name, html: it.img ? icImg(it, true) : it.icon, desc: itemDesc(id) }; }; cmp('asas', COMP.wingsId); cmp('montaria', COMP.mountId); cmp('pet', COMP.petId); if (slots.pet) { const pi = petInfo(COMP.petId); if (pi) { slots.pet.name += ` • Nv. ${pi.level}`; slots.pet.desc = `${pi.stageName} • ${pi.role} • ${pi.next ? pi.xp + '/' + pi.next + ' abates' : 'nível máximo'}. ` + (slots.pet.desc || ''); } }
     const w = IT(eq.arma); if (w && GD.TWO_HANDED.includes(w.kind)) locked.escudo = 'Bloqueado: a arma atual usa as duas mãos';
     for (const k of ['colar', 'anel1', 'anel2', 'brinco', 'capa', 'reliquia']) locked[k] = 'Acessório especial — conquistado em chefes e eventos (em breve)'; locked.insignia = 'Insígnia do clã — chega com o sistema de clãs';
     const el = myElem(), E = ELEM[el], re = ELEM[GD.RACE_ELEM[c.race]];
@@ -1723,7 +1723,8 @@ loop();
   show('#login');
 })();
 function petHit(tg, mult) { if (tg.dead) return; const st = stats(), d = dmgVs(st.atk, mult, tg.st.def, st.crit, st.critDmg); hurtMob(tg, d.v, d.crit); emit(tg.x, WG.height(tg.x, tg.z) + 0.8, tg.z, { n: 10, color: 0xffe08a, speed: 3, up: 1, life: 0.35, size: 0.14, grav: 8 }); }
-initComp({ scene, S, GD, WG, me: () => me, toast, petHit, now, keys });
+function petHeal(kind, pct, below) { const st = stats(); if (kind === 'hp') { if (S.hp >= st.maxHp * below) return false; const v = Math.round(st.maxHp * pct); S.hp = Math.min(st.maxHp, S.hp + v); floatText(me.x, WG.height(me.x, me.z) + 2.3, me.z, '+' + v, '#7dff7d', 18); } else { if (S.mp >= st.maxMp * below) return false; const v = Math.round(st.maxMp * pct); S.mp = Math.min(st.maxMp, S.mp + v); floatText(me.x, WG.height(me.x, me.z) + 2.3, me.z, '+' + v + ' MP', '#7ab8ff', 18); } updateHud(); return true; }
+initComp({ scene, S, GD, WG, me: () => me, toast, petHit, petHeal, now, keys, statsDirty: () => { statsAt = -1; } });
 const POI_AMB = { tumba: { particles: '#aaffbb' }, pantano: { particles: '#c8ff7a' }, destrocos: { particles: '#ffaa5a' }, estranho: { particles: '#c89aff' } };
 initAmbient({ scene, S, WG, me: () => me, isNight: () => { const p = dayPhase(); return p < 0.23 || p > 0.79; }, theme: (x, z) => WG.nearestTown(x, z).town.theme,
   nearPoi: (x, z) => { const L = GD.LANDMARKS.find(L => L.poi && Math.hypot(L.x - x, L.z - z) < 70); return L ? { x: L.x, z: L.z, amb: POI_AMB[L.type] } : null; } });

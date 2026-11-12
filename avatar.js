@@ -705,6 +705,7 @@ function animGLB(m, dt) {
   else if (A.cur === 'hit' && t < A.atkEnd) { }
   else { const want = A.state === 'mount' ? 'Sitting_Idle_Loop' : A.state === 'fly' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'climb' ? 'ClimbUp_1m' : A.state === 'swim' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'roll' ? 'Roll' : A.state === 'sprint' ? 'Sprint_Loop' : A.state === 'run' ? (A.walk ? 'Walk_Loop' : 'Jog_Fwd_Loop') : A.state === 'gather' ? 'Interact' : (A.readyUntil > t && m.weaponKind ? (m.weaponKind === 'cajado' || m.weaponKind === 'cetro' ? 'Spell_Simple_Idle_Loop' : (m.o.equip || {}).escudo ? 'Idle_Shield_Loop' : (RACE_STYLE[m.race] || RACE_STYLE.humano).ready) : (A.idleClip || 'Idle_Loop')); if (A.cur !== want) { if (playClip(C, want, { fade: 0.22, once: want === 'Roll', speed: A.state === 'run' ? 1.15 * ({ halfling: 1.3, anao: 1.18, gigante: 0.85, orc: 0.95, sylph: 1.08 }[m.race] || 1) : A.state === 'climb' ? 0.8 : want === 'Roll' ? 1.3 : 1 })) A.cur = want; else if (A.cur !== 'Jog_Fwd_Loop' && A.state !== 'idle') { playClip(C, 'Jog_Fwd_Loop', { fade: 0.2 }); A.cur = 'Jog_Fwd_Loop'; } } }
   C.mixer.update(dt);
+  if (A.state === 'mount') rideLegs(m, C);
   // pegada de duas mãos: durante o golpe, a mão esquerda vai até o cabo da arma (cajado, espadão, lança, martelo)
   { const two = m.weaponKind && m.weaponTip && GD.TWO_HAND_GRIP.includes(m.weaponKind), want = two && A.cur === 'atk' && t < A.atkEnd ? 1 : 0; A.ikW = (A.ikW || 0) + (want - (A.ikW || 0)) * Math.min(1, dt * 14); if (two && A.ikW > 0.03) twoHandIK(m, C, A.ikW); }
 }
@@ -712,6 +713,17 @@ const CLIP_OK = () => true;
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _tg = new THREE.Vector3(), _p1 = new THREE.Vector3(), _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _n = new THREE.Vector3(), _q = new THREE.Quaternion(), _pq = new THREE.Quaternion(), _bq = new THREE.Quaternion(), _qU = new THREE.Quaternion(), _qF = new THREE.Quaternion();
 const GRIP_F = { cajado: 0.3, lanca: 0.3, espadao: 0.17, martelo: 0.32 };
 function rotWorld(bone, q) { bone.parent.getWorldQuaternion(_pq); bone.getWorldQuaternion(_bq); _bq.premultiply(q); bone.quaternion.copy(_pq.invert().multiply(_bq)); bone.updateWorldMatrix(false, true); }
+// pose de montaria: abre e desce as coxas para abraçar o dorso do animal e dobra as canelas para trás
+const RD_rq = new THREE.Quaternion(), RD_pq = new THREE.Quaternion(), RD_bq = new THREE.Quaternion(), RD_R = new THREE.Quaternion(), RD_ax = new THREE.Vector3();
+function rotW(b, rootQ, ax, ay, az, ang) { b.parent.updateWorldMatrix(true, false); b.parent.getWorldQuaternion(RD_pq); RD_bq.copy(RD_pq).multiply(b.quaternion); RD_ax.set(ax, ay, az).applyQuaternion(rootQ).normalize(); RD_R.setFromAxisAngle(RD_ax, ang); b.quaternion.copy(RD_pq.invert().multiply(RD_R).multiply(RD_bq)); }
+const RD_a = new THREE.Vector3(), RD_b = new THREE.Vector3(), RD_d = new THREE.Vector3();
+// aponta o osso (na direção do filho) para uma direção dada no espaço do personagem
+function aimBone(b, child, rootQ, dx, dy, dz) { b.updateWorldMatrix(true, false); child.updateWorldMatrix(true, false); b.getWorldPosition(RD_a); child.getWorldPosition(RD_b); RD_b.sub(RD_a).normalize(); RD_d.set(dx, dy, dz).normalize().applyQuaternion(rootQ);
+  RD_R.setFromUnitVectors(RD_b, RD_d); b.parent.getWorldQuaternion(RD_pq); RD_bq.copy(RD_pq).multiply(b.quaternion); b.quaternion.copy(RD_pq.invert().multiply(RD_R).multiply(RD_bq)); }
+function rideLegs(m, C) { const B = C.bones, R = m.ride || {}, w = R.wide ?? 0.42; m.root.getWorldQuaternion(RD_rq);
+  for (const sd of ['l', 'r']) { const th = B['thigh_' + sd], ca = B['calf_' + sd], ft = B['foot_' + sd]; if (!th || !ca || !ft) continue;
+    th.getWorldPosition(RD_a); m.root.worldToLocal(RD_a); const s = RD_a.x >= 0 ? 1 : -1;
+    aimBone(th, ca, RD_rq, s * w, -0.72, 0.52); aimBone(ca, ft, RD_rq, s * w * 0.15, -0.9, -0.42); const toe = B['ball_' + sd]; if (toe) aimBone(ft, toe, RD_rq, s * 0.12, -0.25, 0.95); } }
 function twoHandIK(m, C, w) {
   const U = C.bones.upperarm_l, F = C.bones.lowerarm_l, H = C.bones.hand_l, hold = m.weaponTip.parent; if (!U || !F || !H || !hold) return;
   m.root.updateWorldMatrix(true, true); hold.getWorldPosition(_tg); m.weaponTip.getWorldPosition(_p1); _p1.sub(_tg); if (_p1.lengthSq() < 0.01) return; _tg.addScaledVector(_p1, GRIP_F[m.weaponKind] || 0.25);
