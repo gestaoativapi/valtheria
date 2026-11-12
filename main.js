@@ -7,6 +7,7 @@ import { buildNeon, buildPortal, updateNeon } from './neon.js';
 import { ELEM, elemOf, isMeteor, classElem, initElements, updateElements, elemImpact, meteor, castBurst, bodyAura } from './elements.js';
 import { initUI, initBars, toggleEquip, renderEquip, updateEquip, equipOpen, closeEquip } from './ui.js';
 import { buildWings } from './companions.js';
+import { TITLE, buildTitle, updateTitle } from './title.js';
 import { RoomEnvironment } from './lib/RoomEnvironment.js';
 import { NAT, loadNature, buildNatureChunk, disposeNature } from './nature.js';
 import { initFX, emit, slash, shock, beam, updateFX, updateTrail, crater } from './fx.js';
@@ -334,7 +335,9 @@ const stu = { yaw: 0, pitch: 0.12, dist: 4.6 }; window.__stu = stu;
 const _ray = new THREE.Raycaster(), _cTo = new THREE.Vector3(), _cFrom = new THREE.Vector3();
 function updateCamera() {
   const rh = (GD.RACES[S.c.race]?.h || 1), close = clamp((5 - cam.dist) / 3.5, 0, 1); const ty = WG.height(me.x, me.z) + (S.alt || 0) + saddle() + (1.7 + (1.62 * rh - 1.7) * close) * (close ? 1 : 1) + (rh - 1) * 0.6 * (1 - close);
-  let cx = me.x + Math.sin(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cz = me.z + Math.cos(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cy = ty + Math.sin(cam.pitch) * cam.dist;
+  // chegada no mundo / teleporte: a câmera desce girando até o personagem
+  let iD = cam.dist, iY = cam.yaw, iP = cam.pitch; if (S.camIntro) { const k = Math.min(1, (performance.now() - S.camIntro) / 2200), e = 1 - Math.pow(1 - k, 3); iD = cam.dist + (1 - e) * 22; iY = cam.yaw + (1 - e) * 1.4; iP = Math.min(1.2, cam.pitch + (1 - e) * 0.55); if (k >= 1) S.camIntro = 0; }
+  let cx = me.x + Math.sin(iY) * Math.cos(iP) * iD, cz = me.z + Math.cos(iY) * Math.cos(iP) * iD, cy = ty + Math.sin(iP) * iD;
   cy = Math.max(cy, WG.height(cx, cz) + 0.25, WG.WATER + 0.6);
   // câmera não atravessa prédios: aproxima quando há parede entre ela e o personagem
   if ((CAMFX.n = (CAMFX.n || 0) + 1) % 2 === 0) { CAMFX.hit = 1; const near = townGroups.filter(t => t.g.visible && t.g.isGroup && Math.hypot(t.x - me.x, t.z - me.z) < 160).map(t => t.g);
@@ -806,7 +809,9 @@ function blocked(x, z, fly) { if (x < 20 || z < 20 || x > 2980 || z > 2980) retu
   for (const h of houses) { const dx = x - h.x, dz = z - h.z; if (h.gate && castleOpen(h.gate)) continue; if (h.hw) { if (Math.abs(dx) > h.br || Math.abs(dz) > h.br) continue; const lx = dx * h.c + dz * h.s, lz = -dx * h.s + dz * h.c; if (Math.abs(lx) < h.hw && Math.abs(lz) < h.hd) return true; } else if (dx * dx + dz * dz < h.r * h.r) return true; }
   const c = chunks.get(Math.floor(x / CH) + ',' + Math.floor(z / CH)); if (c && c.cols) { const a = c.cols; for (let k = 0; k < a.length; k += 3) { const dx = x - a[k], dz = z - a[k + 1]; if (dx * dx + dz * dz < a[k + 2] * a[k + 2]) return true; } }
   return false; }
-function teleport(x, z) { me.x = x; me.z = z; S.dest = null; S.target = null; S.autoAtk = false; S.mobs.forEach(freeMob); S.mobs = []; updateChunks(x, z, true); saveNow(); }
+function teleport(x, z) { if (S.inGame) { FADE.style.transition = 'none'; FADE.style.background = '#cfeaff'; FADE.style.opacity = 0.95; requestAnimationFrame(() => { FADE.style.transition = 'opacity 700ms'; FADE.style.opacity = 0; }); S.camIntro = performance.now() - 900;
+    setTimeout(() => { if (!me) return; const y = WG.height(me.x, me.z); beam(me.x, y, me.z, 0x7ad0ff, 1.3); shock(me.x, y, me.z, 0x7ad0ff, 3.5, 0.6); emit(me.x, y + 0.2, me.z, { n: 50, color: 0xbfe8ff, speed: 0.8, up: 6, ring: 0.9, life: 1, size: 0.2, grav: -2 }); sfx('magic', 0.6); }, 120); }
+  me.x = x; me.z = z; S.dest = null; S.target = null; S.autoAtk = false; S.mobs.forEach(freeMob); S.mobs = []; updateChunks(x, z, true); saveNow(); }
 function updateMe(dt) {
   const st = stats(); let vx = 0, vz = 0, moving = false;
   const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
@@ -1551,7 +1556,15 @@ function setupStudio() {
   const r = new THREE.Mesh(new THREE.TorusGeometry(3.05, 0.05, 6, 60), mat('#f2c46d', { emissive: 0xb08020, ei: 0.8 })); r.rotation.x = Math.PI / 2; studio.add(r);
   studio.position.set(0, -500, 0);
 }
-function showPreview(o) { if (preview) { studio.remove(preview.root); preview.disposed = true; } preview = buildHumanoid(o); studio.add(preview.root); }
+// tela de entrada: a Árvore dos Mil Mundos em 3D, com a câmera trocando de tomada
+buildTitle(scene, new THREE.Vector3(0, -500, 0));
+const FADE = document.createElement('div'); FADE.id = 'fade'; document.body.appendChild(FADE);
+function fade(color, inMs, cb, outMs = 500) { FADE.style.transition = `opacity ${inMs}ms`; FADE.style.background = color; FADE.style.opacity = 1; return new Promise(r => setTimeout(async () => { try { cb && await cb(); } finally { FADE.style.transition = `opacity ${outMs}ms`; FADE.style.opacity = 0; r(); } }, inMs)); }
+function titleEnv(dt) { skyMat.uniforms.top.value.set(0x0a0624); skyMat.uniforms.bot.value.set(0x3a1a5a); skyMat.uniforms.night.value = 1; skyMat.uniforms.time.value = clock.elapsedTime; scene.fog.color.set(0x1a0e30); scene.fog.near = 60; scene.fog.far = 330; hemi.color.set(0x6a7aff); hemi.intensity = 0.7; sun.color.set(0xbfd0ff); sun.intensity = 1.1; sun.position.set(20, -470, 14); sun.target.position.set(0, -495, -10); sky.position.copy(camera.position); }
+function showPreview(o) { if (preview) { studio.remove(preview.root); preview.disposed = true; } preview = buildHumanoid(o); studio.add(preview.root);
+  // entrada do personagem: desce num feixe de luz, gira e faz um gesto
+  preview.spawnAt = performance.now(); beam(0, -500, 0, 0x7affd8, 1.1); emit(0, -499.6, 0, { n: 46, color: 0xf2c46d, speed: 2.4, up: 3.5, ring: 0.9, life: 1.1, size: 0.2, grav: -0.5 }); shock(0, -499.95, 0, 0x7affd8, 3, 0.6); sfx('buff', 0.35);
+  const pv = preview; setTimeout(() => { if (preview === pv) playAttack(pv, GD.ITEMS[o.weapon]?.kind === 'cajado' ? 'cast' : 'melee'); }, 750); }
 async function toSelect() {
   show('#loading'); $('#loading').hidden = false;
   const d = await B.chars(); S.acct = d; S.chars = d.chars; show('#select'); S.selected = 0; setupStudio(); studio.visible = true; renderSelect();
@@ -1561,7 +1574,7 @@ function renderSelect() {
   $('#btn-new').hidden = S.chars.length >= 3;
   const c = S.chars[S.selected];
   if (c) { showPreview({ ...c, weapon: c.equipment.arma, armor: c.equipment.armadura, equip: c.equipment }); $('#char-info').innerHTML = `<div class="logo small">${esc(c.name)}</div><div class="small">${GD.RACES[c.race].name} • ${GD.TYPES[c.type]} • ${GD.CLASSES[c.class_id]?.name} • Nível ${c.level}</div><button class="primary" id="btn-play">Entrar no mundo</button><button class="link" id="btn-del">Excluir personagem</button>`;
-    $('#btn-play').onclick = () => enterWorld(c.id); $('#btn-del').onclick = async () => { if (prompt(`Digite o nome "${c.name}" para excluir:`) !== c.name) return; await safe(() => B.deleteChar(c.id), 'Personagem excluído'); toSelect(); }; }
+    $('#btn-play').onclick = () => { if (preview) playAttack(preview, 'cast'); beam(0, -500, 0, 0xf2c46d, 1); emit(0, -499.5, 0, { n: 70, color: 0xffe9b0, speed: 1, up: 7, ring: 0.8, life: 1, size: 0.24, grav: -3 }); sfx('levelup', 0.5); fade('#fff8e0', 650, () => enterWorld(c.id), 900); }; $('#btn-del').onclick = async () => { if (prompt(`Digite o nome "${c.name}" para excluir:`) !== c.name) return; await safe(() => B.deleteChar(c.id), 'Personagem excluído'); toSelect(); }; }
   else { if (preview) studio.remove(preview.root); preview = null; $('#char-info').innerHTML = `<div class="lore"><div class="logo small">${QD.LORE.title}</div><p>${QD.LORE.chapters[3][1]}</p></div>`; }
   $('#char-list').onclick = e => { const s = e.target.closest('.cslot'); if (s) { S.selected = +s.dataset.i; renderSelect(); } };
 }
@@ -1608,7 +1621,7 @@ async function enterWorld(id) {
   S.bar = null; makeMe(); const s = stats(); S.hp = S.c.hp > 0 && S.c.hp <= s.maxHp ? S.c.hp : s.maxHp; S.mp = S.c.mp > 0 && S.c.mp <= s.maxMp ? S.c.mp : s.maxMp;
   if (me.x < 20 || me.z < 20 || me.x > 2980 || me.z > 2980 || WG.height(me.x, me.z) < WG.WATER + 0.25 || S.c.hp <= 0) { const t = WG.nearestTown(me.x, me.z).town; me.x = t.x; me.z = t.z + 25; }
   updateChunks(me.x, me.z, true); loadQuests(); renderTracker(); buildBar(); S.fly = false; S.alt = 0; restoreComp();
-  show('#hud'); S.inGame = true; loadClan(true); if (!S.uiInit) { S.uiInit = 1; initUI(); initBars(); buildBar(); } $('#btn-gm').hidden = !S.c.is_gm;
+  show('#hud'); S.inGame = true; loadClan(true); S.camIntro = performance.now(); setTimeout(() => { if (!me) return; const y = WG.height(me.x, me.z); beam(me.x, y, me.z, 0xf2c46d, 1.6); shock(me.x, y, me.z, 0x7affd8, 4, 0.8); emit(me.x, y + 0.3, me.z, { n: 60, color: 0x7affd8, speed: 2.5, up: 4, ring: 1, life: 1.2, size: 0.22, grav: -0.5 }); sfx('buff', 0.5); }, 350); if (!S.uiInit) { S.uiInit = 1; initUI(); initBars(); buildBar(); } $('#btn-gm').hidden = !S.c.is_gm;
   B.join({ id: S.c.id, name: S.c.name, is_gm: S.c.is_gm }, { onPos, onLeave: id => { const o = S.others[id]; if (o) { o.model && scene.remove(o.model.root); delete S.others[id]; } }, onPresence: p => S.presence = p, onChat, onNode, onEvent, onFx: remoteFx });
   $('#chat-log').innerHTML = ''; (await safe(() => B.chatRecent()) || []).forEach(addChat);
   addChat({ kind: 'q', msg: `Bem-vindo(a) a Aurora, ${S.c.name}. Fale com o Arauto do Eclipse na praça para começar sua jornada (H abre a história).` });
@@ -1660,8 +1673,11 @@ function loop() {
     if ((S.npcGlbT = (S.npcGlbT || 0) + dt) > 1) { S.npcGlbT = 0; if (PERF.cur !== 'baixa') { let k = 0; for (const n of npcs) if (n.model && !n.model.glb && !n.model.glbPending && Math.hypot(n.x - me.x, n.z - me.z) < 55 && k++ < 3) upgradeGLB(n.model); } }
     npcs.forEach(n => { if (n.crystal) { n.crystal.rotation.y += dt * (n.crystal.userData.spin2 ? 0.8 : 0.6); if (n.crystal.userData.spin) n.crystal.position.y = WG.TOWN_H + 6 + Math.sin(clock.elapsedTime * 1.5) * 0.4; } else if (n.model && Math.hypot(n.x - me.x, n.z - me.z) < 80) animHumanoid(n.model, dt); });
   } else if (studio.visible) {
+    updateTitle(dt, camera, false); updateFX(dt); if (preview && preview.spawnAt) { const k = Math.min(1, (performance.now() - preview.spawnAt) / 650), e = 1 - (1 - k) * (1 - k); preview.root.position.y = (1 - e) * 1.6; preview.root.scale.setScalar(0.7 + 0.3 * e); preview.root.rotation.y = (1 - e) * 4.5; if (k >= 1) preview.spawnAt = 0; }
     { const ph = preview ? (GD.RACES[preview.race]?.h || 1) : 1, close = clamp((3.2 - stu.dist) / 2.3, 0, 1), ty = -500 + 1.0 * ph + 0.62 * ph * close; camera.position.set(Math.sin(stu.yaw) * Math.cos(stu.pitch) * stu.dist + 0.35 * (1 - close), ty + Math.sin(stu.pitch) * stu.dist, Math.cos(stu.yaw) * Math.cos(stu.pitch) * stu.dist); camera.lookAt(0.35 * (1 - close), ty, 0); if (preview) animHumanoid(preview, dt); }
-    sun.position.set(3, -490, 6); sun.target.position.set(0, -500, 0); sky.position.copy(camera.position);
+    titleEnv(dt); sun.position.set(3, -490, 6); sun.target.position.set(0, -500, 0);
+  } else if (S.mode === 'login' || S.mode === 'loading' || S.mode === 'create') {
+    updateTitle(dt, camera, true, () => { FADE.style.transition = 'none'; FADE.style.background = '#0b0614'; FADE.style.opacity = 0.9; requestAnimationFrame(() => { FADE.style.transition = 'opacity 900ms'; FADE.style.opacity = 0; }); }); titleEnv(dt);
   }
   if (POST.on && S.inGame && me) { const st = stats(), r = S.hp / st.maxHp, L = GD.LANDMARKS.find(L => L.poi && Math.hypot(L.x - me.x, L.z - me.z) < 75);
     renderPost(dt, { lowHp: !S.dead && r < 0.3 ? (0.3 - r) / 0.3 : 0, night: ENV.night, tint: WG.inNeon(me.x, me.z, 20) ? '#b8a0ff' : L ? { tumba: '#a8ffc0', pantano: '#b8d890', destrocos: '#ffc890', estranho: '#c8a0ff' }[L.type] : null }); }

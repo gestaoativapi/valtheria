@@ -193,3 +193,20 @@ body.touch .phead button{font-size:22px;padding:2px 12px}
 .cprog{position:relative;height:16px;background:#000a;border:1px solid #5a4630;border-radius:3px;margin:2px 0 6px}.cprog i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(#7ac85a,#3a7a2a);border-radius:2px}.cprog span{position:absolute;inset:0;text-align:center;font-size:10px;line-height:15px}
 .cflags{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}.cflags button{width:34px;height:34px;font-size:19px;background:#1d1812;border:1px solid #5a4630;border-radius:4px;cursor:pointer}.cflags button.on{border-color:#f2c46d;background:#3a2c1c}
 #p-body select{background:#1d1812;color:#eee;border:1px solid #5a4630;border-radius:3px;padding:3px}
+
+/* ---- identidade visual: tela de entrada sobre o cenário 3D ---- */
+#fade{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:200;background:#000}
+#login{background:radial-gradient(ellipse at 35% 45%,transparent 0,#0b0614aa 70%,#0b0614ee 100%);justify-content:flex-end;padding-right:7vw}
+#login .card{background:#120e1cd9;backdrop-filter:blur(6px);border:1px solid #f2c46d66;box-shadow:0 0 50px #3affc822,0 10px 40px #000a}
+#emblem{display:block;margin:0 auto 4px;width:104px;height:104px;filter:drop-shadow(0 0 14px #3affc866)}
+#emblem .orb{transform-origin:60px 60px;animation:spin 14s linear infinite}#emblem .orb2{transform-origin:60px 60px;animation:spin 22s linear infinite reverse}#emblem .heart{animation:pulse 2.4s ease-in-out infinite;transform-origin:60px 62px}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{transform:scale(1.25);opacity:.7}}
+#login .logo{font-size:40px;letter-spacing:4px;background:linear-gradient(#fff3c8,#f2c46d 55%,#b07a20);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 2px 0 #4a2a08) drop-shadow(0 0 18px #f2c46d55)}
+#login .sub{letter-spacing:3px;text-transform:uppercase;font-size:11px;color:#7affd8}
+#title-tag{position:fixed;left:5vw;bottom:7vh;z-index:51;color:#e8dcc0;font:italic 15px Georgia,serif;max-width:38vw;text-shadow:0 2px 8px #000;opacity:.9;pointer-events:none}
+#title-tag b{display:block;font:700 13px system-ui;letter-spacing:3px;color:#f2c46d;font-style:normal;margin-bottom:4px}
+body.touch #login{padding-right:3vw}body.touch #title-tag{display:none}
+@media (orientation:portrait){#login{justify-content:center;padding-right:0;align-items:flex-end;padding-bottom:5vh}#title-tag{display:none}}
+#loading{background:radial-gradient(ellipse at 50% 40%,#0b061455 0,#0b0614dd 80%)}
+.screen.clear{background:linear-gradient(90deg,#0b0a0fcc 0,#0b0a0f33 30%,transparent 50%,#0b0a0f33 70%,#0b0a0fcc 100%)}
+@media(max-height:520px){#emblem{width:46px;height:46px}#login .logo{font-size:26px}#login .card{max-height:96vh;overflow:auto;padding-top:8px;padding-bottom:8px}}
