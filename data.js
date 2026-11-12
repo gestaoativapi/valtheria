@@ -559,8 +559,8 @@
   const LEGEND_SETS = {
     set_desbravador_estrelas: { name: 'Desbravador das Estrelas', classe: 'Guerreiro', kind: 'pesada', grade: 5, icon: '🌌', img: 'set_estrelas',
       lore: 'Forjada com minério estelar e abençoada pelos Cosmos, protege aqueles que ousam explorar o desconhecido.',
-      // cores ajustadas à arte: azul-real no metal, prata nos frisos e violeta nos cristais (o índigo original ficava escuro demais para brilhar)
-      cores: { principal: '#2a3fae', detalhe: '#c8ccd6', brilho: '#7a5cff' }, pecas: { elmo: 'Elmo', armadura: 'Armadura', luvas: 'Luvas', botas: 'Botas' }, two: { pdefPct: 0.06 }, four: { hpPct: 0.12, dmgRed: 0.08 } },
+      // paleta realista: aço escuro esfumaçado, frisos em ouro envelhecido e cristais de luz estelar fria
+      cores: { principal: '#4a4d55', detalhe: '#b08d4c', brilho: '#a9c4ee', cristal: '#8ea3c4', sombra: '#141518' }, pecas: { elmo: 'Elmo', armadura: 'Armadura', luvas: 'Luvas', botas: 'Botas' }, two: { pdefPct: 0.06 }, four: { hpPct: 0.12, dmgRed: 0.08 } },
   };
   for (const [sid, S] of Object.entries(LEGEND_SETS)) { const gs = GRADES[S.grade].id.toLowerCase();
     for (const [slot, pn] of Object.entries(S.pecas)) { const base = ITEMS[slot === 'armadura' ? `${S.kind}_${gs}` : `${slot}_${S.kind}_${gs}`], st = {}; for (const [k, v] of Object.entries(base.stats)) st[k] = v > 1 ? +(v * 1.2).toFixed(1) : v;

@@ -108,6 +108,65 @@ function totem(colors) { const g = new THREE.Group(); colors.forEach((c, i) => {
 function crystal(color, s = 1) { const g = new THREE.Group(); for (let i = 0; i < 5; i++) { const c = mesh(new THREE.OctahedronGeometry(0.8 * s, 0), M(color, { em: new THREE.Color(color).getHex(), ei: 0.7, rough: 0.2 })); c.scale.set(0.5, 1.6 + (i % 3) * 0.5, 0.5); c.position.set(Math.cos(i * 1.3) * 0.7 * s, 1.2 * s, Math.sin(i * 1.3) * 0.7 * s); c.rotation.z = (i - 2) * 0.25; g.add(c); } return g; }
 function lampPost(ctx, g, x, z, color = '#ffffff', h = 3.4) { const y = ctx.H(x, z); ctx.collide(x, z, 0.4); A(g, cyl(0.1, 0.14, h, '#2a2420', 6)).position.set(x, y + h / 2, z); g.add(makeFire(x, y + h + 0.1, z, 0.42, color, false)); }
 
+
+// ---------- casas abertas: porta, janelas, interior mobiliado e morador ----------
+export const INTERIORS = [];
+export function updateInteriors(px, pz) { let ins = false; for (const I of INTERIORS) { const dx = px - I.x, dz = pz - I.z; if (Math.abs(dx) > 14 || Math.abs(dz) > 14) { if (!I.roof.visible) I.roof.visible = true; continue; } const lx = dx * I.c - dz * I.s, lz = dx * I.s + dz * I.c; const inn = Math.abs(lx) < I.hw && Math.abs(lz) < I.hd; I.roof.visible = !inn; if (inn) ins = true; } return ins; }
+const HOUSE_KINDS = [
+  { id: 'taverna', sign: '#c8a03a', npc: ['mercador', 'Taverneira Lia', { gender: 'f', armor: 'robe_d', idle: 'Idle_Talking_Loop' }] },
+  { id: 'oficina', sign: '#8a8f98', npc: ['ferreiro', 'Artesão Bruno', { armor: 'leve_d', weapon: 'martelo_d', idle: 'Idle_FoldArms_Loop', beard: 2 }] },
+  { id: 'morada', sign: '#6a8a4a', npc: ['morador', 'Anciã Marta', { gender: 'f', armor: 'robe_d', idle: 'Idle_Talking_Loop' }] }];
+function openHouse(ctx, g, x, z, rot, o = {}) {
+  const K = HOUSE_KINDS[(o.kind || 0) % HOUSE_KINDS.length], w = 10, d = 8.4, h = 3.3, th = 0.32, dw = 1.8, dh = 2.5, y0 = ctx.H(x, z) + 0.05, c = Math.cos(rot), sn = Math.sin(rot);
+  const H = new THREE.Group(); H.position.set(x, y0, z); H.rotation.y = rot; g.add(H);
+  const W = (lx, lz) => [x + lx * c + lz * sn, z - lx * sn + lz * c], cb = (lx, lz, hw, hd) => { const [wx, wz] = W(lx, lz); ctx.collideBox && ctx.collideBox(wx, wz, hw, hd, -rot); }, cc = (lx, lz, r) => { const [wx, wz] = W(lx, lz); ctx.collide(wx, wz, r); };
+  const P = (m, px, py, pz) => { m.position.set(px, py, pz); H.add(m); return m; };
+  const wall = o.wall || '#e9dfc6', stone = o.stone || '#7d776c', beam = o.beam || '#3d2c1f', wood = '#6b4a2e', woodD = '#4a3220';
+  P(box(w + 0.6, 1.6, d + 0.6, stone), 0, -0.8, 0); P(box(w - 0.1, 0.06, d - 0.1, '#7a5a3a', { rough: 0.85 }), 0, 0.03, 0);
+  for (let i = -4; i <= 4; i++) P(box(0.03, 0.065, d - 0.2, woodD), i * 1.1, 0.032, 0);
+  // parede com vãos: rodapé de pedra, reboco e vigas
+  const seg = (lx, lz, len, alongX, yb, hh, col = wall) => P(alongX ? box(len, hh, th, col) : box(th, hh, len, col), lx, yb + hh / 2, lz);
+  const wallRun = (fx, fz, alongX, len, gaps) => { // gaps: [centro, largura, base, altura]
+    let cur = -len / 2; const pieces = []; gaps.sort((a, b) => a[0] - b[0]).forEach(([gc, gw, gb, gh]) => { pieces.push([cur, gc - gw / 2, 0, h]); if (gb > 0) pieces.push([gc - gw / 2, gc + gw / 2, 0, gb]); if (gb + gh < h) pieces.push([gc - gw / 2, gc + gw / 2, gb + gh, h]); cur = gc + gw / 2; }); pieces.push([cur, len / 2, 0, h]);
+    for (const [a, b, yb, yt] of pieces) { if (b - a < 0.02) continue; const mid = (a + b) / 2, st = Math.min(yt, 0.9); if (yb < 0.9) seg(alongX ? fx + mid : fx, alongX ? fz : fz + mid, b - a, alongX, yb, st - yb, stone); if (yt > 0.9) seg(alongX ? fx + mid : fx, alongX ? fz : fz + mid, b - a, alongX, Math.max(yb, 0.9), yt - Math.max(yb, 0.9)); }
+    for (const [gc, gw, gb, gh] of gaps) { const fr = (px, py, sx, sy) => { const m = alongX ? box(sx, sy, th + 0.08, beam) : box(th + 0.08, sy, sx, beam); P(m, alongX ? fx + px : fx, py, alongX ? fz : fz + px); }; fr(gc - gw / 2, gb + gh / 2, 0.12, gh); fr(gc + gw / 2, gb + gh / 2, 0.12, gh); fr(gc, gb + gh, gw + 0.24, 0.14); if (gb > 0) { fr(gc, gb, gw + 0.34, 0.12); fr(gc, gb + gh / 2, 0.06, gh); fr(gc, gb + gh / 2, gw, 0.06);
+        const gl = alongX ? box(gw, gh, 0.03, '#bfe0ee', { rough: 0.1, op: 0.22 }) : box(0.03, gh, gw, '#bfe0ee', { rough: 0.1, op: 0.22 }); gl.castShadow = false; P(gl, alongX ? fx + gc : fx, gb + gh / 2, alongX ? fz : fz + gc); } } };
+  wallRun(0, d / 2, true, w, [[0, dw, 0, dh], [-3.1, 1.3, 1.1, 1.3], [3.1, 1.3, 1.1, 1.3]]);
+  wallRun(0, -d / 2, true, w, [[2.6, 1.3, 1.1, 1.3]]);
+  wallRun(-w / 2, 0, false, d, [[0, 1.5, 1.1, 1.3]]); wallRun(w / 2, 0, false, d, [[0, 1.5, 1.1, 1.3]]);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P(box(0.42, h + 0.1, 0.42, beam), sx * w / 2, h / 2, sz * d / 2);
+  P(box(w + 0.3, 0.22, 0.4, beam), 0, h, d / 2); P(box(w + 0.3, 0.22, 0.4, beam), 0, h, -d / 2); P(box(0.4, 0.22, d + 0.3, beam), -w / 2, h, 0); P(box(0.4, 0.22, d + 0.3, beam), w / 2, h, 0);
+  // porta aberta para dentro, degrau e placa
+  { const dp = new THREE.Group(), leaf = box(dw - 0.1, dh - 0.05, 0.09, wood); leaf.position.set((dw - 0.1) / 2, (dh - 0.05) / 2, 0); dp.add(leaf); for (const yy of [0.5, 1.9]) { const ir = box(dw - 0.2, 0.09, 0.11, '#2a2622', { metal: 0.7, rough: 0.5 }); ir.position.set((dw - 0.1) / 2, yy, 0); dp.add(ir); } const kn = sph(0.06, '#b08d4c', { metal: 0.9, rough: 0.35 }); kn.position.set(dw - 0.3, 1.15, -0.09); dp.add(kn); dp.position.set(-dw / 2 + 0.03, 0.02, d / 2 - 0.12); dp.rotation.y = 1.9; H.add(dp); }
+  P(box(dw + 0.8, 0.16, 0.9, stone), 0, -0.02, d / 2 + 0.55);
+  { const arm = P(box(0.08, 0.08, 1.1, '#2a2622', { metal: 0.7 }), dw / 2 + 0.5, 2.9, d / 2 + 0.55), sg = P(box(0.06, 0.6, 0.85, K.sign, { metal: K.id === 'oficina' ? 0.8 : 0.2, rough: 0.5 }), dw / 2 + 0.5, 2.5, d / 2 + 0.6); arm.castShadow = sg.castShadow = false; }
+  // telhado e forro (somem quando o jogador entra, para a câmera enxergar o interior)
+  const roof = new THREE.Group(); H.add(roof); const rf = gable(w + 0.5, d + 0.4, 3.0, o.roof || '#7a3526'); rf.position.y = h + 0.1; roof.add(rf);
+  for (let i = -2; i <= 2; i++) { const tb = box(w - 0.3, 0.2, 0.22, beam); tb.position.set(0, h - 0.12, i * 1.8); roof.add(tb); }
+  { const ch = box(0.9, 3.2, 0.9, stone); ch.position.set(-w / 2 + 1.0, h + 1.9, -d / 2 + 0.9); roof.add(ch); roof.add(makeSmoke(-w / 2 + 1.0, h + 3.7, -d / 2 + 0.9, 0.55)); }
+  INTERIORS.push({ x, z, c, s: sn, hw: w / 2 + 0.2, hd: d / 2 + 0.2, roof });
+  // lareira
+  P(box(1.7, 1.5, 0.75, stone), -w / 2 + 1.05, 0.75, -d / 2 + 0.55); P(box(1.0, 0.8, 0.5, '#151210'), -w / 2 + 1.05, 0.5, -d / 2 + 0.72); P(box(1.9, 0.14, 0.9, beam), -w / 2 + 1.05, 1.55, -d / 2 + 0.6);
+  { const [fx, fz] = W(-w / 2 + 1.05, -d / 2 + 0.95); g.add(makeFire(fx, y0 + 0.35, fz, 0.5, '#ffb060', false)); } cb(-w / 2 + 1.05, -d / 2 + 0.55, 0.95, 0.5);
+  // mesa com bancos, tapete e candeeiro
+  const table = (lx, lz) => { P(cyl(0.75, 0.75, 0.08, wood, 14), lx, 0.82, lz); P(cyl(0.1, 0.16, 0.8, woodD, 8), lx, 0.4, lz); for (let i = 0; i < 3; i++) { const a = i * 2.1 + 0.4; P(cyl(0.2, 0.2, 0.06, wood, 10), lx + Math.cos(a) * 1.1, 0.5, lz + Math.sin(a) * 1.1); P(cyl(0.05, 0.07, 0.5, woodD, 6), lx + Math.cos(a) * 1.1, 0.25, lz + Math.sin(a) * 1.1); }
+    P(cyl(0.07, 0.06, 0.16, '#8a6a3a', 8), lx + 0.25, 0.94, lz - 0.1); const cd = P(cyl(0.03, 0.03, 0.18, '#f0e8d0', 6), lx - 0.15, 0.95, lz + 0.15), fl = P(sph(0.045, '#ffd070', { em: 0xffa030, ei: 2 }, 6, 5), lx - 0.15, 1.08, lz + 0.15); cd.castShadow = fl.castShadow = false; cc(lx, lz, 0.8); };
+  P(box(3.2, 0.02, 2.2, o.rug || '#7a2e2a', { rough: 1 }), 2.2, 0.075, 1.2).castShadow = false; table(2.6, 1.4);
+  { const lp = P(cyl(0.16, 0.1, 0.22, '#2a2622', 8, { metal: 0.7 }), 0, h - 0.9, 0.4), ch = P(cyl(0.012, 0.012, 0.7, '#2a2622', 4), 0, h - 0.45, 0.4), gw = P(sph(0.09, '#ffd98a', { em: 0xffa040, ei: 1.6 }, 8, 6), 0, h - 0.98, 0.4); lp.castShadow = ch.castShadow = gw.castShadow = false; }
+  // por tipo
+  const shelf = (lx, lz, ry, cols) => { const s = new THREE.Group(); A(s, box(2.2, 2.2, 0.36, woodD)).position.y = 1.1; for (let r = 0; r < 3; r++) { A(s, box(2.1, 0.05, 0.4, wood)).position.set(0, 0.5 + r * 0.6, 0.04); for (let i = 0; i < 5; i++) { const b = A(s, r === 2 && i % 2 ? sph(0.1, cols[(i + r) % cols.length], {}, 8, 6) : cyl(0.07, 0.08, 0.26, cols[(i + r) % cols.length], 8)); b.position.set(-0.8 + i * 0.4, 0.66 + r * 0.6, 0.1); b.castShadow = false; } } s.position.set(lx, 0, lz); s.rotation.y = ry; H.add(s); };
+  if (K.id === 'taverna') { P(box(4.2, 1.05, 0.7, wood), 1.6, 0.525, -d / 2 + 2.3); P(box(4.4, 0.08, 0.9, woodD), 1.6, 1.09, -d / 2 + 2.3); cb(1.6, -d / 2 + 2.3, 2.2, 0.5); shelf(0.6, -d / 2 + 0.4, 0, ['#7a2e2a', '#3a6a4a', '#b08d4c', '#4a5a8a']);
+    for (let i = 0; i < 3; i++) { const bl = cyl(0.42, 0.42, 0.95, '#6b4a2e', 12); bl.rotation.z = Math.PI / 2; P(bl, w / 2 - 0.8, 0.45 + (i === 2 ? 0.8 : 0), -d / 2 + 1 + (i === 2 ? 0.5 : i) * 0.95); } cb(w / 2 - 0.8, -d / 2 + 1.5, 0.6, 1.1); table(-2.4, 1.6); }
+  else if (K.id === 'oficina') { P(box(2.6, 0.9, 0.9, woodD), 2.2, 0.45, -d / 2 + 1.9); P(box(2.8, 0.1, 1.05, wood), 2.2, 0.95, -d / 2 + 1.9); cb(2.2, -d / 2 + 1.9, 1.4, 0.6); P(box(0.6, 0.5, 0.36, '#3a3d44', { metal: 0.9, rough: 0.4 }), -1.2, 0.95, -0.6); P(cyl(0.3, 0.38, 0.7, woodD, 8), -1.2, 0.35, -0.6); cc(-1.2, -0.6, 0.55);
+    for (let i = 0; i < 4; i++) { const t = box(0.07, 0.9, 0.07, i % 2 ? '#8a8f98' : '#5a4630', { metal: i % 2 ? 0.9 : 0, rough: 0.4 }); P(t, w / 2 - th / 2 - 0.1, 1.7, -2.4 + i * 0.45).rotation.x = 0.1 * (i - 1.5); } shelf(-0.6, -d / 2 + 0.4, 0, ['#8a8f98', '#b08d4c', '#5a4630']); }
+  else { P(box(2.1, 0.45, 1.2, woodD), w / 2 - 1.3, 0.3, -d / 2 + 0.9); P(box(2.0, 0.2, 1.1, '#d8d0c0', { rough: 1 }), w / 2 - 1.3, 0.6, -d / 2 + 0.9); P(box(0.5, 0.16, 0.9, '#f0ece0', { rough: 1 }), w / 2 - 0.55, 0.75, -d / 2 + 0.9); P(box(0.12, 1.0, 1.3, woodD), w / 2 - 0.3, 0.5, -d / 2 + 0.9); cb(w / 2 - 1.3, -d / 2 + 0.9, 1.1, 0.7);
+    shelf(0.4, -d / 2 + 0.4, 0, ['#6a3a5a', '#3a5a6a', '#b08d4c', '#5a6a3a']); P(box(0.9, 0.7, 0.6, wood), -w / 2 + 0.7, 0.35, 1.8); P(box(0.95, 0.06, 0.65, '#b08d4c', { metal: 0.6, rough: 0.5 }), -w / 2 + 0.7, 0.72, 1.8); cb(-w / 2 + 0.7, 1.8, 0.5, 0.4); }
+  // colisão das paredes (a porta fica livre)
+  const ct = 0.4; cb(0, -d / 2, w / 2 + 0.2, ct); cb(-w / 2, 0, ct, d / 2 + 0.2); cb(w / 2, 0, ct, d / 2 + 0.2); const fl = (w - dw) / 4; cb(-(dw / 2 + fl), d / 2, fl, ct); cb(dw / 2 + fl, d / 2, fl, ct);
+  if (ctx.npc) { const [nx, nz] = W(K.id === 'morada' ? -1.6 : K.id === 'oficina' ? 2.2 : 1.6, K.id === 'morada' ? -1.2 : -d / 2 + 1.2); ctx.npc(K.npc[0], K.npc[1], nx, nz, rot, { ...K.npc[2], indoor: true }); }
+  return H;
+}
+
 // ---------- estilos de cidade por raça ----------
 const STYLES = {
   humano(ctx, g) {
@@ -115,7 +174,7 @@ const STYLES = {
       tower: () => { const tw = new THREE.Group(); A(tw, cyl(3.2, 3.6, 10, '#7e786c', 16)).position.y = 5; A(tw, cone(4, 5, '#8a3b2b', 16)).position.y = 12.5; return tw; }, gateFire: '#ffffff' });
     const roofs = ['#8a3b2b', '#6a3a22', '#5a4a3a', '#7a2a22'];
     const HS = [['b_house_1', 3.3], ['b_house_2', 3.2], ['b_inn', 3.1], ['b_house_3', 3.6], ['b_house_4', 4.2], ['b_stable', 2.8], ['b_house_1', 3.3], ['b_blacksmith', 3.0]];
-    ringPlaces(ctx, 16, 54, 72).forEach((p, i) => { const [nm, sc] = HS[i % HS.length]; place(ctx, g, glbB(nm, sc, timberHouse({ roof: roofs[i % 4], v: i % 3 * 0.5, chimney: i % 3 === 0 })), p.x, p.z, facing(ctx, p.x, p.z), 5.5); });
+    ringPlaces(ctx, 16, 54, 72).forEach((p, i) => { const [nm, sc] = HS[i % HS.length]; if (i % 5 === 2) { openHouse(ctx, g, p.x, p.z, facing(ctx, p.x, p.z), { kind: (i - 2) / 5, roof: roofs[i % 4] }); return; } place(ctx, g, glbB(nm, sc, timberHouse({ roof: roofs[i % 4], v: i % 3 * 0.5, chimney: i % 3 === 0 })), p.x, p.z, facing(ctx, p.x, p.z), 5.5); });
     { const a = ctx.freeDir(5), x = ctx.t.x + Math.cos(a) * 30, z = ctx.t.z + Math.sin(a) * 30; place(ctx, g, glbB('b_bell_tower', 3.4, null), x, z, facing(ctx, x, z), 3.5); }
     scatterProps(ctx, g, 26, 46, 80);
     // torre de menagem (castelo) atrás da praça

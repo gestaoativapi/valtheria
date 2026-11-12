@@ -2,7 +2,7 @@
 import * as THREE from './lib/three.module.min.js';
 import { buildHumanoid, setGear, animHumanoid, playAttack, upgradeGLB, buildMob, animMob, buildNode, buildHouse, makeLabel, mat } from './models.js';
 import { updateWaterDepth, createSky, createWater, dayPhase, sunVectors, WIND, makeFire, updateFires, initLightPool, createGrass, layoutGrass, ROCK_GEOS, rockMat, TREE_KINDS, leafMat, treeTrunkMat } from './world3d.js';
-import { buildTownArchitecture, buildLandmark, updateTownAnim, stoneify } from './towns.js';
+import { buildTownArchitecture, buildLandmark, updateTownAnim, stoneify, updateInteriors } from './towns.js';
 import { buildNeon, buildPortal, updateNeon } from './neon.js';
 import { ELEM, elemOf, isMeteor, classElem, initElements, updateElements, elemImpact, meteor, castBurst, bodyAura } from './elements.js';
 import { initUI, initBars, toggleEquip, renderEquip, updateEquip, equipOpen, closeEquip } from './ui.js';
@@ -348,7 +348,7 @@ function updateCamera() {
       if (h) CAMFX.hit = Math.max(0.15, (h.distance - 0.4) / D); } }
   CAMFX.k = (CAMFX.k ?? 1) + ((CAMFX.hit ?? 1) - (CAMFX.k ?? 1)) * 0.25; if (CAMFX.k < 0.999) { cx = me.x + (cx - me.x) * CAMFX.k; cy = ty + (cy - ty) * CAMFX.k; cz = me.z + (cz - me.z) * CAMFX.k; }
   if (CAMFX.shake > 0.01) { const a = CAMFX.shake * CAMFX.shake * 0.35, tt = performance.now() / 30; cx += Math.sin(tt * 1.7) * a; cy += Math.sin(tt * 2.3) * a; cz += Math.cos(tt * 1.9) * a; CAMFX.shake *= 0.88; }
-  camera.position.set(cx, cy, cz); camera.lookAt(me.x, ty, me.z); if (me.label) me.label.visible = cam.dist > 5.5;
+  camera.position.set(cx, cy, cz); camera.lookAt(me.x, ty, me.z); if (me.label) me.label.visible = cam.dist > 5.5 && !S.indoor;
 }
 
 // ---------- clique: mover, selecionar, interagir ----------
@@ -1123,7 +1123,7 @@ function updateVillagers(dt) {
 function greetNpcs() { if (!me || S.dead) return; const t = Date.now(); for (const n of npcs) { if (!n.model || !n.type) continue; const d = Math.hypot(n.x - me.x, n.z - me.z); if (d < 7 && t - (n.greet || 0) > 90000) { npcSay(n); break; } } }
 function openNpc(n) {
   if (Date.now() - (n.greet || 0) > 8000) npcSay(n);
-  if (n.type === 'guarda') return;
+  if (n.type === 'guarda' || n.type === 'morador') return;
   const map = { portal: 'teleport', classe: 'classe', ferreiro: 'craft', refino: 'craft', mercador: 'shop', leilao: 'market', arauto: 'arauto', senescal: 'clan', trono: 'clan' }; if (map[n.type] === 'clan') { openPanel('clan', { tab: 'guerra', castle: n.castle }); return; }
   openPanel(map[n.type], { npc: n, station: n.type === 'ferreiro' ? 'forja' : n.type === 'refino' ? 'refinaria' : null, tab: 'buy' });
 }
@@ -1682,7 +1682,7 @@ function updateEnvironment(dt) {
   { const nk = WG.inNeon(me.x, me.z, 60) ? 1 : 0; ENV.neon = (ENV.neon || 0) + (nk - (ENV.neon || 0)) * Math.min(1, dt * 0.8);
     if (ENV.neon > 0.01) { const k2 = ENV.neon; sun.intensity *= 1 - 0.62 * k2; sun.color.lerp(neonSun, 0.5 * k2); hemi.color.lerp(neonHemi, 0.6 * k2); hemi.groundColor && hemi.groundColor.lerp(neonGround, 0.6 * k2); hemi.intensity *= 1 - 0.2 * k2;
       scene.fog.color.lerp(neonFog, 0.85 * k2); scene.fog.near = scene.fog.near * (1 - 0.4 * k2); scene.fog.far = scene.fog.far * (1 + 0.6 * k2); renderer.toneMappingExposure = 1.05 + 0.1 * k2; } }
-  updateFires(dt, t, night, camera.position); updateTownAnim(t); updateNeon(t, camera);
+  updateFires(dt, t, night, camera.position); updateTownAnim(t); if (me) S.indoor = updateInteriors(me.x, me.z); updateNeon(t, camera);
 }
 const neonSun = new THREE.Color('#ff7ad8'), neonHemi = new THREE.Color('#5a6aff'), neonGround = new THREE.Color('#3a0a4a'), neonFog = new THREE.Color('#2a1250');
 // ---------- laço principal ----------
