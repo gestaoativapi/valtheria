@@ -31,28 +31,39 @@ const tube = (r1, r2, h, m, s = 12) => M(new THREE.CylinderGeometry(r1, r2, h, s
 
 // ---------- rosto desenhado (olhos, sobrancelhas, boca, cicatrizes) ----------
 const faceCache = new Map();
-// cabeça de dragão: crânio alongado, focinho em cunha, mandíbula com dentes, chifres para trás, crista e olhos de pupila em fenda
+// peça afilada entre dois pontos (chifres, espinhos, dentes): garante simetria ao espelhar o grupo
+function spike(a, b, r0, r1, mat, seg = 7) { const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A), len = d.length(); const m = M(new THREE.CylinderGeometry(r1, r0, len, seg), mat); m.position.copy(A).addScaledVector(d, 0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return m; }
+function hornArc(g, p0, p1, p2, r0, mat, n = 6) { const P = t => [0, 1, 2].map(k => (1 - t) * (1 - t) * p0[k] + 2 * (1 - t) * t * p1[k] + t * t * p2[k]); for (let i = 0; i < n; i++) { const t0 = i / n, t1 = (i + 1) / n; g.add(spike(P(t0), P(t1), r0 * (1 - t0 * 0.92), r0 * (1 - t1 * 0.92), mat)); if (i < n - 1) { const j = M(new THREE.SphereGeometry(r0 * (1 - t1 * 0.92), 7, 5), mat); j.position.set(...P(t1)); g.add(j); } } }
+// cabeça de dragão: crânio baixo, focinho largo e rombudo, mandíbula clara com presas, sobrancelha em crista que vira chifre curvo,
+// barbatanas na bochecha e crista dorsal. Tudo montado de um lado só e espelhado, para ficar simétrico.
 function dragonHead(head, col, eyeCol, hs, fem, ft) {
-  hs *= 1.32;
-  const sc = toon(col), lite = toon(shade(col, 1.35)), dark = toon(shade(col, 0.55)), horn = toon('#d8cdb4'), hornD = toon('#8a7f6a'), blk = toon('#14100e'), wht = toon('#f2ead8'), eye = toon(eyeCol, { emissive: new THREE.Color(eyeCol).getHex(), ei: 0.6 });
-  const add = (m, x, y, z, sx = 1, sy = 1, sz = 1) => { at(m, x * hs, (y - 0.05) * hs, (z + 0.012) * hs); m.scale.set(sx, sy, sz); head.add(ft(m)); return m; };
-  add(ball(0.158 * hs, sc, 18, 14), 0, 0.03, 0, 0.98, 0.94, 1.12); // crânio
-  add(ball(0.105 * hs, sc, 14, 10), 0, -0.15, -0.03, 1.12, 0.95, 1.1); add(ball(0.08 * hs, lite, 12, 8), 0, -0.16, 0.035, 1, 0.9, 0.7); // pescoço e papo claro
-  const up = add(cone(0.1 * hs, 0.34 * hs, sc, 6), 0, 0.0, 0.2, 1.05, 1, 0.66); up.rotation.x = Math.PI / 2; // focinho em cunha
-  add(ball(0.07 * hs, sc, 12, 10), 0, 0.015, 0.11, 1.15, 0.8, 1.2);
-  const jaw = add(cone(0.07 * hs, 0.26 * hs, lite, 6), 0, -0.07, 0.17, 1.0, 1, 0.42); jaw.rotation.x = Math.PI / 2;
-  for (const s of [-1, 1]) {
-    add(ball(0.02 * hs, dark, 8, 6), s * 0.026, 0.03, 0.33, 1, 0.8, 1.2); // narinas
-    for (let i = 0; i < 6; i++) { const t = add(cone(0.008 * hs, 0.03 * hs, wht, 5), s * (0.058 - i * 0.007), -0.045, 0.13 + i * 0.03); t.rotation.x = Math.PI; }
-    const br = add(capsule(0.02 * hs, 0.085 * hs, dark, 6), s * 0.075, 0.105, 0.105, 1, 1, 0.9); br.rotation.x = Math.PI / 2 - 0.25; br.rotation.y = s * 0.35; // arco da sobrancelha
-    add(ball(0.036 * hs, eye, 10, 8), s * 0.088, 0.068, 0.112, 0.7, 0.72, 0.85); add(ball(0.018 * hs, blk, 8, 6), s * 0.1, 0.068, 0.132, 0.28, 1, 0.5); // olho com pupila em fenda
-    const h1 = add(cone(0.042 * hs, 0.4 * hs, horn, 8), s * 0.115, 0.21, -0.16); h1.rotation.x = -2.05; h1.rotation.z = s * 0.55; // chifres principais
-    const h1b = add(cone(0.05 * hs, 0.09 * hs, hornD, 8), s * 0.082, 0.135, -0.03); h1b.rotation.x = -2.05; h1b.rotation.z = s * 0.55;
-    const h2 = add(cone(0.02 * hs, 0.15 * hs, horn, 6), s * 0.135, 0.0, -0.07); h2.rotation.x = -1.7; h2.rotation.z = -s * 0.55; // chifres da bochecha
-    for (let i = 0; i < 3; i++) { const fr = add(cone(0.02 * hs, 0.085 * hs, dark, 4), s * (0.125 + i * 0.006), -0.06 - i * 0.035, -0.02 - i * 0.02, 1, 1, 0.45); fr.rotation.z = -s * (1.9 + i * 0.2); } // babado lateral
-  }
-  for (let i = 0; i < 6; i++) { const c = add(cone(0.02 * hs, (0.07 - i * 0.004) * hs, dark, 4), 0, 0.165 - i * i * 0.006, 0.07 - i * 0.045, 0.6, 1, 1); c.rotation.x = -0.25 - i * 0.3; } // crista
-  const ch = add(cone(0.014 * hs, 0.06 * hs, horn, 5), 0, -0.115, 0.1); ch.rotation.x = Math.PI - 0.5; // espinho do queixo
+  const k = hs * 1.32, sc = toon(col), lite = toon(shade(col, 1.4)), dark = toon(shade(col, 0.5)), mid = toon(shade(col, 0.75)), horn = toon('#d9ceb6'), hornD = toon('#7d7260'), blk = toon('#120e0c'), wht = toon('#f4ecdc'), eye = toon(eyeCol, { emissive: new THREE.Color(eyeCol).getHex(), ei: 0.9 });
+  const H = new THREE.Group(); H.scale.setScalar(k); H.position.set(0, -0.05 * k, 0.012 * k); head.add(ft(H));
+  const put = (g, m, x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0) => { m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.set(rx, ry, rz); g.add(m); return m; };
+  put(H, ball(0.168, sc, 18, 14), 0, 0.085, 0.0, 0.98, 1.0, 1.14); put(H, ball(0.12, sc, 14, 10), 0, 0.075, 0.09, 1.05, 0.9, 1); // crânio e testa
+  put(H, ball(0.105, sc, 14, 10), 0, -0.15, -0.035, 1.12, 0.95, 1.08); put(H, ball(0.085, lite, 12, 8), 0, -0.155, 0.03, 0.95, 0.9, 0.7); // pescoço e papo
+  // focinho: tronco de cone largo, achatado, com ponta rombuda
+  const sn = new THREE.Group(); sn.position.set(0, 0.0, 0.1); sn.rotation.x = 0.1; H.add(sn);
+  put(sn, M(new THREE.CylinderGeometry(0.052, 0.105, 0.25, 10), sc), 0, 0, 0.125, 1, 1, 0.68, Math.PI / 2); put(sn, ball(0.054, sc, 12, 10), 0, 0.0, 0.25, 1, 0.68, 0.9);
+  put(sn, ball(0.045, mid, 10, 8), 0, 0.04, 0.12, 0.9, 0.5, 2.2); // dorso do focinho
+  for (let i = 0; i < 3; i++) put(sn, cone(0.016, 0.035, dark, 4), 0, 0.066 - i * 0.004, 0.06 + i * 0.055, 0.6, 1, 1, -0.5);
+  for (const sx of [-1, 1]) put(sn, ball(0.013, blk, 8, 6), sx * 0.024, 0.03, 0.262, 1, 0.6, 1.4); // narinas
+  // mandíbula entreaberta, mais clara
+  const jw = new THREE.Group(); jw.position.set(0, -0.055, 0.07); jw.rotation.x = 0.2; H.add(jw);
+  put(jw, M(new THREE.CylinderGeometry(0.042, 0.092, 0.24, 10), lite), 0, 0, 0.12, 1, 1, 0.4, Math.PI / 2); put(jw, ball(0.044, lite, 10, 8), 0, 0, 0.24, 1, 0.42, 0.9);
+  const side = new THREE.Group(); // lado direito; o esquerdo é o espelho
+  for (let i = 0; i < 7; i++) { const z = 0.14 + i * 0.033, x = 0.088 - i * 0.0075; side.add(spike([x, -0.028 - i * 0.004, z], [x, -0.06 - i * 0.004, z + 0.004], 0.008, 0.001, wht, 5)); } // dentes de cima
+  side.add(spike([0.04, -0.05, 0.345], [0.042, -0.095, 0.35], 0.011, 0.001, wht, 6)); // presa
+  for (let i = 0; i < 4; i++) { const z = 0.16 + i * 0.045, x = 0.075 - i * 0.008; side.add(spike([x, -0.075 - i * 0.012, z], [x, -0.05 - i * 0.012, z + 0.002], 0.007, 0.001, wht, 5)); } // dentes de baixo
+  put(side, ball(0.075, sc, 12, 10), 0.095, -0.03, 0.03, 0.75, 0.95, 1.1); // articulação da mandíbula
+  put(side, ball(0.04, eye, 12, 10), 0.118, 0.07, 0.15, 0.6, 0.72, 0.9, 0, 0.5, 0); put(side, ball(0.022, blk, 8, 6), 0.134, 0.07, 0.166, 0.22, 0.95, 0.5, 0, 0.5, 0); // olho e pupila em fenda
+  put(side, ball(0.055, dark, 10, 8), 0.112, 0.122, 0.13, 0.75, 0.42, 1.7, -0.25, 0.4, 0.25); // sobrancelha
+  hornArc(side, [0.085, 0.13, -0.02], [0.2, 0.3, -0.12], [0.13, 0.4, -0.38], fem ? 0.034 : 0.042, horn, 7); put(side, ball(0.05, hornD, 8, 6), 0.088, 0.135, -0.025, 1, 0.8, 1); // chifre curvo
+  hornArc(side, [0.12, 0.02, -0.06], [0.2, 0.04, -0.14], [0.19, 0.1, -0.24], 0.022, horn, 4); // chifre menor
+  for (let i = 0; i < 4; i++) { const y = -0.02 - i * 0.04, fin = spike([0.125, y, -0.01 - i * 0.012], [0.2 - i * 0.012, y - 0.03, -0.09 - i * 0.012], 0.024, 0.002, dark, 4); fin.scale.z = 0.35; side.add(fin); } // barbatana da bochecha
+  const mir = side.clone(true); mir.scale.x = -1; H.add(side, mir);
+  for (let i = 0; i < 7; i++) { const a = 0.35 + i * 0.3, r = 0.155; const sp = spike([0, 0.035 + Math.cos(a) * r * 0.9, -0.005 - Math.sin(a) * r * 1.1], [0, 0.035 + Math.cos(a) * (r + 0.075 - i * 0.004) * 0.9, -0.005 - Math.sin(a) * (r + 0.075) * 1.1 - 0.03], 0.02, 0.002, dark, 4); sp.scale.x = 0.45; H.add(sp); } // crista
+  H.add(spike([0, -0.085, 0.22], [0, -0.14, 0.2], 0.013, 0.001, horn, 5)); // espinho do queixo
 }
 // cabeça de fera (leão, tigre, lobo ou crocodilo): crânio que cobre a cabeça humana, focinho, orelhas, olhos e pelagem
 function beastHead(head, kind, col, eyeCol, hs, fem, ft) {
@@ -60,30 +71,43 @@ function beastHead(head, kind, col, eyeCol, hs, fem, ft) {
   const fur = toon(col), lite = toon(shade(col, 1.28)), dark = toon(shade(col, 0.55)), blk = toon('#1c1614'), wht = toon('#f2ead8'), eye = toon(eyeCol, { emissive: new THREE.Color(eyeCol).getHex(), ei: 0.25 });
   const add = (m, x, y, z, sx = 1, sy = 1, sz = 1) => { at(m, x * hs, (y - 0.05) * hs, (z + 0.012) * hs); m.scale.set(sx, sy, sz); head.add(ft(m)); return m; };
   const croc = kind === 'crocodilo', wolf = kind === 'lobo';
-  add(ball(0.158 * hs, fur, 18, 14), 0, 0.03, 0.0, croc ? 1.0 : 1.02, croc ? 0.92 : 1.0, 1.1); // crânio
+  add(ball(0.166 * hs, fur, 18, 14), 0, croc ? 0.05 : 0.07, croc ? 0.01 : 0.005, 1.0, croc ? 0.9 : 1.0, croc ? 1.18 : 1.14); // crânio
   add(ball(0.1 * hs, fur, 14, 10), 0, -0.15, -0.03, 1.15, 0.9, 1.1); // pescoço peludo
   const eyes = (y, z, x, r) => [-1, 1].forEach(s => { add(ball(r * hs, eye, 10, 8), s * x, y, z, 1, 0.8, 0.6); const p = add(ball(r * 0.5 * hs, blk, 8, 6), s * x, y, z + r * 0.5, croc ? 0.35 : 0.7, 1, 0.5); const br = add(capsule(0.012 * hs, 0.05 * hs, dark, 6), s * x, y + r * 1.15, z + 0.004); br.rotation.z = Math.PI / 2 - s * 0.35; });
   if (croc) {
     add(capsule(0.062 * hs, 0.2 * hs, fur, 10), 0, -0.01, 0.2, 1.15, 0.62, 1).rotation.x = Math.PI / 2; // focinho de cima
     add(capsule(0.055 * hs, 0.19 * hs, lite, 10), 0, -0.062, 0.18, 1.1, 0.42, 1).rotation.x = Math.PI / 2; // mandíbula
-    for (const s of [-1, 1]) { add(ball(0.03 * hs, fur, 8, 6), s * 0.04, 0.03, 0.34, 1, 0.7, 1); add(ball(0.045 * hs, fur, 10, 8), s * 0.075, 0.125, 0.07); // narinas e arcos dos olhos
+    for (const s of [-1, 1]) { add(ball(0.03 * hs, fur, 8, 6), s * 0.04, 0.03, 0.34, 1, 0.7, 1); add(ball(0.05 * hs, fur, 10, 8), s * 0.078, 0.165, 0.1); // narinas e arcos dos olhos
       for (let i = 0; i < 6; i++) { const t = add(cone(0.009 * hs, 0.028 * hs, wht, 5), s * (0.062 - i * 0.002), -0.045, 0.13 + i * 0.038); t.rotation.x = Math.PI; } }
     for (let i = 0; i < 5; i++) add(cone(0.022 * hs, 0.05 * hs, dark, 5), 0, 0.17 - i * 0.012, -0.03 - i * 0.045).rotation.x = -0.5 - i * 0.25; // crista dorsal
-    eyes(0.125, 0.105, 0.075, 0.026);
+    eyes(0.165, 0.14, 0.08, 0.028);
   } else {
-    const mz = wolf ? 0.2 : 0.165, ml = wolf ? 0.1 : 0.04;
-    add(capsule(0.066 * hs, ml * hs, lite, 10), 0, -0.035, mz - 0.03, wolf ? 0.92 : 1.2, wolf ? 0.8 : 0.9, 1).rotation.x = Math.PI / 2; // focinho
-    add(ball(0.052 * hs, wolf ? lite : wht, 10, 8), 0, -0.085, mz - 0.04, 1.15, 0.6, 1.1); // queixo
-    add(ball(0.03 * hs, blk, 10, 8), 0, -0.012, mz + ml / 2 + 0.03, 1.25, 0.8, 0.8); // nariz
-    add(capsule(0.006 * hs, 0.04 * hs, blk, 4), 0, -0.05, mz + ml / 2 + 0.035, 1, 1, 0.6);
-    for (const s of [-1, 1]) { const w = add(ball(0.045 * hs, wolf ? lite : wht, 10, 8), s * 0.04, -0.055, mz + ml / 2 - 0.005, 1, 0.75, 0.9); // bochechas
-      if (wolf) { const e = add(cone(0.05 * hs, 0.17 * hs, fur, 4), s * 0.085, 0.2, -0.03, 1, 1, 0.5); e.rotation.z = -s * 0.2; const ei = add(cone(0.03 * hs, 0.11 * hs, toon('#c89a8a'), 4), s * 0.085, 0.19, -0.012, 1, 1, 0.4); ei.rotation.z = -s * 0.2; for (let i = 0; i < 3; i++) { const c = add(cone(0.035 * hs, 0.11 * hs, lite, 5), s * (0.135 - i * 0.012), -0.06 - i * 0.035, 0.03 - i * 0.02); c.rotation.z = s * (2.0 + i * 0.25); } }
-      else { add(ball(0.045 * hs, fur, 10, 8), s * 0.105, 0.165, -0.02, 1, 1, 0.45); add(ball(0.028 * hs, dark, 8, 6), s * 0.105, 0.165, -0.005, 1, 1, 0.4); } // orelhas redondas
-      const fang = add(cone(0.009 * hs, 0.035 * hs, wht, 5), s * 0.03, -0.085, mz + ml / 2 - 0.005); fang.rotation.x = Math.PI; }
-    eyes(0.05, 0.135, 0.062, 0.027);
-    if (kind === 'leao' && !fem) { for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = 0.165; add(ball(0.075 * hs, dark, 8, 6), Math.sin(a) * r, 0.02 + Math.cos(a) * r, -0.05, 1, 1.25, 0.9).rotation.z = -a; } add(ball(0.17 * hs, dark, 12, 10), 0, 0.03, -0.1, 1.2, 1.2, 0.9); add(ball(0.11 * hs, dark, 10, 8), 0, -0.2, 0.05, 1.3, 1, 0.8); } // juba
-    if (kind === 'tigre') { for (const s of [-1, 1]) { for (let i = 0; i < 3; i++) { const st = add(capsule(0.008 * hs, 0.06 * hs, blk, 4), s * (0.12 + i * 0.012), 0.0 - i * 0.045, 0.08 - i * 0.01, 1, 1, 0.5); st.rotation.z = s * 1.2; st.rotation.y = s * 0.7; } const ch = add(ball(0.06 * hs, wht, 8, 6), s * 0.115, -0.06, 0.05, 0.6, 1, 0.9); }
-      for (let i = -1; i <= 1; i++) { const st = add(capsule(0.008 * hs, 0.055 * hs, blk, 4), i * 0.035, 0.165, 0.07, 1, 1, 0.5); st.rotation.x = 0.9; } }
+    const k = hs, H = new THREE.Group(); H.scale.setScalar(k); H.position.set(0, -0.05 * k, 0.012 * k); head.add(ft(H));
+    const put = (g, m, x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0) => { m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.set(rx, ry, rz); g.add(m); return m; };
+    const pale = toon(kind === 'lobo' ? shade(col, 1.35) : '#f0e6d2'), nose = toon(kind === 'lobo' ? '#16110f' : '#3a2420'), lion = kind === 'leao', tiger = kind === 'tigre';
+    const ml = wolf ? 0.21 : 0.115, mr0 = wolf ? 0.078 : 0.098, mr1 = wolf ? 0.04 : 0.07, my = -0.03;
+    put(H, ball(0.11, fur, 14, 10), 0, 0.02, 0.07, wolf ? 0.95 : 1.15, 0.85, 1); // ponte do nariz
+    put(H, M(new THREE.CylinderGeometry(mr1, mr0, ml, 10), fur), 0, my, 0.1 + ml / 2, 1, 1, wolf ? 0.72 : 0.8, Math.PI / 2); // focinho
+    put(H, ball(mr1 * 1.02, pale, 12, 10), 0, my - 0.012, 0.1 + ml, 1.05, 0.78, 0.75); // ponta clara
+    put(H, M(new THREE.CylinderGeometry(mr1 * 0.8, mr0 * 0.8, ml * 0.9, 10), pale), 0, my - 0.052, 0.09 + ml / 2, 1, 1, 0.4, Math.PI / 2 + 0.12); // queixo
+    put(H, M(new THREE.ConeGeometry(0.034, 0.04, 3), nose), 0, my + 0.022, 0.1 + ml + mr1 * 0.62, 1.15, 1, 0.7, Math.PI * 0.9, 0, 0); put(H, M(new THREE.BoxGeometry(0.006, 0.03, 0.01), nose), 0, my - 0.012, 0.1 + ml + mr1 * 0.74); // nariz e sulco
+    const side = new THREE.Group();
+    put(side, ball(mr1 * 0.74, pale, 12, 10), mr1 * 0.5, my - 0.02, 0.1 + ml - 0.004, 1.05, 0.82, 0.9); // almofada do bigode
+    for (let i = 0; i < 3; i++) side.add(spike([mr1 * 0.8, my - 0.02 + (i - 1) * 0.012, 0.1 + ml], [mr1 * 0.8 + 0.1, my - 0.01 + (i - 1) * 0.03, 0.08 + ml], 0.0022, 0.0005, wht, 4)); // bigodes
+    side.add(spike([mr1 * 0.45, my - 0.04, 0.1 + ml + 0.005], [mr1 * 0.47, my - 0.085, 0.1 + ml + 0.008], 0.011, 0.001, wht, 6)); // presa
+    put(side, ball(0.036, blk, 10, 8), 0.078, 0.07, 0.172, 1.25, 0.72, 0.6, 0, 0.4, 0.3); put(side, ball(0.029, eye, 10, 8), 0.08, 0.07, 0.183, 1.1, 0.62, 0.6, 0, 0.4, 0.3); put(side, ball(0.013, blk, 8, 6), 0.084, 0.07, 0.198, wolf ? 0.9 : 0.45, 1, 0.5); // olho amendoado
+    put(side, ball(0.05, fur, 10, 8), 0.078, 0.115, 0.165, 1.15, 0.42, 1.1, -0.2, 0.4, 0.3); // sobrancelha
+    put(side, ball(0.085, fur, 12, 10), 0.105, -0.045, 0.02, 0.8, 1, 1); // bochecha
+    if (wolf) { side.add(spike([0.085, 0.14, -0.02], [0.12, 0.33, -0.04], 0.062, 0.004, fur, 5)); const inn = spike([0.09, 0.16, 0.0], [0.118, 0.3, -0.025], 0.04, 0.003, toon('#b98a7c'), 5); inn.scale.z = 0.5; side.add(inn);
+      for (let i = 0; i < 5; i++) side.add(spike([0.12, -0.0 - i * 0.03, -0.0], [0.2 - i * 0.012, -0.05 - i * 0.045, -0.07], 0.034, 0.002, i % 2 ? lite : fur, 5)); } // orelha em pé e colar de pelo
+    else { put(side, ball(0.058, fur, 12, 10), 0.115, 0.175, -0.03, 1, 1.05, 0.5, 0, -0.3, 0); put(side, ball(0.036, toon(lion ? shade(col, 0.6) : '#2a1c16'), 10, 8), 0.115, 0.175, -0.012, 1, 1, 0.4, 0, -0.3, 0); // orelha redonda
+      if (tiger) { for (let i = 0; i < 4; i++) side.add(spike([0.13, -0.02 - i * 0.03, 0.02], [0.2 - i * 0.01, -0.06 - i * 0.04, -0.03], 0.03, 0.002, i % 2 ? pale : fur, 5)); // suíças
+        for (const [a, b] of [[[0.03, 0.15, 0.1], [0.045, 0.19, 0.03]], [[0.07, 0.14, 0.085], [0.1, 0.17, 0.01]], [[0.125, 0.06, 0.07], [0.16, 0.07, -0.02]], [[0.13, 0.01, 0.06], [0.165, 0.0, -0.03]], [[0.11, 0.115, 0.06], [0.15, 0.13, -0.03]]]) { const st = spike(a, b, 0.012, 0.002, blk, 4); st.scale.z = 0.4; side.add(st); } } }
+    const mir = side.clone(true); mir.scale.x = -1; H.add(side, mir);
+    if (tiger) { const st = spike([0, 0.16, 0.1], [0, 0.2, 0.02], 0.012, 0.002, blk, 4); st.scale.z = 0.4; H.add(st); }
+    if (lion && !fem) { for (let r = 0; r < 3; r++) for (let i = 0; i < 18; i++) { const a = (i + r * 0.5) / 18 * Math.PI * 2, R = 0.13 + r * 0.02, L = 0.14 + r * 0.035, z0 = 0.0 - r * 0.07; H.add(spike([Math.sin(a) * R, 0.03 + Math.cos(a) * R, z0], [Math.sin(a) * (R + L), 0.0 + Math.cos(a) * (R + L) - 0.03, z0 - 0.09], 0.05, 0.004, r === 1 ? dark : toon(shade(col, 0.68)), 5)); }
+      put(H, ball(0.19, dark, 12, 10), 0, 0.0, -0.1, 1.15, 1.2, 0.9); } // juba em mechas
+    else if (lion) put(H, ball(0.1, lite, 10, 8), 0, -0.17, 0.04, 1.2, 0.8, 0.7);
   }
 }
 function shade(hex, f) { const c = new THREE.Color(hex); c.multiplyScalar(f); return '#' + c.getHexString(); }
@@ -573,12 +597,23 @@ export function upgradeGLB(m) {
     .then(async C => { C.outfitKind = outfitFor(m, a); if (beard) await setPart(C, 'beard', beard); if (m.disposed) return; applyGLB(m, C); })
     .catch(e => { m.glbPending = false; console.warn('GLB', e); });
 }
+// padrão procedural sobre a pele: 1 escamas, 2 listras, 3 pelagem
+function skinPattern(mat, kind, sk) {
+  mat.roughness = kind === 1 ? 0.5 : 0.9; mat.metalness = kind === 1 ? 0.15 : 0;
+  mat.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+    #ifdef USE_MAP
+    { vec2 uvp = vMapUv; float lum0 = dot(diffuseColor.rgb, vec3(0.3333)); diffuseColor.rgb = vec3(${sk.r.toFixed(3)}, ${sk.g.toFixed(3)}, ${sk.b.toFixed(3)}) * (0.62 + lum0 * 0.75); ${kind === 1 ? `vec2 q = uvp * vec2(64.0, 76.0); q.x += step(1.0, mod(q.y, 2.0)) * 0.5; vec2 f = fract(q) - vec2(0.5, 0.42); float d = length(f * vec2(1.0, 1.3)); diffuseColor.rgb *= mix(0.5, 1.12, smoothstep(0.52, 0.26, d)) * (0.9 + 0.2 * fract(sin(dot(floor(q), vec2(12.9898, 78.233))) * 43758.5453));`
+      : kind === 2 ? `float w = sin(uvp.y * 150.0 + sin(uvp.x * 37.0) * 2.6 + sin(uvp.x * 9.0) * 3.0); float st = smoothstep(0.55, 0.8, w); diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.12, st);`
+      : `float n = fract(sin(dot(floor(uvp * vec2(420.0, 90.0)), vec2(12.9898, 78.233))) * 43758.5453); diffuseColor.rgb *= 0.82 + 0.3 * n;`} }
+    #endif`); };
+  mat.customProgramCacheKey = () => 'skinpat' + kind + sk.getHexString(); mat.needsUpdate = true;
+}
 function ownMats(obj) { obj.traverse(o => { if (o.isMesh && o.material && !o.userData.ownMat) { o.material = o.material.clone(); o.userData.ownMat = 1; } }); }
 function tintGLB(m) {
   const C = m.glb, sk = new THREE.Color(m.skinCol), hc = new THREE.Color(GD.HAIR_COLORS[m.look.hair_color] || '#333');
   const skinK = new THREE.Color(sk.r / BASE_SKIN.r, sk.g / BASE_SKIN.g, sk.b / BASE_SKIN.b);
   C.model.traverse(o => { if (!o.isMesh) return; const nm = (o.material.name || ''); ownMats(o);
-    if (/Superhero|Regular/.test(nm)) o.material.color.copy(skinK);
+    if (/Superhero|Regular/.test(nm)) { o.material.color.copy(skinK); const pat = m.race === 'draconato' ? 1 : m.race === 'beastman' ? ({ crocodilo: 1, tigre: 2 }[['leao', 'tigre', 'lobo', 'crocodilo'][(m.look.face || 0) % 4]] || 3) : 0; if (pat) { o.material.color.set('#ffffff'); skinPattern(o.material, pat, sk); } }
     else if (/Hair/.test(nm)) o.material.color.copy(hc).multiplyScalar(1.6); });
 }
 async function glbOutfit(m, a, equip) {
