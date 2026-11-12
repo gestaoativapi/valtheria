@@ -1,5 +1,5 @@
 // ===== Valtheria — clima por região: chuva com raios, neve, cinzas de vulcão e poeira da savana =====
-import * as THREE from './three.module.min.js';
+import * as THREE from './lib/three.module.min.js';
 
 let X = null, rain, snow; const R = 38, H = 26;
 export const WEATHER = { kind: 'limpo', amount: 0, max: 1, flash: 0 };

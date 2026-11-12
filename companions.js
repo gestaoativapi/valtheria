@@ -1,5 +1,5 @@
 // ===== Valtheria — pets, montarias, asas e voo =====
-import * as THREE from './three.module.min.js';
+import * as THREE from './lib/three.module.min.js';
 import { makeCreature } from './creatures.js';
 import { emit } from './fx.js';
 

@@ -1,14 +1,14 @@
 // ===== Valtheria — natureza e fauna 3D (modelos CC0 da Quaternius: Stylized Nature MegaKit e Animals) =====
 // Árvores, arbustos, flores, samambaias e rochas em GLB perto do jogador; longe continuam as versões leves procedurais.
-import * as THREE from './three.module.min.js';
-import { GLTFLoader } from './GLTFLoader.js';
-import { MeshoptDecoder } from './meshopt_decoder.module.js';
-import { mergeGeometries } from './BufferGeometryUtils.js';
-import { clone as skClone } from './SkeletonUtils.js';
+import * as THREE from './lib/three.module.min.js';
+import { GLTFLoader } from './lib/GLTFLoader.js';
+import { MeshoptDecoder } from './lib/meshopt_decoder.module.js';
+import { mergeGeometries } from './lib/BufferGeometryUtils.js';
+import { clone as skClone } from './lib/SkeletonUtils.js';
 import { windify } from './world3d.js';
 
 const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
-const path = n => n + '.glb';
+const path = n => 'assets/world/' + n + '.glb';
 export const NAT = { ready: false, parts: {} };
 // variações por tipo de árvore procedural (acácia, cristal e gelo seguem procedurais)
 export const TREE_GLB = {
@@ -27,7 +27,7 @@ const UNDER_BY = { gelo: [['q_bush_snow_1', 1.4], ['q_rock_snow_1', 2.2], ['q_ro
 const UNDER = ['n_bush_common', 'n_bush_common_flowers', 'n_fern_1', 'n_plant_1_big', 'n_flower_3_group', 'n_flower_4_group', 'n_mushroom_common'];
 const ROCKS = ['n_rock_medium_1', 'n_rock_medium_2', 'n_rock_medium_3'];
 const SCALE = { n_twistedtree_1: 0.5, n_twistedtree_2: 0.5, n_deadtree_1: 0.8, n_deadtree_2: 0.75, q_birchtree_1: 2.1, q_birchtree_3: 2.1, q_birchtree_autumn_1: 2.1, q_commontree_snow_1: 2.6, q_commontree_snow_3: 2.6, q_pinetree_snow_1: 2.6, q_pinetree_snow_3: 2.4, q_palmtree_1: 1.8, q_palmtree_3: 1.8 };
-const ALL = [...new Set([...Object.values(TREE_GLB).flat(), ...UNDER, ...ROCKS, ...Object.values(UNDER_BY).flat().map(x => x[0])])];
+const ALL = [...new Set([...Object.values(TREE_GLB).flat(), ...UNDER, ...ROCKS, 'q_willow_dead_1', 'q_treestump_moss', ...Object.values(UNDER_BY).flat().map(x => x[0])])];
 
 const MATS = new Map();
 function natMat(src) {
@@ -99,6 +99,9 @@ export function buildNatureChunk(d) {
   if (false) d.rocks.forEach((pts, k) => addInst(group, ROCKS[k], pts, ([x, h, z, sc, r]) => { q.setFromAxisAngle(up, r); sv.set(sc * 0.9, sc * 0.75, sc * 0.9); pv.set(x, h - sc * 0.2, z); }, true, d.rockTint));
   const red = d.theme === 'outono';
   UNDER.forEach((name, k) => addInst(group, name, d.under.filter(p => (p[5] === 0 && !red ? 1 : p[5]) === k), ([x, h, z, sc, r]) => { q.setFromAxisAngle(up, r); sv.setScalar(sc); pv.set(x, h - 0.05, z); }, false));
+  // brejos: salgueiros e troncos com musgo; campos floridos: mais flores
+  const marsh = d.under.filter(p => p[6] === 'brejo'); if (marsh.length) { addInst(group, 'q_willow_dead_1', marsh.filter((p, i) => i % 3 === 0), ([x, h, z, s2, r]) => { q.setFromAxisAngle(up, r); sv.setScalar(s2 * 2.6); pv.set(x, h - 0.1, z); }, true); addInst(group, 'q_treestump_moss', marsh.filter((p, i) => i % 3 === 1), ([x, h, z, s2, r]) => { q.setFromAxisAngle(up, r); sv.setScalar(s2 * 1.8); pv.set(x, h - 0.05, z); }, true); }
+  const flow = d.under.filter(p => p[6] === 'campo florido'); if (flow.length) ['n_flower_3_group', 'n_flower_4_group'].forEach((nm, j) => addInst(group, nm, flow.filter((p, i) => i % 2 === j), ([x, h, z, s2, r]) => { q.setFromAxisAngle(up, r); sv.setScalar(s2 * 1.3); pv.set(x + 1.5, h - 0.05, z + 1.5); }, false));
   // vegetação extra do bioma (reaproveita os pontos de vegetação rasteira)
   const ub = UNDER_BY[d.theme]; if (ub) ub.forEach(([name, sc], k) => addInst(group, name, d.under.filter((p, i) => i % (ub.length + 1) === k), ([x, h, z, s2, r]) => { q.setFromAxisAngle(up, r); sv.setScalar(s2 * sc); pv.set(x, h - 0.05, z); }, true));
   return { group, handled };

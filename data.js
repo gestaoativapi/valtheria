@@ -166,6 +166,47 @@
     monge: [S(8, 'Postura do Tigre', '🐯', { type: 'buff', buff: { atkspd: 0.3, patk: 0.1 }, dur: 25, mp: 12, cd: 45, fx: 'fire' }), S(28, 'Golpe Atordoante', '💫', { type: 'hit', mult: 1.5, stun: 2, mp: 14, cd: 14 }), S(44, 'Pontos Vitais', '🎯', { type: 'debuff', deb: { def: -0.35 }, dur: 12, mp: 14, cd: 20, fx: 'dark', hitMult: 1.0 })],
     artesao: [S(8, 'Runa de Proteção', '🔷', { type: 'buff', buff: { pdef: 0.35, mdef: 0.15 }, dur: 30, mp: 14, cd: 50, fx: 'arcane' }), S(28, 'Martelo Sísmico', '🌋', { type: 'hit', mult: 1.4, aoe: 5, self: true, slow: 0.4, mp: 16, cd: 12, fx: 'earth' }), S(44, 'Runa da Ruína', '♨️', { type: 'debuff', deb: { def: -0.3, atk: -0.15 }, dur: 14, mp: 16, cd: 22, fx: 'dark' })],
   };
+  // ----- v6: novas habilidades por estilo — armadilhas, escudos, zonas, correntes, controle (raiz, confusão, medo, empurrão), sangramento e veneno -----
+  // controle dura 60% menos em chefes; valores pensados para PvE e PvP (recargas maiores para controle forte)
+  const EXTRA2 = {
+    tanque: [S(3, 'Barreira de Aço', '🛡️', { type: 'shield', pct: 0.18, dur: 10, mp: 10, cd: 25, fx: 'ice' }), S(15, 'Empurrão de Escudo', '🧱', { type: 'hit', mult: 1.1, knock: 5, mp: 8, cd: 10 }),
+      S(24, 'Corrente do Juízo', '⛓️', { type: 'debuff', deb: { speed: -0.4 }, root: 3, dur: 6, mp: 12, cd: 18, fx: 'holy', hitMult: 0.8 }), S(40, 'Martelo da Fé', '🔨', { type: 'hit', mult: 1.6, aoe: 4, self: true, stun: 1.5, mp: 18, cd: 16, fx: 'holy' }),
+      S(48, 'Bastião', '🏰', { type: 'shield', pct: 0.35, dur: 12, mp: 22, cd: 50, fx: 'holy' }), S(58, 'Desafio Real', '👑', { type: 'debuff', deb: { atk: -0.3 }, aoe: 9, self: true, fear: 2, dur: 8, mp: 20, cd: 35, fx: 'holy' }),
+      S(66, 'Julgamento', '⚖️', { type: 'zone', mult: 3.2, aoe: 6, ticks: 4, mp: 30, cd: 30, fx: 'holy', slowFx: 3 }), S(80, 'Muralha Divina', '✴️', { type: 'shield', pct: 0.6, dur: 8, mp: 40, cd: 120, fx: 'holy' })],
+    guerreiro: [S(3, 'Golpe Duplo', '⚔️', { type: 'hit', mult: 1.5, mp: 7, cd: 7 }), S(15, 'Corte Lacerante', '🩸', { type: 'hit', mult: 1.2, bleed: 1.6, mp: 10, cd: 11, fx: 'blood' }),
+      S(24, 'Redemoinho de Lâminas', '🌪️', { type: 'hit', mult: 1.4, aoe: 5, self: true, mp: 16, cd: 12, fx: 'wind' }), S(40, 'Salto Esmagador', '💥', { type: 'dash', mult: 1.8, range: 16, knock: 3, mp: 16, cd: 16 }),
+      S(48, 'Gladiador: Dança das Espadas', '🗡️', { type: 'multi', mult: 1.6, n: 4, mp: 22, cd: 18, bleed: 1 }), S(58, 'Rugido Aterrorizante', '😱', { type: 'debuff', deb: { def: -0.2 }, aoe: 8, self: true, fear: 2.5, dur: 8, mp: 18, cd: 40, fx: 'dark' }),
+      S(66, 'Lâmina Sísmica', '🌋', { type: 'zone', mult: 3.4, aoe: 5, ticks: 3, mp: 28, cd: 28, fx: 'earth', slowFx: 2 }), S(80, 'Fúria Imortal', '🔥', { type: 'buff', buff: { patk: 0.4, lifesteal: 0.15, atkspd: 0.2 }, dur: 15, mp: 40, cd: 120, fx: 'fire' })],
+    arqueiro: [S(3, 'Disparo Gêmeo', '🏹', { type: 'multi', mult: 1.2, n: 2, mp: 7, cd: 7 }), S(15, 'Armadilha de Laço', '🪤', { type: 'trap', mult: 0.8, root: 4, aoe: 3, life: 40, mp: 10, cd: 15, fx: 'nature' }),
+      S(24, 'Flecha Envenenada', '🐍', { type: 'hit', mult: 1.2, poison: 2, mp: 10, cd: 10, fx: 'poison' }), S(40, 'Tempestade de Flechas', '🌧️', { type: 'zone', mult: 3.0, aoe: 6, ticks: 5, mp: 24, cd: 22, fx: 'wind' }),
+      S(48, 'Armadilha Explosiva', '💣', { type: 'trap', mult: 2.6, aoe: 4, knock: 3, life: 40, mp: 18, cd: 20, fx: 'fire' }), S(58, 'Leque de Flechas', '🎯', { type: 'multi', mult: 1.5, n: 5, mp: 22, cd: 16 }),
+      S(66, 'Flecha Ricochete', '➶', { type: 'chain', mult: 2.0, n: 4, mp: 24, cd: 18, fx: 'wind' }), S(80, 'Olho do Falcão', '🦅', { type: 'buff', buff: { crit: 0.25, atkspd: 0.25, patk: 0.2 }, dur: 20, mp: 35, cd: 120, fx: 'wind' })],
+    adaga: [S(3, 'Golpe Duplo de Adagas', '🔪', { type: 'hit', mult: 1.45, mp: 6, cd: 6 }), S(15, 'Pó Cegante', '💨', { type: 'debuff', deb: { atk: -0.2 }, confuse: 3, dur: 6, mp: 10, cd: 18, fx: 'dark' }),
+      S(24, 'Passo Sombrio', '👤', { type: 'blink', mult: 1.6, range: 15, mp: 12, cd: 14, fx: 'dark' }), S(40, 'Lâmina Venenosa', '🐍', { type: 'hit', mult: 1.3, poison: 2.4, mp: 12, cd: 10, fx: 'poison' }),
+      S(48, 'Armadilha de Espinhos', '🌵', { type: 'trap', mult: 1.8, bleed: 1.5, slowFx: 4, aoe: 3, life: 40, mp: 14, cd: 18, fx: 'blood' }), S(58, 'Dança das Adagas Duplas', '🌀', { type: 'multi', mult: 1.7, n: 3, mp: 20, cd: 14, bleed: 1.2 }),
+      S(66, 'Golpe nas Costas', '🗡️', { type: 'blink', mult: 3.2, range: 12, mp: 26, cd: 22, fx: 'dark' }), S(80, 'Sombra Assassina', '🌑', { type: 'buff', buff: { crit: 0.3, dodge: 0.3, speed: 0.3 }, dur: 15, mp: 40, cd: 120, fx: 'dark' })],
+    mago: [S(3, 'Dardo de Gelo', '❄️', { type: 'hit', mult: 1.3, slowFx: 3, mp: 8, cd: 6, fx: 'ice' }), S(15, 'Raízes de Gelo', '🧊', { type: 'debuff', deb: { speed: -0.5 }, root: 3.5, dur: 6, mp: 14, cd: 18, fx: 'ice', hitMult: 0.9 }),
+      S(24, 'Corrente de Raios', '⚡', { type: 'chain', mult: 1.8, n: 4, mp: 18, cd: 12, fx: 'arcane' }), S(40, 'Chuva de Meteoros', '☄️', { type: 'zone', mult: 3.6, aoe: 5, ticks: 3, mp: 30, cd: 20, fx: 'fire', knock: 2 }),
+      S(48, 'Barreira Arcana', '🔮', { type: 'shield', pct: 0.3, dur: 12, mp: 24, cd: 45, fx: 'arcane' }), S(58, 'Confusão Mental', '🌀', { type: 'debuff', deb: { atk: -0.2 }, aoe: 6, confuse: 3, dur: 6, mp: 22, cd: 30, fx: 'arcane' }),
+      S(66, 'Nevasca', '🌨️', { type: 'zone', mult: 3.8, aoe: 7, ticks: 6, mp: 36, cd: 30, fx: 'ice', slowFx: 4 }), S(80, 'Tempestade Arcana', '🌌', { type: 'zone', mult: 6, aoe: 8, ticks: 6, mp: 60, cd: 90, fx: 'arcane', confuse: 2 })],
+    curandeiro: [S(3, 'Toque Curativo', '💚', { type: 'heal', pct: 0.15, mp: 8, cd: 6, fx: 'nature' }), S(15, 'Luz Ofuscante', '✨', { type: 'debuff', deb: { atk: -0.25 }, confuse: 2.5, dur: 6, mp: 12, cd: 20, fx: 'holy' }),
+      S(24, 'Escudo da Fé', '🔆', { type: 'shield', pct: 0.25, dur: 12, mp: 16, cd: 30, fx: 'holy' }), S(40, 'Círculo Sagrado', '⭕', { type: 'trap', mult: 1.6, aoe: 5, root: 2, life: 40, mp: 18, cd: 20, fx: 'holy' }),
+      S(48, 'Raio Celestial', '🌟', { type: 'chain', mult: 1.6, n: 3, mp: 20, cd: 14, fx: 'holy' }), S(58, 'Renovação', '🌿', { type: 'buff', buff: { hot: 0.04 }, dur: 20, mp: 24, cd: 40, fx: 'nature' }),
+      S(66, 'Expulsão', '☀️', { type: 'debuff', deb: { def: -0.2 }, aoe: 8, self: true, fear: 3, dur: 8, mp: 26, cd: 40, fx: 'holy' }), S(80, 'Ressurreição da Luz', '😇', { type: 'heal', pct: 0.8, cleanse: true, mp: 60, cd: 180, fx: 'holy' })],
+    xama: [S(3, 'Toque Venenoso', '🦂', { type: 'hit', mult: 1.1, poison: 1.6, mp: 7, cd: 7, fx: 'poison' }), S(15, 'Totem de Raízes', '🪵', { type: 'trap', mult: 1.0, root: 4, aoe: 4, life: 40, mp: 12, cd: 18, fx: 'nature' }),
+      S(24, 'Uivo dos Espíritos', '👻', { type: 'debuff', deb: { atk: -0.2 }, aoe: 7, self: true, fear: 2, dur: 8, mp: 16, cd: 30, fx: 'spirit' }), S(40, 'Relâmpago Espiritual', '⚡', { type: 'chain', mult: 1.9, n: 5, mp: 22, cd: 14, fx: 'spirit' }),
+      S(48, 'Pele de Casca', '🌳', { type: 'shield', pct: 0.28, dur: 14, mp: 20, cd: 40, fx: 'nature' }), S(58, 'Pântano Tóxico', '🟢', { type: 'zone', mult: 3.0, aoe: 6, ticks: 6, mp: 26, cd: 26, fx: 'poison', slowFx: 3, poison: 1 }),
+      S(66, 'Possessão', '🌀', { type: 'debuff', deb: { def: -0.3 }, confuse: 4, dur: 8, mp: 24, cd: 30, fx: 'spirit', hitMult: 1.2 }), S(80, 'Avatar Ancestral', '🗿', { type: 'buff', buff: { matk: 0.35, patk: 0.35, hot: 0.02 }, dur: 20, mp: 45, cd: 120, fx: 'spirit' })],
+    monge: [S(3, 'Sequência Rápida', '👊', { type: 'multi', mult: 1.0, n: 2, mp: 6, cd: 6 }), S(15, 'Chute do Furacão', '🦶', { type: 'hit', mult: 1.3, aoe: 4, self: true, knock: 3, mp: 10, cd: 10 }),
+      S(24, 'Palma Paralisante', '✋', { type: 'hit', mult: 1.2, root: 2.5, mp: 12, cd: 14 }), S(40, 'Pele de Ferro', '🧘', { type: 'shield', pct: 0.25, dur: 10, mp: 16, cd: 35, fx: 'earth' }),
+      S(48, 'Golpe de Ki', '🔆', { type: 'chain', mult: 1.8, n: 3, mp: 20, cd: 14, fx: 'fire' }), S(58, 'Grito Interior', '😤', { type: 'debuff', deb: { atk: -0.25 }, aoe: 7, self: true, fear: 2, dur: 8, mp: 18, cd: 35, fx: 'fire' }),
+      S(66, 'Punho do Dragão', '🐉', { type: 'dash', mult: 3.0, range: 15, knock: 4, mp: 26, cd: 20, fx: 'fire' }), S(80, 'Iluminação', '☯️', { type: 'buff', buff: { atkspd: 0.4, dodge: 0.25, crit: 0.15 }, dur: 15, mp: 40, cd: 120, fx: 'fire' })],
+    artesao: [S(3, 'Golpe de Martelo', '🔨', { type: 'hit', mult: 1.35, mp: 7, cd: 7 }), S(15, 'Mina Rúnica', '💣', { type: 'trap', mult: 2.0, aoe: 4, knock: 2, life: 40, mp: 12, cd: 16, fx: 'fire' }),
+      S(24, 'Rede de Ferro', '🕸️', { type: 'debuff', deb: { speed: -0.5 }, root: 3, dur: 6, mp: 12, cd: 18, fx: 'earth', hitMult: 0.8 }), S(40, 'Couraça Forjada', '⚙️', { type: 'shield', pct: 0.32, dur: 12, mp: 18, cd: 40, fx: 'earth' }),
+      S(48, 'Torre de Fogo', '🔥', { type: 'zone', mult: 3.0, aoe: 5, ticks: 6, mp: 24, cd: 26, fx: 'fire' }), S(58, 'Granada de Fumaça', '🌫️', { type: 'debuff', deb: { atk: -0.25 }, aoe: 6, confuse: 3, dur: 6, mp: 18, cd: 30, fx: 'dark' }),
+      S(66, 'Descarga Elétrica', '⚡', { type: 'chain', mult: 2.0, n: 4, mp: 24, cd: 16, fx: 'arcane' }), S(80, 'Golem de Guerra', '🤖', { type: 'buff', buff: { pdef: 0.5, patk: 0.3, mdef: 0.3 }, dur: 20, mp: 45, cd: 120, fx: 'earth' })],
+  };
+  for (const [k, list] of Object.entries(EXTRA2)) EXTRA[k].push(...list);
   for (const [k, list] of Object.entries(EXTRA)) { ARCH[k].skills.push(...list); ARCH[k].skills.sort((a, b) => a.lvl - b.lvl); ARCH[k].skills.forEach((sk, i) => sk.id = k + ':' + sk.name); }
 
   // ----- árvore de classes: base (nv 1) → 2ª (nv 20) → 3ª (nv 40) → 4ª (nv 76) -----
@@ -454,9 +495,13 @@
     ITEMS['enc_arma_' + k] = { id: 'enc_arma_' + k, name: 'Encantar Arma (' + G.name + ')', grade: g, type: 'enchant', icon: '📜', enc: 'arma' };
     ITEMS['enc_arm_' + k] = { id: 'enc_arm_' + k, name: 'Encantar Armadura (' + G.name + ')', grade: g, type: 'enchant', icon: '📃', enc: 'armadura' };
   });
-  const ENCHANT_SAFE = 3, ENCHANT_MAX = 10;
-  const enchantChance = (n) => n < ENCHANT_SAFE ? 1 : Math.max(0.3, 0.66 - (n - ENCHANT_SAFE) * 0.04);
-  const enchantMult = (slot, n) => 1 + (n || 0) * (slot === 'arma' ? 0.05 : 0.04);
+  const ENCHANT_SAFE = 3, ENCHANT_MAX = 16;
+  // chance cai de 72% (+3→+4) até 12% (+15→+16); falhar acima do +3 zera o item
+  const enchantChance = (n) => n < ENCHANT_SAFE ? 1 : Math.max(0.08, 0.72 - (n - ENCHANT_SAFE) * 0.05);
+  // ganho decrescente depois do +10 (equilíbrio PvE/PvP): arma +4,5%/nível até +10 e +3% depois; armadura +3,5% e +2,5%
+  const enchantMult = (slot, n) => { n = n || 0; const a = slot === 'arma' ? [0.045, 0.03] : [0.035, 0.025]; return 1 + Math.min(n, 10) * a[0] + Math.max(0, n - 10) * a[1]; };
+  // cor e força do brilho de cada faixa de encantamento
+  const ENC_TIER = (n) => n >= 16 ? { c: '#ffffff', c2: '#ffd75a', name: 'Celestial', k: 5 } : n >= 13 ? { c: '#c05aff', c2: '#ff5af0', name: 'Abissal', k: 4 } : n >= 10 ? { c: '#ffcf3a', c2: '#ff9a1a', name: 'Dourado', k: 3 } : n >= 7 ? { c: '#ff3a3a', c2: '#ff8a3a', name: 'Carmesim', k: 2 } : n >= 4 ? { c: '#3a8aff', c2: '#7ad0ff', name: 'Azul', k: 1 } : null;
   // estatísticas esperadas de um jogador do nível L (balanceia os monstros)
   function expected(L) {
     const f = lf(L), gi = gradeForLevel(L), gp = GRADES[gi].gp, r = rankForLevel(L);
@@ -543,6 +588,6 @@
   const PROFS = { coleta: 'Coleta', refino: 'Refino', forja: 'Forja' };
   const api = { GRADES, gradeForLevel, MAX_LEVEL, RANK_LVL, RANK_MULT, rankForLevel, xpNeed, mobXp, profLevel, profXpFor, lf, dmgFormula,
     RACES, TYPES, HAIR_COLORS, HAIR_STYLES, FACES, EYE_SHAPES, SCARS, BEARDS, EXPRESSIONS, ARCH, CLASSES, baseClass, nextClasses, ITEMS, RECIPES, RES, WEAPONS, ARMORS, SHOP, npcPrice,
-    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
+    WORLD, TOWNS, CORE_TOWNS, LANDMARKS, TROPHY, ENCHANT_SAFE, ENCHANT_MAX, enchantChance, enchantMult, ENC_TIER, SPECIAL_BOSSES, PARTS, COMP, POI_DEF, POI_DROPS, SA, SA_BY, SETS, weaponSA, setBonus, equipEffects, RATE_XP, RATE_AURUM, RATE_DROP, SAFE_R, teleCost, MOBS, expected, mobStats, charStats, PROFS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.GD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

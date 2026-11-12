@@ -1,11 +1,11 @@
 // ===== Valtheria — pós-processamento: brilho (bloom), gradação de cor cinematográfica, vinheta, FXAA e efeitos de tela =====
-import * as THREE from './three.module.min.js';
-import { EffectComposer } from './EffectComposer.js';
-import { RenderPass } from './RenderPass.js';
-import { UnrealBloomPass } from './UnrealBloomPass.js';
-import { OutputPass } from './OutputPass.js';
-import { ShaderPass } from './ShaderPass.js';
-import { FXAAShader } from './FXAAShader.js';
+import * as THREE from './lib/three.module.min.js';
+import { EffectComposer } from './lib/EffectComposer.js';
+import { RenderPass } from './lib/RenderPass.js';
+import { UnrealBloomPass } from './lib/UnrealBloomPass.js';
+import { OutputPass } from './lib/OutputPass.js';
+import { ShaderPass } from './lib/ShaderPass.js';
+import { FXAAShader } from './lib/FXAAShader.js';
 
 const GradeShader = {
   uniforms: { tDiffuse: { value: null }, time: { value: 0 }, sat: { value: 1.12 }, contrast: { value: 1.06 }, warm: { value: 0.5 }, vig: { value: 0.32 }, hurt: { value: 0 }, lowHp: { value: 0 }, flash: { value: 0 }, night: { value: 0 }, tint: { value: new THREE.Color(1, 1, 1) }, tintAmt: { value: 0 } },

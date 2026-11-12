@@ -1,5 +1,5 @@
 // ===== Valtheria — falas e vozes dos NPCs e chefes (balão de fala + voz sintetizada do navegador) =====
-import * as THREE from './three.module.min.js';
+import * as THREE from './lib/three.module.min.js';
 
 export const VOICE = { on: true };
 try { VOICE.on = localStorage.getItem('vt_voice') !== '0'; } catch (_) {}

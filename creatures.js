@@ -1,14 +1,14 @@
 // ===== Valtheria — criaturas animadas em GLB (Quaternius Animals e Easy Enemies, CC0) =====
 // Usado por monstros, pets, montarias e fauna ambiente.
-import * as THREE from './three.module.min.js';
-import { GLTFLoader } from './GLTFLoader.js';
-import { MeshoptDecoder } from './meshopt_decoder.module.js';
-import { clone as skClone } from './SkeletonUtils.js';
+import * as THREE from './lib/three.module.min.js';
+import { GLTFLoader } from './lib/GLTFLoader.js';
+import { MeshoptDecoder } from './lib/meshopt_decoder.module.js';
+import { clone as skClone } from './lib/SkeletonUtils.js';
 
 const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
 const CACHE = new Map();
 export function loadCreature(name) {
-  if (!CACHE.has(name)) CACHE.set(name, loader.loadAsync(name + '.glb').then(g => {
+  if (!CACHE.has(name)) CACHE.set(name, loader.loadAsync('assets/world/' + name + '.glb').then(g => {
     const b = new THREE.Box3().setFromObject(g.scene, true); g.size = b.getSize(new THREE.Vector3()); g.minY = b.min.y; return g; }));
   return CACHE.get(name);
 }

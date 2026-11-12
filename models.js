@@ -1,5 +1,5 @@
 // ===== Modelos 3D procedurais (sem arte externa) =====
-import * as THREE from './three.module.min.js';
+import * as THREE from './lib/three.module.min.js';
 const GD = window.GD;
 
 const matCache = new Map();

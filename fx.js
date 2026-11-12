@@ -1,5 +1,5 @@
 // ===== Valtheria — efeitos visuais leves (um único sistema de partículas + golpes em arco) =====
-import * as THREE from './three.module.min.js';
+import * as THREE from './lib/three.module.min.js';
 
 const N = 1800;
 let pts, geo, P, V, C, SZ, L, LMAX, G, D, head = 0, scene;
@@ -75,3 +75,23 @@ export function updateFX(dt, camera) {
     if (k >= 1) { scene.remove(o); o.material.dispose(); live.splice(i, 1); }
   }
 }
+// ---- rastro da arma: fita luminosa entre o cabo e a ponta durante os golpes ----
+const TRN = 14; let trail = null;
+export function updateTrail(base, tip, active, color, intensity = 1) {
+  if (!scene) return;
+  if (!trail) { const g = new THREE.BufferGeometry(), pos = new Float32Array(TRN * 2 * 3), al = new Float32Array(TRN * 2), idx = [];
+    for (let i = 0; i < TRN - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('alpha', new THREE.BufferAttribute(al, 1).setUsage(THREE.DynamicDrawUsage)); g.setIndex(idx);
+    const m = new THREE.ShaderMaterial({ uniforms: { col: { value: new THREE.Color() }, k: { value: 1 } }, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+      vertexShader: 'attribute float alpha; varying float vA; void main(){ vA = alpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
+      fragmentShader: 'uniform vec3 col; uniform float k; varying float vA; void main(){ gl_FragColor = vec4(col * (1.2 + vA) * k, vA * vA * .9); }' });
+    trail = { mesh: new THREE.Mesh(g, m), pts: [], fade: 0 }; trail.mesh.frustumCulled = false; trail.mesh.renderOrder = 6; scene.add(trail.mesh); }
+  const T = trail; T.fade = active ? 1 : Math.max(0, T.fade - 0.08);
+  if (active || T.fade > 0) { T.pts.unshift([base.clone(), tip.clone()]); if (T.pts.length > TRN) T.pts.length = TRN; } else T.pts.length = 0;
+  const p = T.mesh.geometry.attributes.position.array, a = T.mesh.geometry.attributes.alpha.array;
+  for (let i = 0; i < TRN; i++) { const q = T.pts[Math.min(i, T.pts.length - 1)]; if (!q) { a[i * 2] = a[i * 2 + 1] = 0; continue; }
+    p.set([q[0].x, q[0].y, q[0].z], i * 6); p.set([q[1].x, q[1].y, q[1].z], i * 6 + 3); const f = (1 - i / TRN) * T.fade; a[i * 2] = f * 0.15; a[i * 2 + 1] = f; }
+  T.mesh.geometry.attributes.position.needsUpdate = T.mesh.geometry.attributes.alpha.needsUpdate = true; T.mesh.material.uniforms.col.value.set(color); T.mesh.material.uniforms.k.value = intensity; T.mesh.visible = T.pts.length > 1;
+}
+// ---- rachaduras/brasas no chão em golpes pesados ----
+export function crater(x, y, z, color, r = 2) { emit(x, y + 0.1, z, { n: 40, color: 0x8a7a6a, speed: 6, up: 4, life: 0.9, size: 0.22, grav: 14, jit: 0.4 }); emit(x, y + 0.2, z, { n: 20, color, speed: 3, up: 2, ring: r * 0.4, life: 0.7, size: 0.25 }); shock(x, y, z, color, r * 1.5, 0.45); shock(x, y + 0.05, z, 0xffffff, r, 0.25); }

@@ -1,5 +1,5 @@
 // ===== Valtheria — personagens 3D suaves (toon) com rosto, expressões e raças =====
-import * as THREE from './three.module.min.js';
+import * as THREE from './lib/three.module.min.js';
 import { createCharacter, play as playClip, setOutfit, setPart, loadGLB } from './chars.js';
 const GD = window.GD;
 
@@ -241,12 +241,12 @@ function swapWeapon(m, holder, name, len, g, relic, shield) {
     if (!holder.parent || !m.gearParts.includes(holder)) return;
     const src = gl.scene.clone(true), b = new THREE.Box3().setFromObject(src), h = shield ? Math.max(b.max.y - b.min.y, b.max.x - b.min.x) : b.max.y - b.min.y, k = len / h;
     src.scale.setScalar(k); if (shield) { src.position.set(0, -(b.max.y + b.min.y) / 2 * k, 0.02); }
-    const en = m.enc || 0, ecol = en >= 10 ? 0xffcf3a : en >= 7 ? 0xff3a3a : 0x3a8aff;
+    const en = m.enc || 0, ET = GD.ENC_TIER(en), ecol = ET ? new THREE.Color(ET.c).getHex() : 0x3a8aff;
     src.traverse(o => { if (!o.isMesh) return; o.castShadow = true; const key = o.material.name + ':' + g + ':' + (shield ? 's' : m.weaponKind) + ':' + (shield ? 0 : en >= 4 ? ecol : 0) + (relic ? 'r' : '');
       if (!WMAT.has(key)) { const mt = o.material.clone(); mt.metalness = Math.min(mt.metalness, 0.6); mt.envMapIntensity = 1.2; const metal = /metal|steel|iron|blade|silver|gold/i.test(mt.name) || mt.metalness > 0.3;
         if (metal && g >= 2 && !shield) { mt.emissive = new THREE.Color(relic ? '#ffd75a' : KAURA[m.weaponKind] || GLOW[g]); mt.emissiveIntensity = 0.18 + g * 0.06; }
         if (metal && g >= 3 && shield) { mt.emissive = new THREE.Color(GLOW[g]); mt.emissiveIntensity = 0.35; }
-        if (metal && !shield && en >= 4) { mt.emissive = new THREE.Color(ecol); mt.emissiveIntensity = 0.6 + (en % 3) * 0.2; }
+        if (metal && !shield && ET) { mt.emissive = new THREE.Color(ecol); mt.emissiveIntensity = 0.5 + ET.k * 0.4 + (en % 3) * 0.15; }
         WMAT.set(key, mt); }
       o.material = WMAT.get(key); });
     [...holder.children].forEach(c => { if (!c.isSprite) holder.remove(c); }); holder.add(src);
@@ -311,11 +311,12 @@ export function setGear(m, weaponId, armorId, equip) {
     m.weaponKind = k;
     // troca a arma procedural pelo modelo 3D (Quaternius Medieval Weapons, CC0) quando carregar
     { const list = WGLB[k]; if (list) { const holder = m.gearParts.filter(x => x.parent === H || (k === 'adaga' && x.parent === HL)).filter(x => !x.isSprite); holder.forEach(hg => swapWeapon(m, hg, list[Math.min(g, list.length - 1)], WLEN[k], g, w.relic)); } }
-    // brilho do encantamento: +4 a +6 azul, +7 a +9 vermelho, +10 dourado
-    const en = m.enc || 0;
-    if (en >= 4) { const col = new THREE.Color(en >= 10 ? '#ffcf3a' : en >= 7 ? '#ff3a3a' : '#3a8aff'), ei = 0.5 + (en % 3) * 0.25 + (en >= 10 ? 0.6 : 0);
+    // brilho do encantamento: +4 azul, +7 carmesim, +10 dourado, +13 abissal, +16 celestial — cada nível mais forte
+    const en = m.enc || 0, T = GD.ENC_TIER(en);
+    if (T) { const col = new THREE.Color(T.c), ei = 0.45 + T.k * 0.35 + (en % 3) * 0.12;
       for (const part of m.gearParts) { if (part.parent !== H && part.parent !== HL) continue; part.traverse(o => { if (o.isMesh && o.material && o.material.emissive && !o.userData.outline) { o.material = o.material.clone(); o.material.emissive = col.clone(); o.material.emissiveIntensity = ei; } }); }
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: col, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: en >= 7 ? 0.85 : 0.55 })); sp.scale.setScalar(en >= 10 ? 0.9 : 0.6); sp.position.set(0, 0.35, 0); add(H, sp); m.encGlow = sp; }
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: col, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: Math.min(0.85, 0.4 + T.k * 0.09) })); sp.scale.setScalar(0.42 + T.k * 0.08 + (en % 3) * 0.03); sp.position.set(0, 0.35, 0); add(H, sp); m.encGlow = sp;
+      if (T.k >= 3) { const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: new THREE.Color(T.c2), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0.6 })); sp2.scale.setScalar(0.35 + T.k * 0.12); sp2.position.set(0, (WLEN[k] || 1) * 0.6, 0); add(H, sp2); m.encGlow2 = sp2; } }
   } else m.weaponKind = null;
   // peças extras: escudo, elmo, luvas e botas
   const E = (slot) => GD.ITEMS[equip[slot]];
@@ -416,7 +417,7 @@ export function animHumanoid(m, dt) {
   if (A.blink < 0 && A.blink > -0.12) P.skull.material = faceTexture(m.look, m.race, A.expr, true);
   else if (A.blink <= -0.12) { A.blink = 2.5 + Math.random() * 3.5; P.skull.material = faceTexture(m.look, m.race, A.expr); }
 }
-export function playAttack(m, kind) { m.anim.atk = performance.now(); m.anim.kind = kind; if (m.setExpr && Math.random() < 0.6) m.setExpr('angry', 1200); }
+export function playAttack(m, kind) { m.anim.atk = performance.now(); m.anim.atkAt = m.anim.atk; m.anim.kind = kind; if (m.setExpr && Math.random() < 0.6) m.setExpr('angry', 1200); }
 
 export function setExpr(m, e, ms) { if (m.glb) return; return setExpr_(m, e, ms); }
 
@@ -499,6 +500,6 @@ function animGLB(m, dt) {
   else if (A.cur === 'atk' && t < A.atkEnd) { /* golpe em andamento */ }
   else if (A.hitAt && t - A.hitAt < 60 && A.cur !== 'hit' && A.state !== 'climb') { A.hitAt = 0; if (playClip(C, Math.random() < 0.5 ? 'Hit_Chest' : 'Hit_Head', { once: true, fade: 0.06, speed: 1.4 })) { A.cur = 'hit'; A.atkEnd = t + 380; } }
   else if (A.cur === 'hit' && t < A.atkEnd) { }
-  else { const want = A.state === 'mount' ? 'Sitting_Idle_Loop' : A.state === 'fly' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'climb' ? 'ClimbUp_1m' : A.state === 'swim' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'roll' ? 'Roll' : A.state === 'sprint' ? 'Sprint_Loop' : A.state === 'run' ? 'Jog_Fwd_Loop' : A.state === 'gather' ? 'Interact' : (A.idleClip || 'Idle_Loop'); if (A.cur !== want) { if (playClip(C, want, { fade: 0.22, once: want === 'Roll', speed: A.state === 'run' ? 1.15 * ({ halfling: 1.3, anao: 1.18, gigante: 0.85, orc: 0.95, sylph: 1.08 }[m.race] || 1) : A.state === 'climb' ? 0.8 : want === 'Roll' ? 1.3 : 1 })) A.cur = want; else if (A.cur !== 'Jog_Fwd_Loop' && A.state !== 'idle') { playClip(C, 'Jog_Fwd_Loop', { fade: 0.2 }); A.cur = 'Jog_Fwd_Loop'; } } }
+  else { const want = A.state === 'mount' ? 'Sitting_Idle_Loop' : A.state === 'fly' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'climb' ? 'ClimbUp_1m' : A.state === 'swim' ? (A.moving ? 'Swim_Fwd_Loop' : 'Swim_Idle_Loop') : A.state === 'roll' ? 'Roll' : A.state === 'sprint' ? 'Sprint_Loop' : A.state === 'run' ? (A.walk ? 'Walk_Loop' : 'Jog_Fwd_Loop') : A.state === 'gather' ? 'Interact' : (A.idleClip || 'Idle_Loop'); if (A.cur !== want) { if (playClip(C, want, { fade: 0.22, once: want === 'Roll', speed: A.state === 'run' ? 1.15 * ({ halfling: 1.3, anao: 1.18, gigante: 0.85, orc: 0.95, sylph: 1.08 }[m.race] || 1) : A.state === 'climb' ? 0.8 : want === 'Roll' ? 1.3 : 1 })) A.cur = want; else if (A.cur !== 'Jog_Fwd_Loop' && A.state !== 'idle') { playClip(C, 'Jog_Fwd_Loop', { fade: 0.2 }); A.cur = 'Jog_Fwd_Loop'; } } }
   C.mixer.update(dt);
 }

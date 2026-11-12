@@ -1,6 +1,6 @@
 // ===== Valtheria — ambiente realista: céu com ciclo dia/noite, sol, lua, estrelas, nuvens,
 // água com ondas, vento nas árvores e na grama, fogo e fumaça, rochas e árvores por bioma =====
-import * as THREE from './three.module.min.js';
+import * as THREE from './lib/three.module.min.js';
 
 export const WIND = { time: { value: 0 }, strength: { value: 1 } };
 const DAY_SECONDS = 1800; // um dia de Valtheria = 30 min reais (igual para todos os jogadores)

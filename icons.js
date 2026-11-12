@@ -1,5 +1,5 @@
 // ===== Valtheria — ícones 3D dos equipamentos (renderizados do próprio modelo, com cor do grau e aura da classe) =====
-import * as THREE from './three.module.min.js';
+import * as THREE from './lib/three.module.min.js';
 import { loadGLB } from './chars.js';
 
 const SIZE = 128, CACHE = new Map(), PENDING = new Set(); let R = null, scene, cam, onReady = null;

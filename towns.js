@@ -1,13 +1,13 @@
 // ===== Valtheria — cidades com arquitetura de cada raça, castelos, ruínas e covis =====
-import * as THREE from './three.module.min.js';
+import * as THREE from './lib/three.module.min.js';
 import { makeFire, makeSmoke, ROCK_GEOS, rockMat } from './world3d.js';
-import { GLTFLoader } from './GLTFLoader.js';
-import { MeshoptDecoder } from './meshopt_decoder.module.js';
+import { GLTFLoader } from './lib/GLTFLoader.js';
+import { MeshoptDecoder } from './lib/meshopt_decoder.module.js';
 
 // ---------- prédios e objetos 3D (Quaternius Medieval Village Pack, CC0) ----------
 // cada peça nasce com a versão procedural e é trocada pelo modelo quando ele carrega
 const gl = new GLTFLoader(); gl.setMeshoptDecoder(MeshoptDecoder); const BCACHE = new Map();
-const loadB = n => { if (!BCACHE.has(n)) BCACHE.set(n, gl.loadAsync(n + '.glb').then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.material.envMapIntensity = 0.8; } }); return g.scene; })); return BCACHE.get(n); };
+const loadB = n => { if (!BCACHE.has(n)) BCACHE.set(n, gl.loadAsync('assets/world/' + n + '.glb').then(g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.material.envMapIntensity = 0.8; } }); return g.scene; })); return BCACHE.get(n); };
 export const BLD = { on: true };
 function glbB(name, scale, fallback, rot = 0) {
   const g = new THREE.Group(); if (fallback) g.add(fallback);
@@ -228,10 +228,22 @@ const STYLES = {
     ringPlaces(ctx, 10, 36, 40, 0.2).forEach((p, i) => { const ic = crystal('#bfefff', 1.5); place(ctx, g, ic, p.x, p.z); if (i % 2) g.add(makeFire(p.x, ctx.H(p.x, p.z) + 0.3, p.z, 1.1, '#7ad8ff', true)); });
   },
 };
+// pedra realista: troca a cor lisa das paredes cinzentas por textura de pedra (mais natural de perto)
+const STONE = (() => { const t = new THREE.TextureLoader().load('assets/world/t_stone.webp'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; })();
+const SMAT = new Map(), _hsl = {};
+export function stoneify(root) {
+  root.traverse(o => { if (!o.isMesh || !o.material || Array.isArray(o.material) || o.material.map || !o.material.color) return; const gt = o.geometry.type; if (gt !== 'BoxGeometry' && gt !== 'CylinderGeometry') return;
+    o.material.color.getHSL(_hsl); if (_hsl.s > 0.22 || _hsl.l < 0.18 || _hsl.l > 0.7) return;
+    const p = o.geometry.parameters, big = Math.max(p.width || p.radiusTop * 3 || 1, p.height || 1, p.depth || 1); if (big < 2.5) return;
+    const rep = Math.max(1, Math.round(big / 3)), key = o.material.color.getHexString() + ':' + rep;
+    if (!SMAT.has(key)) { const t = STONE.clone(); t.repeat.set(rep, rep); t.needsUpdate = true; const m = o.material.clone(); m.map = t; m.color.multiplyScalar(1.25); m.roughness = 0.92; SMAT.set(key, m); }
+    o.material = SMAT.get(key); });
+  return root;
+}
 export function buildTownArchitecture(ctx) {
   const g = new THREE.Group(); const fn = STYLES[ctx.t.race] || STYLES.humano;
   let k = 0; ctx.freeDir = (seed = 0) => { for (let i = 0; i < 24; i++) { const a = ((seed * 7 + k++ * 5 + i) % 24) / 24 * Math.PI * 2 + 0.13; if (freeAt(ctx, a, 0.45)) return a; } return 0.5; };
-  fn(ctx, g); return g;
+  fn(ctx, g); return stoneify(g);
 }
 
 // ---------- locais especiais ----------

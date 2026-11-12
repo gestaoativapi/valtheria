@@ -1,13 +1,13 @@
 // ===== Valtheria — personagens 3D (modelos CC0 da Quaternius: Universal Base Characters,
 // Modular Character Outfits - Fantasy, Universal Animation Library 1 e 2, Fantasy Props MegaKit) =====
-import * as THREE from './three.module.min.js';
-import { GLTFLoader } from './GLTFLoader.js';
-import { clone as skClone } from './SkeletonUtils.js';
-import { MeshoptDecoder } from './meshopt_decoder.module.js';
+import * as THREE from './lib/three.module.min.js';
+import { GLTFLoader } from './lib/GLTFLoader.js';
+import { clone as skClone } from './lib/SkeletonUtils.js';
+import { MeshoptDecoder } from './lib/meshopt_decoder.module.js';
 
 const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
 const CACHE = new Map();
-export function loadGLB(name) { if (!CACHE.has(name)) CACHE.set(name, loader.loadAsync(name + '.glb')); return CACHE.get(name); }
+export function loadGLB(name) { if (!CACHE.has(name)) CACHE.set(name, loader.loadAsync('assets/chars/' + name + '.glb')); return CACHE.get(name); }
 let CLIPS = null;
 export async function loadClips() {
   if (CLIPS) return CLIPS;
