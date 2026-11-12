@@ -6,6 +6,7 @@ const Character = preload("res://scripts/character.gd")
 const Net = preload("res://scripts/net.gd")
 const UI = preload("res://scripts/ui.gd")
 const Combat = preload("res://scripts/combat.gd")
+const Social = preload("res://scripts/social.gd")
 
 const QUALITY := ["Mínima", "Baixa", "Média", "Alta", "Ultra"]
 const WALK := 1.9
@@ -43,6 +44,7 @@ var home := Vector3(1503.5, 0.0, 2556.0)
 var quitting := false
 var combat: Node3D
 var chasing := false
+var social: Node3D
 var test_fight := false
 var log_file: FileAccess
 var log_t := 0.0
@@ -95,6 +97,12 @@ func _ready() -> void:
 	combat.setup(self)
 	combat.message.connect(func(t): ui.say(t))
 	ui.want_skill.connect(func(i): combat.use_skill(i))
+	social = Social.new()
+	add_child(social)
+	social.setup(self)
+	ui.want_window.connect(_window)
+	ui.want_action.connect(_action)
+	ui.want_chat.connect(_chat)
 	ui.want_new_char.connect(_new_char)
 	ui.want_preview.connect(_preview)
 	ui.want_create.connect(_create)
@@ -138,6 +146,12 @@ func _ready() -> void:
 			_enter({"name": "Viajante", "level": 1, "race": test_race, "gender": test_gender, "skin": 1, "hair": 2, "hair_color": 1, "equipment": {"armadura": test_armor, "arma": test_weapon}})
 		elif a.begins_with("--frames="):
 			shot_wait = int(a.trim_prefix("--frames="))
+		elif a.begins_with("--win="):
+			net.inventory = {"pocao_hp": 8, "retorno": 2, "espadao_ng": 1, "madeira_ng": 14, "elmo_pesada_ng": 1}
+			me.aurum = 1250
+			me.equipment = {"arma": "espada_ng", "armadura": "pesada_ng"}
+			ui.open_window(a.trim_prefix("--win="), me, net.inventory, {})
+			ui.chat_line("Lyra", "alguém para caçar javali?")
 		elif a == "--fight":
 			test_fight = true
 		elif a == "--lineup":  # teste: uma fileira com todas as raças
@@ -274,10 +288,12 @@ func _enter(c: Dictionary) -> void:
 	ui.show_hud("")
 	ui.set_who(me)
 	combat.start()
+	net.rt_join(me)
+	ui.chat_line("", "Bem-vindo a Valtheria. Enter abre o bate-papo.", "sistema")
 
 
-func _save_now() -> void:
-	if not me.has("id") or player.position.distance_to(saved_pos) < 0.5:
+func _save_now(force := false) -> void:
+	if not me.has("id") or (not force and player.position.distance_to(saved_pos) < 0.5):
 		return
 	saved_pos = player.position
 	await net.save(player.position.x, player.position.z, maxf(1.0, combat.hp), combat.mp)
@@ -289,6 +305,8 @@ func _to_login() -> void:
 	playing = false
 	creating = false
 	combat.clear()
+	social.clear()
+	ui.close_window()
 	me = {}
 	net.logout()
 	_swap_player({"equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}})
@@ -420,9 +438,22 @@ func _unhandled_input(ev: InputEvent) -> void:
 			return
 		match ev.keycode:
 			KEY_ESCAPE:
-				_to_login()
+				if ui.win.visible:
+					ui.close_window()
+				else:
+					_to_login()
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6:
 				combat.use_skill(ev.keycode - KEY_1)
+			KEY_I:
+				_window("bolsa")
+			KEY_B:
+				_window("loja")
+			KEY_C:
+				_window("oficio")
+			KEY_G:
+				_window("cla")
+			KEY_ENTER, KEY_KP_ENTER:
+				ui.chat_edit.grab_focus()
 			KEY_TAB:
 				combat.next_target()
 			KEY_F:
@@ -485,10 +516,13 @@ func _physics_process(dt: float) -> void:
 	if not playing:
 		return
 	var input := Vector2(Input.get_axis("ui_left", "ui_right"), Input.get_axis("ui_up", "ui_down"))
-	if Input.is_physical_key_pressed(KEY_A): input.x -= 1.0
-	if Input.is_physical_key_pressed(KEY_D): input.x += 1.0
-	if Input.is_physical_key_pressed(KEY_W): input.y -= 1.0
-	if Input.is_physical_key_pressed(KEY_S): input.y += 1.0
+	var typing: bool = ui.typing()
+	if typing:
+		input = Vector2.ZERO
+	if not typing and Input.is_physical_key_pressed(KEY_A): input.x -= 1.0
+	if not typing and Input.is_physical_key_pressed(KEY_D): input.x += 1.0
+	if not typing and Input.is_physical_key_pressed(KEY_W): input.y -= 1.0
+	if not typing and Input.is_physical_key_pressed(KEY_S): input.y += 1.0
 	var move := Vector3.ZERO
 	if input.length() > 0.1 and not combat.dead:
 		combat.stop_auto()
@@ -614,3 +648,78 @@ func note(t: String) -> void:
 	if log_file:
 		log_file.store_line("%7.1fs  %s" % [Time.get_ticks_msec() / 1000.0, t])
 		log_file.flush()
+
+
+# ---------- bolsa, loja, ofício, clã, bate-papo ----------
+func _online() -> bool:
+	return me.has("id") and net.token != ""
+
+
+func _window(name: String) -> void:
+	if ui.win.visible and ui.win_name == name:
+		ui.close_window()
+		return
+	if name == "loja" and world.nearest_town(player.position.x, player.position.z).dist > 80.0:
+		ui.say("A loja só abre dentro de uma cidade")
+		return
+	if _online() and name != "cla":
+		await _refresh_char()
+	var extra := {}
+	if name == "cla" and _online():
+		var r: Dictionary = await net.rpc_call("game_clan_info", {"p_char": net.char_id})
+		if r.ok and r.data is Dictionary:
+			extra = r.data
+	ui.open_window(name, me, net.inventory, extra)
+
+
+# pede a ação ao servidor, relê o personagem e redesenha o que mudou
+func _action(fn: String, args: Dictionary) -> void:
+	if not _online():
+		ui.say("Entre com uma conta para usar a bolsa, a loja e o ofício")
+		return
+	if fn == "game_use":
+		await _save_now(true)
+	var err: String = await net.act(fn, args)
+	if err != "":
+		ui.say(err)
+		return
+	fn_heals = fn == "game_use"
+	await _refresh_char()
+	if ui.win.visible:
+		var keep: String = ui.win_name
+		ui.win_name = ""
+		await _window(keep)
+
+
+func _refresh_char() -> void:
+	var before := JSON.stringify(me.get("equipment", {}))
+	var st: Dictionary = await net.state(net.char_id)
+	if st.is_empty():
+		return
+	st.x = player.position.x
+	st.z = player.position.z
+	var hp_was: float = float(st.get("hp", combat.hp))
+	me = st
+	combat.recalc()
+	combat.hp = clampf(maxf(combat.hp, hp_was) if fn_heals else combat.hp, 1.0, combat.st.maxHp)
+	combat.mp = minf(maxf(combat.mp, float(st.get("mp", combat.mp))) if fn_heals else combat.mp, combat.st.maxMp)
+	fn_heals = false
+	ui.set_skills(combat.skills)
+	ui.set_who(me)
+	if JSON.stringify(me.get("equipment", {})) != before:
+		_swap_player(me)
+		player.set_tag(str(me.get("name", "")))
+
+
+var fn_heals := false
+
+
+func _chat(text: String) -> void:
+	if text.begins_with("/cla "):
+		var p := text.trim_prefix("/cla ").strip_edges().rsplit(" ", false, 1)
+		if p.size() < 2:
+			ui.chat_line("", "Use: /cla Nome TAG", "sistema")
+			return
+		_action("game_clan_create", {"p_name": p[0], "p_tag": p[1]})
+		return
+	social.say(text)

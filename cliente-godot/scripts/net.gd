@@ -10,6 +10,14 @@ var token := ""
 var username := ""
 var refresh := ""
 var char_id := ""
+var inventory := {}
+var ws: WebSocketPeer
+var ws_ref := 0
+var ws_joined := false
+var ws_beat := 0.0
+var ws_me := {}
+signal remote_pos(p: Dictionary)
+signal remote_leave(id: String)
 
 
 func _post(path: String, body: Dictionary, bearer := "") -> Dictionary:
@@ -100,6 +108,7 @@ func state(id: String) -> Dictionary:
 	char_id = id
 	var r := await rpc_call("game_state", {"p_char": id})
 	if r.ok and r.data is Dictionary and (r.data as Dictionary).get("char") is Dictionary:
+		inventory = r.data.inventory if r.data.get("inventory") is Dictionary else {}
 		return r.data.char
 	return {}
 
@@ -111,7 +120,79 @@ func save(x: float, z: float, hp: float, mp: float) -> bool:
 	return r.ok
 
 
+# ação do personagem no servidor (equipar, comprar, usar...); devolve "" ou a mensagem de erro
+func act(fn: String, args := {}) -> String:
+	var a := args.duplicate()
+	a.p_char = char_id
+	var r := await rpc_call(fn, a)
+	return r.erro
+
+
+# ---------- tempo real: outros jogadores (mesmo canal "mundo" da versão web) ----------
+func rt_join(me: Dictionary) -> void:
+	rt_leave()
+	if token == "" or not me.has("id"):
+		return
+	ws_me = me
+	ws = WebSocketPeer.new()
+	ws_joined = false
+	if ws.connect_to_url(URL.replace("https://", "wss://") + "/realtime/v1/websocket?apikey=" + KEY + "&vsn=1.0.0") != OK:
+		ws = null
+
+
+func rt_leave() -> void:
+	if ws:
+		ws.close()
+	ws = null
+	ws_joined = false
+
+
+func _rt_send(topic: String, event: String, payload: Dictionary) -> void:
+	if ws == null or ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
+		return
+	ws_ref += 1
+	ws.send_text(JSON.stringify({"topic": topic, "event": event, "payload": payload, "ref": str(ws_ref)}))
+
+
+func rt_pos(p: Dictionary) -> void:
+	if ws_joined:
+		_rt_send("realtime:mundo", "broadcast", {"type": "broadcast", "event": "p", "payload": p})
+
+
+func _process(dt: float) -> void:
+	if ws == null:
+		return
+	ws.poll()
+	var state := ws.get_ready_state()
+	if state == WebSocketPeer.STATE_CLOSED:
+		ws = null
+		ws_joined = false
+		return
+	if state != WebSocketPeer.STATE_OPEN:
+		return
+	if not ws_joined:
+		ws_joined = true
+		_rt_send("realtime:mundo", "phx_join", {"config": {"broadcast": {"self": false}, "presence": {"key": str(ws_me.get("id", ""))}}, "access_token": token})
+		_rt_send("realtime:mundo", "presence", {"type": "presence", "event": "track", "payload": {"name": str(ws_me.get("name", "")), "gm": bool(ws_me.get("is_gm", false))}})
+	ws_beat += dt
+	if ws_beat > 25.0:
+		ws_beat = 0.0
+		_rt_send("phoenix", "heartbeat", {})
+	while ws.get_available_packet_count() > 0:
+		var msg: Variant = JSON.parse_string(ws.get_packet().get_string_from_utf8())
+		if not (msg is Dictionary):
+			continue
+		var pl: Variant = msg.get("payload")
+		if msg.get("event") == "broadcast" and pl is Dictionary and pl.get("event") == "p" and pl.get("payload") is Dictionary:
+			remote_pos.emit(pl.payload)
+		elif msg.get("event") == "presence_diff" and pl is Dictionary and pl.get("leaves") is Dictionary:
+			for k in pl.leaves:
+				remote_leave.emit(str(k))
+
+
 func logout() -> void:
+	rt_leave()
+	inventory = {}
 	token = ""
 	username = ""
 	refresh = ""

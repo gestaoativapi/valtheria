@@ -15,6 +15,9 @@ signal want_create(o: Dictionary)
 signal want_preview(o: Dictionary)
 signal want_back_to_chars
 signal want_skill(i: int)
+signal want_action(fn: String, args: Dictionary)
+signal want_window(name: String)
+signal want_chat(text: String)
 
 const GOLD := Color(0.86, 0.72, 0.42)
 
@@ -51,6 +54,12 @@ var tgt_bar: ProgressBar
 var hot: Array[Button] = []
 var toast: Label
 var toast_until := 0.0
+var win: PanelContainer
+var win_title: Label
+var win_list: VBoxContainer
+var win_name := ""
+var chat_log: RichTextLabel
+var chat_edit: LineEdit
 
 
 func _ready() -> void:
@@ -292,6 +301,85 @@ func _build_hud() -> void:
 		hb.add_child(b)
 		hot.append(b)
 
+	# janela única (bolsa, loja, ofício, clã)
+	win = PanelContainer.new()
+	win.add_theme_stylebox_override("panel", _panel_style(0.9))
+	win.anchor_left = 0.5
+	win.anchor_right = 0.5
+	win.anchor_top = 0.5
+	win.anchor_bottom = 0.5
+	win.offset_left = -330
+	win.offset_right = 330
+	win.offset_top = -270
+	win.offset_bottom = 250
+	win.visible = false
+	hud.add_child(win)
+	var wv := VBoxContainer.new()
+	wv.add_theme_constant_override("separation", 8)
+	win.add_child(wv)
+	var wh := HBoxContainer.new()
+	wv.add_child(wh)
+	win_title = _label("", 20, GOLD, true)
+	win_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wh.add_child(win_title)
+	var wx := _button("Fechar")
+	wx.pressed.connect(close_window)
+	wh.add_child(wx)
+	var sc := ScrollContainer.new()
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	wv.add_child(sc)
+	win_list = VBoxContainer.new()
+	win_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	win_list.add_theme_constant_override("separation", 4)
+	sc.add_child(win_list)
+
+	# atalhos das janelas
+	var menu := HBoxContainer.new()
+	menu.anchor_left = 1.0
+	menu.anchor_right = 1.0
+	menu.anchor_top = 1.0
+	menu.anchor_bottom = 1.0
+	menu.offset_left = -470
+	menu.offset_right = -16
+	menu.offset_top = -92
+	menu.offset_bottom = -48
+	menu.alignment = BoxContainer.ALIGNMENT_END
+	hud.add_child(menu)
+	for def in [["Bolsa (I)", "bolsa"], ["Loja (B)", "loja"], ["Ofício (C)", "oficio"], ["Clã (G)", "cla"]]:
+		var mb := _button(def[0])
+		mb.focus_mode = Control.FOCUS_NONE
+		mb.pressed.connect(func(): want_window.emit(def[1]))
+		menu.add_child(mb)
+
+	# bate-papo
+	var cb := VBoxContainer.new()
+	cb.anchor_top = 1.0
+	cb.anchor_bottom = 1.0
+	cb.offset_left = 16
+	cb.offset_right = 420
+	cb.offset_top = -250
+	cb.offset_bottom = -48
+	hud.add_child(cb)
+	chat_log = RichTextLabel.new()
+	chat_log.bbcode_enabled = true
+	chat_log.scroll_following = true
+	chat_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	chat_log.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chat_log.add_theme_font_size_override("normal_font_size", 14)
+	chat_log.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	chat_log.add_theme_constant_override("outline_size", 5)
+	cb.add_child(chat_log)
+	chat_edit = _edit("Enter para conversar")
+	chat_edit.custom_minimum_size = Vector2(0, 32)
+	chat_edit.add_theme_font_size_override("font_size", 14)
+	chat_edit.max_length = 160
+	chat_edit.text_submitted.connect(func(t):
+		chat_edit.text = ""
+		chat_edit.release_focus()
+		want_chat.emit(t))
+	cb.add_child(chat_edit)
+
 	toast = _label("", 22, Color(1, 0.93, 0.7), true)
 	toast.anchor_left = 0.0
 	toast.anchor_right = 1.0
@@ -402,6 +490,120 @@ func set_cooldowns(cds: Array, now: float) -> void:
 			var left: float = float(cds[i]) - now
 			hot[i].disabled = left > 0.0
 			hot[i].text = ("%s\n%.0fs" % [hot[i].get_meta("nome"), ceilf(left)]) if left > 0.0 else str(hot[i].get_meta("nome"))
+
+
+func typing() -> bool:
+	var f := get_viewport().gui_get_focus_owner()
+	return f is LineEdit
+
+
+func chat_line(who_name: String, msg: String, kind := "chat") -> void:
+	var safe := msg.replace("[", "[lb]")
+	if kind == "chat":
+		chat_log.append_text("[color=#ffd98a]%s:[/color] %s\n" % [who_name.replace("[", "[lb]"), safe])
+	else:
+		chat_log.append_text("[color=#9fd0ff]%s[/color]\n" % safe)
+
+
+func close_window() -> void:
+	win.visible = false
+	win_name = ""
+
+
+func _row(text: String, actions: Array, color := Color(0.88, 0.89, 0.93)) -> void:
+	var h := HBoxContainer.new()
+	var l := _label(text, 15, color)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	h.add_child(l)
+	for a in actions:
+		var b := _button(a[0])
+		b.custom_minimum_size = Vector2(92, 30)
+		b.add_theme_font_size_override("font_size", 13)
+		b.focus_mode = Control.FOCUS_NONE
+		var fn: String = a[1]
+		var args: Dictionary = a[2]
+		b.pressed.connect(func(): want_action.emit(fn, args))
+		h.add_child(b)
+	win_list.add_child(h)
+
+
+func _stat_text(it: Dictionary) -> String:
+	var names := {"patk": "ataque", "matk": "magia", "pdef": "defesa", "mdef": "def. mágica", "hp": "vida", "mp": "mana", "hpPct": "cura", "mpPct": "mana"}
+	var out: Array = []
+	for k in it.get("stats", {}):
+		var v: float = it.stats[k]
+		out.append("%s %s" % [names.get(k, k), ("%d%%" % int(v * 100.0)) if str(k).ends_with("Pct") else ("%.1f" % v if v < 3.0 else str(int(v)))])
+	return "  (" + ", ".join(out) + ")" if not out.is_empty() else ""
+
+
+# desenha a janela pedida com os dados atuais; me = personagem, inv = bolsa, extra = dados do clã
+func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> void:
+	win_name = name
+	win.visible = true
+	for c in win_list.get_children():
+		c.queue_free()
+	var items: Dictionary = info.items
+	var aurum := int(me.get("aurum", 0))
+	if name == "bolsa":
+		win_title.text = "Bolsa e equipamento   ·   %d aurum" % aurum
+		_row("Equipado", [], GOLD)
+		var eq: Dictionary = me.get("equipment") if me.get("equipment") is Dictionary else {}
+		for slot in eq:
+			var it: Dictionary = items.get(str(eq[slot]), {})
+			_row("%s: %s%s" % [str(slot).capitalize(), it.get("name", eq[slot]), _stat_text(it)], [["Tirar", "game_unequip", {"p_slot": slot}]])
+		_row("Na bolsa", [], GOLD)
+		if inv.is_empty():
+			_row("Vazia.", [])
+		for id in inv:
+			var it: Dictionary = items.get(str(id), {})
+			var acts: Array = []
+			if str(it.get("slot", "")) != "":
+				acts.append(["Equipar", "game_equip", {"p_item": id}])
+			elif str(it.get("type", "")) in ["potion", "scroll", "special"]:
+				acts.append(["Usar", "game_use", {"p_item": id}])
+			acts.append(["Vender %d" % int(it.get("sell", 1)), "game_npc_sell", {"p_item": id, "p_qty": 1}])
+			_row("%s  x%d%s" % [it.get("name", id), int(inv[id]), _stat_text(it)], acts)
+	elif name == "loja":
+		win_title.text = "Loja   ·   %d aurum" % aurum
+		for id in info.shop:
+			var it: Dictionary = items.get(str(id), {})
+			_row("%s%s   ·   %d aurum" % [it.get("name", id), _stat_text(it), int(info.shop[id])], [["Comprar", "game_shop_buy", {"p_item": id, "p_qty": 1}]])
+	elif name == "oficio":
+		win_title.text = "Ofício (fabricação)"
+		var shown := 0
+		for pass_i in 2:
+			for r in info.recipes:
+				var can := true
+				var parts: Array = []
+				for k in r.inputs:
+					parts.append("%s %d/%d" % [items.get(str(k), {}).get("name", k), int(inv.get(k, 0)), int(r.inputs[k])])
+					if int(inv.get(k, 0)) < int(r.inputs[k]):
+						can = false
+				if (pass_i == 0) != can or (pass_i == 1 and shown > 60):
+					continue
+				shown += 1
+				_row("%s x%d   ·   %s" % [items.get(str(r.out), {}).get("name", r.out), int(r.qty), ", ".join(parts)], [["Fabricar", "game_craft", {"p_recipe": r.id, "p_times": 1}]] if can else [], Color(0.88, 0.89, 0.93) if can else Color(0.55, 0.56, 0.6))
+	elif name == "cla":
+		win_title.text = "Clãs"
+		if extra.is_empty():
+			_row("Entre com uma conta para ver os clãs.", [])
+			return
+		var mine: Variant = extra.get("clan")
+		if mine is Dictionary:
+			_row("Seu clã: [%s] %s   ·   nível %s   ·   %s pontos" % [mine.get("tag", ""), mine.get("name", ""), str(mine.get("level", 1)), str(mine.get("points", 0))], [["Sair", "game_clan_leave", {}]], GOLD)
+			if extra.get("members") is Array:
+				for m in extra.members:
+					_row("   %s   ·   Nv %s" % [m.get("name", "?"), str(m.get("level", "?"))], [])
+		else:
+			_row("Você não está em um clã. Para criar: escreva no bate-papo  /cla Nome TAG", [])
+		if extra.get("invites") is Array:
+			for iv in extra.invites:
+				_row("Convite: [%s] %s (por %s)" % [iv.get("tag", ""), iv.get("name", ""), iv.get("by", "")], [["Aceitar", "game_clan_answer", {"p_clan": iv.get("clan_id"), "p_accept": true}], ["Recusar", "game_clan_answer", {"p_clan": iv.get("clan_id"), "p_accept": false}]])
+		_row("Ranking", [], GOLD)
+		if extra.get("top") is Array:
+			for t in extra.top:
+				_row("[%s] %s   ·   nível %s   ·   %s pontos   ·   %s membros" % [t.get("tag", ""), t.get("name", ""), str(t.get("level", 1)), str(t.get("points", 0)), str(t.get("n", 0))], [])
 
 
 func say(t: String) -> void:
