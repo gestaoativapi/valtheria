@@ -40,15 +40,19 @@ var save_t := 0.0
 var saved_pos := Vector3.ZERO
 var home := Vector3(1503.5, 0.0, 2556.0)
 var quitting := false
+var log_file: FileAccess
+var log_t := 0.0
 var forward := true
 
 
 func _ready() -> void:
+	_log_open()
 	compat = RenderingServer.get_current_rendering_method() == "gl_compatibility"
 	forward = RenderingServer.get_current_rendering_method() == "forward_plus"
 	world = World.new()
 	add_child(world)
 	world.build()
+	note("mundo montado (cidades e dados)")
 	Character.RACES = world.info.races
 	Character.HAIR_COLORS = world.info.hair_colors
 	net = Net.new()
@@ -100,9 +104,9 @@ func _ready() -> void:
 	ui.want_exit_to_login.connect(_to_login)
 	_load_prefs()
 	_refresh_bar()
+	note("telas prontas")
 	_set_quality(quality)
-	for i in 40:
-		world.stream(player.position, 12)
+	note("qualidade %s aplicada; carregando terreno aos poucos" % QUALITY[quality])
 	var test_race := "humano"
 	var test_gender := "m"
 	var test_armor := "pesada_ng"
@@ -141,8 +145,8 @@ func _ready() -> void:
 			var p := a.trim_prefix("--at=").split(",")
 			home = Vector3(float(p[0]), 0, float(p[1]))
 			_place_player(home)
-			for i in 40:
-				world.stream(player.position, 12)
+			for i in 6:
+				world.stream(player.position, 8)
 			if p.size() > 2:
 				yaw = float(p[2])
 		elif a.begins_with("--dist="):
@@ -241,8 +245,9 @@ func _enter(c: Dictionary) -> void:
 	var pos := Vector3(float(me.get("x", home.x)), 0.0, float(me.get("z", home.z)))
 	_place_player(pos)
 	saved_pos = player.position
-	for i in 40:
-		world.stream(player.position, 12)
+	note("entrando no jogo em %d, %d" % [int(player.position.x), int(player.position.z)])
+	for i in 6:
+		world.stream(player.position, 8)
 	var nm := str(me.get("name", "Viajante"))
 	player.set_tag(nm)
 	has_target = false
@@ -290,9 +295,9 @@ func _load_prefs() -> void:
 		if cf.has_section_key("video", nkey()):
 			quality = clampi(int(cf.get_value("video", nkey(), 3)), 0, 4)
 		else:
-			quality = 0 if compat else 3
+			quality = 0 if compat else 1
 	else:
-		quality = 0 if compat else 3  # primeira vez: modo compatibilidade começa no mínimo
+		quality = 0 if compat else 1  # primeira vez: modo compatibilidade começa no mínimo
 	if cf.has_section_key("video", "vsync"):
 		vsync = bool(cf.get_value("video", "vsync", true))
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED)
@@ -498,6 +503,10 @@ func _physics_process(dt: float) -> void:
 
 func _process(dt: float) -> void:
 	world.stream(player.position, 2)
+	log_t += dt
+	if log_t > 2.0:
+		log_t = 0.0
+		note("fps %d | RAM %d MB | vídeo %d MB | blocos %d | grama %d | nós %d" % [int(Engine.get_frames_per_second()), int(OS.get_static_memory_usage() / 1048576.0), int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED) / 1048576.0), world.chunks.size(), world.grass.size(), int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))])
 	if playing:
 		var focus := player.position + Vector3(0, player.height_m * 0.82, 0)
 		var dir := Vector3(sin(yaw) * cos(pitch), -sin(pitch), cos(yaw) * cos(pitch))
@@ -552,4 +561,20 @@ func _fmt(n: int) -> String:
 
 
 func nkey() -> String:
-	return "nivel_gl" if compat else ("nivel" if forward else "nivel_leve")
+	return "nivel2_gl" if compat else ("nivel2" if forward else "nivel2_leve")
+
+
+# registro gravado na pasta do jogo, linha a linha, para descobrir onde parou se o computador travar
+func _log_open() -> void:
+	var path := OS.get_executable_path().get_base_dir().path_join("registro.txt")
+	log_file = FileAccess.open(path, FileAccess.WRITE)
+	if log_file == null:
+		log_file = FileAccess.open("user://registro.txt", FileAccess.WRITE)
+	note("Valtheria %s | %s | %s | %s | %s" % [ProjectSettings.get_setting("application/config/version"), RenderingServer.get_current_rendering_driver_name(), RenderingServer.get_current_rendering_method(), RenderingServer.get_video_adapter_name(), OS.get_name()])
+	note("memória do computador: %s" % str(OS.get_memory_info()))
+
+
+func note(t: String) -> void:
+	if log_file:
+		log_file.store_line("%7.1fs  %s" % [Time.get_ticks_msec() / 1000.0, t])
+		log_file.flush()
