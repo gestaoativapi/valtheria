@@ -31,6 +31,7 @@ var spawn_t := 0.0
 var sync_t := 0.0
 var swing := 0
 var my_elem := ""
+var boss_next := {}  # ponto de caça -> hora em que o chefe pode voltar
 
 
 func setup(m: Node3D) -> void:
@@ -198,12 +199,20 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 	return {"node": node, "kind": kind, "height": height}
 
 
-func _spawn(x: float, z: float) -> void:
+func _spawn(x: float, z: float, boss := false, boss_lvl := 0, spot := "") -> void:
 	var li := _level_at(x, z)
-	var fams: Array = (info.mobs[clampi(li.band, 0, info.mobs.size() - 1)] as Array).filter(func(f): return not f.boss)
+	var fams: Array = (info.mobs[clampi(li.band, 0, info.mobs.size() - 1)] as Array).filter(func(f): return bool(f.boss) == boss)
+	if fams.is_empty():
+		return
 	var fam: Dictionary = fams[rng.randi() % fams.size()]
 	var L: int = clampi(int(li.L) + rng.randi_range(-1, 1), 1, 92)
-	var ms: Array = info.mobstats[L - 1]
+	if boss:
+		L = clampi(boss_lvl, 1, 92)
+	var ms: Array = (info.mobstats[L - 1] as Array).duplicate()
+	if boss:  # mesma regra do jogo web: 14x a vida, 1,8x o ataque, 12x a experiência
+		ms[0] = float(ms[0]) * 14.0
+		ms[1] = float(ms[1]) * 1.8
+		ms[3] = float(ms[3]) * 12.0
 	var md := _mob_model(fam)
 	var node: Node3D = md.node
 	add_child(node)
@@ -214,14 +223,17 @@ func _spawn(x: float, z: float) -> void:
 	lb.pixel_size = 0.003
 	lb.font_size = 56
 	lb.outline_size = 12
-	lb.text = "%s  Nv %d" % [fam.name, L]
+	lb.text = ("CHEFE  %s  Nv %d" if boss else "%s  Nv %d") % [fam.name, L]
+	if boss:
+		lb.font_size = 76
+		lb.visibility_range_end = 120.0
 	var diff := L - int(main.me.get("level", 1))
 	lb.modulate = Color(1, 0.35, 0.35) if diff >= 5 else (Color(1, 0.85, 0.35) if diff >= 2 else (Color.WHITE if diff >= -2 else Color(0.55, 0.8, 0.6)))
 	lb.position = Vector3(0, (float(md.height) + 0.35) / maxf(node.scale.y, 0.01), 0)
 	lb.visibility_range_end = 45.0
 	node.add_child(lb)
 	var m := {"fam": fam, "L": L, "hp": float(ms[0]), "maxHp": float(ms[0]), "atk": float(ms[1]), "def": float(ms[2]), "xp": float(ms[3]), "node": node, "kind": md.kind, "home": node.position,
-		"aggro": false, "next_atk": 0.0, "stun": 0.0, "wander": node.position, "wander_t": rng.randf() * 4.0, "dead": false, "dead_t": 0.0, "weak": 0.0, "anim": "", "height": md.height}
+		"aggro": false, "next_atk": 0.0, "stun": 0.0, "wander": node.position, "wander_t": rng.randf() * 4.0, "dead": false, "dead_t": 0.0, "weak": 0.0, "anim": "", "height": md.height, "boss": boss, "spot": spot}
 	m.ap = node.anim if md.kind == "char" else node.find_child("AnimationPlayer", true, false)
 	_mob_anim(m, "idle")
 	mobs.append(m)
@@ -263,14 +275,24 @@ func _manage_spawns(dt: float) -> void:
 	var p: Vector3 = main.player.position
 	for i in range(mobs.size() - 1, -1, -1):
 		var m: Dictionary = mobs[i]
-		var far: bool = (m.node.position as Vector3).distance_to(p) > 150.0 and not m.aggro
+		var far: bool = (m.node.position as Vector3).distance_to(p) > (240.0 if m.boss else 150.0) and not m.aggro
 		if far or (m.dead and now() - float(m.dead_t) > 5.0):
 			if target == m:
 				target = null
 				auto = false
 			m.node.queue_free()
 			mobs.remove_at(i)
-	var alive := mobs.filter(func(m): return not m.dead).size()
+	# um chefe por ponto de caça; volta 5 minutos depois de derrotado
+	for t in info.towns:
+		for sp in t.get("spots", []):
+			var key := "%s:%s" % [t.id, sp.name]
+			var sd := Vector2(float(sp.x) - p.x, float(sp.z) - p.z).length()
+			if sd < 170.0 and now() >= float(boss_next.get(key, 0.0)) and not mobs.any(func(m): return m.spot == key):
+				if world.height(float(sp.x), float(sp.z)) > 1.2:
+					_spawn(float(sp.x), float(sp.z), true, int(sp.lvl), key)
+					if sd < 120.0:
+						message.emit("Um chefe ronda %s" % sp.name)
+	var alive := mobs.filter(func(m): return not m.dead and not m.boss).size()
 	var tries := 0
 	while alive < 12 and tries < 8:
 		tries += 1
@@ -426,27 +448,53 @@ func _reward(m: Dictionary) -> void:
 	var c: Dictionary = main.me
 	var lvl := int(c.get("level", 1))
 	var L := int(m.L)
-	var pen := 1.0
-	if L < lvl - 5:
-		pen = maxf(0.1, 1.0 - (lvl - 5 - L) * 0.15)
-	var gain := roundi(float(m.xp) * pen * float(info.get("rate_xp", 1.0)))
-	c.xp = float(c.get("xp", 0)) + gain
-	var up := false
-	while lvl < 80 and float(c.xp) >= float(info.xpneed[lvl - 1]):
-		c.xp = float(c.xp) - float(info.xpneed[lvl - 1])
-		lvl += 1
-		up = true
-	c.level = lvl
-	_float_text(main.player.position + Vector3(0, main.player.height_m + 0.5, 0), "+%d XP" % gain, Color(0.6, 0.85, 1.0))
-	if up:
+	if m.boss:
+		boss_next[m.spot] = now() + 300.0
+	var head: Vector3 = main.player.position + Vector3(0, main.player.height_m + 0.5, 0)
+	if c.has("id") and main.net.token != "":
+		# online: experiência, dinheiro e itens vêm do servidor
+		var r: Dictionary = await main.net.rpc_call("game_kill3", {"p_char": main.net.char_id, "p_mob_level": L, "p_boss": bool(m.boss), "p_fam": str(m.fam.id)})
+		if not r.ok or not (r.data is Dictionary):
+			message.emit(r.erro if r.erro != "" else "O servidor não registrou a vitória")
+			return
+		var d: Dictionary = r.data
+		c.level = int(d.get("level", lvl))
+		c.xp = float(d.get("xp_now", c.get("xp", 0)))
+		c.aurum = float(c.get("aurum", 0)) + float(d.get("aurum", 0))
+		_float_text(head, "+%d XP" % int(d.get("xp", 0)), Color(0.6, 0.85, 1.0))
+		var got: Array = []
+		if float(d.get("aurum", 0)) > 0.0:
+			got.append("%d aurum" % int(d.aurum))
+		if d.get("drops") is Dictionary:
+			for k in d.drops:
+				got.append("%s x%d" % [info.items.get(str(k), {}).get("name", k), int(d.drops[k])])
+				main.net.inventory[k] = int(main.net.inventory.get(k, 0)) + int(d.drops[k])
+		if d.get("unique") != null:
+			got.append("ITEM ÚNICO: %s" % info.items.get(str(d.unique), {}).get("name", d.unique))
+		if not got.is_empty():
+			main.ui.chat_line("", "Você recebeu: " + ", ".join(got), "sistema")
+	else:
+		var pen := 1.0
+		if L < lvl - 5:
+			pen = maxf(0.1, 1.0 - (lvl - 5 - L) * 0.15)
+		var gain := roundi(float(m.xp) * pen * float(info.get("rate_xp", 1.0)))
+		c.xp = float(c.get("xp", 0)) + gain
+		var nl := lvl
+		while nl < 80 and float(c.xp) >= float(info.xpneed[nl - 1]):
+			c.xp = float(c.xp) - float(info.xpneed[nl - 1])
+			nl += 1
+		c.level = nl
+		_float_text(head, "+%d XP" % gain, Color(0.6, 0.85, 1.0))
+	if int(c.level) > lvl:
 		recalc()
 		hp = st.maxHp
 		mp = st.maxMp
 		main.ui.set_skills(skills)
 		main.ui.set_who(c)
-		message.emit("Nível %d!" % lvl)
-	if c.has("id") and main.net.token != "":
-		main.net.rpc_call("game_kill3", {"p_char": main.net.char_id, "p_mob_level": L, "p_boss": false, "p_fam": str(m.fam.id)})
+		FX.burst(self, main.player.position + Vector3(0, 0.2, 0), "holy", 2.4)
+		message.emit("Nível %d!" % int(c.level))
+		if int(c.level) in info.get("rank_lvl", []):
+			main.ui.chat_line("", "Você já pode evoluir de classe: fale com o Mestre de Classes na cidade (tecla K).", "sistema")
 
 
 func _damage(mult: float) -> Dictionary:

@@ -7,6 +7,7 @@ const ROLES := [
 	["Mercador", Vector3(-9.2, 0, 7.4), 2.4, "Idle_Talking", "loja", "leve_ng", ""],
 	["Ferreiro", Vector3(-60.0, 0, -11.0), 1.4, "Idle_FoldArms", "oficio", "leve_ng", "martelo_ng"],
 	["Mestre do Clã", Vector3(5.0, 0, -11.0), 0.2, "Idle", "cla", "robe_ng", ""],
+	["Mestre de Classes", Vector3(-3.0, 0, -12.5), 0.0, "Idle_FoldArms", "classe", "pesada_ng", "espadao_ng"],
 	["Estalajadeiro", Vector3(-6.0, 0, -58.0), 0.1, "Idle_Talking", "", "leve_ng", ""],
 	["Morador", Vector3(10.5, 0, 9.0), 3.6, "Idle", "", "leve_ng", ""],
 ]

@@ -472,6 +472,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 				_window("oficio")
 			KEY_G:
 				_window("cla")
+			KEY_K:
+				_window("classe")
 			KEY_ENTER, KEY_KP_ENTER:
 				ui.chat_edit.grab_focus()
 			KEY_TAB:
@@ -703,7 +705,7 @@ func _action(fn: String, args: Dictionary) -> void:
 	if not _online():
 		ui.say("Entre com uma conta para usar a bolsa, a loja e o ofício")
 		return
-	if fn == "game_use":
+	if fn in ["game_use", "game_class_change"]:
 		await _save_now(true)
 	var err: String = await net.act(fn, args)
 	if err != "":

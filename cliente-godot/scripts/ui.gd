@@ -340,13 +340,13 @@ func _build_hud() -> void:
 	menu.anchor_right = 1.0
 	menu.anchor_top = 1.0
 	menu.anchor_bottom = 1.0
-	menu.offset_left = -470
+	menu.offset_left = -600
 	menu.offset_right = -16
 	menu.offset_top = -92
 	menu.offset_bottom = -48
 	menu.alignment = BoxContainer.ALIGNMENT_END
 	hud.add_child(menu)
-	for def in [["Bolsa (I)", "bolsa"], ["Loja (B)", "loja"], ["Ofício (C)", "oficio"], ["Clã (G)", "cla"]]:
+	for def in [["Bolsa (I)", "bolsa"], ["Loja (B)", "loja"], ["Ofício (C)", "oficio"], ["Classe (K)", "classe"], ["Clã (G)", "cla"]]:
 		var mb := _button(def[0])
 		mb.focus_mode = Control.FOCUS_NONE
 		mb.pressed.connect(func(): want_window.emit(def[1]))
@@ -584,6 +584,24 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 					continue
 				shown += 1
 				_row("%s x%d   ·   %s" % [items.get(str(r.out), {}).get("name", r.out), int(r.qty), ", ".join(parts)], [["Fabricar", "game_craft", {"p_recipe": r.id, "p_times": 1}]] if can else [], Color(0.88, 0.89, 0.93) if can else Color(0.55, 0.56, 0.6))
+	elif name == "classe":
+		var cur := str(me.get("class_id", ""))
+		var cl: Dictionary = info.classes.get(cur, {})
+		var lvl := int(me.get("level", 1))
+		win_title.text = "Classe: %s   ·   nível %d" % [cl.get("name", "-"), lvl]
+		var found := false
+		for k in info.classes:
+			var nc: Dictionary = info.classes[k]
+			if str(nc.get("parent", "")) != cur:
+				continue
+			found = true
+			var need := int(info.rank_lvl[clampi(int(nc.rank), 0, info.rank_lvl.size() - 1)])
+			var arch: Dictionary = info.arch.get(str(nc.arch), {})
+			var txt := "%s   ·   %s   ·   requer nível %d%s" % [nc.name, arch.get("name", ""), need, "   ·   exclusiva da raça" if nc.get("excl", false) else ""]
+			_row(txt, [["Evoluir", "game_class_change", {"p_class": k}]] if lvl >= need else [], Color(0.88, 0.89, 0.93) if lvl >= need else Color(0.55, 0.56, 0.6))
+		if not found:
+			_row("Você já está na última classe desta linha.", [])
+		_row("A evolução só pode ser feita dentro de uma cidade.", [], Color(0.6, 0.62, 0.68))
 	elif name == "cla":
 		win_title.text = "Clãs"
 		if extra.is_empty():
