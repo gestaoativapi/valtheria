@@ -8,7 +8,7 @@ const CFG = {
     arm: { z: -0.05, clav: [0.06, 0.29], upper: [0.30, 0.29], lower: [0.52, 0.28], hand: [0.70, 0.27], tip: [0.94, 0.26], r: [0.14, 0.12, 0.10, 0.10] },
     leg: { thigh: [0.15, -0.22, 0], calf: [0.17, -0.42, 0], foot: [0.20, -0.58, -0.02], ball: [0.20, -0.63, 0.10], tip: [0.20, -0.64, 0.22], r: [0.14, 0.12, 0.11, 0.10] }, hip: [0.15, -0.20, 0.22], shoulder: [0.2, 0.27, 0.2],
     extra: [['Head', [0, 0.36, 0.15], [0, 0.26, 0.2], 0.11]] },
-  anao_f: { model: { xs: 0.27, k: 0.86, kz: 0.9, hs: 0.88, dy: 0.04, nose: [0.42, 0.13, 0.07, 0.6] }, src: '/home/claude/meshy/a.glb', height: 1.22, y0: -0.69, top: 0.69, tris: 34000,
+  anao_f: { model: { xs: 0.27, k: 0.74, kz: 0.82, hs: 0.96, dy: 0.05, arm: 0.78, leg: 0.84, nose: [0.42, 0.13, 0.07, 0.6] }, src: '/home/claude/meshy/a.glb', height: 1.22, y0: -0.69, top: 0.69, tris: 34000,
     spine: { pelvis: [-0.12, 0], spine_01: [-0.02, 0], spine_02: [0.08, 0], spine_03: [0.17, 0], neck_01: [0.28, 0], Head: [0.34, 0.01] }, headTop: [0.52, 0.01], rTorso: 0.24, rHead: 0.25, rNeck: 0.1,
     arm: { z: -0.04, clav: [0.06, 0.25], upper: [0.27, 0.24], lower: [0.50, 0.235], hand: [0.74, 0.225], tip: [0.94, 0.22], r: [0.12, 0.10, 0.08, 0.08] },
     leg: { thigh: [0.13, -0.16, 0], calf: [0.17, -0.40, 0], foot: [0.20, -0.60, -0.03], ball: [0.20, -0.66, 0.08], tip: [0.20, -0.67, 0.2], r: [0.12, 0.11, 0.11, 0.10] }, hip: [0.14, -0.17, 0.2], shoulder: [0.17, 0.22, 0.16],
@@ -23,6 +23,8 @@ const bskin = base.getRoot().listSkins().sort((a, b) => b.listJoints().length - 
 const M = C.model, ny = C.spine.neck_01[0], hy = C.spine.Head[0], ramp = (v, a, b) => Math.max(0, Math.min(1, (v - a) / (b - a)));
 const shape = (x, y, z) => { const body = 1 - ramp(y, ny - 0.02, hy), head = ramp(y, ny, hy + 0.02);
   if (M.nose) { const [nyc, nz, nr, nk] = M.nose, d = Math.hypot(x, y - nyc) / nr; if (d < 1 && z > nz) z = nz + (z - nz) * (1 - (1 - nk) * (1 - d * d)); }
+  { const a0 = Math.abs(x), s0 = Math.sign(x), ka = 1 - (1 - (M.arm ?? 1)) * ramp(a0, M.xs + 0.02, M.xs + 0.09), A = C.arm; y = A.upper[1] + (y - A.upper[1]) * (a0 > M.xs ? ka : 1); if (a0 > M.xs) z = A.z + (z - A.z) * ka;
+    const L = C.leg, kl = 1 - (1 - (M.leg ?? 1)) * (1 - ramp(y, L.thigh[1] - 0.14, L.thigh[1] - 0.05)), cx = L.thigh[0] + (L.foot[0] - L.thigh[0]) * ramp(y, L.thigh[1], L.foot[1]) * -1 * -1; if (kl < 1 && a0 <= M.xs) { x = s0 * (cx + (a0 - cx) * kl); z = z * kl; } }
   const ax = Math.abs(x), sx = Math.sign(x); x = ax <= M.xs ? x * (1 - (1 - M.k) * body) : sx * (ax - M.xs * (1 - M.k) * body); z = z * (1 - (1 - M.kz) * body);
   x = x * (1 - (1 - M.hs) * head); z = z * (1 - (1 - M.hs) * head); y = hy + (y - hy) * (1 - (1 - M.hs) * head) + M.dy * ramp(y, ny - 0.04, hy);
   return [x, y, z]; };
