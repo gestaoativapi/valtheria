@@ -3,12 +3,12 @@ import { NodeIO, Document } from '@gltf-transform/core'; import { ALL_EXTENSIONS
 import { MeshoptDecoder, MeshoptSimplifier } from 'meshoptimizer'; import { mat4, quat, vec3 } from 'gl-matrix'; import sharp from 'sharp'; await MeshoptDecoder.ready; await MeshoptSimplifier.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
 const CFG = {
-  anao_m: { src: '/home/claude/meshy/b.glb', height: 1.30, y0: -0.655, top: 0.65, tris: 30000,
+  anao_m: { model: { xs: 0.30, k: 0.8, kz: 0.84, hs: 0.86, dy: 0.055, nose: [0.47, 0.15, 0.09, 0.45] }, src: '/home/claude/meshy/b.glb', height: 1.30, y0: -0.655, top: 0.65, tris: 30000,
     spine: { pelvis: [-0.14, 0], spine_01: [-0.03, 0], spine_02: [0.08, 0], spine_03: [0.19, 0], neck_01: [0.33, 0.01], Head: [0.40, 0.02] }, headTop: [0.58, 0.02], rTorso: 0.32, rHead: 0.22, rNeck: 0.12,
     arm: { z: -0.05, clav: [0.06, 0.29], upper: [0.30, 0.29], lower: [0.52, 0.28], hand: [0.70, 0.27], tip: [0.94, 0.26], r: [0.14, 0.12, 0.10, 0.10] },
     leg: { thigh: [0.15, -0.22, 0], calf: [0.17, -0.42, 0], foot: [0.20, -0.58, -0.02], ball: [0.20, -0.63, 0.10], tip: [0.20, -0.64, 0.22], r: [0.14, 0.12, 0.11, 0.10] }, hip: [0.15, -0.20, 0.22], shoulder: [0.2, 0.27, 0.2],
     extra: [['Head', [0, 0.36, 0.15], [0, 0.26, 0.2], 0.11]] },
-  anao_f: { src: '/home/claude/meshy/a.glb', height: 1.22, y0: -0.69, top: 0.69, tris: 34000,
+  anao_f: { model: { xs: 0.27, k: 0.86, kz: 0.9, hs: 0.88, dy: 0.04, nose: [0.42, 0.13, 0.07, 0.6] }, src: '/home/claude/meshy/a.glb', height: 1.22, y0: -0.69, top: 0.69, tris: 34000,
     spine: { pelvis: [-0.12, 0], spine_01: [-0.02, 0], spine_02: [0.08, 0], spine_03: [0.17, 0], neck_01: [0.28, 0], Head: [0.34, 0.01] }, headTop: [0.52, 0.01], rTorso: 0.24, rHead: 0.25, rNeck: 0.1,
     arm: { z: -0.04, clav: [0.06, 0.25], upper: [0.27, 0.24], lower: [0.50, 0.235], hand: [0.74, 0.225], tip: [0.94, 0.22], r: [0.12, 0.10, 0.08, 0.08] },
     leg: { thigh: [0.13, -0.16, 0], calf: [0.17, -0.40, 0], foot: [0.20, -0.60, -0.03], ball: [0.20, -0.66, 0.08], tip: [0.20, -0.67, 0.2], r: [0.12, 0.11, 0.11, 0.10] }, hip: [0.14, -0.17, 0.2], shoulder: [0.17, 0.22, 0.16],
@@ -19,7 +19,14 @@ const base = await io.read('/home/claude/mmo3d/web/assets/chars/base_male.glb'),
 await src.transform(weld());
 { const t = src.getRoot().listMeshes()[0].listPrimitives()[0].getIndices().getCount() / 3; if (t > C.tris * 1.2) await src.transform(simplify({ simplifier: MeshoptSimplifier, ratio: C.tris / t, error: 0.01 })); }
 const bskin = base.getRoot().listSkins().sort((a, b) => b.listJoints().length - a.listJoints().length)[0], joints = bskin.listJoints(), names = joints.map(j => j.getName()), idx = Object.fromEntries(names.map((n, i) => [n, i]));
-const S = C.height / (C.top - C.y0), T = (x, y, z) => [x * S, (y - C.y0) * S, z * S];
+// modelagem antes da pele: afina o corpo, encolhe a cabeça, alonga o pescoço e reduz o nariz
+const M = C.model, ny = C.spine.neck_01[0], hy = C.spine.Head[0], ramp = (v, a, b) => Math.max(0, Math.min(1, (v - a) / (b - a)));
+const shape = (x, y, z) => { const body = 1 - ramp(y, ny - 0.02, hy), head = ramp(y, ny, hy + 0.02);
+  if (M.nose) { const [nyc, nz, nr, nk] = M.nose, d = Math.hypot(x, y - nyc) / nr; if (d < 1 && z > nz) z = nz + (z - nz) * (1 - (1 - nk) * (1 - d * d)); }
+  const ax = Math.abs(x), sx = Math.sign(x); x = ax <= M.xs ? x * (1 - (1 - M.k) * body) : sx * (ax - M.xs * (1 - M.k) * body); z = z * (1 - (1 - M.kz) * body);
+  x = x * (1 - (1 - M.hs) * head); z = z * (1 - (1 - M.hs) * head); y = hy + (y - hy) * (1 - (1 - M.hs) * head) + M.dy * ramp(y, ny - 0.04, hy);
+  return [x, y, z]; };
+const S = C.height / (C.top - C.y0), T = (x0, y0, z0) => { const [x, y, z] = shape(x0, y0, z0); return [x * S, (y - C.y0) * S, z * S]; };
 const sprim = src.getRoot().listMeshes()[0].listPrimitives()[0], SP = sprim.getAttribute('POSITION'), n = SP.getCount(), pos = new Float32Array(n * 3), v = [0, 0, 0];
 for (let i = 0; i < n; i++) { SP.getElement(i, v); pos.set(T(v[0], v[1], v[2]), i * 3); }
 const ind = Uint32Array.from(sprim.getIndices().getArray()); console.log(key, 'vertices', n, 'triangulos', ind.length / 3, 'escala', S.toFixed(3));
