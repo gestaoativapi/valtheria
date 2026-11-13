@@ -21,6 +21,15 @@ static var RACES := {}
 static var HAIR_COLORS: Array = []
 const HAIR_M := ["hair_buzzed", "hair_simpleparted", "hair_long", "hair_slickback", "hair_bob", "hair_buns"]
 const HAIR_F := ["hair_buzzedfemale", "hair_bob", "hair_long", "hair_buns", "hair_long", "hair_buns"]
+# forma própria de cada raça: escala geral, ossos (encolhe pernas, alarga tronco, aumenta cabeça) e quanto o corpo desce
+# para os pés tocarem o chão depois de encurtar as pernas
+const SHAPE := {
+	"anao:m": {"all": 0.92, "drop": 0.3, "bones": {"thigh_l": 0.68, "thigh_r": 0.68, "foot_l": 1.4, "foot_r": 1.4, "spine_01": 1.36, "spine_02": 0.93, "spine_03": 0.92, "neck_01": 0.88, "Head": 1.22, "hand_l": 1.2, "hand_r": 1.2}},
+	"anao:f": {"all": 0.88, "drop": 0.24, "bones": {"thigh_l": 0.75, "thigh_r": 0.75, "foot_l": 1.28, "foot_r": 1.28, "spine_01": 1.1, "spine_03": 0.96, "neck_01": 0.92, "Head": 1.34, "hand_l": 1.1, "hand_r": 1.1}},
+	"orc:m": {"all": 1.1, "drop": 0.0, "bones": {"spine_02": 1.1, "spine_03": 1.1, "neck_01": 0.92, "Head": 0.86, "hand_l": 1.15, "hand_r": 1.15}},
+	"gigante:m": {"all": 1.38, "drop": 0.0, "bones": {"spine_03": 1.08, "Head": 0.88}},
+	"gigante:f": {"all": 1.3, "drop": 0.0, "bones": {"Head": 0.9}},
+}
 const WEAPON := {"espada": ["w_sword", 1.0], "espadao": ["w_claymore", 1.45], "arco": ["w_bow_wooden", 1.3], "adaga": ["w_dagger", 0.5], "martelo": ["w_hammer_double", 1.2], "cajado": ["w_spear", 1.7], "machado": ["w_axe", 0.95]}
 
 
@@ -85,8 +94,19 @@ func _setup(o: Dictionary) -> void:
 			(m as MeshInstance3D).extra_cull_margin = 1.5
 	var w: float = rd.get("w", 1.0)
 	var h: float = rd.get("h", 1.0) * (1.0 if male else 0.97)
-	body.scale = Vector3(w, h, w)
-	height_m = 1.8 * h
+	var shape: Dictionary = SHAPE.get("%s:%s" % [race, "m" if male else "f"], {})
+	if shape.is_empty():
+		body.scale = Vector3(w, h, w)
+		height_m = 1.8 * h
+	else:
+		var k: float = shape.all
+		body.scale = Vector3.ONE * k
+		body.position.y = -float(shape.drop) * k
+		for bn in shape.bones:
+			var bi := skel.find_bone(bn)
+			if bi >= 0:
+				skel.set_bone_pose_scale(bi, Vector3.ONE * float(shape.bones[bn]))
+		height_m = (1.8 + (0.12 if race == "anao" else 0.0)) * k - float(shape.drop) * k
 	anim = AnimationPlayer.new()
 	body.add_child(anim)
 	anim.add_animation_library("", _clips(skel))
