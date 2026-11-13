@@ -32,8 +32,7 @@ const SHAPE := {
 }
 # modelos próprios: altura e quanto o quadril fica mais baixo que o do humano (as animações movem o quadril)
 # bones: ajuste fino de proporção (braço mais curto, mão menor, perna um pouco mais longa, cabeça)
-const OWN := {"anao_m": {"height": 1.36, "hip": 0.6, "bones": {"upperarm_l": 0.76, "upperarm_r": 0.76, "hand_l": 0.84, "hand_r": 0.84, "thigh_l": 1.13, "thigh_r": 1.13, "foot_l": 0.92, "foot_r": 0.92}},
-	"anao_f": {"height": 1.33, "hip": 0.625, "bones": {"upperarm_l": 0.82, "upperarm_r": 0.82, "hand_l": 0.95, "hand_r": 0.95, "thigh_l": 1.18, "thigh_r": 1.18, "foot_l": 0.88, "foot_r": 0.88}}}
+const OWN := {"anao_m": {"height": 1.36, "hip": 0.624, "bones": {}}, "anao_f": {"height": 1.3, "hip": 0.657, "bones": {}}}
 const WEAPON := {"espada": ["w_sword", 1.0], "espadao": ["w_claymore", 1.45], "arco": ["w_bow_wooden", 1.3], "adaga": ["w_dagger", 0.5], "martelo": ["w_hammer_double", 1.2], "cajado": ["w_spear", 1.7], "machado": ["w_axe", 0.95]}
 
 
