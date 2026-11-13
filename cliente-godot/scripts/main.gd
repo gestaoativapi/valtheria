@@ -34,6 +34,10 @@ var orbiting := false
 var target := Vector3.ZERO
 var has_target := false
 var facing := 0.0
+var sel := {}  # alvo que não é monstro: {"kind": "self"|"player"|"npc", ...}
+var emote := ""
+var jumping := false
+var jump_t := 0.0
 var shot_path := ""
 var shot_frames := 0
 var shot_wait := 40
@@ -113,6 +117,10 @@ func _ready() -> void:
 	add_child(social)
 	social.setup(self)
 	ui.want_window.connect(_window)
+	ui.want_do.connect(_do)
+	ui.want_self.connect(func():
+		sel = {"kind": "self"}
+		combat.target = null)
 	ui.want_action.connect(_action)
 	ui.want_chat.connect(_chat)
 	ui.want_new_char.connect(_new_char)
@@ -471,9 +479,13 @@ func _unhandled_input(ev: InputEvent) -> void:
 				else:
 					_to_login()
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
-				combat.use_skill(ev.keycode - KEY_1)
+				ui.press_slot(ev.keycode - KEY_1)
 			KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9:
 				ui.use_assist(ev.keycode - KEY_F1)
+			KEY_SPACE:
+				_do("pular")
+			KEY_J:
+				_window("acoes")
 			KEY_I:
 				_window("bolsa")
 			KEY_B:
@@ -500,17 +512,36 @@ func _unhandled_input(ev: InputEvent) -> void:
 		elif ev.button_index == MOUSE_BUTTON_WHEEL_DOWN and ev.pressed:
 			dist = minf(40.0, dist * 1.1)
 		elif ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
-			var npc_win: String = npcs.pick(cam.project_ray_origin(ev.position), cam.project_ray_normal(ev.position))
-			if npc_win != "":
-				_window(npc_win)
+			var ro := cam.project_ray_origin(ev.position)
+			var rd := cam.project_ray_normal(ev.position)
+			var npc: Dictionary = npcs.pick_npc(ro, rd)
+			if not npc.is_empty():
+				if sel.get("kind", "") == "npc" and sel.get("node") == npc.node and str(npc.window) != "":
+					_window(str(npc.window))
+				else:
+					sel = {"kind": "npc", "node": npc.node, "name": npc.name, "window": npc.window}
+					combat.target = null
 				return
-			var mob = combat.pick(cam.project_ray_origin(ev.position), cam.project_ray_normal(ev.position))
+			var mob = combat.pick(ro, rd)
 			if mob != null:
+				sel = {}
 				if combat.target == mob:
 					combat.engage(mob)
 				else:
 					combat.target = mob
 				return
+			var other: String = social.pick(ro, rd)
+			if other != "":
+				sel = {"kind": "player", "id": other}
+				combat.target = null
+				return
+			var pc: Vector3 = player.position + Vector3(0, player.height_m * 0.5, 0)
+			var pt := (pc - ro).dot(rd)
+			if pt > 0.0 and (ro + rd * pt).distance_to(pc) < 0.55:
+				sel = {"kind": "self"}
+				combat.target = null
+				return
+			sel = {}
 			combat.stop_auto()
 			var hit: Variant = _ground_under(ev.position) if not combat.dead else null
 			if hit != null:
@@ -595,8 +626,17 @@ func _physics_process(dt: float) -> void:
 		facing = lerp_angle(facing, atan2(move.x, move.z), minf(1.0, dt * 12.0))
 		player.rotation.y = facing
 		player.play("Walk" if walk else "Jog_Fwd", 1.1 if walk else speed / 5.2)
+		emote = ""
 	elif not player.is_busy() and not combat.dead:
-		player.play("Idle")
+		if combat.auto:
+			emote = ""
+		player.play(emote if emote != "" else "Idle")
+	if jumping:
+		jump_t += dt / 0.62
+		if jump_t >= 1.0:
+			jumping = false
+			jump_t = 1.0
+		player.position.y = world.height(player.position.x, player.position.z) + sin(PI * jump_t) * 0.85
 
 
 func _process(dt: float) -> void:
@@ -624,7 +664,11 @@ func _process(dt: float) -> void:
 		if marker.visible:
 			marker.rotation.y += dt * 2.0
 		ui.set_bars(combat.hp, combat.st.get("maxHp", 1.0), combat.mp, combat.st.get("maxMp", 1.0), float(me.get("xp", 0.0)), float(world.info.xpneed[clampi(int(me.get("level", 1)) - 1, 0, 79)]))
-		ui.set_target(combat.target)
+		ui.set_target(_target_info())
+		var cpm := floorf(float(combat.st.get("maxHp", 100.0)) * 0.6)
+		ui.set_cp(cpm, cpm)
+		if Engine.get_frames_drawn() % 12 == 0:
+			ui.set_effects(_effects())
 		if ui.win.visible and Engine.get_frames_drawn() % 20 == 0:
 			var cs: Dictionary = combat.st
 			ui.stats_view = {"Vida": "%d / %d" % [int(combat.hp), int(cs.get("maxHp", 0))], "Mana": "%d / %d" % [int(combat.mp), int(cs.get("maxMp", 0))], "Ataque físico": str(int(cs.get("patk", 0))), "Ataque mágico": str(int(cs.get("matk", 0))), "Defesa": str(int(cs.get("pdef", 0))), "Velocidade": "%.1f m/s" % float(cs.get("speed", 0)), "Alcance": "%.1f m" % float(cs.get("range", 0)), "Intervalo de ataque": "%.2f s" % float(cs.get("interval", 0)), "Elemento": str(combat.my_elem).capitalize()}
@@ -696,6 +740,84 @@ func note(t: String) -> void:
 	if log_file:
 		log_file.store_line("%7.1fs  %s" % [Time.get_ticks_msec() / 1000.0, t])
 		log_file.flush()
+
+
+# ---------- alvo, efeitos e ações ----------
+func _target_info() -> Dictionary:
+	var cpm := floorf(float(combat.st.get("maxHp", 100.0)) * 0.6)
+	match str(sel.get("kind", "")):
+		"self":
+			return {"name": "%s   ·   Nv %d" % [str(me.get("name", "Viajante")), int(me.get("level", 1))], "hp": combat.hp, "max": combat.st.get("maxHp", 1.0), "cp": cpm, "maxcp": cpm}
+		"player":
+			var o: Dictionary = social.others.get(str(sel.id), {})
+			if o.is_empty():
+				sel = {}
+				return {}
+			return {"name": "%s   ·   Nv %d" % [str(o.name), int(o.lvl)], "hp": o.hp, "max": 100.0, "cp": o.cp, "maxcp": 100.0, "pct": true}
+		"npc":
+			if not is_instance_valid(sel.node):
+				sel = {}
+				return {}
+			return {"name": str(sel.name)}
+	var m = combat.target
+	if m != null:
+		return {"name": "%s   ·   Nv %d" % [m.fam.name, int(m.L)], "hp": m.hp, "max": m.maxHp}
+	return {}
+
+
+func _effects() -> Array:
+	var out := []
+	var t: float = combat.now()
+	var names := {"patk": ["forca", "Ataque físico"], "matk": ["luz", "Ataque mágico"], "pdef": ["escudo", "Defesa"], "speed": ["pressa", "Velocidade"], "aspd": ["pressa", "Velocidade de ataque"], "crit": ["estrela", "Crítico"]}
+	for b in combat.buffs:
+		var left: float = float(b.until) - t
+		if left <= 0.0:
+			continue
+		var d: Array = names.get(str(b.k), ["estrela", str(b.k).capitalize()])
+		var up: bool = float(b.v) >= 0.0
+		out.append({"kind": d[0] if up else "fraqueza", "col": Color(0.6, 0.95, 0.65) if up else Color(1.0, 0.45, 0.4), "tip": "%s %s%d%%" % [d[1], "+" if up else "", int(roundf(float(b.v) * 100.0))], "left": left})
+	if combat.shield > 0.0 and combat.shield_until > t:
+		out.append({"kind": "escudo", "col": Color(0.6, 0.86, 1.0), "tip": "Escudo: absorve %d de dano" % int(combat.shield), "left": combat.shield_until - t})
+	for i in combat.cds.size():
+		var left: float = float(combat.cds[i]) - t
+		if left > 0.0 and i < combat.skills.size():
+			out.append({"kind": "recarga", "col": Color(0.75, 0.75, 0.8), "tip": "Recarga: %s" % str(combat.skills[i].name), "left": left})
+	return out
+
+
+func _do(id: String) -> void:
+	if not playing or combat.dead:
+		return
+	var head: Vector3 = player.position + Vector3(0, player.height_m + 0.2, 0)
+	match id:
+		"atacar":
+			if combat.target == null:
+				combat.next_target()
+			sel = {}
+			combat.engage(combat.target)
+		"sentar":
+			has_target = false
+			emote = "Sitting_Idle"
+		"dancar":
+			has_target = false
+			emote = "Dance"
+		"conversar":
+			emote = "Idle_Talking"
+		"acenar":
+			emote = ""
+			player.action("Yes")
+		"pular":
+			if not jumping:
+				jumping = true
+				jump_t = 0.0
+		"sorrir":
+			combat._float_text(head, "sorri  :)", Color(1.0, 0.92, 0.5))
+			ui.chat_line("", "%s sorri" % str(me.get("name", "Viajante")), "emote")
+		"chorar":
+			combat._float_text(head, "chora  :'(", Color(0.6, 0.8, 1.0))
+			ui.chat_line("", "%s chora" % str(me.get("name", "Viajante")), "emote")
+		"escalar":
+			ui.say("Escalar chega com os paredões escaláveis")
 
 
 # ---------- bolsa, loja, ofício, clã, bate-papo ----------

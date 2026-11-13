@@ -47,7 +47,11 @@ func _on_pos(p: Dictionary) -> void:
 		add_child(node)
 		node.position = Vector3(pos.x, main.world.height(pos.x, pos.z), pos.z)
 		node.set_tag("%s  Nv %d" % [str(p.get("n", "?")), int(p.get("l", 1))], Color(0.75, 0.9, 1.0))
-		others[id] = {"node": node, "pos": pos, "rot": 0.0, "seen": 0.0, "sig": sig}
+		others[id] = {"node": node, "pos": pos, "rot": 0.0, "seen": 0.0, "sig": sig, "name": "?", "lvl": 1, "hp": 100.0, "cp": 100.0}
+	others[id].name = str(p.get("n", "?"))
+	others[id].lvl = int(p.get("l", 1))
+	others[id].hp = float(p.get("hp", 100.0))
+	others[id].cp = float(p.get("cp", 100.0))
 	others[id].pos = pos
 	others[id].rot = float(p.get("r", 0.0))
 	others[id].seen = Time.get_ticks_msec() * 0.001
@@ -80,7 +84,7 @@ func _process(dt: float) -> void:
 		var c: Dictionary = main.me
 		var eq: Dictionary = c.get("equipment") if c.get("equipment") is Dictionary else {}
 		main.net.rt_pos({"id": c.id, "n": c.get("name", ""), "x": snappedf(main.player.position.x, 0.01), "z": snappedf(main.player.position.z, 0.01), "r": snappedf(main.player.rotation.y, 0.01), "st": "run" if moved else "idle",
-			"ra": c.get("race"), "ge": c.get("gender"), "h": c.get("hair"), "hc": c.get("hair_color"), "sk": c.get("skin"), "lk": c.get("look"), "c": c.get("class_id"), "l": c.get("level"), "w": eq.get("arma", ""), "a": eq.get("armadura", "")})
+			"ra": c.get("race"), "ge": c.get("gender"), "h": c.get("hair"), "hc": c.get("hair_color"), "sk": c.get("skin"), "lk": c.get("look"), "c": c.get("class_id"), "l": c.get("level"), "hp": int(main.combat.hp / maxf(float(main.combat.st.get("maxHp", 1.0)), 1.0) * 100.0), "cp": 100, "w": eq.get("arma", ""), "a": eq.get("armadura", "")})
 	chat_t += dt
 	if chat_t > 4.0 and main.net.token != "":
 		chat_t = 0.0
@@ -108,3 +112,14 @@ func say(text: String) -> void:
 	if err != "":
 		main.ui.chat_line("", err, "sistema")
 	chat_t = 3.5
+
+
+# jogador sob o clique: devolve o id ou ""
+func pick(origin: Vector3, dir: Vector3) -> String:
+	for id in others:
+		var node: Node3D = others[id].node
+		var c: Vector3 = node.position + Vector3(0, 0.9, 0)
+		var t := (c - origin).dot(dir)
+		if t > 0.0 and (origin + dir * t).distance_to(c) < 0.8:
+			return id
+	return ""

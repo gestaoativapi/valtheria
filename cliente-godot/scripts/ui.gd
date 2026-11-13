@@ -21,6 +21,8 @@ signal want_skill(i: int)
 signal want_action(fn: String, args: Dictionary)
 signal want_window(name: String)
 signal want_chat(text: String)
+signal want_do(id: String)
+signal want_self
 
 const GOLD := Color(0.86, 0.72, 0.42)
 
@@ -54,7 +56,7 @@ var bar_txt := {}
 var tgt_box: PanelContainer
 var tgt_name: Label
 var tgt_bar: ProgressBar
-var hot: Array[Button] = []
+var hot: Array = []
 var toast: Label
 var toast_until := 0.0
 var win: PanelContainer
@@ -63,7 +65,7 @@ var win_list: VBoxContainer
 var win_name := ""
 var chat_log: RichTextLabel
 var chat_edit: LineEdit
-var assist: Array[Button] = []
+var assist: Array = []
 var assist_ids: Array = []
 var sel := ""
 var sel_eq := false
@@ -84,6 +86,17 @@ var config_panel: Control
 var tab := "equip"
 var shop_cat := "armas"
 var doll_char: Node3D
+var tgt_cp: ProgressBar
+var bar_cp: ProgressBar
+var fx_panel: PanelContainer
+var fx_grid: GridContainer
+var fx_sig := ""
+var hot_custom := {}
+var skill_list: Array = []
+# ações do personagem: [id, ícone, nome, descrição]
+const ACTIONS := [["atacar", "atacar", "Atacar", "Ataca o alvo selecionado (tecla F)"], ["sentar", "sentar", "Sentar", "Senta no chão até você andar de novo"], ["pular", "pular", "Pular", "Dá um salto (barra de espaço)"],
+	["dancar", "dancar", "Dançar", "Dança até você andar de novo"], ["sorrir", "sorrir", "Sorrir", "Mostra um sorriso sobre o personagem"], ["chorar", "chorar", "Chorar", "Mostra o choro sobre o personagem"],
+	["acenar", "acenar", "Acenar", "Faz um gesto de sim"], ["conversar", "conversar", "Conversar", "Gesticula como quem conversa"], ["escalar", "escalar", "Escalar", "Em breve: chega com os paredões escaláveis"]]
 
 
 func _ready() -> void:
@@ -340,8 +353,15 @@ func _build_hud() -> void:
 	plate.add_child(pv)
 	who = _label("", 20, GOLD, true)
 	pv.add_child(who)
+	who.mouse_filter = Control.MOUSE_FILTER_STOP
+	who.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	who.tooltip_text = "Clique para selecionar você mesmo (curas e reforços em si)"
+	who.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
+			want_self.emit())
 	place_label = _label("", 14, Color(0.85, 0.88, 0.92))
 	pv.add_child(place_label)
+	bar_cp = _bar(pv, Color(0.82, 0.6, 0.18), "cp")
 	bar_hp = _bar(pv, Color(0.78, 0.2, 0.18), "hp")
 	bar_mp = _bar(pv, Color(0.2, 0.42, 0.85), "mp")
 	bar_xp = _bar(pv, Color(0.8, 0.66, 0.25), "xp")
@@ -360,6 +380,7 @@ func _build_hud() -> void:
 	tgt_name = _label("", 16, Color(1, 0.92, 0.8))
 	tgt_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tv.add_child(tgt_name)
+	tgt_cp = _bar(tv, Color(0.82, 0.6, 0.18), "tcp")
 	tgt_bar = _bar(tv, Color(0.78, 0.2, 0.18), "tgt")
 
 	hot_panel = PanelContainer.new()
@@ -370,9 +391,9 @@ func _build_hud() -> void:
 	hot_panel.anchor_right = 0.5
 	hot_panel.anchor_top = 1.0
 	hot_panel.anchor_bottom = 1.0
-	hot_panel.offset_left = -262
-	hot_panel.offset_right = 262
-	hot_panel.offset_top = -162
+	hot_panel.offset_left = -226
+	hot_panel.offset_right = 226
+	hot_panel.offset_top = -148
 	hot_panel.offset_bottom = -40
 	hud.add_child(hot_panel)
 	var grid := GridContainer.new()
@@ -380,16 +401,47 @@ func _build_hud() -> void:
 	grid.add_theme_constant_override("h_separation", 4)
 	grid.add_theme_constant_override("v_separation", 4)
 	hot_panel.add_child(grid)
+	var cfh := ConfigFile.new()
+	cfh.load("user://interface.cfg")
+	var saved = cfh.get_value("atalhos", "acoes", {})
+	if saved is Dictionary:
+		for k in saved:
+			hot_custom[int(k)] = str(saved[k])
 	for i in 9:
-		var b := _card(52, Color(GOLD, 0.7))
-		b.pressed.connect(func(): want_skill.emit(i))
+		var b := _icon("vazio", "", 44)
+		b.pressed.connect(func(): press_slot(i))
+		b.gui_input.connect(func(ev):
+			if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_RIGHT and ev.pressed and hot_custom.has(i):
+				hot_custom.erase(i)
+				_save_layout()
+				_refresh_hot())
+		b.set_drag_forwarding(Callable(), func(_at, data): return data is Dictionary and data.has("acao"), func(_at, data):
+			hot_custom[i] = str(data.acao)
+			_save_layout()
+			_refresh_hot())
 		grid.add_child(b)
 		hot.append(b)
 	for i in 9:
-		var b := _card(52, Color(0.4, 0.62, 0.5))
+		var b := _icon("vazio", "", 44)
+		b.rim = Color(0.3, 0.5, 0.4)
 		b.pressed.connect(func(): use_assist(i))
 		grid.add_child(b)
 		assist.append(b)
+
+	# barra de efeitos: reforços, penalidades e recargas em quadros pequenos, até 9 por linha
+	fx_panel = PanelContainer.new()
+	var fps := _panel_style(0.7)
+	fps.set_content_margin_all(4)
+	fx_panel.add_theme_stylebox_override("panel", fps)
+	fx_panel.position = Vector2(310, 16)
+	fx_panel.visible = false
+	hud.add_child(fx_panel)
+	fx_grid = GridContainer.new()
+	fx_grid.columns = 9
+	fx_grid.add_theme_constant_override("h_separation", 2)
+	fx_grid.add_theme_constant_override("v_separation", 2)
+	fx_panel.add_child(fx_grid)
+	_movable(fx_panel, "efeitos")
 
 	# janela única (bolsa, loja, ofício, clã)
 	win = PanelContainer.new()
@@ -447,16 +499,18 @@ func _build_hud() -> void:
 	dock.anchor_right = 1.0
 	dock.anchor_top = 1.0
 	dock.anchor_bottom = 1.0
-	dock.offset_left = -436
+	dock.offset_left = -152
 	dock.offset_right = -12
-	dock.offset_top = -100
+	dock.offset_top = -176
 	dock.offset_bottom = -40
 	hud.add_child(dock)
-	var dh := HBoxContainer.new()
-	dh.add_theme_constant_override("separation", 5)
+	var dh := GridContainer.new()
+	dh.columns = 3
+	dh.add_theme_constant_override("h_separation", 4)
+	dh.add_theme_constant_override("v_separation", 4)
 	dock.add_child(dh)
-	for def in [["bolsa", "Personagem e bolsa (I)", "bolsa"], ["loja", "Loja (B)", "loja"], ["oficio", "Ofício (C)", "oficio"], ["classe", "Classe (K)", "classe"], ["cla", "Clã (G)", "cla"], ["config", "Configurações e desempenho", "#config"], ["tela", "Tela cheia (F11)", "#tela"], ["sair", "Voltar à entrada (Esc)", "#sair"]]:
-		var ib := _icon(def[0], def[1], 46)
+	for def in [["bolsa", "Personagem e bolsa (I)", "bolsa"], ["loja", "Loja (B)", "loja"], ["oficio", "Ofício (C)", "oficio"], ["classe", "Classe (K)", "classe"], ["cla", "Clã (G)", "cla"], ["acoes", "Ações do personagem (J)", "acoes"], ["config", "Configurações e desempenho", "#config"], ["tela", "Tela cheia (F11)", "#tela"], ["sair", "Voltar à entrada (Esc)", "#sair"]]:
+		var ib := _icon(def[0], def[1], 40)
 		var act: String = def[2]
 		ib.pressed.connect(func():
 			if act == "#config":
@@ -589,34 +643,107 @@ func set_bars(hp: float, max_hp: float, mp: float, max_mp: float, xp: float, nee
 	bar_txt.xp.text = "XP %.1f%%" % (xp / maxf(need, 1.0) * 100.0)
 
 
-func set_target(m) -> void:
-	tgt_box.visible = m != null
-	if m != null:
-		tgt_name.text = "%s   ·   Nv %d" % [m.fam.name, int(m.L)]
-		tgt_bar.max_value = m.maxHp
-		tgt_bar.value = maxf(0.0, m.hp)
-		bar_txt.tgt.text = "%d / %d" % [int(maxf(0.0, m.hp)), int(m.maxHp)]
+# t: {} esconde; {"name", "hp", "max", "cp", "maxcp", "pct"}; sem "hp" mostra só o nome (NPC); "cp" só para jogadores
+func set_target(t: Dictionary) -> void:
+	tgt_box.visible = not t.is_empty()
+	if t.is_empty():
+		return
+	tgt_name.text = str(t.name)
+	tgt_bar.visible = t.has("hp")
+	tgt_cp.visible = t.has("cp")
+	var pct: bool = t.get("pct", false)
+	if t.has("hp"):
+		tgt_bar.max_value = float(t.max)
+		tgt_bar.value = maxf(0.0, float(t.hp))
+		bar_txt.tgt.text = ("Vida %d%%" % int(t.hp)) if pct else "Vida %d / %d" % [int(maxf(0.0, float(t.hp))), int(t.max)]
+	if t.has("cp"):
+		tgt_cp.max_value = float(t.maxcp)
+		tgt_cp.value = float(t.cp)
+		bar_txt.tcp.text = ("CP %d%%" % int(t.cp)) if pct else "CP %d / %d" % [int(t.cp), int(t.maxcp)]
+
+
+func set_cp(cp: float, max_cp: float) -> void:
+	bar_cp.max_value = maxf(max_cp, 1.0)
+	bar_cp.value = cp
+	bar_txt.cp.text = "CP %d / %d" % [int(cp), int(max_cp)]
+
+
+func _action_def(id: String) -> Array:
+	for a in ACTIONS:
+		if a[0] == id:
+			return a
+	return []
+
+
+func press_slot(i: int) -> void:
+	if hot_custom.has(i):
+		want_do.emit(str(hot_custom[i]))
+	else:
+		want_skill.emit(i)
 
 
 func set_skills(list: Array) -> void:
+	skill_list = list
+	_refresh_hot()
+
+
+func _refresh_hot() -> void:
 	for i in hot.size():
-		hot[i].disabled = i >= list.size()
-		if i < list.size():
-			hot[i].set_meta("nome", "%d\n%s" % [i + 1, _short(str(list[i].name))])
-			hot[i].text = hot[i].get_meta("nome")
-			hot[i].tooltip_text = "%s  (tecla %d)\nMana %d   ·   recarga %ds" % [list[i].name, i + 1, int(list[i].mp), int(list[i].cd)]
+		var b = hot[i]
+		b.dim = 0.0
+		b.disabled = false
+		var a := _action_def(str(hot_custom.get(i, "")))
+		if not a.is_empty():
+			b.kind = a[1]
+			b.tint = Color(0.8, 0.9, 1.0)
+			b.label = str(i + 1)
+			b.tooltip_text = "%s  (tecla %d)\n%s\nBotão direito tira daqui" % [a[2], i + 1, a[3]]
+		elif i < skill_list.size():
+			var s: Dictionary = skill_list[i]
+			var look: Array = IconButton.skill_look(s)
+			b.kind = look[0]
+			b.tint = look[1]
+			b.label = str(i + 1)
+			b.tooltip_text = "%s  (tecla %d)\nMana %d   ·   recarga %ds" % [s.name, i + 1, int(s.mp), int(s.cd)]
 		else:
-			hot[i].set_meta("nome", str(i + 1))
-			hot[i].text = str(i + 1)
-			hot[i].tooltip_text = "Vazio: novas habilidades chegam com o nível e a classe"
+			b.kind = "vazio"
+			b.label = str(i + 1)
+			b.tooltip_text = "Vazio: novas habilidades chegam com o nível e a classe.\nArraste uma ação da janela de Ações para cá."
 
 
 func set_cooldowns(cds: Array, now: float) -> void:
 	for i in hot.size():
-		if i < cds.size():
+		if i < cds.size() and i < skill_list.size() and not hot_custom.has(i):
 			var left: float = float(cds[i]) - now
-			hot[i].disabled = left > 0.0
-			hot[i].text = ("%d\n%.0fs" % [i + 1, ceilf(left)]) if left > 0.0 else str(hot[i].get_meta("nome"))
+			var b = hot[i]
+			b.dim = clampf(left / maxf(float(skill_list[i].cd), 0.1), 0.0, 1.0) if left > 0.0 else 0.0
+			b.label = ("%d\n%d" % [i + 1, int(ceilf(left))]) if left > 0.0 else str(i + 1)
+
+
+# list: [{"kind", "col", "tip", "left"}] — reforços, penalidades e recargas ativos
+func set_effects(list: Array) -> void:
+	var sig := ""
+	for e in list:
+		sig += str(e.kind) + str(e.tip) + "|"
+	fx_panel.visible = not list.is_empty()
+	if sig != fx_sig:
+		fx_sig = sig
+		for c in fx_grid.get_children():
+			c.queue_free()
+		for e in list:
+			var b := _icon(str(e.kind), "", 24)
+			b.tint = e.col
+			b.mouse_filter = Control.MOUSE_FILTER_PASS
+			b.set_meta("tip", str(e.tip))
+			fx_grid.add_child(b)
+		fx_panel.reset_size()
+	var i := 0
+	for c in fx_grid.get_children():
+		if c.is_queued_for_deletion():
+			continue
+		if i < list.size():
+			c.tooltip_text = "%s\nrestam %d s" % [str(c.get_meta("tip")), int(ceilf(float(list[i].left)))]
+		i += 1
 
 
 # barra de assistência: poções e pergaminhos da bolsa, um por espaço (F1 a F9)
@@ -626,15 +753,20 @@ func set_assist(inv: Dictionary) -> void:
 		if str(info.items.get(str(id), {}).get("type", "")) in ["potion", "scroll", "special"] and assist_ids.size() < 9:
 			assist_ids.append(str(id))
 	for i in assist.size():
+		var b = assist[i]
 		if i < assist_ids.size():
 			var it: Dictionary = info.items[assist_ids[i]]
-			assist[i].text = "F%d\n%s\nx%d" % [i + 1, str(it.name).split(" ")[0].left(6), int(inv[assist_ids[i]])]
-			assist[i].tooltip_text = "%s  (tecla F%d)" % [it.name, i + 1]
-			assist[i].disabled = false
+			var ty := str(it.get("type", ""))
+			b.kind = "cura" if ty == "potion" else ("estrela" if ty == "scroll" else "luz")
+			b.tint = (Color(0.45, 0.6, 1.0) if str(it.name).to_lower().contains("mana") else Color(0.95, 0.42, 0.4)) if ty == "potion" else Color(0.95, 0.88, 0.6)
+			b.label = "F%d\nx%d" % [i + 1, int(inv[assist_ids[i]])]
+			b.tooltip_text = "%s  (tecla F%d)" % [it.name, i + 1]
+			b.disabled = false
 		else:
-			assist[i].text = "F%d" % (i + 1)
-			assist[i].tooltip_text = "Vazio: poções e pergaminhos da bolsa aparecem aqui"
-			assist[i].disabled = true
+			b.kind = "vazio"
+			b.label = "F%d" % (i + 1)
+			b.tooltip_text = "Vazio: poções e pergaminhos da bolsa aparecem aqui"
+			b.disabled = true
 
 
 func use_assist(i: int) -> void:
@@ -678,6 +810,7 @@ func _save_layout() -> void:
 		cf.set_value("pos", k, (movers[k] as Control).position)
 	cf.set_value("janela", "tamanho", win.size)
 	cf.set_value("janela", "escala", ui_scale)
+	cf.set_value("atalhos", "acoes", hot_custom)
 	cf.save("user://interface.cfg")
 
 
@@ -1021,6 +1154,34 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 				pc.custom_minimum_size = Vector2(190, 0)
 				pc.add_child(_label(t, 14))
 				flow.add_child(pc)
+	elif name == "acoes":
+		win_title.text = "◆ Ações"
+		_note("Clique para fazer. Arraste um ícone para a barra de habilidades para deixar à mão; botão direito no espaço tira.")
+		var ag := GridContainer.new()
+		ag.columns = 3
+		ag.add_theme_constant_override("h_separation", 14)
+		ag.add_theme_constant_override("v_separation", 10)
+		win_list.add_child(ag)
+		for a in ACTIONS:
+			var cell := VBoxContainer.new()
+			cell.custom_minimum_size = Vector2(120, 0)
+			cell.alignment = BoxContainer.ALIGNMENT_CENTER
+			var ib := _icon(a[1], "%s\n%s" % [a[2], a[3]], 56)
+			ib.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			var aid: String = a[0]
+			var akind: String = a[1]
+			ib.disabled = aid == "escalar"
+			ib.pressed.connect(func(): want_do.emit(aid))
+			if aid != "escalar":
+				ib.set_drag_forwarding(func(_at):
+					var pvw := _icon(akind, "", 40)
+					ib.set_drag_preview(pvw)
+					return {"acao": aid}, Callable(), Callable())
+			cell.add_child(ib)
+			var nl := _label(a[2], 13, Color(0.9, 0.88, 0.8))
+			nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			cell.add_child(nl)
+			ag.add_child(cell)
 	elif name == "loja":
 		win_title.text = "◆ Mercador   ·   %d aurum" % aurum
 		_note("\"Bem-vindo, viajante. Tenho de tudo um pouco. Diga o que procura e eu mostro o que há na banca.\"")

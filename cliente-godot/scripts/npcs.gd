@@ -107,3 +107,18 @@ func pick(origin: Vector3, dir: Vector3) -> String:
 		if t > 0.0 and (origin + dir * t).distance_to(c) < 1.0:
 			return n.window
 	return ""
+
+
+# NPC sob o clique: {"node", "window", "name"} ou {} (o primeiro clique seleciona, o segundo abre a janela)
+func pick_npc(origin: Vector3, dir: Vector3) -> Dictionary:
+	for n in list:
+		if str(n.name) == "":
+			continue
+		var node: Node3D = n.node
+		if node.position.distance_to(main.player.position) > 14.0:
+			continue
+		var c: Vector3 = node.position + Vector3(0, 1.0, 0)
+		var t := (c - origin).dot(dir)
+		if t > 0.0 and (origin + dir * t).distance_to(c) < 1.0:
+			return n
+	return {}
