@@ -15,6 +15,14 @@ var grip_node: Node3D
 var sheath: Node3D
 var armed := true
 var magic_idle := false
+var ik: SkeletonModifier3D  # braço esquerdo até o cabo (arma de duas mãos)
+var ik_r: SkeletonModifier3D  # braço direito até a guarda, na postura parada
+var guard: Node3D  # arma de duas mãos segura à frente do corpo, com as duas mãos
+var guard_on := false
+var offhand: Node3D  # segunda adaga (armas duplas), só aparece em combate
+var shield: Node3D
+var shield_arm: Node3D
+var shield_back: Node3D
 
 
 static var RACES := {}
@@ -33,6 +41,22 @@ const SHAPE := {
 # modelos próprios: altura e quanto o quadril fica mais baixo que o do humano (as animações movem o quadril)
 # bones: ajuste fino de proporção (braço mais curto, mão menor, perna um pouco mais longa, cabeça)
 const OWN := {"anao_m": {"height": 1.36, "hip": 0.624, "bones": {}}, "anao_f": {"height": 1.3, "hip": 0.657, "bones": {}}}
+# pegada por tipo de arma (medidas em metros para 1,80 m de altura):
+# at = onde a mão principal segura, medido a partir da ponta do cabo; two = onde a segunda mão segura (0 = uma mão só)
+# hand = mão principal; back = guardada nas costas (senão na cintura); dual = uma em cada mão
+const GRIP := {
+	"espada": {"file": "w_sword", "len": 1.0, "at": 0.1},
+	"adaga": {"file": "w_dagger", "len": 0.5, "at": 0.06},
+	"punhal": {"file": "w_dagger", "len": 0.42, "at": 0.05},
+	"duplas": {"file": "w_dagger", "len": 0.5, "at": 0.06, "dual": true},
+	"machado": {"file": "w_axe", "len": 0.95, "at": 0.12},
+	"cetro": {"file": "w_hammer_double", "len": 0.8, "at": 0.12},
+	"espadao": {"file": "w_claymore", "len": 1.45, "at": 0.3, "two": 0.1, "back": true},
+	"martelo": {"file": "w_hammer_double", "len": 1.1, "at": 0.4, "two": 0.12, "back": true},
+	"cajado": {"file": "w_spear", "len": 1.7, "at": 0.75, "two": 0.42, "back": true},
+	"lanca": {"file": "w_spear", "len": 1.9, "at": 0.75, "two": 0.38, "back": true},
+	"arco": {"file": "w_bow_wooden", "len": 1.3, "at": -1.0, "hand": "l", "back": true},
+}
 const WEAPON := {"espada": ["w_sword", 1.0], "espadao": ["w_claymore", 1.45], "arco": ["w_bow_wooden", 1.3], "adaga": ["w_dagger", 0.5], "martelo": ["w_hammer_double", 1.2], "cajado": ["w_spear", 1.7], "machado": ["w_axe", 0.95]}
 
 
@@ -131,9 +155,9 @@ func _setup(o: Dictionary) -> void:
 	anim.playback_default_blend_time = 0.18
 	var wid := str(eq.get("arma", ""))
 	var kind := wid.split("_")[0]
-	if WEAPON.has(kind):
+	if GRIP.has(kind):
 		# a arma acompanha o tamanho de quem usa: menor no anão, maior no gigante
-		_weapon(WEAPON[kind][0], float(WEAPON[kind][1]) * lerpf(1.0, height_m / 1.8, 0.85))
+		_weapon(kind, lerpf(1.0, height_m / 1.8, 0.85), str(eq.get("escudo", "")) != "")
 	play("Idle")
 
 
@@ -187,27 +211,33 @@ static func _clips(sk: Skeleton3D, own := "") -> AnimationLibrary:
 	return lib
 
 
-func _weapon(file: String, length: float) -> void:
-	var hand := skel.find_bone("hand_r")
-	var mid := skel.find_bone("middle_01_r")
-	var idx := skel.find_bone("index_01_r")
-	var pinky := skel.find_bone("pinky_01_r")
+# ponto de pegada numa mão: eixo +Z sai pelo lado do polegar (para onde aponta a lâmina), +Y volta para o pulso
+func _hand_grip(side: String) -> Node3D:
+	var hand := skel.find_bone("hand_" + side)
+	var mid := skel.find_bone("middle_01_" + side)
+	var idx := skel.find_bone("index_01_" + side)
+	var pinky := skel.find_bone("pinky_01_" + side)
 	if hand < 0 or mid < 0 or idx < 0 or pinky < 0:
-		return
+		return null
 	var gh := skel.get_bone_global_rest(hand)
 	var fing := (skel.get_bone_global_rest(mid).origin - gh.origin).normalized()
 	var th := skel.get_bone_global_rest(idx).origin - skel.get_bone_global_rest(pinky).origin
 	th = (th - fing * th.dot(fing)).normalized()
-	# referencial da mão: dedos = -Y, lado do polegar = +Z; a lâmina sai pelo lado do polegar
 	var frame := Basis(Vector3(-fing).cross(th).normalized(), -fing, th)
 	var att := BoneAttachment3D.new()
-	att.bone_name = "hand_r"
+	att.bone_name = "hand_" + side
 	skel.add_child(att)
 	var grip := Node3D.new()
 	grip.transform = Transform3D(gh.basis.inverse() * frame, skel.get_bone_rest(mid).origin * 0.55)
 	att.add_child(grip)
 	# desfaz a escala dos ossos do braço e da mão, para o tamanho da arma valer em metros
 	grip.scale = Vector3.ONE / maxf(skel.get_bone_global_pose(hand).basis.get_scale().x, 0.01)
+	return grip
+
+
+# modelo da arma com o comprimento dado; o ponto a "at" metros da ponta do cabo fica na origem e a lâmina segue +Z
+# (at < 0: segura pelo meio, como o arco)
+static func _place(file: String, length: float, at: float) -> Node3D:
 	var w: Node3D = (load(DIR + file + ".glb") as PackedScene).instantiate()
 	var bb := AABB()
 	var first := true
@@ -226,38 +256,137 @@ func _weapon(file: String, length: float) -> void:
 	if absf(far_neg) > absf(far_pos):
 		dir = -dir
 	var handle: float = (far_neg if dir[axis] > 0.0 else far_pos)
-	var q := Quaternion(dir, Vector3(0, 0, 1))
-	var c := bb.get_center()
-	var off := Vector3(c.x, c.y, c.z)
-	off[axis] = handle + dir[axis] * 0.14 / k
-	w.transform = Transform3D(Basis(q).scaled(Vector3.ONE * k), Vector3.ZERO) * Transform3D(Basis.IDENTITY, -off)
-	grip.add_child(w)
-	wnode = w
+	var off := bb.get_center()
+	off[axis] = handle + dir[axis] * ((length * 0.5) if at < 0.0 else at) / k
+	w.transform = Transform3D(Basis(Quaternion(dir, Vector3(0, 0, 1))).scaled(Vector3.ONE * k), Vector3.ZERO) * Transform3D(Basis.IDENTITY, -off)
+	return w
+
+
+func _weapon(kind: String, s: float, has_shield: bool) -> void:
+	var g: Dictionary = GRIP[kind]
+	var side := str(g.get("hand", "r"))
+	var grip := _hand_grip(side)
+	if grip == null:
+		return
+	var at := float(g.at) * s if float(g.at) >= 0.0 else -1.0
+	wnode = _place(str(g.file), float(g.len) * s, at)
+	if kind == "arco":
+		wnode.transform = Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO) * wnode.transform
+	grip.add_child(wnode)
 	grip_node = grip
-	_make_sheath(file)
+	var two := float(g.get("two", 0.0))
+	if two > 0.0:
+		# postura de guarda: arma à frente do corpo, na diagonal, com as duas mãos no cabo
+		var k := height_m / 1.8
+		var up := Vector3(0.22, 0.86, 0.46).normalized()
+		guard = Node3D.new()
+		var gx := Vector3(1, 0, 0).cross(up).normalized()
+		guard.transform = Transform3D(Basis(up.cross(gx).normalized(), gx, up), Vector3(-0.04, 0.98, 0.3) * k)
+		add_child(guard)
+		var hand_r := Node3D.new()
+		guard.add_child(hand_r)
+		var hand_l := Node3D.new()
+		hand_l.position = Vector3(0, 0, -(float(g.at) - two) * s)
+		guard.add_child(hand_l)
+		ik_r = _arm_ik("r", hand_r, Vector3(-0.6, 0.45, -0.5) * k)
+		ik = _arm_ik("l", hand_l, Vector3(0.6, 0.45, -0.5) * k)
+	if g.get("dual", false):
+		var g2 := _hand_grip("l")
+		if g2 != null:
+			offhand = _place(str(g.file), float(g.len) * s, at)
+			g2.add_child(offhand)
+			offhand.visible = false
+	if has_shield and two <= 0.0 and side == "r":
+		_make_shield(s)
+	_make_sheath(bool(g.get("back", false)), kind in ["adaga", "punhal", "duplas"])
+	armed = false
+	set_battle(true)
+
+
+func _arm_ik(side: String, target: Node3D, pole_pos: Vector3) -> SkeletonModifier3D:
+	var pole := Node3D.new()
+	pole.position = pole_pos
+	add_child(pole)
+	var t := TwoBoneIK3D.new()
+	t.set_setting_count(1)
+	t.set_root_bone_name(0, "upperarm_" + side)
+	t.set_middle_bone_name(0, "lowerarm_" + side)
+	t.set_end_bone_name(0, "hand_" + side)
+	skel.add_child(t)
+	t.set_target_node(0, t.get_path_to(target))
+	t.set_pole_node(0, t.get_path_to(pole))
+	t.active = false
+	return t
+
+
+# arma de duas mãos: na guarda (parado ou andando) ou na mão direita (golpeando)
+func _set_guard(on: bool) -> void:
+	if guard == null or on == guard_on:
+		return
+	guard_on = on
+	wnode.get_parent().remove_child(wnode)
+	(guard if on else grip_node).add_child(wnode)
+	ik.active = on
+	ik_r.active = on
+
+
+# escudo no antebraço esquerdo em combate; nas costas fora dele
+func _make_shield(s: float) -> void:
+	shield_arm = _hand_grip("l")
+	if shield_arm == null:
+		return
+	shield = (load(DIR + "w_shield_heater.glb") as PackedScene).instantiate()
+	var bb := AABB()
+	var first := true
+	for m in shield.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		var a: AABB = mi.transform * mi.get_aabb()
+		bb = a if first else bb.merge(a)
+		first = false
+	var tall := bb.get_longest_axis_index()
+	var thin := bb.get_shortest_axis_index()
+	var k := 0.72 * s / bb.size[tall]
+	var basis := Basis()
+	var ax := [Vector3.RIGHT, Vector3.UP, Vector3.BACK]
+	# altura do escudo ao longo do antebraço (+Y do suporte), frente do escudo para fora (+X)
+	basis = Basis(ax[3 - tall - thin], ax[tall], ax[thin]).inverse()
+	basis = Basis(Vector3.BACK, Vector3.UP, Vector3.RIGHT) * basis
+	shield.transform = Transform3D(basis.scaled(Vector3.ONE * k), Vector3.ZERO) * Transform3D(Basis.IDENTITY, -bb.get_center())
+	shield.position += Vector3(0.07, 0.16, 0) * s
+	shield_back = Node3D.new()
+	var bone := skel.find_bone("spine_03")
+	if bone >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_name = "spine_03"
+		skel.add_child(att)
+		var gb := skel.get_bone_global_rest(bone)
+		shield_back.transform = Transform3D(gb.basis.inverse() * Basis(Vector3(0, 0, -1), Vector3.UP, Vector3(1, 0, 0)), gb.affine_inverse() * (gb.origin + Vector3(0, -0.05, -0.2) * s))
+		att.add_child(shield_back)
+	shield_back.add_child(shield)
 
 
 # ponto de descanso da arma fora de combate: nas costas (cabo no ombro direito) ou na cintura (adaga)
-func _make_sheath(file: String) -> void:
-	var bone := skel.find_bone("spine_03")
-	if bone < 0:
-		bone = skel.find_bone("spine_02")
-	var hip := file == "w_dagger"
-	if hip or bone < 0:
-		bone = skel.find_bone("pelvis")
+func _make_sheath(back: bool, small: bool) -> void:
+	var bone := skel.find_bone("spine_03") if back else skel.find_bone("pelvis")
 	if bone < 0:
 		return
 	var gb := skel.get_bone_global_rest(bone)
 	var att := BoneAttachment3D.new()
 	att.bone_name = skel.get_bone_name(bone)
 	skel.add_child(att)
-	# no espaço do modelo: +Y para cima, +Z para a frente; a lâmina (eixo +Z do suporte) aponta para baixo, cruzando as costas
-	var blade := Vector3(-0.42, -0.9, 0.0).normalized() if not hip else Vector3(0.1, -0.95, -0.3).normalized()
-	var out := Vector3(0, 0, -1) if not hip else Vector3(-1, 0, 0)
+	var k := height_m / 1.8
+	# no espaço do modelo: +Y para cima, +Z para a frente; a lâmina (eixo +Z do suporte) aponta para baixo
+	var blade := Vector3(-0.42, -0.9, 0.0).normalized()  # costas: cruzando na diagonal
+	var out := Vector3(0, 0, -1)
+	var handle := gb.origin + Vector3(0.2, 0.2, -0.17) * k
+	if not back:  # cintura, lado esquerdo, inclinada para trás para não arrastar no chão
+		blade = (Vector3(0.1, -0.95, -0.3) if small else Vector3(0.15, -0.7, -0.7)).normalized()
+		out = Vector3(1, 0, 0)
+		handle = gb.origin + Vector3(0.2, 0.04, 0.05) * k
 	var x := out.cross(blade).normalized()
 	var y := blade.cross(x).normalized()
-	var handle := gb.origin + (Vector3(0.2, 0.2, -0.17) if not hip else Vector3(-0.2, 0.02, 0.02))
 	sheath = Node3D.new()
+	# a arma entra pelo mesmo ponto onde a mão segura, então recua o cabo para fora da bainha
 	sheath.transform = Transform3D(gb.basis.inverse() * Basis(x, y, blade), gb.affine_inverse() * handle)
 	att.add_child(sheath)
 
@@ -270,9 +399,25 @@ func set_battle(on: bool) -> void:
 	armed = on
 	wnode.get_parent().remove_child(wnode)
 	(grip_node if on else sheath).add_child(wnode)
+	if guard != null:
+		guard_on = false
+		if on:
+			_set_guard(true)
+		else:
+			ik.active = false
+			ik_r.active = false
+	if offhand != null:
+		offhand.visible = on
+	if shield != null and shield_arm != null and shield_back != null:
+		shield.get_parent().remove_child(shield)
+		var keep := shield.transform
+		(shield_arm if on else shield_back).add_child(shield)
+		shield.transform = keep
 
 
 func play(n: String, speed := 1.0) -> void:
+	if guard != null and armed and not guard_on and not is_busy():
+		_set_guard(true)
 	if n == "Idle" and armed and magic_idle and anim.has_animation("Spell_Simple_Idle"):
 		n = "Spell_Simple_Idle"
 	if not anim.has_animation(n):
@@ -289,6 +434,8 @@ func action(n: String) -> float:
 	if not anim.has_animation(n):
 		return 0.0
 	current = n
+	if guard != null and armed:
+		_set_guard(false)
 	anim.speed_scale = 1.0
 	anim.play(n)
 	anim.seek(0.0)

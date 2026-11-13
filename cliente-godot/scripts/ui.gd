@@ -93,6 +93,7 @@ var fx_grid: GridContainer
 var fx_sig := ""
 var hot_custom := {}
 var skill_list: Array = []
+var _detail_id := ""
 # ações do personagem: [id, ícone, nome, descrição]
 const ACTIONS := [["atacar", "atacar", "Atacar", "Ataca o alvo selecionado (tecla F)"], ["sentar", "sentar", "Sentar", "Senta no chão até você andar de novo"], ["pular", "pular", "Pular", "Dá um salto (barra de espaço)"],
 	["dancar", "dancar", "Dançar", "Dança até você andar de novo"], ["sorrir", "sorrir", "Sorrir", "Mostra um sorriso sobre o personagem"], ["chorar", "chorar", "Chorar", "Mostra o choro sobre o personagem"],
@@ -756,9 +757,9 @@ func set_assist(inv: Dictionary) -> void:
 		var b = assist[i]
 		if i < assist_ids.size():
 			var it: Dictionary = info.items[assist_ids[i]]
-			var ty := str(it.get("type", ""))
-			b.kind = "cura" if ty == "potion" else ("estrela" if ty == "scroll" else "luz")
-			b.tint = (Color(0.45, 0.6, 1.0) if str(it.name).to_lower().contains("mana") else Color(0.95, 0.42, 0.4)) if ty == "potion" else Color(0.95, 0.88, 0.6)
+			var look: Array = IconButton.item_look(assist_ids[i], it)
+			b.kind = look[0]
+			b.tint = look[1]
 			b.label = "F%d\nx%d" % [i + 1, int(inv[assist_ids[i]])]
 			b.tooltip_text = "%s  (tecla F%d)" % [it.name, i + 1]
 			b.disabled = false
@@ -936,7 +937,16 @@ func _item_card(title: String, g: int, lines: Array, price: String, action: Stri
 	pc.add_child(v)
 	var t := _label(title, 15, GRADE_COL[g], true)
 	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(t)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	var item_id := str(args.get("p_item", args.get("_icon", "")))
+	if item_id != "":
+		var ic := _item_icon(item_id, 48)
+		ic.mouse_filter = Control.MOUSE_FILTER_PASS
+		head.add_child(ic)
+	head.add_child(t)
+	v.add_child(head)
 	v.add_child(_label("Grau %s" % GRADES[g], 12, Color(0.7, 0.72, 0.78)))
 	for ln in lines:
 		var l := _label(str(ln), 13)
@@ -956,7 +966,9 @@ func _item_card(title: String, g: int, lines: Array, price: String, action: Stri
 	b.add_theme_font_size_override("font_size", 14)
 	b.focus_mode = Control.FOCUS_NONE
 	b.disabled = not enabled
-	b.pressed.connect(func(): want_action.emit(fn, args))
+	var send := args.duplicate()
+	send.erase("_icon")
+	b.pressed.connect(func(): want_action.emit(fn, send))
 	v.add_child(b)
 	return pc
 
@@ -969,7 +981,14 @@ func _detail(title: String, g: int, lines: Array, extra_line: String, acts: Arra
 	pc.add_theme_stylebox_override("panel", sb)
 	var v := VBoxContainer.new()
 	pc.add_child(v)
-	v.add_child(_label(title, 16, GRADE_COL[g], true))
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	if str(_detail_id) != "":
+		head.add_child(_item_icon(_detail_id, 56))
+	var tl := _label(title, 16, GRADE_COL[g], true)
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(tl)
+	v.add_child(head)
 	v.add_child(_label("Grau %s%s" % [GRADES[g], " (lendário)" if g == 6 else ""], 12, Color(0.7, 0.72, 0.78)))
 	for ln in lines:
 		v.add_child(_label(str(ln), 13))
@@ -989,30 +1008,32 @@ func _detail(title: String, g: int, lines: Array, extra_line: String, acts: Arra
 	win_list.add_child(pc)
 
 
-# encaixe de equipamento: moldura rebaixada com o nome do local e a peça dentro
+# ícone de item com moldura na cor do grau e o nome e descrição ao passar o mouse
+func _item_icon(id: String, size: float, selected := false) -> Button:
+	var it: Dictionary = info.items.get(id, {})
+	var g := grade_of(id)
+	var look: Array = IconButton.item_look(id, it)
+	var b := _icon(look[0], "", size)
+	b.tint = (look[1] as Color).lerp(GRADE_COL[g], 0.3 if g >= 3 else 0.0)
+	b.rim = Color(1, 1, 1) if selected else GRADE_COL[g]
+	b.rim_w = 2
+	var lines := [str(it.get("name", id)), "Grau %s%s" % [GRADES[g], " (lendário)" if g == 6 else ""]]
+	lines.append_array(_stat_lines(it))
+	b.tooltip_text = "\n".join(lines)
+	return b
+
+
+# encaixe de equipamento: o desenho da peça vestida, ou a silhueta apagada do local quando vazio
 func _socket(slot: String, id: String, g: int, selected: bool) -> Button:
-	var b := Button.new()
-	b.custom_minimum_size = Vector2(118, 104)
-	b.focus_mode = Control.FOCUS_NONE
-	b.clip_text = true
-	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	b.add_theme_font_size_override("font_size", 12)
-	b.text = "%s\n\n%s" % [slot.to_upper(), ("%s\nGrau %s" % [str(info.items.get(id, {}).get("name", id)), GRADES[g]]) if id != "" else "vazio"]
-	b.add_theme_color_override("font_color", GRADE_COL[g] if id != "" else Color(0.45, 0.46, 0.5))
-	for st in ["normal", "hover", "pressed"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color(0.02, 0.025, 0.035, 0.95) if st != "hover" else Color(0.08, 0.09, 0.12, 0.95)
-		sb.border_color = Color(1, 1, 1) if selected else (GRADE_COL[g] if id != "" else Color(0.36, 0.29, 0.16))
-		sb.border_width_left = 4
-		sb.border_width_right = 4
-		sb.border_width_top = 2
-		sb.border_width_bottom = 2
-		sb.corner_radius_top_left = 10
-		sb.corner_radius_bottom_right = 10
-		sb.set_content_margin_all(6)
-		sb.shadow_color = Color(0, 0, 0, 0.6)
-		sb.shadow_size = 3
-		b.add_theme_stylebox_override(st, sb)
+	var b: Button
+	if id != "":
+		b = _item_icon(id, 70, selected)
+		b.label = GRADES[g]
+	else:
+		b = _icon(IconButton.SLOT.get(slot, "vazio"), "%s: vazio" % slot.capitalize(), 70)
+		b.tint = Color(0.32, 0.32, 0.36)
+		b.rim = Color(1, 1, 1) if selected else Color(0.36, 0.29, 0.16)
+		b.rim_w = 2
 	return b
 
 
@@ -1066,6 +1087,7 @@ func _stat_text(it: Dictionary) -> String:
 func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> void:
 	win_name = name
 	win.visible = true
+	_detail_id = ""
 	for c in win_list.get_children():
 		c.queue_free()
 	var items: Dictionary = info.items
@@ -1105,6 +1127,7 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 			var sid := str(eq.get(sel, "")) if sel_eq else ""
 			if sid != "":
 				var it: Dictionary = items.get(sid, {})
+				_detail_id = sid
 				_detail(it.get("name", sid), grade_of(sid), _stat_lines(it), "", [["Tirar", "game_unequip", {"p_slot": sel}]])
 			else:
 				_note("Clique em um encaixe para ver a peça. Para vestir um item, abra a aba Bolsa.")
@@ -1116,16 +1139,15 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 			for id in inv:
 				var it: Dictionary = items.get(str(id), {})
 				var g := grade_of(str(id))
-				var cb := _card(72, GRADE_COL[g], not sel_eq and sel == str(id))
-				cb.text = "%s\n%s\nx%d" % [_short(str(it.get("name", id))), GRADES[g], int(inv[id])]
-				cb.tooltip_text = str(it.get("name", id))
+				var cb := _item_icon(str(id), 60, not sel_eq and sel == str(id))
+				cb.label = "%s\nx%d" % [GRADES[g], int(inv[id])]
 				cb.pressed.connect(func():
 					sel = str(id)
 					sel_eq = false
 					open_window("bolsa", w_me, w_inv, w_extra))
 				bag.add_child(cb)
 			for i in maxi(0, 28 - inv.size()):
-				var e := _card(72, Color(0.22, 0.22, 0.26))
+				var e := _icon("vazio", "", 60)
 				e.disabled = true
 				bag.add_child(e)
 			if not sel_eq and sel != "" and inv.has(sel):
@@ -1136,6 +1158,7 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 				elif str(it.get("type", "")) in ["potion", "scroll", "special"]:
 					acts.append(["Usar", "game_use", {"p_item": sel}])
 				acts.append(["Vender", "game_npc_sell", {"p_item": sel, "p_qty": 1}])
+				_detail_id = sel
 				_detail(it.get("name", sel), grade_of(sel), _stat_lines(it), "Venda: %d aurum" % int(it.get("sell", 1)), acts)
 			else:
 				_note("Clique em um item para ver os detalhes.")
@@ -1218,7 +1241,7 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 				if (pass_i == 0) != can or (pass_i == 1 and shown > 40):
 					continue
 				shown += 1
-				flow.add_child(_item_card("%s x%d" % [items.get(str(r.out), {}).get("name", r.out), int(r.qty)], grade_of(str(r.out)), parts, "", "Fabricar", "game_craft", {"p_recipe": r.id, "p_times": 1}, can))
+				flow.add_child(_item_card("%s x%d" % [items.get(str(r.out), {}).get("name", r.out), int(r.qty)], grade_of(str(r.out)), parts, "", "Fabricar", "game_craft", {"p_recipe": r.id, "p_times": 1, "_icon": str(r.out)}, can))
 	elif name == "classe":
 		var cur := str(me.get("class_id", ""))
 		var cl: Dictionary = info.classes.get(cur, {})

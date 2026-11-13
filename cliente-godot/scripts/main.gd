@@ -148,6 +148,7 @@ func _ready() -> void:
 	var test_gender := "m"
 	var test_armor := "pesada_ng"
 	var test_weapon := "espada_ng"
+	var test_shield := ""
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--race="):
 			var rp := a.trim_prefix("--race=").split(",")
@@ -155,6 +156,7 @@ func _ready() -> void:
 			if rp.size() > 1: test_gender = rp[1]
 			if rp.size() > 2: test_armor = rp[2]
 			if rp.size() > 3: test_weapon = rp[3]
+			if rp.size() > 4: test_shield = rp[4]
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="):
 			shot_path = a.trim_prefix("--shot=")
@@ -163,7 +165,7 @@ func _ready() -> void:
 			_set_quality(int(lite_q))
 			shot_wait = 4
 		elif a == "--play":
-			_enter({"name": "Viajante", "level": 1, "race": test_race, "gender": test_gender, "skin": 1, "hair": 2, "hair_color": 1, "equipment": {"armadura": test_armor, "arma": test_weapon}})
+			_enter({"name": "Viajante", "level": 1, "race": test_race, "gender": test_gender, "skin": 1, "hair": 2, "hair_color": 1, "equipment": {"armadura": test_armor, "arma": test_weapon, "escudo": test_shield}})
 		elif a.begins_with("--frames="):
 			shot_wait = int(a.trim_prefix("--frames="))
 		elif a.begins_with("--win="):
@@ -172,7 +174,19 @@ func _ready() -> void:
 			me.equipment = {"arma": "espada_ng", "armadura": "pesada_ng"}
 			net.inventory["lend_espada_harmonia"] = 1
 			net.inventory["robe_ng"] = 1
-			ui.open_window(a.trim_prefix("--win="), me, net.inventory, {})
+			var seen := {}
+			for iid in world.info.items:  # um item de cada tipo, para conferir os ícones
+				var itd: Dictionary = world.info.items[iid]
+				var key := "%s|%s|%s|%s" % [itd.get("type", ""), itd.get("slot", ""), itd.get("kind", ""), str(iid).get_slice("_", 0)]
+				if not seen.has(key) and net.inventory.size() < 60:
+					seen[key] = true
+					net.inventory[iid] = 1 + randi() % 5
+			me.equipment["elmo"] = "elmo_pesada_ng"
+			var wn := a.trim_prefix("--win=")
+			if ":" in wn:
+				ui.tab = wn.get_slice(":", 1)
+				wn = wn.get_slice(":", 0)
+			ui.open_window(wn, me, net.inventory, {})
 			ui.set_assist(net.inventory)
 			ui.chat_line("Lyra", "alguém para caçar javali?")
 		elif a.begins_with("--hour="):
@@ -187,6 +201,8 @@ func _ready() -> void:
 			pitch = -0.15
 		elif a == "--fight":
 			test_fight = true
+		elif a == "--armed":  # teste: postura de combate parado, sem monstro
+			combat.combat_until = 1e9
 		elif a == "--lineup":  # teste: uma fileira com todas as raças
 			var ids: Array = world.info.races.keys()
 			for i in ids.size():

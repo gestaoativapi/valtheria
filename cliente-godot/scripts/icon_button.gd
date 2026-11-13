@@ -16,6 +16,7 @@ var dim := 0.0:  # 0 a 1: parte escurecida de baixo para cima (recarga)
 		dim = v
 		queue_redraw()
 var rim := Color(0.55, 0.42, 0.2)
+var rim_w := 1
 var flat_look := false  # sem base: só o desenho (ícones pequenos de status)
 
 const ELEM := {"fire": Color(1.0, 0.5, 0.2), "fogo": Color(1.0, 0.5, 0.2), "ice": Color(0.6, 0.86, 1.0), "gelo": Color(0.6, 0.86, 1.0), "water": Color(0.35, 0.62, 1.0), "agua": Color(0.35, 0.62, 1.0),
@@ -59,7 +60,7 @@ func _draw() -> void:
 			base = Color(0.1, 0.1, 0.11)
 		if disabled:
 			base = Color(0.09, 0.09, 0.1)
-		_box(face, base, rim if not hover else Color(0.95, 0.8, 0.45), 1, rad)
+		_box(face, base, rim if not hover else Color(0.95, 0.8, 0.45), rim_w, rad)
 		# luz em cima e sombra interna embaixo: dá o relevo
 		var inner := face.grow(-2.0)
 		_box(Rect2(inner.position, Vector2(inner.size.x, inner.size.y * 0.45)), Color(1, 1, 1, 0.07 if not down else 0.02), Color(0, 0, 0, 0), 0, rad - 2.0)
@@ -303,6 +304,155 @@ func _glyph(c: Vector2, u: float, col: Color, mono: bool) -> void:
 				draw_line(c + d * 10 * u, c + d * 15.5 * u, col, w * u, true)
 		"sombra":  # lua crescente
 			draw_arc(c + Vector2(1, 0) * u, 11 * u, PI * 0.35, PI * 1.65, 20, col, 6.0 * u, true)
+		# ---------- itens ----------
+		"espada", "adaga":
+			var L := 1.0 if kind == "espada" else 0.62
+			_poly(c, u, [[-6, 6], [-4, 4], [12 * L - 2, -12 * L], [13 * L, -13 * L], [12 * L, -12 * L + 2], [-4, 8]], col)
+			if not mono:
+				_ln(c, u, [-4, 6], [12 * L - 1, -12 * L + 1], lt, 1.0)
+			_ln(c, u, [-11, 1], [-1, 11], dk if not mono else col, 3.2)
+			_ln(c, u, [-6, 6], [-12, 12], dk if not mono else col, 3.0)
+			draw_circle(c + Vector2(-13, 13) * u, 2.4 * u, col)
+		"espadao":
+			_poly(c, u, [[-7, 4], [-4, 1], [12, -15], [15, -15], [15, -12], [-1, 4], [-4, 7]], col)
+			if not mono:
+				_ln(c, u, [-4, 4], [14, -14], lt, 1.2)
+			_ln(c, u, [-12, -1], [1, 12], dk if not mono else col, 3.6)
+			_ln(c, u, [-5, 6], [-13, 14], dk if not mono else col, 3.4)
+		"arco":
+			draw_arc(c + Vector2(-9, 0) * u, 16 * u, -1.15, 1.15, 20, col, 3.4 * u, true)
+			_ln(c, u, [-2.5, -14.6], [-2.5, 14.6], lt, 1.0)
+			_ln(c, u, [-14, 0], [12, 0], lt, 1.6)
+			_poly(c, u, [[12, -3], [17, 0], [12, 3]], lt)
+		"cajado":
+			_ln(c, u, [-9, 15], [6, -6], dk if not mono else col, 3.2)
+			draw_circle(c + Vector2(8, -9) * u, 6 * u, col)
+			if not mono:
+				draw_circle(c + Vector2(6.5, -10.5) * u, 2.2 * u, Color(1, 1, 1, 0.75))
+		"machado":
+			_ln(c, u, [-10, 15], [7, -12], dk if not mono else col, 3.2)
+			_poly(c, u, [[3, -12], [9, -16], [16, -9], [14, 0], [6, -4]], col)
+			if not mono:
+				_ln(c, u, [9, -15], [15, -1], lt, 1.4)
+		"martelo":
+			_ln(c, u, [-10, 15], [4, -6], dk if not mono else col, 3.2)
+			_poly(c, u, [[-3, -12], [8, -18], [15, -6], [4, 0]], col)
+			if not mono:
+				_poly(c, u, [[-3, -12], [8, -18], [9, -16], [-2, -10]], lt)
+		"lanca":
+			_ln(c, u, [-14, 15], [8, -7], dk if not mono else col, 2.6)
+			_poly(c, u, [[6, -5], [16, -16], [9, -4]], col)
+			_poly(c, u, [[6, -5], [16, -16], [5, -9]], lt)
+		"garras":
+			for i in 3:
+				var x := -8.0 + i * 8.0
+				draw_arc(c + Vector2(x - 6, -2) * u, 12 * u, -0.9, 0.55, 12, col, 2.8 * u, true)
+			draw_rect(Rect2(c + Vector2(-13, 8) * u, Vector2(24, 6) * u), dk if not mono else col)
+		"punhos":
+			_poly(c, u, [[-12, -8], [10, -8], [13, -3], [13, 8], [9, 12], [-10, 12], [-13, 7]], col)
+			if not mono:
+				for i in 3:
+					_ln(c, u, [-5 + i * 6, -8], [-5 + i * 6, -1], dk, 1.4)
+		"elmo":
+			_poly(c, u, [[-12, 12], [-13, -1], [-9, -10], [0, -14], [9, -10], [13, -1], [12, 12], [5, 12], [5, 4], [-5, 4], [-5, 12]], col)
+			if not mono:
+				draw_rect(Rect2(c + Vector2(-9, -3) * u, Vector2(18, 3) * u), dk)
+				_ln(c, u, [0, -14], [0, -4], lt, 1.4)
+		"peitoral":
+			_poly(c, u, [[-14, -12], [-6, -14], [0, -10], [6, -14], [14, -12], [12, 2], [9, 14], [-9, 14], [-12, 2]], col)
+			if not mono:
+				_ln(c, u, [0, -10], [0, 13], dk, 1.4)
+				_ln(c, u, [-10, 2], [10, 2], dk, 1.4)
+		"luvas":
+			_poly(c, u, [[-8, 15], [-9, 2], [-13, -3], [-10, -6], [-6, -2], [-6, -13], [-2, -14], [-1, -5], [1, -15], [5, -14], [5, -5], [8, -13], [11, -11], [10, 1], [8, 15]], col)
+			if not mono:
+				draw_rect(Rect2(c + Vector2(-8, 9) * u, Vector2(16, 3) * u), dk)
+		"botas":
+			_poly(c, u, [[-8, -14], [4, -14], [4, 3], [14, 7], [15, 14], [-9, 14]], col)
+			if not mono:
+				draw_rect(Rect2(c + Vector2(-8, -9) * u, Vector2(12, 3) * u), dk)
+				draw_rect(Rect2(c + Vector2(-9, 11) * u, Vector2(24, 3) * u), dk)
+		"egide":
+			_shield(c, u, col)
+			if not mono:
+				draw_circle(c + Vector2(0, -1) * u, 5.5 * u, lt)
+				draw_circle(c + Vector2(0, -1) * u, 2.5 * u, dk)
+		"pocao":
+			draw_circle(c + Vector2(0, 5) * u, 10 * u, Color(0.85, 0.9, 0.95, 0.35) if not mono else col)
+			draw_rect(Rect2(c + Vector2(-3.5, -12) * u, Vector2(7, 9) * u), Color(0.85, 0.9, 0.95, 0.35) if not mono else col)
+			if not mono:
+				draw_circle(c + Vector2(0, 6) * u, 8 * u, col)
+				draw_rect(Rect2(c + Vector2(-4, -16) * u, Vector2(8, 5) * u), Color(0.55, 0.38, 0.2))
+				draw_circle(c + Vector2(-3, 3) * u, 2 * u, Color(1, 1, 1, 0.7))
+		"pergaminho":
+			_poly(c, u, [[-11, -11], [11, -11], [11, 11], [-11, 11]], col)
+			draw_circle(c + Vector2(-11, -11) * u, 3.4 * u, dk if not mono else col)
+			draw_circle(c + Vector2(11, 11) * u, 3.4 * u, dk if not mono else col)
+			if not mono:
+				for y in [-5.0, 0.0, 5.0]:
+					_ln(c, u, [-6, y], [6, y], dk, 1.2)
+		"encantar":
+			_poly(c, u, [[0, -16], [3.5, -3.5], [16, 0], [3.5, 3.5], [0, 16], [-3.5, 3.5], [-16, 0], [-3.5, -3.5]], col)
+			if not mono:
+				draw_circle(c, 3 * u, Color(1, 1, 1, 0.85))
+		"gema":
+			_poly(c, u, [[-12, -5], [-6, -12], [6, -12], [12, -5], [0, 14]], col)
+			if not mono:
+				_poly(c, u, [[-6, -12], [6, -12], [3, -5], [-3, -5]], lt)
+				_ln(c, u, [-12, -5], [12, -5], dk, 1.0)
+				_ln(c, u, [-3, -5], [0, 14], dk, 1.0)
+				_ln(c, u, [3, -5], [0, 14], dk, 1.0)
+		"minerio":
+			_poly(c, u, [[-14, 8], [-10, -6], [-2, -12], [9, -9], [14, 2], [8, 13], [-6, 13]], col)
+			if not mono:
+				for q in [[-5, -3], [4, 2], [-2, 7], [6, -6]]:
+					draw_circle(c + Vector2(q[0], q[1]) * u, 2 * u, lt)
+		"madeira":
+			_poly(c, u, [[-14, 2], [6, -12], [12, -4], [-8, 10]], col)
+			draw_circle(c + Vector2(9, -8) * u, 5.4 * u, lt)
+			if not mono:
+				draw_arc(c + Vector2(9, -8) * u, 3 * u, 0, TAU, 12, dk, 1.0 * u, true)
+		"tabua":
+			for i in 3:
+				var y := -11.0 + i * 8.0
+				draw_rect(Rect2(c + Vector2(-14, y) * u, Vector2(28, 6) * u), col if i != 1 else lt)
+				if not mono:
+					_ln(c, u, [-8, y + 3], [4, y + 3], dk, 0.8)
+		"fibra":
+			for i in 4:
+				var x := -9.0 + i * 6.0
+				_ln(c, u, [x, 14], [x + 4, -14], col, 2.4)
+			draw_rect(Rect2(c + Vector2(-12, -2) * u, Vector2(24, 4) * u), dk if not mono else col)
+		"tecido":
+			_poly(c, u, [[-14, -10], [10, -14], [14, 10], [-10, 14]], col)
+			if not mono:
+				_poly(c, u, [[-14, -10], [10, -14], [2, 0]], lt)
+		"pele":
+			_poly(c, u, [[-6, -14], [6, -14], [9, -8], [15, -9], [12, 0], [15, 10], [8, 9], [4, 15], [-4, 15], [-8, 9], [-15, 10], [-12, 0], [-15, -9], [-9, -8]], col)
+		"barra":
+			_poly(c, u, [[-15, 8], [-9, -6], [11, -6], [15, 8]], col)
+			if not mono:
+				_poly(c, u, [[-9, -6], [11, -6], [9, -2], [-7, -2]], lt)
+		"trofeu":  # presa
+			_poly(c, u, [[-9, -13], [9, -13], [6, -4], [0, 15], [-6, -4]], col)
+			if not mono:
+				_ln(c, u, [-3, -10], [0, 8], lt, 1.4)
+		"kit":  # picareta
+			_ln(c, u, [-11, 14], [5, -4], dk if not mono else col, 3.2)
+			draw_arc(c + Vector2(4, 6) * u, 16 * u, -2.6, -0.55, 18, col, 3.6 * u, true)
+		"pata":
+			draw_circle(c + Vector2(0, 6) * u, 7 * u, col)
+			for q in [[-10, -3], [-4, -10], [4, -10], [10, -3]]:
+				draw_circle(c + Vector2(q[0], q[1]) * u, 3.4 * u, col)
+		"ferradura":
+			draw_arc(c + Vector2(0, -1) * u, 11 * u, PI * 0.82, PI * 2.18, 22, col, 5.0 * u, true)
+			if not mono:
+				for a in [0.95, 1.3, 1.7, 2.05]:
+					var d := Vector2.RIGHT.rotated(PI * a + PI * 0.0)
+					draw_circle(c + Vector2(0, -1) * u - d * 11 * u, 1.0 * u, dk)
+		"asas":
+			for sx in [-1.0, 1.0]:
+				_poly(c, u, [[sx * 2, -2], [sx * 15, -14], [sx * 14, -4], [sx * 16, 2], [sx * 12, 6], [sx * 13, 11], [sx * 3, 6]], col)
 		"vazio":
 			pass
 
@@ -326,3 +476,50 @@ static func skill_look(s: Dictionary) -> Array:
 		_:
 			k = {"fire": "fogo", "ice": "gelo", "water": "agua", "wind": "vento", "earth": "terra", "holy": "luz", "dark": "sombra", "lightning": "raio"}.get(fx, "golpe")
 	return [k, col]
+
+
+const METAL := Color(0.8, 0.83, 0.88)
+const WOOD := Color(0.72, 0.52, 0.32)
+const ARMA := {"espada": "espada", "adaga": "adaga", "punhal": "adaga", "espadao": "espadao", "arco": "arco", "cajado": "cajado", "cetro": "cajado",
+	"machado": "machado", "martelo": "martelo", "lanca": "lanca", "garras": "garras", "punhos": "punhos", "duplas": "atacar"}
+const SLOT := {"elmo": "elmo", "armadura": "peitoral", "luvas": "luvas", "botas": "botas", "escudo": "escudo", "arma": "espada"}
+
+
+# ícone e cor de um item (arma, armadura, poção, material...)
+static func item_look(id: String, it: Dictionary) -> Array:
+	var ty := str(it.get("type", ""))
+	var k := str(it.get("kind", ""))
+	var nm := str(it.get("name", "")).to_lower()
+	match ty:
+		"weapon":
+			return [ARMA.get(k, "espada"), WOOD if k in ["arco", "cajado", "cetro"] else METAL]
+		"armor":
+			var sl := str(it.get("slot", ""))
+			if sl == "escudo":
+				return ["egide" if k == "egide" else "escudo", METAL]
+			var col := METAL if k == "pesada" else (Color(0.62, 0.46, 0.3) if k == "leve" else Color(0.45, 0.5, 0.8))
+			return [SLOT.get(sl, "peitoral"), col]
+		"potion":
+			return ["pocao", Color(0.35, 0.55, 1.0) if "mana" in nm else Color(0.95, 0.25, 0.25)]
+		"scroll":
+			return ["pergaminho", Color(0.92, 0.85, 0.66)]
+		"enchant":
+			return ["encantar", Color(0.75, 0.6, 1.0) if "arma" in id else Color(0.55, 0.85, 1.0)]
+		"special":
+			return ["gema", Color(0.5, 0.75, 1.0)] if "gema" in id else ["estrela", Color(1.0, 0.92, 0.55)]
+		"tool":
+			return ["kit", METAL]
+		"pet":
+			return ["pata", Color(0.95, 0.75, 0.5)]
+		"mount":
+			return ["ferradura", METAL]
+		"wings":
+			return ["asas", Color(0.85, 0.9, 1.0)]
+		"trophy":
+			return ["trofeu", Color(0.93, 0.88, 0.75)]
+		"raw", "refined":
+			for pair in [["madeira", "madeira", WOOD], ["minerio", "minerio", Color(0.6, 0.58, 0.55)], ["fibra", "fibra", Color(0.8, 0.75, 0.5)], ["pele", "pele", Color(0.7, 0.5, 0.35)],
+					["tabua", "tabua", WOOD], ["barra", "barra", METAL], ["tecido", "tecido", Color(0.6, 0.7, 0.9)], ["couro", "pele", Color(0.55, 0.36, 0.22)]]:
+				if id.begins_with(pair[0]):
+					return [pair[1], pair[2]]
+	return ["estrela", Color(0.9, 0.85, 0.7)]
