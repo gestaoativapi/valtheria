@@ -193,6 +193,7 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 			if bb.size.y > 50.0 or bb.size.y < 0.05:
 				k = sc  # caixa em unidade estranha: usa a escala do modelo
 			sc_node.scale = Vector3.ONE * k
+			sc_node.position.y = -_feet_y(sc_node) * k  # base do modelo encostada no chão
 			holder.add_child(sc_node)
 			node = holder
 			height = target_h * sc
@@ -688,3 +689,17 @@ func _physics_process(dt: float) -> void:
 					FX.bolt(self, _chest(), _center(target), my_elem)
 	else:
 		main.chasing = false
+
+
+# ponto mais baixo do modelo (no espaço do próprio modelo, com as transformações internas)
+static func _feet_y(root: Node3D) -> float:
+	var lo := 1e9
+	for mi in root.find_children("*", "MeshInstance3D", true, false):
+		var xf := Transform3D.IDENTITY
+		var n: Node = mi
+		while n != null and n != root:
+			xf = (n as Node3D).transform * xf
+			n = n.get_parent()
+		var a: AABB = xf * (mi as MeshInstance3D).get_aabb()
+		lo = minf(lo, a.position.y)
+	return 0.0 if lo > 1e8 else lo

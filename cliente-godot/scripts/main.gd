@@ -68,6 +68,7 @@ func _ready() -> void:
 	world = World.new()
 	add_child(world)
 	world.build()
+	Character.world_ref = world
 	note("mundo montado (cidades e dados)")
 	Character.RACES = world.info.races
 	Character.HAIR_COLORS = world.info.hair_colors
@@ -195,10 +196,15 @@ func _ready() -> void:
 			atmos.weather = "chuva"
 			atmos.wet = 1.0
 			atmos.weather_t = 999.0
+		elif a.begins_with("--yaw="):  # teste: câmera girada (graus em volta do personagem)
+			yaw = facing + deg_to_rad(float(a.trim_prefix("--yaw=")))
+			pitch = -0.05
 		elif a == "--back":
 			yaw = facing + PI + 0.5
 			dist = 3.2
 			pitch = -0.15
+		elif a == "--nofeet":  # teste: sem o ajuste dos pés, para comparar
+			Character.world_ref = null
 		elif a == "--fight":
 			test_fight = true
 		elif a == "--armed":  # teste: postura de combate parado, sem monstro
@@ -727,6 +733,7 @@ func _process(dt: float) -> void:
 		shot_frames += 1
 		if shot_frames == shot_wait:
 			get_viewport().get_texture().get_image().save_png(shot_path)
+			note("teste: pés %.3f m, tornozelo %.3f m" % [player.foot_off, player.ankle])
 			get_tree().quit()
 
 

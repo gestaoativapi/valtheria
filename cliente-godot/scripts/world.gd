@@ -31,6 +31,10 @@ var grass_r := 70.0
 var detail_f := 1.0
 var tree_shadows := true
 var base_fog := 0.0016
+var sky_shader: ShaderMaterial
+var lamps: Array = []  # pontos de luz dos postes (mundo)
+var lamp_pool: Array = []  # poucas luzes reais que vão para os postes mais perto à noite
+var lamp_mat: StandardMaterial3D
 var fire_mat: StandardMaterial3D
 var fires: Array = []
 var counts := {"arvores": 0, "grama": 0, "blocos": 0}
@@ -365,10 +369,16 @@ func _lit(mesh: Mesh) -> Mesh:
 	var hit := false
 	for i in mesh.get_surface_count():
 		var m := mesh.surface_get_material(i)
-		if m and m.resource_name == "Fire":
+		if m and m.resource_name in ["Fire", "Light"]:
 			hit = true
 	if not hit:
 		return mesh
+	if lamp_mat == null:
+		lamp_mat = StandardMaterial3D.new()
+		lamp_mat.albedo_color = Color(1.0, 0.82, 0.5)
+		lamp_mat.emission_enabled = true
+		lamp_mat.emission = Color(1.0, 0.7, 0.35)
+		lamp_mat.emission_energy_multiplier = 0.2
 	if fire_mat == null:
 		fire_mat = StandardMaterial3D.new()
 		fire_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -378,6 +388,8 @@ func _lit(mesh: Mesh) -> Mesh:
 		var m := d.surface_get_material(i)
 		if m and m.resource_name == "Fire":
 			d.surface_set_material(i, fire_mat)
+		elif m and m.resource_name == "Light":
+			d.surface_set_material(i, lamp_mat)
 	return d
 
 
@@ -428,11 +440,11 @@ func resolve(p: Vector3, from: Vector3) -> Vector3:
 
 # ---------- vegetação por bloco ----------
 const TREES := [
-	[["n_commontree_1", 8.5], ["n_commontree_2", 9.5], ["q_birchtree_1", 9.0]],
-	[["n_commontree_2", 9.0], ["q_birchtree_1", 9.5], ["q_willow_1", 8.5]],
+	[["n_commontree_1", 8.5], ["n_commontree_2", 9.5], ["n_twistedtree_1", 8.0]],
+	[["n_commontree_2", 9.0], ["n_twistedtree_2", 8.5], ["n_commontree_1", 9.5]],
 	[["n_pine_1", 11.0], ["n_pine_3", 10.0], ["n_commontree_3", 8.0]],
-	[["n_commontree_1", 10.5], ["n_commontree_3", 9.5], ["q_willow_1", 10.0]],
-	[["n_pine_3", 9.0], ["n_commontree_3", 7.0]],
+	[["n_commontree_1", 10.5], ["n_commontree_3", 9.5], ["n_twistedtree_1", 10.0]],
+	[["n_deadtree_1", 8.0], ["n_deadtree_2", 7.5], ["n_twistedtree_2", 7.0]],
 	[["n_pine_1", 12.0], ["n_pine_2", 13.0]],
 ]
 const DENSITY := [34, 26, 30, 60, 12, 24]
@@ -638,6 +650,33 @@ func _build_town(t: Dictionary) -> void:
 		root.add_child(tf)
 		fires.append(tf)
 		block(cx + tx, cz + tz, 0.2)
+	# postes de luz: em volta da praça, nas ruas até os portões e ao longo da estrada para fora
+	var lp: Array = []
+	for i in 6:
+		var a := TAU * i / 6.0 + 0.5
+		lp.append(Vector2(sin(a) * 24.0, cos(a) * 24.0))
+	for g in t.get("gates", []):
+		var a := float(g)
+		var fwd := Vector2(sin(a), cos(a))
+		var side := Vector2(cos(a), -sin(a))
+		var k := 0
+		var d := 36.0
+		while d < 240.0:
+			lp.append(fwd * d + side * (4.6 if k % 2 == 0 else -4.6))
+			d += 16.0 if d < 90.0 else 26.0
+			k += 1
+	var lamp_pts: Array = []
+	for q in lp:
+		var wx: float = cx + q.x
+		var wz: float = cz + q.y
+		if height(wx, wz) < 1.0:
+			continue
+		lamp_pts.append(at(wx, wz, atan2(-q.x, -q.y)))
+		block(wx, wz, 0.25)
+	if not lamp_pts.is_empty():
+		var sz := place(root, "n_light_street_1", lamp_pts, 4.2, true, 260.0)
+		for xf in lamp_pts:
+			lamps.append((xf as Transform3D).origin + Vector3(0, sz.y * 0.9, 0))
 	# anel dourado no chão: limite da zona segura
 	var ring := MeshInstance3D.new()
 	var tm := TorusMesh.new()
@@ -726,7 +765,6 @@ func _build_walls(t: Dictionary) -> void:
 	var mat := _stone(tones[clampi(int(t.band), 0, 5)])
 	var wood := StandardMaterial3D.new()
 	wood.albedo_color = Color(0.32, 0.22, 0.13)
-	var gy := height(cx, cz)
 	var R := 86.0
 	var segs := 60
 	var walls: Array = []
@@ -737,25 +775,46 @@ func _build_walls(t: Dictionary) -> void:
 		var a := TAU * (i + 0.5) / segs
 		if _near_gate(t, a, 0.075):
 			continue
-		var p := Vector3(sin(a) * R, gy + 3.0, cos(a) * R)
-		var len := TAU * R / segs + 0.3
-		walls.append(_box(p, Vector3(len, 6.6, 1.7), a))
+		var len := TAU * R / segs + 0.5
+		var along := Vector3(cos(a), 0, -sin(a))
+		var mid := Vector3(sin(a) * R, 0, cos(a) * R)
+		# a muralha acompanha o terreno: base enterrada abaixo do ponto mais baixo, topo a 6,6 m do mais alto
+		var lo := 1e9
+		var hi := -1e9
+		for k in 5:
+			var q: Vector3 = mid + along * (k - 2) * len / 4.0
+			for d in [-0.9, 0.9]:
+				var gh := height(cx + q.x + sin(a) * d, cz + q.z + cos(a) * d)
+				lo = minf(lo, gh)
+				hi = maxf(hi, gh)
+		var bottom := lo - 1.6
+		var top := hi + 6.6
+		walls.append(_box(mid + Vector3(0, (top + bottom) * 0.5, 0), Vector3(len, top - bottom, 1.7), a))
 		for k in 3:
 			var off := (k - 1) * len / 3.0
-			merlons.append(_box(p + Vector3(cos(a), 0, -sin(a)) * off + Vector3(sin(a), 0, cos(a)) * 0.45 + Vector3(0, 3.75, 0), Vector3(len / 5.0, 0.9, 0.7), a))
+			merlons.append(_box(mid + along * off + Vector3(sin(a), 0, cos(a)) * 0.45 + Vector3(0, top + 0.45, 0), Vector3(len / 5.0, 0.9, 0.7), a))
 		if i % 6 == 0:
-			towers.append(_box(Vector3(sin(a) * R, gy + 4.6, cos(a) * R), Vector3(4.6, 10.2, 4.6), a))
+			var tb := lo - 1.6
+			var tt := hi + 10.0
+			towers.append(_box(mid + Vector3(0, (tt + tb) * 0.5, 0), Vector3(4.6, tt - tb, 4.6), a))
+			for k in 4:  # ameias no topo da torre
+				var dk := Vector3(sin(a + k * PI * 0.5), 0, cos(a + k * PI * 0.5)) * 1.9
+				merlons.append(_box(mid + dk + Vector3(0, tt + 0.5, 0), Vector3(1.2, 1.0, 1.2), a))
 		for k in 5:
-			var bx := cx + p.x + cos(a) * (k - 2) * len / 5.0
-			var bz := cz + p.z - sin(a) * (k - 2) * len / 5.0
+			var bx := cx + mid.x + along.x * (k - 2) * len / 5.0
+			var bz := cz + mid.z + along.z * (k - 2) * len / 5.0
 			block(bx, bz, 1.0)
 	for g in t.get("gates", []):
 		var a := float(g)
 		var side := Vector3(cos(a), 0, -sin(a))
-		var c := Vector3(sin(a) * R, gy, cos(a) * R)
+		var c := Vector3(sin(a) * R, height(cx + sin(a) * R, cz + cos(a) * R), cos(a) * R)
 		for sgn in [-1.0, 1.0]:
 			var tp: Vector3 = c + side * sgn * 5.6
-			towers.append(_box(tp + Vector3(0, 5.6, 0), Vector3(4.2, 12.0, 4.2), a))
+			var tg := height(cx + tp.x, cz + tp.z)
+			tp.y = tg
+			var low := minf(tg, c.y) - 1.6
+			var tall := maxf(tg, c.y) + 11.0
+			towers.append(_box(Vector3(tp.x, (low + tall) * 0.5, tp.z), Vector3(4.2, tall - low, 4.2), a))
 			block(cx + tp.x, cz + tp.z, 2.4)
 			var tf: Node3D = FX.fire(0.5, false)
 			tf.position = tp + Vector3(sin(a), 0, cos(a)) * 2.6 + Vector3(0, 3.4, 0)
@@ -821,13 +880,11 @@ func _build_water() -> void:
 
 # ---------- céu e luz ----------
 func _build_sky() -> void:
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.18, 0.36, 0.68)
-	sky_mat.sky_horizon_color = Color(0.72, 0.8, 0.88)
-	sky_mat.ground_bottom_color = Color(0.12, 0.14, 0.12)
-	sky_mat.ground_horizon_color = Color(0.72, 0.8, 0.88)
-	sky_mat.sun_angle_max = 20.0
+	var sky_mat := ShaderMaterial.new()
+	sky_mat.shader = load("res://assets/ceu.gdshader")
+	sky_shader = sky_mat
 	var sky := Sky.new()
+	sky.radiance_size = Sky.RADIANCE_SIZE_64
 	sky.sky_material = sky_mat
 	env = Environment.new()
 	env.background_mode = Environment.BG_SKY
@@ -840,8 +897,9 @@ func _build_sky() -> void:
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.58, 0.68, 0.8)
 	env.fog_density = 0.0016
-	env.fog_aerial_perspective = 0.2
-	env.fog_sky_affect = 0.0
+	env.fog_aerial_perspective = 0.55  # o que está longe ganha a cor do céu: sensação de distância
+	env.fog_sky_affect = 0.12
+	env.fog_sun_scatter = 0.18
 	env.glow_intensity = 0.5
 	env.glow_bloom = 0.05
 	env.ssao_radius = 1.2
@@ -882,6 +940,35 @@ func set_detail(q: int) -> void:
 	for g in grass.values():
 		if g:
 			(g as MultiMeshInstance3D).visibility_range_end = grass_r
-	base_fog = [0.003, 0.002, 0.0012, 0.001, 0.0008][q]
+	base_fog = [0.0034, 0.0024, 0.0017, 0.0014, 0.0012][q]
 	env.fog_density = base_fog
 	FX.amount = [0.35, 0.6, 1.0, 1.0, 1.3][q]
+
+
+# acende os postes à noite: brilho no vidro e luz de verdade só nos mais perto (economiza a placa de vídeo)
+func light_lamps(center: Vector3, night: float) -> void:
+	if lamp_mat:
+		lamp_mat.emission_energy_multiplier = lerpf(0.2, 4.0, night)
+	if lamp_pool.is_empty():
+		for i in 6:
+			var l := OmniLight3D.new()
+			l.light_color = Color(1.0, 0.72, 0.4)
+			l.omni_range = 13.0
+			l.omni_attenuation = 1.4
+			l.shadow_enabled = false
+			l.visible = false
+			add_child(l)
+			lamp_pool.append(l)
+	var near: Array = []
+	if night > 0.05:
+		for p in lamps:
+			var d2 := (p as Vector3).distance_squared_to(center)
+			if d2 < 110.0 * 110.0:
+				near.append([d2, p])
+		near.sort_custom(func(a, b): return a[0] < b[0])
+	for i in lamp_pool.size():
+		var l: OmniLight3D = lamp_pool[i]
+		l.visible = i < near.size()
+		if l.visible:
+			l.position = near[i][1]
+			l.light_energy = 2.2 * night

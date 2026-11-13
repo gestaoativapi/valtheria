@@ -18,6 +18,9 @@ var band := 0
 var rng := RandomNumberGenerator.new()
 
 
+var lamp_t := 0.0
+
+
 func setup(m: Node3D) -> void:
 	main = m
 	world = m.world
@@ -97,18 +100,30 @@ func _process(dt: float) -> void:
 	band = clampi(roundi((255.0 - world.ground(p.x, p.z).a8) / 40.0), 0, 5)
 	var cold := band == 5
 	var sun: DirectionalLight3D = world.sun
-	sun.rotation_degrees = Vector3(-lerpf(14.0, 58.0, clampf(alt, 0.0, 1.0)) if day > 0.02 else -50.0, -128.0 + (t_day - 0.5) * 140.0, 0.0)
+	# de dia a luz é o sol; à noite a mesma luz vira a lua, que cruza o céu do outro lado
+	if day > 0.02:
+		sun.rotation_degrees = Vector3(-lerpf(14.0, 58.0, clampf(alt, 0.0, 1.0)), -128.0 + (t_day - 0.5) * 140.0, 0.0)
+	else:
+		var nt := fmod(t_day + 0.5, 1.0)
+		sun.rotation_degrees = Vector3(-lerpf(18.0, 55.0, clampf(-alt, 0.0, 1.0)), -128.0 + (nt - 0.5) * 140.0, 0.0)
 	var sun_col := Color(1.0, 0.95, 0.86).lerp(Color(1.0, 0.62, 0.36), dusk)
-	sun.light_color = Color(0.5, 0.62, 1.0).lerp(sun_col, day)
-	sun.light_energy = lerpf(0.34, 1.45, day) * (1.0 - 0.45 * wet)
-	var sky := world.env.sky.sky_material as ProceduralSkyMaterial
+	sun.light_color = Color(0.55, 0.66, 1.0).lerp(sun_col, day)
+	sun.light_energy = lerpf(0.42, 1.45, day) * (1.0 - 0.45 * wet)
+	var night := 1.0 - day
 	var gray := Color(0.42, 0.46, 0.52)
 	var top := Color(0.015, 0.025, 0.07).lerp(Color(0.18, 0.36, 0.68), day).lerp(gray * (0.3 + 0.7 * day), wet * 0.85)
 	var hor := Color(0.05, 0.07, 0.13).lerp(Color(0.72, 0.8, 0.88).lerp(Color(0.98, 0.6, 0.34), dusk), day).lerp(gray * (0.35 + 0.75 * day), wet * 0.85)
-	sky.sky_top_color = top
-	sky.sky_horizon_color = hor
-	sky.ground_horizon_color = hor
-	sky.ground_bottom_color = hor * 0.3
+	var sky: ShaderMaterial = world.sky_shader
+	sky.set_shader_parameter("top_color", top)
+	sky.set_shader_parameter("horizon_color", hor)
+	sky.set_shader_parameter("ground_color", hor * 0.3)
+	sky.set_shader_parameter("night", night)
+	sky.set_shader_parameter("cloud_cover", clampf(wet * 1.2, 0.0, 1.0))
+	sky.set_shader_parameter("sun_color", sun_col)
+	lamp_t -= dt
+	if lamp_t <= 0.0:
+		lamp_t = 0.5
+		world.light_lamps(p, smoothstep(0.35, 0.85, night))
 	world.env.ambient_light_energy = lerpf(0.45, 0.9, day)
 	world.env.fog_light_color = hor * 0.9
 	world.env.fog_density = world.base_fog * (1.0 + wet * 2.2 + (0.8 if cold else 0.0))

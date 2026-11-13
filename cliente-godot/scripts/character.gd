@@ -3,6 +3,7 @@ extends Node3D
 
 const DIR := "res://assets/chars/"
 static var _libraries := {}
+static var world_ref: Node  # mundo, para os pés pisarem no chão (altura do terreno embaixo de cada pé)
 
 var skel: Skeleton3D
 var anim: AnimationPlayer
@@ -25,6 +26,11 @@ var offhand: Node3D  # segunda adaga (armas duplas), só aparece em combate
 var shield: Node3D
 var shield_arm: Node3D
 var shield_back: Node3D
+var body_node: Node3D
+var body_base_y := 0.0
+var feet := []  # [osso do pé esquerdo, osso do pé direito]
+var ankle := -1.0  # altura do tornozelo acima da sola, medida no primeiro quadro
+var foot_off := 0.0
 
 
 static var RACES := {}
@@ -104,6 +110,7 @@ func _setup(o: Dictionary) -> void:
 	var body: Node3D = (load(DIR + file + ".glb") as PackedScene).instantiate()
 	body.name = "Corpo"
 	add_child(body)
+	body_node = body
 	skel = body.find_child("Skeleton3D", true, false) as Skeleton3D
 	if skel.get_parent() == body:  # as animações procuram o esqueleto em Armature/Skeleton3D
 		var arm := Node3D.new()
@@ -491,3 +498,35 @@ func set_tag(text: String, color := Color(1, 0.92, 0.7)) -> void:
 		add_child(tag)
 	tag.text = text
 	tag.modulate = color
+
+
+# pés no chão: o pé que está apoiado (o mais baixo na animação) encosta no terreno embaixo dele.
+# Corrige o corpo flutuando em descidas e o pé afundando em subidas; suaviza para não tremer.
+func _process(dt: float) -> void:
+	if world_ref == null or skel == null or body_node == null or not visible:
+		return
+	if feet.is_empty():
+		for side in ["l", "r"]:
+			var b := skel.find_bone("foot_" + side)
+			if b < 0:
+				feet = [-1]
+				return
+			feet.append(b)
+		body_base_y = body_node.position.y
+	if feet[0] < 0:
+		return
+	var root_y := global_position.y
+	var xf := skel.global_transform
+	if ankle < 0.0:
+		ankle = maxf(((xf * skel.get_bone_global_rest(feet[0]).origin).y - root_y) - foot_off, 0.0)
+	var best := 1e9
+	var gap := 0.0
+	for b in feet:
+		var p: Vector3 = xf * skel.get_bone_global_pose(b).origin
+		var local := p.y - root_y  # altura do pé na animação
+		if local < best:
+			best = local
+			gap = (p.y - ankle) - float(world_ref.height(p.x, p.z))
+	var want := clampf(foot_off - gap, -0.35, 0.25)
+	foot_off = lerpf(foot_off, want, clampf(dt * 10.0, 0.0, 1.0))
+	body_node.position.y = body_base_y + foot_off / maxf(scale.y, 0.01)
