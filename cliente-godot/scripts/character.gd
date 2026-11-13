@@ -31,7 +31,9 @@ const SHAPE := {
 	"gigante:f": {"all": 1.3, "drop": 0.0, "bones": {"Head": 0.9}},
 }
 # modelos próprios: altura e quanto o quadril fica mais baixo que o do humano (as animações movem o quadril)
-const OWN := {"anao_m": {"height": 1.3, "hip": 0.54, "arm": 0.8}, "anao_f": {"height": 1.22, "hip": 0.53, "arm": 0.82}}
+# bones: ajuste fino de proporção (braço mais curto, mão menor, perna um pouco mais longa, cabeça)
+const OWN := {"anao_m": {"height": 1.36, "hip": 0.6, "bones": {"upperarm_l": 0.76, "upperarm_r": 0.76, "hand_l": 0.84, "hand_r": 0.84, "thigh_l": 1.13, "thigh_r": 1.13, "foot_l": 0.92, "foot_r": 0.92, "Head": 1.1}},
+	"anao_f": {"height": 1.27, "hip": 0.585, "bones": {"upperarm_l": 0.8, "upperarm_r": 0.8, "hand_l": 0.88, "hand_r": 0.88, "thigh_l": 1.1, "thigh_r": 1.1, "foot_l": 0.94, "foot_r": 0.94}}}
 const WEAPON := {"espada": ["w_sword", 1.0], "espadao": ["w_claymore", 1.45], "arco": ["w_bow_wooden", 1.3], "adaga": ["w_dagger", 0.5], "martelo": ["w_hammer_double", 1.2], "cajado": ["w_spear", 1.7], "machado": ["w_axe", 0.95]}
 
 
@@ -110,8 +112,8 @@ func _setup(o: Dictionary) -> void:
 	var shape: Dictionary = SHAPE.get("%s:%s" % [race, "m" if male else "f"], {})
 	if own != "":
 		height_m = float(OWN[own].height)
-		for bn in ["upperarm_l", "upperarm_r"]:  # braços do modelo vêm longos demais para o corpo
-			skel.set_bone_pose_scale(skel.find_bone(bn), Vector3.ONE * float(OWN[own].arm))
+		for bn in OWN[own].bones:
+			skel.set_bone_pose_scale(skel.find_bone(bn), Vector3.ONE * float(OWN[own].bones[bn]))
 	elif shape.is_empty():
 		body.scale = Vector3(w, h, w)
 		height_m = 1.8 * h
@@ -131,7 +133,8 @@ func _setup(o: Dictionary) -> void:
 	var wid := str(eq.get("arma", ""))
 	var kind := wid.split("_")[0]
 	if WEAPON.has(kind):
-		_weapon(WEAPON[kind][0], WEAPON[kind][1])
+		# a arma acompanha o tamanho de quem usa: menor no anão, maior no gigante
+		_weapon(WEAPON[kind][0], float(WEAPON[kind][1]) * lerpf(1.0, height_m / 1.8, 0.85))
 	play("Idle")
 
 
@@ -204,6 +207,8 @@ func _weapon(file: String, length: float) -> void:
 	var grip := Node3D.new()
 	grip.transform = Transform3D(gh.basis.inverse() * frame, skel.get_bone_rest(mid).origin * 0.55)
 	att.add_child(grip)
+	# desfaz a escala dos ossos do braço e da mão, para o tamanho da arma valer em metros
+	grip.scale = Vector3.ONE / maxf(skel.get_bone_global_pose(hand).basis.get_scale().x, 0.01)
 	var w: Node3D = (load(DIR + file + ".glb") as PackedScene).instantiate()
 	var bb := AABB()
 	var first := true

@@ -31,8 +31,8 @@ const parent = joints.map(j => idx[j.getParentNode()?.getName()] ?? -1), mainChi
 for (const sf of ['l', 'r']) Object.assign(mainChild, { ['clavicle_' + sf]: 'upperarm_' + sf, ['upperarm_' + sf]: 'lowerarm_' + sf, ['lowerarm_' + sf]: 'hand_' + sf, ['thigh_' + sf]: 'calf_' + sf, ['calf_' + sf]: 'foot_' + sf, ['foot_' + sf]: 'ball_' + sf });
 const handK = (C.arm.tip[0] - C.arm.hand[0]) * S / 0.19;
 const bindQ = [], bindP = [], delta = [];
-for (let i = 0; i < joints.length; i++) { const nm = names[i], p = parent[i], pd = p >= 0 ? delta[p] : quat.create(); let dq = quat.clone(pd);
-  if (mainChild[nm] && J[nm] && J[mainChild[nm]]) { const c = idx[mainChild[nm]], a = vec3.sub([], restP[c], restP[i]), b = vec3.sub([], J[mainChild[nm]], J[nm]); vec3.normalize(a, a); vec3.normalize(b, b); dq = quat.rotationTo(quat.create(), a, b); }
+for (let i = 0; i < joints.length; i++) { const nm = names[i], p = parent[i], pd = p >= 0 ? delta[p] : quat.create(); let dq = /^(pelvis|spine_0\d|neck_01|Head|clavicle_.|thigh_.)$/.test(nm) ? quat.create() : quat.clone(pd);
+  if (mainChild[nm] && J[nm] && J[mainChild[nm]] && !/^(pelvis|spine_0\d|neck_01)$/.test(nm)) { const c = idx[mainChild[nm]], a = vec3.sub([], restP[c], restP[i]), b = vec3.sub([], J[mainChild[nm]], J[nm]); vec3.normalize(a, a); vec3.normalize(b, b); dq = quat.rotationTo(quat.create(), a, b); }
   delta[i] = dq; bindQ[i] = quat.normalize(quat.create(), quat.multiply(quat.create(), dq, restQ[i]));
   if (J[nm]) bindP[i] = J[nm]; else { const off = vec3.sub([], restP[i], restP[p]); vec3.transformQuat(off, off, delta[p]); if (/hand_|index|middle|ring|pinky|thumb/.test(names[p])) vec3.scale(off, off, handK); bindP[i] = vec3.add([], bindP[p], off); } }
 const bindW = joints.map((_, i) => mat4.fromRotationTranslation(mat4.create(), bindQ[i], bindP[i])), ibm = new Float32Array(joints.length * 16); bindW.forEach((m, i) => ibm.set(mat4.invert(mat4.create(), m), i * 16));
