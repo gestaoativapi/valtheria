@@ -8,6 +8,7 @@ const UI = preload("res://scripts/ui.gd")
 const Combat = preload("res://scripts/combat.gd")
 const Social = preload("res://scripts/social.gd")
 const Atmos = preload("res://scripts/atmos.gd")
+const Npcs = preload("res://scripts/npcs.gd")
 const FX = preload("res://scripts/fx.gd")
 
 const QUALITY := ["Mínima", "Baixa", "Média", "Alta", "Ultra"]
@@ -48,6 +49,7 @@ var combat: Node3D
 var chasing := false
 var social: Node3D
 var atmos: Node3D
+var npcs: Node3D
 var dust: CPUParticles3D
 var test_fight := false
 var log_file: FileAccess
@@ -101,6 +103,9 @@ func _ready() -> void:
 	combat.setup(self)
 	combat.message.connect(func(t): ui.say(t))
 	ui.want_skill.connect(func(i): combat.use_skill(i))
+	npcs = Npcs.new()
+	add_child(npcs)
+	npcs.setup(self)
 	atmos = Atmos.new()
 	add_child(atmos)
 	atmos.setup(self)
@@ -483,6 +488,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 		elif ev.button_index == MOUSE_BUTTON_WHEEL_DOWN and ev.pressed:
 			dist = minf(40.0, dist * 1.1)
 		elif ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
+			var npc_win: String = npcs.pick(cam.project_ray_origin(ev.position), cam.project_ray_normal(ev.position))
+			if npc_win != "":
+				_window(npc_win)
+				return
 			var mob = combat.pick(cam.project_ray_origin(ev.position), cam.project_ray_normal(ev.position))
 			if mob != null:
 				if combat.target == mob:

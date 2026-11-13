@@ -173,6 +173,12 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 			if id.contains("javali"):
 				file = "a_bull"
 				target_h = 1.15
+			elif str(fam.model) == "spider":
+				file = "e_spider"
+				target_h = 0.8
+			elif id == "lagarto":
+				file = "z_raptor"
+				target_h = 1.5
 			var holder := Node3D.new()
 			var sc_node: Node3D = (load("res://assets/world/%s.glb" % file) as PackedScene).instantiate()
 			var bb := AABB()
@@ -235,7 +241,12 @@ func _mob_anim(m: Dictionary, what: String) -> void:
 		else:
 			m.node.play(n)
 		return
-	var want: Array = {"idle": ["Idle"], "walk": ["Walk"], "run": ["Gallop", "Walk"], "attack": ["Attack", "Attack_Headbutt"], "death": ["Death"], "hit": ["Idle_HitReact1", "Idle_HitReact_Left"]}.get(what, ["Idle"])
+	var want: Array = {"idle": ["Idle"], "walk": ["Walk"], "run": ["Gallop", "Run", "Walk"], "attack": ["Attack", "Attack_Headbutt", "Bite_Front", "Bite"], "death": ["Death"], "hit": ["Idle_HitReact1", "Idle_HitReact_Left", "HitRecieve", "HitReact"]}.get(what, ["Idle"])
+	if not ap.has_animation(want[0]) and what in ["idle", "walk", "run", "attack", "death"]:
+		for n in ap.get_animation_list():  # nomes variam entre pacotes: procura por parte do nome
+			if String(n).to_lower().contains({"idle": "idle", "walk": "walk", "run": "run", "attack": "attack", "death": "death"}[what]):
+				want = [n]
+				break
 	for n in want:
 		if ap.has_animation(n):
 			if what in ["idle", "walk", "run"]:

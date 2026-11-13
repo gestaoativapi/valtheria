@@ -156,6 +156,9 @@ func build() -> void:
 	_build_water()
 	for t in info.towns:
 		_build_town(t)
+		_build_walls(t)
+	for b in info.get("bridges", []):
+		_build_bridge(b)
 
 
 # ---------- relevo ----------
@@ -587,8 +590,8 @@ func _build_town(t: Dictionary) -> void:
 		var rad := 30.0 if ring == 0 else 50.0
 		for i in count:
 			var a := TAU * (i + 0.5 * ring) / count + 0.3
-			if absf(wrapf(a, -PI, PI)) < 0.3 or absf(wrapf(a - PI, -PI, PI)) < 0.25:
-				continue  # entradas da cidade
+			if _near_gate(t, a, 0.22 if ring == 1 else 0.3):
+				continue  # ruas que levam aos portões
 			var rr := rad + r.randf_range(-2.5, 2.5)
 			_building(root, kinds[r.randi() % 4], cx + sin(a) * rr, cz + cos(a) * rr, r.randf_range(6.8, 8.2), cx, cz)
 	_building(root, "b_inn", cx - 7.0, cz - 66.0, 10.5, cx, cz)
@@ -672,6 +675,122 @@ func _build_town(t: Dictionary) -> void:
 	plate.visibility_range_begin = 60.0
 	plate.visibility_range_end = 700.0
 	root.add_child(plate)
+
+
+func _near_gate(t: Dictionary, a: float, tol: float) -> bool:
+	for g in t.get("gates", []):
+		if absf(wrapf(a - float(g), -PI, PI)) < tol:
+			return true
+	return false
+
+
+func _stone(col: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = load("res://assets/world/t_rock.webp")
+	m.albedo_color = Color(col.r * 1.7, col.g * 1.7, col.b * 1.7)
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3(0.25, 0.25, 0.25)
+	m.roughness = 0.95
+	return m
+
+
+func _boxes(parent: Node3D, mat: Material, xfs: Array, vis := 700.0) -> void:
+	if xfs.is_empty():
+		return
+	var bm := BoxMesh.new()
+	bm.material = mat
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = bm
+	mm.instance_count = xfs.size()
+	for i in xfs.size():
+		mm.set_instance_transform(i, xfs[i])
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	mi.visibility_range_end = vis
+	parent.add_child(mi)
+
+
+# caixa de tamanho `size`, centrada em `pos` (coordenadas da cidade), girada em Y
+func _box(pos: Vector3, size: Vector3, yaw: float) -> Transform3D:
+	return Transform3D(Basis(Vector3.UP, yaw).scaled(size), pos)
+
+
+# muralha de pedra em volta da cidade, com torres e um portão em cada estrada
+func _build_walls(t: Dictionary) -> void:
+	var cx: float = t.x
+	var cz: float = t.z
+	var root: Node3D = get_node(str(t.id))
+	var tones := [Color(0.72, 0.7, 0.66), Color(0.8, 0.74, 0.58), Color(0.62, 0.62, 0.64), Color(0.6, 0.68, 0.6), Color(0.7, 0.5, 0.42), Color(0.78, 0.86, 0.95)]
+	var mat := _stone(tones[clampi(int(t.band), 0, 5)])
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.32, 0.22, 0.13)
+	var gy := height(cx, cz)
+	var R := 86.0
+	var segs := 60
+	var walls: Array = []
+	var merlons: Array = []
+	var towers: Array = []
+	var beams: Array = []
+	for i in segs:
+		var a := TAU * (i + 0.5) / segs
+		if _near_gate(t, a, 0.075):
+			continue
+		var p := Vector3(sin(a) * R, gy + 3.0, cos(a) * R)
+		var len := TAU * R / segs + 0.3
+		walls.append(_box(p, Vector3(len, 6.6, 1.7), a))
+		for k in 3:
+			var off := (k - 1) * len / 3.0
+			merlons.append(_box(p + Vector3(cos(a), 0, -sin(a)) * off + Vector3(sin(a), 0, cos(a)) * 0.45 + Vector3(0, 3.75, 0), Vector3(len / 5.0, 0.9, 0.7), a))
+		if i % 6 == 0:
+			towers.append(_box(Vector3(sin(a) * R, gy + 4.6, cos(a) * R), Vector3(4.6, 10.2, 4.6), a))
+		for k in 5:
+			var bx := cx + p.x + cos(a) * (k - 2) * len / 5.0
+			var bz := cz + p.z - sin(a) * (k - 2) * len / 5.0
+			block(bx, bz, 1.0)
+	for g in t.get("gates", []):
+		var a := float(g)
+		var side := Vector3(cos(a), 0, -sin(a))
+		var c := Vector3(sin(a) * R, gy, cos(a) * R)
+		for sgn in [-1.0, 1.0]:
+			var tp: Vector3 = c + side * sgn * 5.6
+			towers.append(_box(tp + Vector3(0, 5.6, 0), Vector3(4.2, 12.0, 4.2), a))
+			block(cx + tp.x, cz + tp.z, 2.4)
+			var tf: Node3D = FX.fire(0.5, false)
+			tf.position = tp + Vector3(sin(a), 0, cos(a)) * 2.6 + Vector3(0, 3.4, 0)
+			root.add_child(tf)
+		walls.append(_box(c + Vector3(0, 8.4, 0), Vector3(8.0, 3.0, 1.9), a))
+		beams.append(_box(c + Vector3(0, 6.7, 0), Vector3(7.6, 0.45, 2.3), a))
+	_boxes(root, mat, walls)
+	_boxes(root, mat, merlons, 260.0)
+	_boxes(root, mat, towers)
+	_boxes(root, wood, beams, 300.0)
+
+
+# ponte de madeira nos trechos em que a estrada cruza a água
+func _build_bridge(b: Array) -> void:
+	var a := Vector3(float(b[0]), 0, float(b[1]))
+	var c := Vector3(float(b[2]), 0, float(b[3]))
+	var dir := (c - a).normalized()
+	var yaw := atan2(dir.x, dir.z)
+	var len := a.distance_to(c) + 14.0
+	var mid := (a + c) * 0.5
+	var root := Node3D.new()
+	root.name = "Ponte"
+	root.position = Vector3(mid.x, 2.3, mid.z)
+	add_child(root)
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.42, 0.3, 0.18)
+	wood.roughness = 0.9
+	var parts: Array = [_box(Vector3.ZERO, Vector3(6.0, 0.35, len), yaw)]
+	var side := Vector3(dir.z, 0, -dir.x)
+	for sgn in [-1.0, 1.0]:
+		parts.append(_box(side * sgn * 2.9 + Vector3(0, 1.0, 0), Vector3(0.18, 0.18, len), yaw))
+		for k in range(0, int(len / 4.0) + 1):
+			var along := dir * (k * 4.0 - len * 0.5)
+			parts.append(_box(side * sgn * 2.9 + along + Vector3(0, -1.2, 0), Vector3(0.3, 4.6, 0.3), yaw))
+	_boxes(root, wood, parts, 500.0)
 
 
 func _build_water() -> void:
