@@ -2,6 +2,7 @@ extends Node3D
 # Combate: atributos do personagem (mesma fórmula do jogo web), monstros, alvo, ataque automático, habilidades, XP e morte.
 
 const Character = preload("res://scripts/character.gd")
+const FX = preload("res://scripts/fx.gd")
 
 signal message(text: String)
 
@@ -29,6 +30,7 @@ var combat_until := 0.0
 var spawn_t := 0.0
 var sync_t := 0.0
 var swing := 0
+var my_elem := ""
 
 
 func setup(m: Node3D) -> void:
@@ -94,6 +96,7 @@ func recalc() -> void:
 		"magic": bool(wk.get("magic", false)) or str(arch.get("atk", "p")) == "m",
 		"class": str(cl.get("name", "")),
 	}
+	my_elem = str(info.get("race_elem", {}).get(str(c.get("race", "")), ""))
 	skills = []
 	for s in arch.skills:
 		if int(s.lvl) <= L and skills.size() < 6:
@@ -301,6 +304,7 @@ func _mob_tick(m: Dictionary, dt: float) -> void:
 			var atk: float = float(m.atk) * (0.75 if t < float(m.weak) else 1.0)
 			var dmg := atk * atk / (atk + float(st.pdef) * 0.5) * rng.randf_range(0.9, 1.1)
 			_hurt_player(dmg)
+			FX.burst(self, _chest(), str(m.fam.get("elem", "")), 0.5)
 	else:
 		m.wander_t = float(m.wander_t) - dt
 		if float(m.wander_t) <= 0.0:
@@ -511,6 +515,9 @@ func use_skill(i: int) -> void:
 			return
 	mp -= float(s.mp)
 	cds[i] = t + float(s.cd)
+	var fx_el := str(s.get("fx", ""))
+	if fx_el == "":
+		fx_el = my_elem if (st.magic or not offensive) else ""
 	main.player.action("Spell_Simple_Shoot" if (st.magic or not offensive) else "Sword_Attack")
 	main.player.busy_until = t + 0.55
 	if offensive:
@@ -518,6 +525,8 @@ func use_skill(i: int) -> void:
 		_face(target)
 		var mult := float(s.mult) if float(s.mult) > 0.0 else 1.2
 		var list: Array = [target]
+		if st.magic:
+			FX.bolt(self, _chest(), _center(target), fx_el)
 		if float(s.aoe) > 0.0 or ty in ["multi", "chain", "zone"]:
 			var rad := maxf(float(s.aoe), 5.0)
 			for m in mobs:
@@ -528,27 +537,39 @@ func use_skill(i: int) -> void:
 			target = m
 			var r := _damage(mult)
 			target = keep
-			pending.append({"t": t + 0.35, "mob": m, "dmg": r.dmg, "crit": r.crit})
+			pending.append({"t": t + 0.35, "mob": m, "dmg": r.dmg, "crit": r.crit, "fx": fx_el, "size": 1.0})
 			if float(s.stun) > 0.0:
 				m.stun = t + float(s.stun)
 	elif ty == "heal":
 		var amount: float = st.maxHp * float(s.pct) if float(s.pct) > 0.0 else float(st.matk) * maxf(float(s.mult), 1.0) * 2.0
 		hp = minf(st.maxHp, hp + amount)
 		_float_text(main.player.position + Vector3(0, main.player.height_m, 0), "+%d" % int(amount), Color(0.5, 1.0, 0.6))
+		FX.burst(self, _chest(), fx_el if fx_el != "" else "holy", 1.1)
 	elif ty == "shield":
 		shield = st.maxHp * maxf(float(s.pct), 0.15)
 		shield_until = t + maxf(float(s.dur), 8.0)
+		FX.aura(main.player, fx_el if fx_el != "" else "ice", maxf(float(s.dur), 8.0))
 	elif ty == "buff" and s.buff is Dictionary:
 		for k in s.buff:
 			buffs.append({"k": k, "v": float(s.buff[k]), "until": t + maxf(float(s.dur), 8.0)})
 		recalc()
+		FX.aura(main.player, fx_el if fx_el != "" else "holy", maxf(float(s.dur), 8.0))
 	elif ty in ["debuff", "taunt"]:
+		FX.burst(self, main.player.position + Vector3(0, 0.3, 0), fx_el if fx_el != "" else "dark", 2.2)
 		for m in mobs:
 			if not m.dead and (m.node as Node3D).position.distance_to(main.player.position) < maxf(float(s.aoe), 8.0):
 				m.aggro = true
 				if ty == "debuff":
 					m.weak = t + maxf(float(s.dur), 8.0)
 	message.emit(str(s.name))
+
+
+func _chest() -> Vector3:
+	return main.player.position + Vector3(0, main.player.height_m * 0.6, 0)
+
+
+func _center(m) -> Vector3:
+	return (m.node as Node3D).position + Vector3(0, float(m.height) * 0.55, 0)
 
 
 func _face(m) -> void:
@@ -567,6 +588,8 @@ func _physics_process(dt: float) -> void:
 	for i in range(pending.size() - 1, -1, -1):
 		if t >= float(pending[i].t):
 			_hit_mob(pending[i].mob, pending[i].dmg, pending[i].crit)
+			if is_instance_valid(pending[i].mob.node):
+				FX.burst(self, _center(pending[i].mob), str(pending[i].get("fx", "")), float(pending[i].get("size", 0.6)))
 			pending.remove_at(i)
 	if dead:
 		if t - dead_t > 4.0 and dead_t > 0.0:
@@ -601,6 +624,8 @@ func _physics_process(dt: float) -> void:
 				main.player.action("Spell_Simple_Shoot" if st.magic else ["Sword_Regular_A", "Sword_Regular_B", "Sword_Regular_C"][swing % 3])
 				main.player.busy_until = t + 0.5
 				var r := _damage(1.0)
-				pending.append({"t": t + 0.3, "mob": target, "dmg": r.dmg, "crit": r.crit})
+				pending.append({"t": t + 0.3, "mob": target, "dmg": r.dmg, "crit": r.crit, "fx": my_elem if st.magic else "", "size": 0.55})
+				if st.magic:
+					FX.bolt(self, _chest(), _center(target), my_elem)
 	else:
 		main.chasing = false

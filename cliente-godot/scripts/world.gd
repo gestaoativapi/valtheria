@@ -1,6 +1,7 @@
 extends Node3D
 # Mundo real de Valtheria: o mesmo relevo do servidor (assado em data/height.bin), carregado por blocos em volta do jogador.
 
+const FX = preload("res://scripts/fx.gd")
 const CH := 100.0  # tamanho do bloco de terreno, em metros
 const WATER_Y := 0.0
 
@@ -29,6 +30,9 @@ var far_r := 1200.0
 var grass_r := 70.0
 var detail_f := 1.0
 var tree_shadows := true
+var base_fog := 0.0016
+var fire_mat: StandardMaterial3D
+var fires: Array = []
 var counts := {"arvores": 0, "grama": 0, "blocos": 0}
 
 const TERRAIN_SHADER := """
@@ -85,7 +89,22 @@ void fragment() {
 const WATER_SHADER := """
 shader_type spatial;
 uniform sampler2D waves : hint_normal, repeat_enable, filter_linear_mipmap;
+uniform sampler2D heights : filter_nearest, repeat_disable;
+uniform float cells = 1501.0;
+uniform float lo = -40.0;
+uniform float hrange = 300.0;
 varying vec3 wpos;
+float ground(vec2 p) {
+	vec2 f = clamp(p / 2.0, vec2(0.0), vec2(cells - 1.001));
+	ivec2 i = ivec2(f);
+	vec2 t = fract(f);
+	float h[4];
+	for (int k = 0; k < 4; k++) {
+		vec2 c = texelFetch(heights, i + ivec2(k & 1, k >> 1), 0).rg * 255.0;
+		h[k] = lo + (c.g * 256.0 + c.r) / 65535.0 * hrange;
+	}
+	return mix(mix(h[0], h[1], t.x), mix(h[2], h[3], t.x), t.y);
+}
 void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
 void fragment() {
 	vec2 uv = wpos.xz * 0.05;
@@ -93,9 +112,14 @@ void fragment() {
 	vec3 b = texture(waves, uv * 1.7 - TIME * vec2(0.01, 0.014)).rgb;
 	NORMAL_MAP = mix(a, b, 0.5);
 	NORMAL_MAP_DEPTH = 0.9;
-	ALBEDO = vec3(0.05, 0.22, 0.27);
-	ALPHA = 0.86;
-	ROUGHNESS = 0.05;
+	float depth = max(0.0, -ground(wpos.xz));
+	float k = clamp(depth / 5.0, 0.0, 1.0);
+	vec3 col = mix(vec3(0.16, 0.5, 0.52), vec3(0.03, 0.14, 0.26), k);
+	float wob = (a.r + b.g - 1.0) * 0.35 + sin(TIME * 1.5 + wpos.x * 0.6 + wpos.z * 0.4) * 0.08;
+	float foam = 1.0 - smoothstep(0.12, 0.42, depth + wob);
+	ALBEDO = mix(col, vec3(0.92, 0.97, 1.0), foam * 0.85);
+	ALPHA = mix(0.55, 0.93, k) + foam * 0.3;
+	ROUGHNESS = mix(0.05, 0.5, foam);
 	SPECULAR = 0.7;
 }
 """
@@ -318,7 +342,7 @@ func place(parent: Node3D, file: String, pts: Array, target_h: float, shadows :=
 	for p in m.parts:
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = p[0]
+		mm.mesh = _lit(p[0])
 		mm.instance_count = pts.size()
 		for i in pts.size():
 			mm.set_instance_transform(i, inv * (pts[i] as Transform3D) * norm * (p[1] as Transform3D))
@@ -331,6 +355,27 @@ func place(parent: Node3D, file: String, pts: Array, target_h: float, shadows :=
 			mi.visibility_range_end_margin = 10.0
 		parent.add_child(mi)
 	return bb.size * k
+
+
+# superfícies chamadas "Fire" nos modelos passam a brilhar como fogo
+func _lit(mesh: Mesh) -> Mesh:
+	var hit := false
+	for i in mesh.get_surface_count():
+		var m := mesh.surface_get_material(i)
+		if m and m.resource_name == "Fire":
+			hit = true
+	if not hit:
+		return mesh
+	if fire_mat == null:
+		fire_mat = StandardMaterial3D.new()
+		fire_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		fire_mat.albedo_color = Color(1.0, 0.55, 0.12)
+	var d: Mesh = mesh.duplicate()
+	for i in d.get_surface_count():
+		var m := d.surface_get_material(i)
+		if m and m.resource_name == "Fire":
+			d.surface_set_material(i, fire_mat)
+	return d
 
 
 func at(x: float, z: float, yaw := 0.0, s := 1.0, sink := 0.0) -> Transform3D:
@@ -560,6 +605,53 @@ func _build_town(t: Dictionary) -> void:
 	place(root, "b_bench_1", [at(cx + 3.5, cz - 9.5, 0.0), at(cx - 4.5, cz - 9.0, 0.3), at(cx + 9.5, cz + 9.5, 2.3)], 0.95, true, 150.0)
 	place(root, "b_bonfire_lit", [at(cx, cz)], 1.5, true, 300.0)
 	block(cx, cz, 0.8)
+	var gy := height(cx, cz)
+	var bf: Node3D = FX.fire(1.25)
+	bf.position = Vector3(0.0, gy + 0.55, 0.0)
+	root.add_child(bf)
+	fires.append(bf)
+	# tochas em volta da praça e nas entradas
+	var pole := CylinderMesh.new()
+	pole.top_radius = 0.06
+	pole.bottom_radius = 0.09
+	pole.height = 2.4
+	pole.radial_segments = 6
+	var pm := StandardMaterial3D.new()
+	pm.albedo_color = Color(0.25, 0.17, 0.1)
+	pole.material = pm
+	for i in 8:
+		var a := TAU * i / 8.0 + 0.2
+		var rr := 20.0 if i % 2 == 0 else 66.0
+		var tx := sin(a) * rr
+		var tz := cos(a) * rr
+		var ty := height(cx + tx, cz + tz)
+		var post := MeshInstance3D.new()
+		post.mesh = pole
+		post.position = Vector3(tx, ty + 1.2, tz)
+		post.visibility_range_end = 160.0
+		root.add_child(post)
+		var tf: Node3D = FX.fire(0.5, false)
+		tf.position = Vector3(tx, ty + 2.5, tz)
+		root.add_child(tf)
+		fires.append(tf)
+		block(cx + tx, cz + tz, 0.2)
+	# anel dourado no chão: limite da zona segura
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 69.6
+	tm.outer_radius = 70.0
+	tm.rings = 96
+	tm.ring_segments = 4
+	var rmat := StandardMaterial3D.new()
+	rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	rmat.albedo_color = Color(1.0, 0.82, 0.4, 0.55)
+	tm.material = rmat
+	ring.mesh = tm
+	ring.position = Vector3(0.0, gy + 0.12, 0.0)
+	ring.scale = Vector3(1.0, 0.2, 1.0)
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(ring)
 	var l := OmniLight3D.new()
 	l.position = Vector3(0.0, height(cx, cz) + 1.3, 0.0)
 	l.light_color = Color(1.0, 0.55, 0.2)
@@ -597,6 +689,10 @@ func _build_water() -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = sh
 	mat.set_shader_parameter("waves", tex)
+	mat.set_shader_parameter("heights", ImageTexture.create_from_image(Image.create_from_data(n, n, false, Image.FORMAT_RG8, hb)))
+	mat.set_shader_parameter("cells", float(n))
+	mat.set_shader_parameter("lo", lo)
+	mat.set_shader_parameter("hrange", hrange)
 	pm.material = mat
 	water = MeshInstance3D.new()
 	water.mesh = pm
@@ -667,4 +763,6 @@ func set_detail(q: int) -> void:
 	for g in grass.values():
 		if g:
 			(g as MultiMeshInstance3D).visibility_range_end = grass_r
-	env.fog_density = [0.003, 0.002, 0.0012, 0.001, 0.0008][q]
+	base_fog = [0.003, 0.002, 0.0012, 0.001, 0.0008][q]
+	env.fog_density = base_fog
+	FX.amount = [0.35, 0.6, 1.0, 1.0, 1.3][q]

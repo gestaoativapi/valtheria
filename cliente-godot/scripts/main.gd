@@ -7,6 +7,8 @@ const Net = preload("res://scripts/net.gd")
 const UI = preload("res://scripts/ui.gd")
 const Combat = preload("res://scripts/combat.gd")
 const Social = preload("res://scripts/social.gd")
+const Atmos = preload("res://scripts/atmos.gd")
+const FX = preload("res://scripts/fx.gd")
 
 const QUALITY := ["Mínima", "Baixa", "Média", "Alta", "Ultra"]
 const WALK := 1.9
@@ -45,6 +47,8 @@ var quitting := false
 var combat: Node3D
 var chasing := false
 var social: Node3D
+var atmos: Node3D
+var dust: CPUParticles3D
 var test_fight := false
 var log_file: FileAccess
 var log_t := 0.0
@@ -97,6 +101,9 @@ func _ready() -> void:
 	combat.setup(self)
 	combat.message.connect(func(t): ui.say(t))
 	ui.want_skill.connect(func(i): combat.use_skill(i))
+	atmos = Atmos.new()
+	add_child(atmos)
+	atmos.setup(self)
 	social = Social.new()
 	add_child(social)
 	social.setup(self)
@@ -152,6 +159,12 @@ func _ready() -> void:
 			me.equipment = {"arma": "espada_ng", "armadura": "pesada_ng"}
 			ui.open_window(a.trim_prefix("--win="), me, net.inventory, {})
 			ui.chat_line("Lyra", "alguém para caçar javali?")
+		elif a.begins_with("--hour="):
+			atmos.t_day = float(a.trim_prefix("--hour=")) / 24.0
+		elif a == "--rain":
+			atmos.weather = "chuva"
+			atmos.wet = 1.0
+			atmos.weather_t = 999.0
 		elif a == "--fight":
 			test_fight = true
 		elif a == "--lineup":  # teste: uma fileira com todas as raças
@@ -231,6 +244,8 @@ func _swap_player(o: Dictionary) -> void:
 	player.queue_free()
 	player = Character.create(o)
 	add_child(player)
+	dust = FX.dust()
+	player.add_child(dust)
 	player.position = pos
 	player.rotation.y = facing
 
@@ -544,6 +559,8 @@ func _physics_process(dt: float) -> void:
 			move = to.normalized()
 	if player.is_busy():
 		move = Vector3.ZERO
+	if dust and is_instance_valid(dust):
+		dust.emitting = move != Vector3.ZERO
 	if move != Vector3.ZERO:
 		var sprint := Input.is_physical_key_pressed(KEY_SHIFT)
 		var walk := Input.is_physical_key_pressed(KEY_CTRL)
@@ -595,7 +612,7 @@ func _process(dt: float) -> void:
 		if Engine.get_frames_drawn() % 30 == 0:
 			var nt: Dictionary = world.nearest_town(player.position.x, player.position.z)
 			var where: String = nt.town.name + ("  ·  zona segura" if nt.dist < 70.0 else "  ·  arredores (nível %d a %d)" % [int(nt.town.min), int(nt.town.max)])
-			ui.place_label.text = "%s\nPosição %d, %d" % [where, int(player.position.x), int(player.position.z)]
+			ui.place_label.text = "%s\nPosição %d, %d   ·   %s%s" % [where, int(player.position.x), int(player.position.z), atmos.hour_text(), "   ·   chuva" if atmos.wet > 0.3 else ""]
 	elif creating:
 		var f := Vector3(sin(facing), 0, cos(facing))
 		var side := Vector3(f.z, 0, -f.x)
