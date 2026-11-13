@@ -100,7 +100,7 @@ func recalc() -> void:
 	my_elem = str(info.get("race_elem", {}).get(str(c.get("race", "")), ""))
 	skills = []
 	for s in arch.skills:
-		if int(s.lvl) <= L and skills.size() < 6:
+		if int(s.lvl) <= L and skills.size() < 9:
 			skills.append(s)
 	while cds.size() < skills.size():
 		cds.append(0.0)

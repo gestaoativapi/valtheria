@@ -10,6 +10,11 @@ var current := ""
 var busy_until := 0.0
 var tag: Label3D
 var height_m := 1.8
+var wnode: Node3D
+var grip_node: Node3D
+var sheath: Node3D
+var armed := true
+var magic_idle := false
 
 
 static var RACES := {}
@@ -181,9 +186,49 @@ func _weapon(file: String, length: float) -> void:
 	off[axis] = handle + dir[axis] * 0.14 / k
 	w.transform = Transform3D(Basis(q).scaled(Vector3.ONE * k), Vector3.ZERO) * Transform3D(Basis.IDENTITY, -off)
 	grip.add_child(w)
+	wnode = w
+	grip_node = grip
+	_make_sheath(file)
+
+
+# ponto de descanso da arma fora de combate: nas costas (cabo no ombro direito) ou na cintura (adaga)
+func _make_sheath(file: String) -> void:
+	var bone := skel.find_bone("spine_03")
+	if bone < 0:
+		bone = skel.find_bone("spine_02")
+	var hip := file == "w_dagger"
+	if hip or bone < 0:
+		bone = skel.find_bone("pelvis")
+	if bone < 0:
+		return
+	var gb := skel.get_bone_global_rest(bone)
+	var att := BoneAttachment3D.new()
+	att.bone_name = skel.get_bone_name(bone)
+	skel.add_child(att)
+	# no espaço do modelo: +Y para cima, +Z para a frente; a lâmina (eixo +Z do suporte) aponta para baixo, cruzando as costas
+	var blade := Vector3(-0.42, -0.9, 0.0).normalized() if not hip else Vector3(0.1, -0.95, -0.3).normalized()
+	var out := Vector3(0, 0, -1) if not hip else Vector3(-1, 0, 0)
+	var x := out.cross(blade).normalized()
+	var y := blade.cross(x).normalized()
+	var handle := gb.origin + (Vector3(0.2, 0.2, -0.17) if not hip else Vector3(-0.2, 0.02, 0.02))
+	sheath = Node3D.new()
+	sheath.transform = Transform3D(gb.basis.inverse() * Basis(x, y, blade), gb.affine_inverse() * handle)
+	att.add_child(sheath)
+
+
+# em combate a arma vai para a mão; fora dele, para as costas ou a cintura
+func set_battle(on: bool) -> void:
+	if on == armed or wnode == null or sheath == null:
+		armed = on
+		return
+	armed = on
+	wnode.get_parent().remove_child(wnode)
+	(grip_node if on else sheath).add_child(wnode)
 
 
 func play(n: String, speed := 1.0) -> void:
+	if n == "Idle" and armed and magic_idle and anim.has_animation("Spell_Simple_Idle"):
+		n = "Spell_Simple_Idle"
 	if not anim.has_animation(n):
 		return
 	if current == n:

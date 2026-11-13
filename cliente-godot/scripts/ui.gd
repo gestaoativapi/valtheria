@@ -60,6 +60,23 @@ var win_list: VBoxContainer
 var win_name := ""
 var chat_log: RichTextLabel
 var chat_edit: LineEdit
+var assist: Array[Button] = []
+var assist_ids: Array = []
+var sel := ""
+var sel_eq := false
+var w_me := {}
+var w_inv := {}
+var w_extra := {}
+var movers := {}
+var drag: Control
+var drag_off := Vector2.ZERO
+var resizing := false
+var placed := false
+var hot_panel: PanelContainer
+var chat_panel: Control
+var plate_panel: Control
+var right_panel: Control
+var ui_scale := 1.0
 
 
 func _ready() -> void:
@@ -75,14 +92,56 @@ func _ready() -> void:
 
 func _panel_style(alpha := 0.82) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.05, 0.06, 0.09, alpha)
-	s.border_color = Color(GOLD, 0.55)
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(6)
-	s.set_content_margin_all(28)
-	s.shadow_color = Color(0, 0, 0, 0.5)
-	s.shadow_size = 18
+	s.bg_color = Color(0.055, 0.06, 0.08, alpha)
+	s.border_color = Color(0.5, 0.39, 0.2)
+	s.set_border_width_all(2)
+	s.border_width_top = 3
+	s.set_corner_radius_all(3)
+	s.set_content_margin_all(14)
+	s.shadow_color = Color(GOLD, 0.45)  # filete dourado por fora da borda de bronze
+	s.shadow_size = 1
 	return s
+
+
+const GRADES := ["NG", "D", "C", "B", "A", "S", "SS"]
+const GRADE_COL := [Color(0.62, 0.62, 0.62), Color(0.78, 0.58, 0.35), Color(0.84, 0.87, 0.9), Color(0.35, 0.66, 1.0), Color(1.0, 0.4, 0.38), Color(0.83, 0.55, 1.0), Color(1.0, 0.82, 0.3)]
+
+
+func grade_of(id: String) -> int:
+	if id.begins_with("lend_") or id.begins_with("set_") or id.begins_with("anel_") or id.begins_with("asas_"):
+		return 6  # lendário
+	return clampi(int(info.items.get(id, {}).get("grade", 0)), 0, 5)
+
+
+# cartão quadrado (item, habilidade); cor = borda do grau
+func _card(size: float, col: Color, selected := false) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(size, size)
+	b.focus_mode = Control.FOCUS_NONE
+	b.clip_text = true
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.add_theme_font_size_override("font_size", 11)
+	b.add_theme_color_override("font_color", Color(0.93, 0.92, 0.88))
+	b.add_theme_color_override("font_disabled_color", Color(0.6, 0.6, 0.62))
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.1, 0.11, 0.14, 0.95) if st != "hover" else Color(0.17, 0.18, 0.22, 0.95)
+		if st == "disabled":
+			sb.bg_color = Color(0.05, 0.05, 0.06, 0.95)
+		sb.border_color = col if not selected else Color(1, 1, 1)
+		sb.set_border_width_all(2 if selected else 1)
+		sb.border_width_bottom = 3
+		sb.set_corner_radius_all(2)
+		sb.set_content_margin_all(3)
+		b.add_theme_stylebox_override(st, sb)
+	return b
+
+
+func _short(name: String) -> String:
+	var w := name.split(" ", false)
+	if w.size() == 1:
+		return name.left(8)
+	return w[0].left(6) + "\n" + w[w.size() - 1].left(6)
 
 
 func _button(text: String, primary := false) -> Button:
@@ -279,31 +338,38 @@ func _build_hud() -> void:
 	tv.add_child(tgt_name)
 	tgt_bar = _bar(tv, Color(0.78, 0.2, 0.18), "tgt")
 
-	var hb := HBoxContainer.new()
-	hb.anchor_left = 0.5
-	hb.anchor_right = 0.5
-	hb.anchor_top = 1.0
-	hb.anchor_bottom = 1.0
-	hb.offset_left = -330
-	hb.offset_right = 330
-	hb.offset_top = -112
-	hb.offset_bottom = -44
-	hb.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_theme_constant_override("separation", 6)
-	hud.add_child(hb)
-	for i in 6:
-		var b := _button("")
-		b.custom_minimum_size = Vector2(104, 64)
-		b.add_theme_font_size_override("font_size", 12)
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.focus_mode = Control.FOCUS_NONE
+	hot_panel = PanelContainer.new()
+	var hps := _panel_style(0.78)
+	hps.set_content_margin_all(6)
+	hot_panel.add_theme_stylebox_override("panel", hps)
+	hot_panel.anchor_left = 0.5
+	hot_panel.anchor_right = 0.5
+	hot_panel.anchor_top = 1.0
+	hot_panel.anchor_bottom = 1.0
+	hot_panel.offset_left = -262
+	hot_panel.offset_right = 262
+	hot_panel.offset_top = -162
+	hot_panel.offset_bottom = -40
+	hud.add_child(hot_panel)
+	var grid := GridContainer.new()
+	grid.columns = 9
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 4)
+	hot_panel.add_child(grid)
+	for i in 9:
+		var b := _card(52, Color(GOLD, 0.7))
 		b.pressed.connect(func(): want_skill.emit(i))
-		hb.add_child(b)
+		grid.add_child(b)
 		hot.append(b)
+	for i in 9:
+		var b := _card(52, Color(0.4, 0.62, 0.5))
+		b.pressed.connect(func(): use_assist(i))
+		grid.add_child(b)
+		assist.append(b)
 
 	# janela única (bolsa, loja, ofício, clã)
 	win = PanelContainer.new()
-	win.add_theme_stylebox_override("panel", _panel_style(0.9))
+	win.add_theme_stylebox_override("panel", _panel_style(0.93))
 	win.anchor_left = 0.5
 	win.anchor_right = 0.5
 	win.anchor_top = 0.5
@@ -319,10 +385,11 @@ func _build_hud() -> void:
 	win.add_child(wv)
 	var wh := HBoxContainer.new()
 	wv.add_child(wh)
-	win_title = _label("", 20, GOLD, true)
+	win_title = _label("", 19, GOLD, true)
 	win_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wh.add_child(win_title)
-	var wx := _button("Fechar")
+	var wx := _button("X")
+	wx.custom_minimum_size = Vector2(34, 30)
 	wx.pressed.connect(close_window)
 	wh.add_child(wx)
 	var sc := ScrollContainer.new()
@@ -333,6 +400,18 @@ func _build_hud() -> void:
 	win_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	win_list.add_theme_constant_override("separation", 4)
 	sc.add_child(win_list)
+	var grip := _label("◢ arraste para ajustar", 11, Color(GOLD, 0.7))
+	grip.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	grip.mouse_filter = Control.MOUSE_FILTER_STOP
+	grip.mouse_default_cursor_shape = Control.CURSOR_FDIAGSIZE
+	grip.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
+			resizing = ev.pressed
+			if not ev.pressed:
+				_save_layout()
+		elif ev is InputEventMouseMotion and resizing:
+			win.size = Vector2(clampf(win.size.x + ev.relative.x, 420, 1100), clampf(win.size.y + ev.relative.y, 300, 820)))
+	wv.add_child(grip)
 
 	# atalhos das janelas
 	var menu := HBoxContainer.new()
@@ -354,6 +433,7 @@ func _build_hud() -> void:
 
 	# bate-papo
 	var cb := VBoxContainer.new()
+	chat_panel = cb
 	cb.anchor_top = 1.0
 	cb.anchor_bottom = 1.0
 	cb.offset_left = 16
@@ -389,6 +469,10 @@ func _build_hud() -> void:
 	toast.add_theme_constant_override("outline_size", 8)
 	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(toast)
+	_movable(win, "janela")
+	_movable(hot_panel, "barra")
+	_movable(plate, "status")
+	_movable(tgt_box, "alvo")
 
 	var right := PanelContainer.new()
 	right.add_theme_stylebox_override("panel", ps)
@@ -401,6 +485,7 @@ func _build_hud() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
 	right.add_child(v)
+	_movable(right, "painel")
 	stats = _label("", 14, Color(0.86, 0.9, 0.86))
 	stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	stats.custom_minimum_size = Vector2(300, 0)
@@ -414,6 +499,9 @@ func _build_hud() -> void:
 	var crowd := _button("Multidão: +50 personagens")
 	crowd.pressed.connect(func(): want_crowd.emit())
 	v.add_child(crowd)
+	var bs := _button("Interface: 100%")
+	bs.pressed.connect(func(): bs.text = cycle_scale())
+	v.add_child(bs)
 	var full := _button("Tela cheia (F11)")
 	full.pressed.connect(toggle_fullscreen)
 	v.add_child(full)
@@ -421,7 +509,7 @@ func _build_hud() -> void:
 	back.pressed.connect(func(): want_exit_to_login.emit())
 	v.add_child(back)
 
-	var help := _label("W A S D ou clique no chão: andar   ·   clique no monstro: alvo (2º clique ou F: atacar)   ·   Tab: próximo alvo   ·   1 a 6: habilidades   ·   botão direito: câmera   ·   roda: zoom", 14, Color(0.9, 0.9, 0.92))
+	var help := _label("W A S D ou clique: andar   ·   clique no monstro: alvo (2º clique ou F: atacar)   ·   Tab: próximo alvo   ·   1 a 9: habilidades   ·   F1 a F9: itens   ·   arraste os painéis para mover", 14, Color(0.9, 0.9, 0.92))
 	help.anchor_top = 1.0
 	help.anchor_bottom = 1.0
 	help.anchor_right = 1.0
@@ -477,19 +565,116 @@ func set_target(m) -> void:
 
 func set_skills(list: Array) -> void:
 	for i in hot.size():
-		hot[i].visible = i < list.size()
+		hot[i].disabled = i >= list.size()
 		if i < list.size():
-			hot[i].set_meta("nome", "%d  %s" % [i + 1, list[i].name])
+			hot[i].set_meta("nome", "%d\n%s" % [i + 1, _short(str(list[i].name))])
 			hot[i].text = hot[i].get_meta("nome")
-			hot[i].tooltip_text = "%s\nMana %d   ·   recarga %ds" % [list[i].name, int(list[i].mp), int(list[i].cd)]
+			hot[i].tooltip_text = "%s  (tecla %d)\nMana %d   ·   recarga %ds" % [list[i].name, i + 1, int(list[i].mp), int(list[i].cd)]
+		else:
+			hot[i].set_meta("nome", str(i + 1))
+			hot[i].text = str(i + 1)
+			hot[i].tooltip_text = "Vazio: novas habilidades chegam com o nível e a classe"
 
 
 func set_cooldowns(cds: Array, now: float) -> void:
 	for i in hot.size():
-		if i < cds.size() and hot[i].visible:
+		if i < cds.size():
 			var left: float = float(cds[i]) - now
 			hot[i].disabled = left > 0.0
-			hot[i].text = ("%s\n%.0fs" % [hot[i].get_meta("nome"), ceilf(left)]) if left > 0.0 else str(hot[i].get_meta("nome"))
+			hot[i].text = ("%d\n%.0fs" % [i + 1, ceilf(left)]) if left > 0.0 else str(hot[i].get_meta("nome"))
+
+
+# barra de assistência: poções e pergaminhos da bolsa, um por espaço (F1 a F9)
+func set_assist(inv: Dictionary) -> void:
+	assist_ids = []
+	for id in inv:
+		if str(info.items.get(str(id), {}).get("type", "")) in ["potion", "scroll", "special"] and assist_ids.size() < 9:
+			assist_ids.append(str(id))
+	for i in assist.size():
+		if i < assist_ids.size():
+			var it: Dictionary = info.items[assist_ids[i]]
+			assist[i].text = "F%d\n%s\nx%d" % [i + 1, str(it.name).split(" ")[0].left(6), int(inv[assist_ids[i]])]
+			assist[i].tooltip_text = "%s  (tecla F%d)" % [it.name, i + 1]
+			assist[i].disabled = false
+		else:
+			assist[i].text = "F%d" % (i + 1)
+			assist[i].tooltip_text = "Vazio: poções e pergaminhos da bolsa aparecem aqui"
+			assist[i].disabled = true
+
+
+func use_assist(i: int) -> void:
+	if i < assist_ids.size():
+		want_action.emit("game_use", {"p_item": assist_ids[i]})
+
+
+# ---------- janelas e painéis móveis, que grudam nas bordas da tela ----------
+func _movable(c: Control, key: String) -> void:
+	movers[key] = c
+	c.mouse_filter = Control.MOUSE_FILTER_STOP
+	c.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
+			if ev.pressed:
+				drag = c
+				drag_off = c.get_global_mouse_position() - c.global_position
+			elif drag == c:
+				drag = null
+				_snap(c)
+				_save_layout()
+		elif ev is InputEventMouseMotion and drag == c:
+			c.global_position = c.get_global_mouse_position() - drag_off
+			_snap(c, false))
+
+
+func _snap(c: Control, magnet := true) -> void:
+	var vp := root.size
+	var p := c.position
+	var m := 14.0 if magnet else 0.0
+	if p.x < m: p.x = 4.0 if magnet else 0.0
+	if p.y < m: p.y = 4.0 if magnet else 0.0
+	if p.x + c.size.x > vp.x - m: p.x = vp.x - c.size.x - (4.0 if magnet else 0.0)
+	if p.y + c.size.y > vp.y - m: p.y = vp.y - c.size.y - (4.0 if magnet else 0.0)
+	c.position = Vector2(maxf(p.x, 0.0), maxf(p.y, 0.0))
+
+
+func _save_layout() -> void:
+	var cf := ConfigFile.new()
+	cf.load("user://interface.cfg")
+	for k in movers:
+		cf.set_value("pos", k, (movers[k] as Control).position)
+	cf.set_value("janela", "tamanho", win.size)
+	cf.set_value("janela", "escala", ui_scale)
+	cf.save("user://interface.cfg")
+
+
+# na primeira vez que o painel do jogo aparece: solta os painéis das âncoras e aplica as posições salvas
+func _place_panels() -> void:
+	if placed:
+		return
+	placed = true
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var cf := ConfigFile.new()
+	cf.load("user://interface.cfg")
+	for k in movers:
+		var c: Control = movers[k]
+		var keep_vis := c.visible
+		c.visible = true
+		var r := c.get_rect()
+		c.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		c.position = cf.get_value("pos", k, r.position)
+		c.size = r.size
+		c.visible = keep_vis
+		_snap(c, false)
+	win.size = cf.get_value("janela", "tamanho", win.size)
+
+
+func cycle_scale() -> String:
+	ui_scale = {1.0: 0.85, 0.85: 1.15, 1.15: 1.0}.get(ui_scale, 1.0)
+	get_window().content_scale_factor = ui_scale
+	_save_layout()
+	for k in movers:
+		_snap(movers[k], false)
+	return "Interface: %d%%" % int(ui_scale * 100.0)
 
 
 func typing() -> bool:
@@ -545,30 +730,74 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 		c.queue_free()
 	var items: Dictionary = info.items
 	var aurum := int(me.get("aurum", 0))
+	w_me = me
+	w_inv = inv
+	w_extra = extra
 	if name == "bolsa":
-		win_title.text = "Bolsa e equipamento   ·   %d aurum" % aurum
-		_row("Equipado", [], GOLD)
+		win_title.text = "◆ Bolsa e equipamento   ·   %d aurum" % aurum
 		var eq: Dictionary = me.get("equipment") if me.get("equipment") is Dictionary else {}
-		for slot in eq:
-			var it: Dictionary = items.get(str(eq[slot]), {})
-			_row("%s: %s%s" % [str(slot).capitalize(), it.get("name", eq[slot]), _stat_text(it)], [["Tirar", "game_unequip", {"p_slot": slot}]])
-		_row("Na bolsa", [], GOLD)
-		if inv.is_empty():
-			_row("Vazia.", [])
+		var top := HBoxContainer.new()
+		top.add_theme_constant_override("separation", 14)
+		win_list.add_child(top)
+		var doll := GridContainer.new()
+		doll.columns = 2
+		doll.add_theme_constant_override("h_separation", 5)
+		doll.add_theme_constant_override("v_separation", 5)
+		top.add_child(doll)
+		for slot in ["elmo", "arma", "armadura", "escudo", "luvas", "botas"]:
+			var id := str(eq.get(slot, ""))
+			var g := grade_of(id) if id != "" else 0
+			var cb := _card(74, GRADE_COL[g] if id != "" else Color(0.3, 0.3, 0.34), sel_eq and sel == slot)
+			cb.text = "%s\n%s" % [slot.capitalize(), (_short(str(items.get(id, {}).get("name", id))) + "\n" + GRADES[g]) if id != "" else "vazio"]
+			cb.disabled = id == ""
+			cb.pressed.connect(func():
+				sel = slot
+				sel_eq = true
+				open_window("bolsa", w_me, w_inv, w_extra))
+			doll.add_child(cb)
+		var bag := GridContainer.new()
+		bag.columns = 6
+		bag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bag.add_theme_constant_override("h_separation", 5)
+		bag.add_theme_constant_override("v_separation", 5)
+		top.add_child(bag)
 		for id in inv:
 			var it: Dictionary = items.get(str(id), {})
+			var g := grade_of(str(id))
+			var cb := _card(64, GRADE_COL[g], not sel_eq and sel == str(id))
+			cb.text = "%s\n%s  x%d" % [_short(str(it.get("name", id))), GRADES[g], int(inv[id])]
+			cb.tooltip_text = "%s%s" % [it.get("name", id), _stat_text(it)]
+			cb.pressed.connect(func():
+				sel = str(id)
+				sel_eq = false
+				open_window("bolsa", w_me, w_inv, w_extra))
+			bag.add_child(cb)
+		for i in maxi(0, 24 - inv.size()):
+			var e := _card(64, Color(0.22, 0.22, 0.26))
+			e.disabled = true
+			bag.add_child(e)
+		# detalhe do item escolhido
+		var sid := str(eq.get(sel, "")) if sel_eq else sel
+		if sid != "" and (sel_eq or inv.has(sid)):
+			var it: Dictionary = items.get(sid, {})
+			var g := grade_of(sid)
 			var acts: Array = []
-			if str(it.get("slot", "")) != "":
-				acts.append(["Equipar", "game_equip", {"p_item": id}])
-			elif str(it.get("type", "")) in ["potion", "scroll", "special"]:
-				acts.append(["Usar", "game_use", {"p_item": id}])
-			acts.append(["Vender %d" % int(it.get("sell", 1)), "game_npc_sell", {"p_item": id, "p_qty": 1}])
-			_row("%s  x%d%s" % [it.get("name", id), int(inv[id]), _stat_text(it)], acts)
+			if sel_eq:
+				acts.append(["Tirar", "game_unequip", {"p_slot": sel}])
+			else:
+				if str(it.get("slot", "")) != "":
+					acts.append(["Equipar", "game_equip", {"p_item": sid}])
+				elif str(it.get("type", "")) in ["potion", "scroll", "special"]:
+					acts.append(["Usar", "game_use", {"p_item": sid}])
+				acts.append(["Vender %d" % int(it.get("sell", 1)), "game_npc_sell", {"p_item": sid, "p_qty": 1}])
+			_row("%s   ·   Grau %s%s" % [it.get("name", sid), GRADES[g] + (" (lendário)" if g == 6 else ""), _stat_text(it)], acts, GRADE_COL[g])
+		else:
+			_row("Clique em um item para ver os detalhes.", [], Color(0.6, 0.62, 0.68))
 	elif name == "loja":
 		win_title.text = "Loja   ·   %d aurum" % aurum
 		for id in info.shop:
 			var it: Dictionary = items.get(str(id), {})
-			_row("%s%s   ·   %d aurum" % [it.get("name", id), _stat_text(it), int(info.shop[id])], [["Comprar", "game_shop_buy", {"p_item": id, "p_qty": 1}]])
+			_row("[%s]  %s%s   ·   %d aurum" % [GRADES[grade_of(str(id))], it.get("name", id), _stat_text(it), int(info.shop[id])], [["Comprar", "game_shop_buy", {"p_item": id, "p_qty": 1}]], GRADE_COL[grade_of(str(id))])
 	elif name == "oficio":
 		win_title.text = "Ofício (fabricação)"
 		var shown := 0
@@ -732,6 +961,7 @@ func show_login() -> void:
 func show_hud(name_text: String) -> void:
 	login_box.visible = false
 	hud.visible = true
+	_place_panels()
 	who.text = name_text
 
 

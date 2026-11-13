@@ -162,7 +162,11 @@ func _ready() -> void:
 			net.inventory = {"pocao_hp": 8, "retorno": 2, "espadao_ng": 1, "madeira_ng": 14, "elmo_pesada_ng": 1}
 			me.aurum = 1250
 			me.equipment = {"arma": "espada_ng", "armadura": "pesada_ng"}
+			net.inventory["lend_espada_harmonia"] = 1
+			net.inventory["robe_ng"] = 1
+			ui.sel = "espadao_ng"
 			ui.open_window(a.trim_prefix("--win="), me, net.inventory, {})
+			ui.set_assist(net.inventory)
 			ui.chat_line("Lyra", "alguém para caçar javali?")
 		elif a.begins_with("--hour="):
 			atmos.t_day = float(a.trim_prefix("--hour=")) / 24.0
@@ -170,6 +174,10 @@ func _ready() -> void:
 			atmos.weather = "chuva"
 			atmos.wet = 1.0
 			atmos.weather_t = 999.0
+		elif a == "--back":
+			yaw = facing + PI + 0.5
+			dist = 3.2
+			pitch = -0.15
 		elif a == "--fight":
 			test_fight = true
 		elif a == "--lineup":  # teste: uma fileira com todas as raças
@@ -297,6 +305,7 @@ func _enter(c: Dictionary) -> void:
 		world.stream(player.position, 8)
 	var nm := str(me.get("name", "Viajante"))
 	player.set_tag(nm)
+	player.set_battle(false)
 	has_target = false
 	playing = true
 	yaw = facing + PI
@@ -462,8 +471,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 					ui.close_window()
 				else:
 					_to_login()
-			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6:
+			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
 				combat.use_skill(ev.keycode - KEY_1)
+			KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9:
+				ui.use_assist(ev.keycode - KEY_F1)
 			KEY_I:
 				_window("bolsa")
 			KEY_B:
@@ -615,6 +626,13 @@ func _process(dt: float) -> void:
 			marker.rotation.y += dt * 2.0
 		ui.set_bars(combat.hp, combat.st.get("maxHp", 1.0), combat.mp, combat.st.get("maxMp", 1.0), float(me.get("xp", 0.0)), float(world.info.xpneed[clampi(int(me.get("level", 1)) - 1, 0, 79)]))
 		ui.set_target(combat.target)
+		var fighting: bool = combat.auto or combat.now() < combat.combat_until
+		if fighting != player.armed:
+			player.magic_idle = bool(combat.st.get("magic", false))
+			player.set_battle(fighting)
+			player.current = ""
+		if Engine.get_frames_drawn() % 45 == 0:
+			ui.set_assist(net.inventory)
 		ui.set_cooldowns(combat.cds, combat.now())
 		save_t += dt
 		if save_t > 20.0:
@@ -737,6 +755,7 @@ func _refresh_char() -> void:
 	if JSON.stringify(me.get("equipment", {})) != before:
 		_swap_player(me)
 		player.set_tag(str(me.get("name", "")))
+		player.set_battle(false)
 
 
 var fn_heals := false
