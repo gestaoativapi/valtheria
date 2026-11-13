@@ -12,6 +12,7 @@ var info: Dictionary
 var rng := RandomNumberGenerator.new()
 var active := false
 var mobs: Array = []
+var ruin_warned := {}
 var target = null
 var auto := false
 var st := {}
@@ -193,20 +194,33 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 			if bb.size.y > 50.0 or bb.size.y < 0.05:
 				k = sc  # caixa em unidade estranha: usa a escala do modelo
 			sc_node.scale = Vector3.ONE * k
-			sc_node.position.y = -_feet_y(sc_node) * k  # base do modelo encostada no chão
 			holder.add_child(sc_node)
 			node = holder
 			height = target_h * sc
 	return {"node": node, "kind": kind, "height": height}
 
 
-func _spawn(x: float, z: float, boss := false, boss_lvl := 0, spot := "") -> void:
+# monstros que guardam as ruínas: mortos-vivos, cavaleiros caídos e golens
+const RUIN_FAMS := ["esqueleto", "caido", "golem"]
+
+
+func _ruin_fam(id: String) -> Dictionary:
+	for g in info.mobs:
+		for f in g:
+			if str(f.id) == id:
+				return f
+	return {}
+
+
+func _spawn(x: float, z: float, boss := false, boss_lvl := 0, spot := "", fam_force: Dictionary = {}) -> void:
 	var li := _level_at(x, z)
 	var fams: Array = (info.mobs[clampi(li.band, 0, info.mobs.size() - 1)] as Array).filter(func(f): return bool(f.boss) == boss)
+	if not fam_force.is_empty():
+		fams = [fam_force]
 	if fams.is_empty():
 		return
 	var fam: Dictionary = fams[rng.randi() % fams.size()]
-	var L: int = clampi(int(li.L) + rng.randi_range(-1, 1), 1, 92)
+	var L: int = clampi(int(li.L) + rng.randi_range(-1, 1) + (3 if not fam_force.is_empty() else 0), 1, 92)
 	if boss:
 		L = clampi(boss_lvl, 1, 92)
 	var ms: Array = (info.mobstats[L - 1] as Array).duplicate()
@@ -219,6 +233,13 @@ func _spawn(x: float, z: float, boss := false, boss_lvl := 0, spot := "") -> voi
 	add_child(node)
 	node.position = Vector3(x, world.height(x, z), z)
 	node.rotation.y = rng.randf() * TAU
+	if md.kind == "glb":  # base do modelo encostada no chão (medida já no mundo, com as escalas internas)
+		var lo := 1e9
+		for mi in node.find_children("*", "MeshInstance3D", true, false):
+			lo = minf(lo, ((mi as MeshInstance3D).global_transform * (mi as MeshInstance3D).get_aabb()).position.y)
+		if lo < 1e8 and absf(node.position.y - lo) < 5.0:
+			var inner: Node3D = node.get_child(0)
+			inner.position.y += node.position.y - lo
 	var lb := Label3D.new()
 	lb.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	lb.pixel_size = 0.003
@@ -276,7 +297,7 @@ func _manage_spawns(dt: float) -> void:
 	var p: Vector3 = main.player.position
 	for i in range(mobs.size() - 1, -1, -1):
 		var m: Dictionary = mobs[i]
-		var far: bool = (m.node.position as Vector3).distance_to(p) > (240.0 if m.boss else 150.0) and not m.aggro
+		var far: bool = (m.node.position as Vector3).distance_to(p) > (240.0 if m.boss or String(m.spot).begins_with("ruina:") else 150.0) and not m.aggro
 		if far or (m.dead and now() - float(m.dead_t) > 5.0):
 			if target == m:
 				target = null
@@ -293,7 +314,26 @@ func _manage_spawns(dt: float) -> void:
 					_spawn(float(sp.x), float(sp.z), true, int(sp.lvl), key)
 					if sd < 120.0:
 						message.emit("Um chefe ronda %s" % sp.name)
-	var alive := mobs.filter(func(m): return not m.dead and not m.boss).size()
+	# ruínas: até 6 guardiões por sítio, perto do jogador
+	for l in info.get("landmarks", []):
+		if str(l.id) == "era_neon":
+			continue
+		var ld := Vector2(float(l.x) - p.x, float(l.z) - p.z).length()
+		if ld > float(l.r) + 90.0:
+			continue
+		var key := "ruina:" + str(l.id)
+		var here := mobs.filter(func(m): return m.spot == key and not m.dead).size()
+		if here == 0 and ld < float(l.r) + 50.0 and not ruin_warned.has(key):
+			ruin_warned[key] = true
+			message.emit("Guardiões rondam %s" % l.name)
+		for k in mini(2, 6 - here):
+			var a := rng.randf() * TAU
+			var rr := rng.randf_range(4.0, float(l.r) * 0.6)
+			var x := float(l.x) + sin(a) * rr
+			var z := float(l.z) + cos(a) * rr
+			if world.height(x, z) > 1.2:
+				_spawn(x, z, false, 0, key, _ruin_fam(RUIN_FAMS[rng.randi() % RUIN_FAMS.size()]))
+	var alive := mobs.filter(func(m): return not m.dead and not m.boss and not String(m.spot).begins_with("ruina:")).size()
 	var tries := 0
 	while alive < 12 and tries < 8:
 		tries += 1
@@ -342,9 +382,14 @@ func _mob_tick(m: Dictionary, dt: float) -> void:
 	else:
 		m.wander_t = float(m.wander_t) - dt
 		if float(m.wander_t) <= 0.0:
-			m.wander_t = rng.randf_range(4.0, 9.0)
+			var ruin := String(m.spot).begins_with("ruina:")
+			m.wander_t = rng.randf_range(3.0, 7.0) if ruin else rng.randf_range(4.0, 11.0)
 			var a := rng.randf() * TAU
-			m.wander = (m.home as Vector3) + Vector3(sin(a), 0, cos(a)) * rng.randf_range(2.0, 9.0)
+			if rng.randf() < 0.3 and not ruin:
+				m.wander = node.position  # fica parado, olhando em volta
+				node.rotation.y += rng.randf_range(-1.2, 1.2)
+			else:
+				m.wander = (m.home as Vector3) + Vector3(sin(a), 0, cos(a)) * rng.randf_range(2.0, 14.0 if ruin else 11.0)
 		if (node.position as Vector3).distance_to(m.wander) > 0.6:
 			goal = m.wander
 			speed = 1.3
@@ -689,17 +734,3 @@ func _physics_process(dt: float) -> void:
 					FX.bolt(self, _chest(), _center(target), my_elem)
 	else:
 		main.chasing = false
-
-
-# ponto mais baixo do modelo (no espaço do próprio modelo, com as transformações internas)
-static func _feet_y(root: Node3D) -> float:
-	var lo := 1e9
-	for mi in root.find_children("*", "MeshInstance3D", true, false):
-		var xf := Transform3D.IDENTITY
-		var n: Node = mi
-		while n != null and n != root:
-			xf = (n as Node3D).transform * xf
-			n = n.get_parent()
-		var a: AABB = xf * (mi as MeshInstance3D).get_aabb()
-		lo = minf(lo, a.position.y)
-	return 0.0 if lo > 1e8 else lo

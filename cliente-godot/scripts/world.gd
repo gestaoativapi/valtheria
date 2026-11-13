@@ -163,6 +163,9 @@ func build() -> void:
 		_build_walls(t)
 	for b in info.get("bridges", []):
 		_build_bridge(b)
+	for l in info.get("landmarks", []):
+		if str(l.id) != "era_neon":
+			_build_ruin(l)
 
 
 # ---------- relevo ----------
@@ -447,7 +450,20 @@ const TREES := [
 	[["n_deadtree_1", 8.0], ["n_deadtree_2", 7.5], ["n_twistedtree_2", 7.0]],
 	[["n_pine_1", 12.0], ["n_pine_2", 13.0]],
 ]
-const DENSITY := [34, 26, 30, 60, 12, 24]
+const DENSITY := [40, 32, 34, 66, 16, 26]
+# plantas, pedras e detalhes do chão por região: [modelo, altura, quantidade por bloco, distância de desenho, sombra]
+const _COMMON := [["n_rock_medium_1", 1.2, 5, 0.0, true], ["n_rock_large_1", 3.0, 2, 0.0, true], ["n_bush_common", 1.2, 14, 150.0, true], ["n_fern_1", 0.7, 26, 90.0, false],
+	["n_flower_3_group", 0.5, 22, 80.0, false], ["n_mushroom_common", 0.35, 8, 60.0, false]]
+const _MEADOW := [["n_plant_1_big", 0.9, 10, 110.0, false], ["n_flower_4_group", 0.5, 18, 80.0, false], ["n_bush_common_flowers", 1.1, 8, 150.0, true],
+	["q_bushberries_1", 1.0, 6, 130.0, true], ["q_treestump_moss", 0.8, 3, 150.0, true], ["q_woodlog_moss", 0.7, 2, 150.0, true], ["q_rock_moss_2", 1.2, 3, 200.0, true]]
+const SMALL := [
+	_COMMON + _MEADOW,
+	_COMMON + _MEADOW,
+	_COMMON + [["n_rock_medium_2", 1.6, 6, 0.0, true], ["n_rock_medium_3", 1.4, 6, 0.0, true], ["q_rock_moss_5", 1.5, 4, 200.0, true], ["q_treestump_moss", 0.8, 3, 150.0, true]],
+	_COMMON + _MEADOW + [["n_plant_1_big", 1.1, 8, 110.0, false]],
+	[["n_rock_medium_1", 1.2, 6, 0.0, true], ["d_rock3", 1.4, 6, 0.0, true], ["n_rock_large_1", 3.0, 3, 0.0, true], ["q_treestump_moss", 0.8, 4, 150.0, true], ["d_bones", 0.4, 3, 70.0, false], ["n_mushroom_common", 0.35, 6, 60.0, false]],
+	[["q_rock_snow_1", 1.4, 6, 0.0, true], ["q_rock_snow_3", 2.2, 3, 0.0, true], ["q_bush_snow_1", 1.0, 10, 150.0, true], ["n_rock_medium_1", 1.2, 4, 0.0, true]],
+]
 
 
 func _vegetation(key: Vector2i, parent: Node3D) -> void:
@@ -476,14 +492,24 @@ func _vegetation(key: Vector2i, parent: Node3D) -> void:
 		counts.arvores += (by_file[f][1] as Array).size()
 	if detail_f <= 0.0:
 		return
-	var small := [["n_rock_medium_1", 1.2, 5, 0.0, true], ["n_rock_large_1", 3.0, 2, 0.0, true], ["n_bush_common", 1.2, 14, 150.0, true], ["n_fern_1", 0.7, 26, 90.0, false], ["n_flower_3_group", 0.5, 22, 80.0, false], ["n_mushroom_common", 0.35, 8, 60.0, false]]
+	var small: Array = SMALL[band]
+	# árvores raras de cada região (as luminosas dos elfos, por exemplo)
+	if band == 3:
+		var rare: Array = []
+		for i in 2:
+			var x := (key.x + r.randf()) * CH
+			var z := (key.y + r.randf()) * CH
+			if ground(x, z).g > 0.75 and height(x, z) > 1.6 and nearest_town(x, z).dist > 100.0:
+				rare.append(at(x, z, r.randf() * TAU, r.randf_range(0.8, 1.2), 0.15))
+		if not rare.is_empty():
+			place(parent, ["n_tree_light_1", "n_tree_light_2", "n_tree_spiral_1"][r.randi() % 3], rare, 8.5, tree_shadows)
 	for sdef in small:
 		var pts: Array = []
 		for i in int(sdef[2] * detail_f):
 			var x := (key.x + r.randf()) * CH
 			var z := (key.y + r.randf()) * CH
 			var g := ground(x, z)
-			var rocky: bool = String(sdef[0]).begins_with("n_rock")
+			var rocky: bool = String(sdef[0]).contains("rock") or String(sdef[0]).begins_with("d_")
 			if height(x, z) < 1.4 or g.r > 0.3 or nearest_town(x, z).dist < 70.0 or (not rocky and g.g < 0.6):
 				continue
 			pts.append(at(x, z, r.randf() * TAU, r.randf_range(0.6, 1.5), 0.1))
@@ -972,3 +998,121 @@ func light_lamps(center: Vector3, night: float) -> void:
 		if l.visible:
 			l.position = near[i][1]
 			l.light_energy = 2.2 * night
+
+
+# ---------- ruínas ----------
+# cada ponto de interesse do mapa vira um sítio em ruínas: colunas, muros quebrados, entrada de cripta,
+# ossos, tochas e um baú; o tipo muda pelo nome (castelo, cripta, templo, pântano, destroços, círculo de pedras)
+func _build_ruin(l: Dictionary) -> void:
+	var cx: float = float(l.x)
+	var cz: float = float(l.z)
+	if height(cx, cz) < 1.0:
+		return
+	var id := str(l.id)
+	var root := Node3D.new()
+	root.name = "Ruina_" + id
+	add_child(root)
+	var r := RandomNumberGenerator.new()
+	r.seed = hash(id)
+	var R: float = float(l.r) * 0.55
+	var kind := "templo"
+	for pair in [["castelo", "forte"], ["forte", "forte"], ["cripta", "cripta"], ["tumba", "cripta"], ["necro", "cripta"], ["mauso", "cripta"], ["pantano", "pantano"], ["charco", "pantano"],
+			["brejo", "pantano"], ["covil", "pantano"], ["destrocos", "destrocos"], ["caravana", "destrocos"], ["estranho", "circulo"], ["monolito", "circulo"], ["trono", "forte"]]:
+		if id.contains(pair[0]):
+			kind = pair[1]
+			break
+	var mat := _stone(Color(0.6, 0.6, 0.58) if kind != "forte" else Color(0.5, 0.48, 0.47))
+	var walls: Array = []
+	var cols := {"d_column": [], "d_column_broken": [], "d_column_broken2": []}
+	var scatter := {}
+	var add := func(f: String, x: float, z: float, yaw: float, sc := 1.0) -> void:
+		if not scatter.has(f):
+			scatter[f] = []
+		scatter[f].append(at(cx + x, cz + z, yaw, sc, 0.05))
+	# muro quebrado em volta (quadrado com falhas), mais alto nos castelos e fortes
+	if kind in ["forte", "templo", "cripta"]:
+		var side := R * (1.5 if kind == "forte" else 1.2)
+		var hmax := 6.5 if kind == "forte" else 3.2
+		for e in 4:
+			var a := e * PI * 0.5 + r.randf_range(-0.05, 0.05)
+			var n := int(side / 2.4)
+			for k in n:
+				if r.randf() < 0.28:
+					continue  # falha no muro
+				var t := (k + 0.5) / n - 0.5
+				var lx := sin(a) * side * 0.5 + cos(a) * t * side
+				var lz := cos(a) * side * 0.5 - sin(a) * t * side
+				var g := height(cx + lx, cz + lz)
+				var h := r.randf_range(0.8, hmax)
+				walls.append(_box(Vector3(cx + lx, g + h * 0.5 - 0.6, cz + lz), Vector3(2.5, h + 1.2, 1.1), a))
+				block(cx + lx, cz + lz, 1.2)
+			if kind == "forte":  # torre quebrada no canto
+				var tx := sin(a + PI * 0.25) * side * 0.72
+				var tz := cos(a + PI * 0.25) * side * 0.72
+				var th := r.randf_range(5.0, 10.0)
+				walls.append(_box(Vector3(cx + tx, height(cx + tx, cz + tz) + th * 0.5 - 1.0, cz + tz), Vector3(4.0, th + 2.0, 4.0), a))
+				block(cx + tx, cz + tz, 2.4)
+	# colunas em anel (templo, cripta, círculo) ou espalhadas
+	var ncol := 12 if kind in ["templo", "circulo"] else (8 if kind == "cripta" else 5)
+	for k in ncol:
+		var a := TAU * k / ncol + r.randf_range(-0.08, 0.08)
+		var rr := R * (0.62 if kind != "circulo" else 0.5) * r.randf_range(0.92, 1.08)
+		var f: String = ["d_column", "d_column_broken", "d_column_broken2"][r.randi() % 3 if kind != "circulo" else 0]
+		cols[f].append(at(cx + sin(a) * rr, cz + cos(a) * rr, r.randf() * TAU, r.randf_range(0.9, 1.15), 0.2))
+		block(cx + sin(a) * rr, cz + cos(a) * rr, 0.7)
+	# centro
+	match kind:
+		"cripta":
+			add.call("d_entrance", 0.0, 0.0, r.randf() * TAU, 1.0)
+			block(cx, cz, 2.0)
+		"circulo":
+			walls.append(_box(Vector3(cx, height(cx, cz) + 3.0, cz), Vector3(1.6, 7.0, 1.0), r.randf() * TAU))  # monólito
+			block(cx, cz, 1.2)
+		"templo":
+			walls.append(_box(Vector3(cx, height(cx, cz) + 0.5, cz), Vector3(3.2, 1.4, 1.6), r.randf() * TAU))  # altar
+			block(cx, cz, 1.8)
+		"destrocos":
+			for k in 3:
+				add.call("b_cart", r.randf_range(-8, 8), r.randf_range(-8, 8), r.randf() * TAU)
+			for k in 6:
+				add.call(["b_barrel", "b_crate", "b_bags"][k % 3], r.randf_range(-11, 11), r.randf_range(-11, 11), r.randf() * TAU)
+		"pantano":
+			for k in 8:
+				add.call(["n_deadtree_1", "n_deadtree_2"][k % 2], sin(k * 0.8) * R * r.randf_range(0.4, 1.0), cos(k * 0.8) * R * r.randf_range(0.4, 1.0), r.randf() * TAU)
+	# restos: ossos, pedras, tochas, castiçais e um baú
+	for k in 10:
+		var a := r.randf() * TAU
+		var rr := r.randf_range(2.0, R)
+		add.call(["d_bones", "d_bones2", "d_rock3", "q_rock_moss_2"][k % 4], sin(a) * rr, cos(a) * rr, r.randf() * TAU)
+	for k in 4:
+		var a := TAU * k / 4.0 + 0.4
+		add.call("d_torch" if k % 2 == 0 else "d_candelabrum_tall", sin(a) * R * 0.4, cos(a) * R * 0.4, a + PI)
+	add.call("d_chest_gold", r.randf_range(-3, 3), r.randf_range(-3, 3), r.randf() * TAU)
+	_boxes(root, mat, walls, 600.0)
+	var heights := {"d_column": 5.0, "d_column_broken": 1.3, "d_column_broken2": 1.1, "d_entrance": 4.5, "d_bones": 0.4, "d_bones2": 0.5, "d_rock3": 1.3, "q_rock_moss_2": 1.1,
+		"d_torch": 1.7, "d_candelabrum_tall": 1.9, "d_chest_gold": 0.9, "b_cart": 1.6, "b_barrel": 1.0, "b_crate": 0.85, "b_bags": 0.7, "n_deadtree_1": 7.0, "n_deadtree_2": 6.5}
+	for f in cols:
+		if not (cols[f] as Array).is_empty():
+			place(root, f, cols[f], heights[f], true, 500.0)
+	for f in scatter:
+		place(root, f, scatter[f], heights.get(f, 1.0), true, 260.0)
+	# fogo de verdade nas tochas
+	for k in 2:
+		var a := TAU * (k * 2) / 4.0 + 0.4
+		var fx: Node3D = FX.fire(0.4, false)
+		fx.position = Vector3(cx + sin(a) * R * 0.4, height(cx + sin(a) * R * 0.4, cz + cos(a) * R * 0.4) + 1.8, cz + cos(a) * R * 0.4)
+		root.add_child(fx)
+		fires.append(fx)
+	var plate := Label3D.new()
+	plate.text = str(l.name)
+	plate.font = load("res://assets/cinzel.ttf")
+	plate.font_size = 72
+	plate.pixel_size = 0.02
+	plate.outline_size = 16
+	plate.modulate = Color(0.85, 0.82, 0.75)
+	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	plate.position = Vector3(cx, height(cx, cz) + 12.0, cz)
+	plate.visibility_range_begin = 30.0
+	plate.visibility_range_end = 420.0
+	root.add_child(plate)
+	counts["ruinas"] = int(counts.get("ruinas", 0)) + 1

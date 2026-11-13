@@ -855,6 +855,8 @@ func chat_line(who_name: String, msg: String, kind := "chat") -> void:
 	var safe := msg.replace("[", "[lb]")
 	if kind == "chat":
 		chat_log.append_text("[color=#ffd98a]%s:[/color] %s\n" % [who_name.replace("[", "[lb]"), safe])
+	elif kind == "npc":
+		chat_log.append_text("[color=#b8f0b0]%s:[/color] [i]%s[/i]\n" % [who_name.replace("[", "[lb]"), safe])
 	else:
 		chat_log.append_text("[color=#9fd0ff]%s[/color]\n" % safe)
 

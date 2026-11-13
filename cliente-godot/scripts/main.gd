@@ -543,6 +543,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 				else:
 					sel = {"kind": "npc", "node": npc.node, "name": npc.name, "window": npc.window}
 					combat.target = null
+					npcs.talk(npc)
 				return
 			var mob = combat.pick(ro, rd)
 			if mob != null:
