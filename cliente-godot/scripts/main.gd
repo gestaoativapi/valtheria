@@ -164,7 +164,6 @@ func _ready() -> void:
 			me.equipment = {"arma": "espada_ng", "armadura": "pesada_ng"}
 			net.inventory["lend_espada_harmonia"] = 1
 			net.inventory["robe_ng"] = 1
-			ui.sel = "espadao_ng"
 			ui.open_window(a.trim_prefix("--win="), me, net.inventory, {})
 			ui.set_assist(net.inventory)
 			ui.chat_line("Lyra", "alguém para caçar javali?")
@@ -626,6 +625,9 @@ func _process(dt: float) -> void:
 			marker.rotation.y += dt * 2.0
 		ui.set_bars(combat.hp, combat.st.get("maxHp", 1.0), combat.mp, combat.st.get("maxMp", 1.0), float(me.get("xp", 0.0)), float(world.info.xpneed[clampi(int(me.get("level", 1)) - 1, 0, 79)]))
 		ui.set_target(combat.target)
+		if ui.win.visible and Engine.get_frames_drawn() % 20 == 0:
+			var cs: Dictionary = combat.st
+			ui.stats_view = {"Vida": "%d / %d" % [int(combat.hp), int(cs.get("maxHp", 0))], "Mana": "%d / %d" % [int(combat.mp), int(cs.get("maxMp", 0))], "Ataque físico": str(int(cs.get("patk", 0))), "Ataque mágico": str(int(cs.get("matk", 0))), "Defesa": str(int(cs.get("pdef", 0))), "Velocidade": "%.1f m/s" % float(cs.get("speed", 0)), "Alcance": "%.1f m" % float(cs.get("range", 0)), "Intervalo de ataque": "%.2f s" % float(cs.get("interval", 0)), "Elemento": str(combat.my_elem).capitalize()}
 		var fighting: bool = combat.auto or combat.now() < combat.combat_until
 		if fighting != player.armed:
 			player.magic_idle = bool(combat.st.get("magic", false))

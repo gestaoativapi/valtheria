@@ -1,4 +1,6 @@
 extends CanvasLayer
+
+const Character = preload("res://scripts/character.gd")
 # Telas: entrada (login, criar conta, escolha de personagem) e painel do jogo.
 
 signal want_login(user: String, password: String)
@@ -77,6 +79,9 @@ var chat_panel: Control
 var plate_panel: Control
 var right_panel: Control
 var ui_scale := 1.0
+var tab := "equip"
+var shop_cat := "armas"
+var doll_char: Node3D
 
 
 func _ready() -> void:
@@ -374,10 +379,10 @@ func _build_hud() -> void:
 	win.anchor_right = 0.5
 	win.anchor_top = 0.5
 	win.anchor_bottom = 0.5
-	win.offset_left = -330
-	win.offset_right = 330
-	win.offset_top = -270
-	win.offset_bottom = 250
+	win.offset_left = -350
+	win.offset_right = 350
+	win.offset_top = -300
+	win.offset_bottom = 270
 	win.visible = false
 	hud.add_child(win)
 	var wv := VBoxContainer.new()
@@ -713,6 +718,178 @@ func _row(text: String, actions: Array, color := Color(0.88, 0.89, 0.93)) -> voi
 	win_list.add_child(h)
 
 
+var stats_view := {}
+
+
+func _inset() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.03, 0.035, 0.05, 0.9)
+	sb.border_color = Color(0.36, 0.29, 0.16)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(2)
+	sb.set_content_margin_all(8)
+	return sb
+
+
+func _note(text: String) -> void:
+	var l := _label(text, 14, Color(0.75, 0.77, 0.82))
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	win_list.add_child(l)
+
+
+func _tabs(defs: Array, current: String, on_pick: Callable) -> void:
+	var h := HFlowContainer.new()
+	h.add_theme_constant_override("h_separation", 6)
+	for d in defs:
+		var b := _button(d[1], d[0] == current)
+		b.custom_minimum_size = Vector2(0, 34)
+		b.add_theme_font_size_override("font_size", 14)
+		b.focus_mode = Control.FOCUS_NONE
+		var key: String = d[0]
+		b.pressed.connect(func(): on_pick.call(key))
+		h.add_child(b)
+	win_list.add_child(h)
+
+
+func _stat_lines(it: Dictionary) -> Array:
+	var names := {"patk": "Ataque", "matk": "Magia", "pdef": "Defesa", "mdef": "Defesa mágica", "hp": "Vida", "mp": "Mana", "hpPct": "Recupera vida", "mpPct": "Recupera mana", "spd": "Velocidade", "matkPct": "Magia"}
+	var out: Array = []
+	for k in it.get("stats", {}):
+		var v: float = it.stats[k]
+		out.append("%s: %s" % [names.get(k, k), ("%d%%" % int(v * 100.0)) if (str(k).ends_with("Pct") or k == "spd") else ("%.1f" % v if v < 3.0 else str(int(v)))])
+	return out
+
+
+# cartão de item para lojas: cada informação na sua linha, preço em quadro próprio
+func _item_card(title: String, g: int, lines: Array, price: String, action: String, fn: String, args: Dictionary, enabled: bool) -> Control:
+	var pc := PanelContainer.new()
+	var sb := _inset()
+	sb.border_color = GRADE_COL[g]
+	sb.border_width_top = 3
+	pc.add_theme_stylebox_override("panel", sb)
+	pc.custom_minimum_size = Vector2(196, 0)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 5)
+	pc.add_child(v)
+	var t := _label(title, 15, GRADE_COL[g], true)
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(t)
+	v.add_child(_label("Grau %s" % GRADES[g], 12, Color(0.7, 0.72, 0.78)))
+	for ln in lines:
+		var l := _label(str(ln), 13)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(l)
+	if price != "":
+		var pp := PanelContainer.new()
+		var ps := _inset()
+		ps.bg_color = Color(0.12, 0.1, 0.05, 0.9)
+		pp.add_theme_stylebox_override("panel", ps)
+		var pl := _label(price, 15, GOLD, true)
+		pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pp.add_child(pl)
+		v.add_child(pp)
+	var b := _button(action, enabled)
+	b.custom_minimum_size = Vector2(0, 32)
+	b.add_theme_font_size_override("font_size", 14)
+	b.focus_mode = Control.FOCUS_NONE
+	b.disabled = not enabled
+	b.pressed.connect(func(): want_action.emit(fn, args))
+	v.add_child(b)
+	return pc
+
+
+# painel de detalhe do item escolhido
+func _detail(title: String, g: int, lines: Array, extra_line: String, acts: Array) -> void:
+	var pc := PanelContainer.new()
+	var sb := _inset()
+	sb.border_color = GRADE_COL[g]
+	pc.add_theme_stylebox_override("panel", sb)
+	var v := VBoxContainer.new()
+	pc.add_child(v)
+	v.add_child(_label(title, 16, GRADE_COL[g], true))
+	v.add_child(_label("Grau %s%s" % [GRADES[g], " (lendário)" if g == 6 else ""], 12, Color(0.7, 0.72, 0.78)))
+	for ln in lines:
+		v.add_child(_label(str(ln), 13))
+	if extra_line != "":
+		v.add_child(_label(extra_line, 13, GOLD))
+	var h := HFlowContainer.new()
+	for a in acts:
+		var b := _button(a[0], true)
+		b.custom_minimum_size = Vector2(120, 32)
+		b.add_theme_font_size_override("font_size", 14)
+		b.focus_mode = Control.FOCUS_NONE
+		var fn: String = a[1]
+		var args: Dictionary = a[2]
+		b.pressed.connect(func(): want_action.emit(fn, args))
+		h.add_child(b)
+	v.add_child(h)
+	win_list.add_child(pc)
+
+
+# encaixe de equipamento: moldura rebaixada com o nome do local e a peça dentro
+func _socket(slot: String, id: String, g: int, selected: bool) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(118, 104)
+	b.focus_mode = Control.FOCUS_NONE
+	b.clip_text = true
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.add_theme_font_size_override("font_size", 12)
+	b.text = "%s\n\n%s" % [slot.to_upper(), ("%s\nGrau %s" % [str(info.items.get(id, {}).get("name", id)), GRADES[g]]) if id != "" else "vazio"]
+	b.add_theme_color_override("font_color", GRADE_COL[g] if id != "" else Color(0.45, 0.46, 0.5))
+	for st in ["normal", "hover", "pressed"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.02, 0.025, 0.035, 0.95) if st != "hover" else Color(0.08, 0.09, 0.12, 0.95)
+		sb.border_color = Color(1, 1, 1) if selected else (GRADE_COL[g] if id != "" else Color(0.36, 0.29, 0.16))
+		sb.border_width_left = 4
+		sb.border_width_right = 4
+		sb.border_width_top = 2
+		sb.border_width_bottom = 2
+		sb.corner_radius_top_left = 10
+		sb.corner_radius_bottom_right = 10
+		sb.set_content_margin_all(6)
+		sb.shadow_color = Color(0, 0, 0, 0.6)
+		sb.shadow_size = 3
+		b.add_theme_stylebox_override(st, sb)
+	return b
+
+
+# boneco 3D do personagem, girando devagar, dentro da janela
+func _doll(me: Dictionary) -> Control:
+	var holder := PanelContainer.new()
+	holder.add_theme_stylebox_override("panel", _inset())
+	var svc := SubViewportContainer.new()
+	svc.custom_minimum_size = Vector2(250, 340)
+	svc.stretch = true
+	holder.add_child(svc)
+	var vp := SubViewport.new()
+	vp.own_world_3d = true
+	vp.transparent_bg = true
+	vp.msaa_3d = Viewport.MSAA_2X
+	svc.add_child(vp)
+	doll_char = Character.create(me)
+	vp.add_child(doll_char)
+	var cam := Camera3D.new()
+	var h: float = doll_char.height_m
+	cam.position = Vector3(0, h * 0.55, h * 1.75)
+	cam.fov = 38.0
+	vp.add_child(cam)
+	cam.look_at(Vector3(0, h * 0.5, 0))
+	var key := DirectionalLight3D.new()
+	key.rotation_degrees = Vector3(-35, 30, 0)
+	key.light_energy = 1.3
+	vp.add_child(key)
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0, 0, 0, 0)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.7, 0.72, 0.8)
+	env.ambient_light_energy = 0.8
+	var we := WorldEnvironment.new()
+	we.environment = env
+	vp.add_child(we)
+	return holder
+
+
 func _stat_text(it: Dictionary) -> String:
 	var names := {"patk": "ataque", "matk": "magia", "pdef": "defesa", "mdef": "def. mágica", "hp": "vida", "mp": "mana", "hpPct": "cura", "mpPct": "mana"}
 	var out: Array = []
@@ -734,85 +911,123 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 	w_inv = inv
 	w_extra = extra
 	if name == "bolsa":
-		win_title.text = "◆ Bolsa e equipamento   ·   %d aurum" % aurum
+		win_title.text = "◆ Personagem   ·   %d aurum" % aurum
 		var eq: Dictionary = me.get("equipment") if me.get("equipment") is Dictionary else {}
-		var top := HBoxContainer.new()
-		top.add_theme_constant_override("separation", 14)
-		win_list.add_child(top)
-		var doll := GridContainer.new()
-		doll.columns = 2
-		doll.add_theme_constant_override("h_separation", 5)
-		doll.add_theme_constant_override("v_separation", 5)
-		top.add_child(doll)
-		for slot in ["elmo", "arma", "armadura", "escudo", "luvas", "botas"]:
-			var id := str(eq.get(slot, ""))
-			var g := grade_of(id) if id != "" else 0
-			var cb := _card(74, GRADE_COL[g] if id != "" else Color(0.3, 0.3, 0.34), sel_eq and sel == slot)
-			cb.text = "%s\n%s" % [slot.capitalize(), (_short(str(items.get(id, {}).get("name", id))) + "\n" + GRADES[g]) if id != "" else "vazio"]
-			cb.disabled = id == ""
-			cb.pressed.connect(func():
-				sel = slot
-				sel_eq = true
-				open_window("bolsa", w_me, w_inv, w_extra))
-			doll.add_child(cb)
-		var bag := GridContainer.new()
-		bag.columns = 6
-		bag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		bag.add_theme_constant_override("h_separation", 5)
-		bag.add_theme_constant_override("v_separation", 5)
-		top.add_child(bag)
-		for id in inv:
-			var it: Dictionary = items.get(str(id), {})
-			var g := grade_of(str(id))
-			var cb := _card(64, GRADE_COL[g], not sel_eq and sel == str(id))
-			cb.text = "%s\n%s  x%d" % [_short(str(it.get("name", id))), GRADES[g], int(inv[id])]
-			cb.tooltip_text = "%s%s" % [it.get("name", id), _stat_text(it)]
-			cb.pressed.connect(func():
-				sel = str(id)
-				sel_eq = false
-				open_window("bolsa", w_me, w_inv, w_extra))
-			bag.add_child(cb)
-		for i in maxi(0, 24 - inv.size()):
-			var e := _card(64, Color(0.22, 0.22, 0.26))
-			e.disabled = true
-			bag.add_child(e)
-		# detalhe do item escolhido
-		var sid := str(eq.get(sel, "")) if sel_eq else sel
-		if sid != "" and (sel_eq or inv.has(sid)):
-			var it: Dictionary = items.get(sid, {})
-			var g := grade_of(sid)
-			var acts: Array = []
-			if sel_eq:
-				acts.append(["Tirar", "game_unequip", {"p_slot": sel}])
+		_tabs([["equip", "Equipamento"], ["bolsa", "Bolsa"], ["attr", "Atributos"]], tab, func(k):
+			tab = k
+			sel = ""
+			open_window("bolsa", w_me, w_inv, w_extra))
+		if tab == "equip":
+			var row := HBoxContainer.new()
+			row.alignment = BoxContainer.ALIGNMENT_CENTER
+			row.add_theme_constant_override("separation", 12)
+			win_list.add_child(row)
+			var left := VBoxContainer.new()
+			left.add_theme_constant_override("separation", 10)
+			var right := VBoxContainer.new()
+			right.add_theme_constant_override("separation", 10)
+			row.add_child(left)
+			row.add_child(_doll(me))
+			row.add_child(right)
+			var side := {"elmo": left, "armadura": left, "luvas": left, "arma": right, "escudo": right, "botas": right}
+			for slot in ["elmo", "armadura", "luvas", "arma", "escudo", "botas"]:
+				var id := str(eq.get(slot, ""))
+				var g := grade_of(id) if id != "" else 0
+				var cb := _socket(slot, id, g, sel_eq and sel == slot)
+				cb.pressed.connect(func():
+					sel = slot
+					sel_eq = true
+					open_window("bolsa", w_me, w_inv, w_extra))
+				(side[slot] as VBoxContainer).add_child(cb)
+			var sid := str(eq.get(sel, "")) if sel_eq else ""
+			if sid != "":
+				var it: Dictionary = items.get(sid, {})
+				_detail(it.get("name", sid), grade_of(sid), _stat_lines(it), "", [["Tirar", "game_unequip", {"p_slot": sel}]])
 			else:
+				_note("Clique em um encaixe para ver a peça. Para vestir um item, abra a aba Bolsa.")
+		elif tab == "bolsa":
+			var bag := HFlowContainer.new()
+			bag.add_theme_constant_override("h_separation", 6)
+			bag.add_theme_constant_override("v_separation", 6)
+			win_list.add_child(bag)
+			for id in inv:
+				var it: Dictionary = items.get(str(id), {})
+				var g := grade_of(str(id))
+				var cb := _card(72, GRADE_COL[g], not sel_eq and sel == str(id))
+				cb.text = "%s\n%s\nx%d" % [_short(str(it.get("name", id))), GRADES[g], int(inv[id])]
+				cb.tooltip_text = str(it.get("name", id))
+				cb.pressed.connect(func():
+					sel = str(id)
+					sel_eq = false
+					open_window("bolsa", w_me, w_inv, w_extra))
+				bag.add_child(cb)
+			for i in maxi(0, 28 - inv.size()):
+				var e := _card(72, Color(0.22, 0.22, 0.26))
+				e.disabled = true
+				bag.add_child(e)
+			if not sel_eq and sel != "" and inv.has(sel):
+				var it: Dictionary = items.get(sel, {})
+				var acts: Array = []
 				if str(it.get("slot", "")) != "":
-					acts.append(["Equipar", "game_equip", {"p_item": sid}])
+					acts.append(["Equipar", "game_equip", {"p_item": sel}])
 				elif str(it.get("type", "")) in ["potion", "scroll", "special"]:
-					acts.append(["Usar", "game_use", {"p_item": sid}])
-				acts.append(["Vender %d" % int(it.get("sell", 1)), "game_npc_sell", {"p_item": sid, "p_qty": 1}])
-			_row("%s   ·   Grau %s%s" % [it.get("name", sid), GRADES[g] + (" (lendário)" if g == 6 else ""), _stat_text(it)], acts, GRADE_COL[g])
+					acts.append(["Usar", "game_use", {"p_item": sel}])
+				acts.append(["Vender", "game_npc_sell", {"p_item": sel, "p_qty": 1}])
+				_detail(it.get("name", sel), grade_of(sel), _stat_lines(it), "Venda: %d aurum" % int(it.get("sell", 1)), acts)
+			else:
+				_note("Clique em um item para ver os detalhes.")
 		else:
-			_row("Clique em um item para ver os detalhes.", [], Color(0.6, 0.62, 0.68))
+			var cl: Dictionary = info.classes.get(str(me.get("class_id", "")), {})
+			var lines := ["Nome: %s" % me.get("name", "-"), "Raça: %s" % info.races.get(str(me.get("race", "")), {}).get("name", "-"), "Classe: %s" % cl.get("name", "-"), "Nível: %d" % int(me.get("level", 1))]
+			for k in stats_view:
+				lines.append("%s: %s" % [k, stats_view[k]])
+			var flow := HFlowContainer.new()
+			flow.add_theme_constant_override("h_separation", 8)
+			flow.add_theme_constant_override("v_separation", 8)
+			win_list.add_child(flow)
+			for t in lines:
+				var pc := PanelContainer.new()
+				pc.add_theme_stylebox_override("panel", _inset())
+				pc.custom_minimum_size = Vector2(190, 0)
+				pc.add_child(_label(t, 14))
+				flow.add_child(pc)
 	elif name == "loja":
-		win_title.text = "Loja   ·   %d aurum" % aurum
+		win_title.text = "◆ Mercador   ·   %d aurum" % aurum
+		_note("\"Bem-vindo, viajante. Tenho de tudo um pouco. Diga o que procura e eu mostro o que há na banca.\"")
+		_tabs([["armas", "Armas"], ["armaduras", "Armaduras"], ["pecas", "Elmos, luvas e botas"], ["consumo", "Poções e utilidades"]], shop_cat, func(k):
+			shop_cat = k
+			open_window("loja", w_me, w_inv, w_extra))
+		var flow := HFlowContainer.new()
+		flow.add_theme_constant_override("h_separation", 10)
+		flow.add_theme_constant_override("v_separation", 10)
+		win_list.add_child(flow)
 		for id in info.shop:
 			var it: Dictionary = items.get(str(id), {})
-			_row("[%s]  %s%s   ·   %d aurum" % [GRADES[grade_of(str(id))], it.get("name", id), _stat_text(it), int(info.shop[id])], [["Comprar", "game_shop_buy", {"p_item": id, "p_qty": 1}]], GRADE_COL[grade_of(str(id))])
+			var slot := str(it.get("slot", ""))
+			var cat := "armas" if slot == "arma" else ("armaduras" if slot in ["armadura", "escudo"] else ("pecas" if slot != "" else "consumo"))
+			if cat != shop_cat:
+				continue
+			flow.add_child(_item_card(str(it.get("name", id)), grade_of(str(id)), _stat_lines(it), "%d aurum" % int(info.shop[id]), "Comprar", "game_shop_buy", {"p_item": id, "p_qty": 1}, aurum >= int(info.shop[id])))
 	elif name == "oficio":
-		win_title.text = "Ofício (fabricação)"
+		win_title.text = "◆ Ferreiro   ·   ofício"
+		_note("\"Traga o material que eu mostro o que dá para fazer. O que você já pode fabricar aparece primeiro.\"")
+		var flow := HFlowContainer.new()
+		flow.add_theme_constant_override("h_separation", 10)
+		flow.add_theme_constant_override("v_separation", 10)
+		win_list.add_child(flow)
 		var shown := 0
 		for pass_i in 2:
 			for r in info.recipes:
 				var can := true
 				var parts: Array = []
 				for k in r.inputs:
-					parts.append("%s %d/%d" % [items.get(str(k), {}).get("name", k), int(inv.get(k, 0)), int(r.inputs[k])])
+					parts.append("%s: %d de %d" % [items.get(str(k), {}).get("name", k), int(inv.get(k, 0)), int(r.inputs[k])])
 					if int(inv.get(k, 0)) < int(r.inputs[k]):
 						can = false
-				if (pass_i == 0) != can or (pass_i == 1 and shown > 60):
+				if (pass_i == 0) != can or (pass_i == 1 and shown > 40):
 					continue
 				shown += 1
-				_row("%s x%d   ·   %s" % [items.get(str(r.out), {}).get("name", r.out), int(r.qty), ", ".join(parts)], [["Fabricar", "game_craft", {"p_recipe": r.id, "p_times": 1}]] if can else [], Color(0.88, 0.89, 0.93) if can else Color(0.55, 0.56, 0.6))
+				flow.add_child(_item_card("%s x%d" % [items.get(str(r.out), {}).get("name", r.out), int(r.qty)], grade_of(str(r.out)), parts, "", "Fabricar", "game_craft", {"p_recipe": r.id, "p_times": 1}, can))
 	elif name == "classe":
 		var cur := str(me.get("class_id", ""))
 		var cl: Dictionary = info.classes.get(cur, {})
@@ -863,6 +1078,8 @@ func set_who(c: Dictionary) -> void:
 
 
 func _process(_dt: float) -> void:
+	if doll_char and is_instance_valid(doll_char) and win.visible:
+		doll_char.rotation.y += _dt * 0.7
 	if toast and toast.text != "" and Time.get_ticks_msec() * 0.001 > toast_until:
 		toast.text = ""
 
