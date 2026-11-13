@@ -1,6 +1,7 @@
 extends CanvasLayer
 
 const Character = preload("res://scripts/character.gd")
+const IconButton = preload("res://scripts/icon_button.gd")
 # Telas: entrada (login, criar conta, escolha de personagem) e painel do jogo.
 
 signal want_login(user: String, password: String)
@@ -79,6 +80,7 @@ var chat_panel: Control
 var plate_panel: Control
 var right_panel: Control
 var ui_scale := 1.0
+var config_panel: Control
 var tab := "equip"
 var shop_cat := "armas"
 var doll_char: Node3D
@@ -101,7 +103,7 @@ func _panel_style(alpha := 0.82) -> StyleBoxFlat:
 	s.border_color = Color(0.5, 0.39, 0.2)
 	s.set_border_width_all(2)
 	s.border_width_top = 3
-	s.set_corner_radius_all(3)
+	s.set_corner_radius_all(11)
 	s.set_content_margin_all(14)
 	s.shadow_color = Color(GOLD, 0.45)  # filete dourado por fora da borda de bronze
 	s.shadow_size = 1
@@ -136,8 +138,25 @@ func _card(size: float, col: Color, selected := false) -> Button:
 		sb.border_color = col if not selected else Color(1, 1, 1)
 		sb.set_border_width_all(2 if selected else 1)
 		sb.border_width_bottom = 3
-		sb.set_corner_radius_all(2)
+		sb.set_corner_radius_all(7)
 		sb.set_content_margin_all(3)
+		b.add_theme_stylebox_override(st, sb)
+	return b
+
+
+func _icon(kind: String, tip: String, size := 46.0) -> Button:
+	var b: Button = IconButton.new()
+	b.kind = kind
+	b.tooltip_text = tip
+	b.custom_minimum_size = Vector2(size, size)
+	b.focus_mode = Control.FOCUS_NONE
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.1, 0.11, 0.14, 0.95) if st != "hover" else Color(0.2, 0.19, 0.16, 0.95)
+		sb.border_color = Color(0.5, 0.39, 0.2) if st != "hover" else GOLD
+		sb.set_border_width_all(1)
+		sb.border_width_bottom = 3
+		sb.set_corner_radius_all(10)
 		b.add_theme_stylebox_override(st, sb)
 	return b
 
@@ -167,7 +186,7 @@ func _button(text: String, primary := false) -> Button:
 		s.bg_color = base
 		s.border_color = Color(GOLD, 0.7 if primary else 0.3)
 		s.set_border_width_all(1)
-		s.set_corner_radius_all(4)
+		s.set_corner_radius_all(8)
 		s.set_content_margin_all(8)
 		b.add_theme_stylebox_override(st, s)
 	b.add_theme_color_override("font_color", Color(1, 0.95, 0.85))
@@ -185,7 +204,7 @@ func _edit(placeholder: String, secret := false) -> LineEdit:
 	s.bg_color = Color(0.02, 0.03, 0.05, 0.9)
 	s.border_color = Color(GOLD, 0.35)
 	s.set_border_width_all(1)
-	s.set_corner_radius_all(4)
+	s.set_corner_radius_all(8)
 	s.set_content_margin_all(10)
 	e.add_theme_stylebox_override("normal", s)
 	var f := s.duplicate() as StyleBoxFlat
@@ -393,7 +412,8 @@ func _build_hud() -> void:
 	win_title = _label("", 19, GOLD, true)
 	win_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wh.add_child(win_title)
-	var wx := _button("X")
+	var wx := _button("✕")
+	wx.tooltip_text = "Fechar (Esc)"
 	wx.custom_minimum_size = Vector2(34, 30)
 	wx.pressed.connect(close_window)
 	wh.add_child(wx)
@@ -418,23 +438,37 @@ func _build_hud() -> void:
 			win.size = Vector2(clampf(win.size.x + ev.relative.x, 420, 1100), clampf(win.size.y + ev.relative.y, 300, 820)))
 	wv.add_child(grip)
 
-	# atalhos das janelas
-	var menu := HBoxContainer.new()
-	menu.anchor_left = 1.0
-	menu.anchor_right = 1.0
-	menu.anchor_top = 1.0
-	menu.anchor_bottom = 1.0
-	menu.offset_left = -600
-	menu.offset_right = -16
-	menu.offset_top = -92
-	menu.offset_bottom = -48
-	menu.alignment = BoxContainer.ALIGNMENT_END
-	hud.add_child(menu)
-	for def in [["Bolsa (I)", "bolsa"], ["Loja (B)", "loja"], ["Ofício (C)", "oficio"], ["Classe (K)", "classe"], ["Clã (G)", "cla"]]:
-		var mb := _button(def[0])
-		mb.focus_mode = Control.FOCUS_NONE
-		mb.pressed.connect(func(): want_window.emit(def[1]))
-		menu.add_child(mb)
+	# doca única: todas as opções em ícones, com o nome ao passar o mouse
+	var dock := PanelContainer.new()
+	var dps := _panel_style(0.8)
+	dps.set_content_margin_all(6)
+	dock.add_theme_stylebox_override("panel", dps)
+	dock.anchor_left = 1.0
+	dock.anchor_right = 1.0
+	dock.anchor_top = 1.0
+	dock.anchor_bottom = 1.0
+	dock.offset_left = -436
+	dock.offset_right = -12
+	dock.offset_top = -100
+	dock.offset_bottom = -40
+	hud.add_child(dock)
+	var dh := HBoxContainer.new()
+	dh.add_theme_constant_override("separation", 5)
+	dock.add_child(dh)
+	for def in [["bolsa", "Personagem e bolsa (I)", "bolsa"], ["loja", "Loja (B)", "loja"], ["oficio", "Ofício (C)", "oficio"], ["classe", "Classe (K)", "classe"], ["cla", "Clã (G)", "cla"], ["config", "Configurações e desempenho", "#config"], ["tela", "Tela cheia (F11)", "#tela"], ["sair", "Voltar à entrada (Esc)", "#sair"]]:
+		var ib := _icon(def[0], def[1], 46)
+		var act: String = def[2]
+		ib.pressed.connect(func():
+			if act == "#config":
+				config_panel.visible = not config_panel.visible
+			elif act == "#tela":
+				toggle_fullscreen()
+			elif act == "#sair":
+				want_exit_to_login.emit()
+			else:
+				want_window.emit(act))
+		dh.add_child(ib)
+	_movable(dock, "doca")
 
 	# bate-papo
 	var cb := VBoxContainer.new()
@@ -490,6 +524,8 @@ func _build_hud() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
 	right.add_child(v)
+	config_panel = right
+	right.visible = false
 	_movable(right, "painel")
 	stats = _label("", 14, Color(0.86, 0.9, 0.86))
 	stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -507,12 +543,6 @@ func _build_hud() -> void:
 	var bs := _button("Interface: 100%")
 	bs.pressed.connect(func(): bs.text = cycle_scale())
 	v.add_child(bs)
-	var full := _button("Tela cheia (F11)")
-	full.pressed.connect(toggle_fullscreen)
-	v.add_child(full)
-	var back := _button("Voltar à entrada (Esc)")
-	back.pressed.connect(func(): want_exit_to_login.emit())
-	v.add_child(back)
 
 	var help := _label("W A S D ou clique: andar   ·   clique no monstro: alvo (2º clique ou F: atacar)   ·   Tab: próximo alvo   ·   1 a 9: habilidades   ·   F1 a F9: itens   ·   arraste os painéis para mover", 14, Color(0.9, 0.9, 0.92))
 	help.anchor_top = 1.0
@@ -726,7 +756,7 @@ func _inset() -> StyleBoxFlat:
 	sb.bg_color = Color(0.03, 0.035, 0.05, 0.9)
 	sb.border_color = Color(0.36, 0.29, 0.16)
 	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(2)
+	sb.set_corner_radius_all(8)
 	sb.set_content_margin_all(8)
 	return sb
 
