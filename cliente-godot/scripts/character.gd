@@ -19,6 +19,8 @@ var ik: SkeletonModifier3D  # braço esquerdo até o cabo (arma de duas mãos)
 var ik_r: SkeletonModifier3D  # braço direito até a guarda, na postura parada
 var guard: Node3D  # arma de duas mãos segura à frente do corpo, com as duas mãos
 var guard_on := false
+var fist: Node  # Punho: fecha os dedos no cabo
+var fist_hands := ["r"]
 var offhand: Node3D  # segunda adaga (armas duplas), só aparece em combate
 var shield: Node3D
 var shield_arm: Node3D
@@ -48,9 +50,9 @@ const GRIP := {
 	"espada": {"file": "w_sword", "len": 1.0, "at": 0.1},
 	"adaga": {"file": "w_dagger", "len": 0.5, "at": 0.06},
 	"punhal": {"file": "w_dagger", "len": 0.42, "at": 0.05},
-	"duplas": {"file": "w_dagger", "len": 0.5, "at": 0.06, "dual": true},
+	"duplas": {"file": "w_sword", "len": 0.8, "at": 0.08, "dual": true},
 	"machado": {"file": "w_axe", "len": 0.95, "at": 0.12},
-	"cetro": {"file": "w_hammer_double", "len": 0.8, "at": 0.12},
+	"cetro": {"file": "w_spear", "len": 0.75, "at": 0.1},
 	"espadao": {"file": "w_claymore", "len": 1.45, "at": 0.3, "two": 0.1, "back": true},
 	"martelo": {"file": "w_hammer_double", "len": 1.1, "at": 0.4, "two": 0.12, "back": true},
 	"cajado": {"file": "w_spear", "len": 1.7, "at": 0.75, "two": 0.42, "back": true},
@@ -157,7 +159,7 @@ func _setup(o: Dictionary) -> void:
 	var kind := wid.split("_")[0]
 	if GRIP.has(kind):
 		# a arma acompanha o tamanho de quem usa: menor no anão, maior no gigante
-		_weapon(kind, lerpf(1.0, height_m / 1.8, 0.85), str(eq.get("escudo", "")) != "")
+		_weapon(kind, lerpf(1.0, height_m / 1.8, 0.85), str(eq.get("escudo", "")) != "", wid, str(eq.get("escudo", "")))
 	play("Idle")
 
 
@@ -262,14 +264,34 @@ static func _place(file: String, length: float, at: float) -> Node3D:
 	return w
 
 
-func _weapon(kind: String, s: float, has_shield: bool) -> void:
+# arma já encaixada pela ferramenta encaixe_armas.mjs: origem no ponto da mão, lâmina em +Z, medida em metros
+const ARMAS := "res://assets/armas/"
+
+
+static func _model(item_id: String, kind: String, file: String, length: float, at: float, s: float) -> Node3D:
+	for f in [item_id, kind + "_ng"]:
+		if ResourceLoader.exists(ARMAS + f + ".glb"):
+			var w: Node3D = (load(ARMAS + f + ".glb") as PackedScene).instantiate()
+			var holder := Node3D.new()
+			holder.add_child(w)
+			w.scale = Vector3.ONE * s
+			return holder
+	return _place(file, length, at)
+
+
+func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id := "") -> void:
 	var g: Dictionary = GRIP[kind]
 	var side := str(g.get("hand", "r"))
+	fist = load("res://scripts/punho.gd").new()
+	skel.add_child(fist)
+	fist_hands = [side]
+	if float(g.get("two", 0.0)) > 0.0 or g.get("dual", false) or has_shield:
+		fist_hands = ["r", "l"]
 	var grip := _hand_grip(side)
 	if grip == null:
 		return
 	var at := float(g.at) * s if float(g.at) >= 0.0 else -1.0
-	wnode = _place(str(g.file), float(g.len) * s, at)
+	wnode = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
 	if kind == "arco":
 		wnode.transform = Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO) * wnode.transform
 	grip.add_child(wnode)
@@ -293,12 +315,12 @@ func _weapon(kind: String, s: float, has_shield: bool) -> void:
 	if g.get("dual", false):
 		var g2 := _hand_grip("l")
 		if g2 != null:
-			offhand = _place(str(g.file), float(g.len) * s, at)
+			offhand = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
 			g2.add_child(offhand)
 			offhand.visible = false
 	if has_shield and two <= 0.0 and side == "r":
-		_make_shield(s)
-	_make_sheath(bool(g.get("back", false)), kind in ["adaga", "punhal", "duplas"])
+		_make_shield(s, shield_id)
+	_make_sheath(bool(g.get("back", false)), kind in ["adaga", "punhal"])
 	armed = false
 	set_battle(true)
 
@@ -331,11 +353,16 @@ func _set_guard(on: bool) -> void:
 
 
 # escudo no antebraço esquerdo em combate; nas costas fora dele
-func _make_shield(s: float) -> void:
+func _make_shield(s: float, shield_id := "") -> void:
 	shield_arm = _hand_grip("l")
 	if shield_arm == null:
 		return
-	shield = (load(DIR + "w_shield_heater.glb") as PackedScene).instantiate()
+	var sfile := DIR + "w_shield_heater.glb"
+	for f in [shield_id, shield_id.get_slice("_", 0) + "_ng"]:
+		if f != "" and ResourceLoader.exists(ARMAS + f + ".glb"):
+			sfile = ARMAS + f + ".glb"
+			break
+	shield = (load(sfile) as PackedScene).instantiate()
 	var bb := AABB()
 	var first := true
 	for m in shield.find_children("*", "MeshInstance3D", true, false):
@@ -397,6 +424,9 @@ func set_battle(on: bool) -> void:
 		armed = on
 		return
 	armed = on
+	if fist != null:
+		for h in ["r", "l"]:
+			fist.amount[h] = 1.0 if on and h in fist_hands else 0.0
 	wnode.get_parent().remove_child(wnode)
 	(grip_node if on else sheath).add_child(wnode)
 	if guard != null:

@@ -1,0 +1,14 @@
+{
+  "name": "valtheria-ferramentas",
+  "private": true,
+  "type": "module",
+  "description": "Ferramentas de arte do Valtheria: encaixe de armas e pele automática",
+  "dependencies": {
+    "@gltf-transform/core": "^4",
+    "@gltf-transform/extensions": "^4",
+    "@gltf-transform/functions": "^4",
+    "gl-matrix": "^3",
+    "meshoptimizer": "^0.22",
+    "sharp": "^0.33"
+  }
+}
