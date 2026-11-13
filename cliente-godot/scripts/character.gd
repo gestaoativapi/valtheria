@@ -2,7 +2,7 @@ extends Node3D
 # Personagem: corpo-base + roupa + cabelo presos ao mesmo esqueleto, com as animações do jogo.
 
 const DIR := "res://assets/chars/"
-static var _library: AnimationLibrary
+static var _libraries := {}
 
 var skel: Skeleton3D
 var anim: AnimationPlayer
@@ -30,6 +30,8 @@ const SHAPE := {
 	"gigante:m": {"all": 1.38, "drop": 0.0, "bones": {"spine_03": 1.08, "Head": 0.88}},
 	"gigante:f": {"all": 1.3, "drop": 0.0, "bones": {"Head": 0.9}},
 }
+# modelos próprios: altura e quanto o quadril fica mais baixo que o do humano (as animações movem o quadril)
+const OWN := {"anao_m": {"height": 1.3, "hip": 0.54, "arm": 0.8}, "anao_f": {"height": 1.22, "hip": 0.53, "arm": 0.82}}
 const WEAPON := {"espada": ["w_sword", 1.0], "espadao": ["w_claymore", 1.45], "arco": ["w_bow_wooden", 1.3], "adaga": ["w_dagger", 0.5], "martelo": ["w_hammer_double", 1.2], "cajado": ["w_spear", 1.7], "machado": ["w_axe", 0.95]}
 
 
@@ -63,7 +65,16 @@ func _setup(o: Dictionary) -> void:
 	elif armor.begins_with("robe"):
 		outfit = "wizard" if male else "peasant"
 	var dragon := race == "draconato"
-	var body: Node3D = (load(DIR + ("body_dragonita" if dragon else "body_%s_%s" % [g, outfit]) + ".glb") as PackedScene).instantiate()
+	# raças com modelo próprio (corpo, roupa e cabelo numa peça só)
+	var own := ""
+	if race == "anao":
+		own = "anao_m" if male else "anao_f"
+	var file := "body_%s_%s" % [g, outfit]
+	if dragon:
+		file = "body_dragonita"
+	elif own != "":
+		file = "body_" + own
+	var body: Node3D = (load(DIR + file + ".glb") as PackedScene).instantiate()
 	body.name = "Corpo"
 	add_child(body)
 	skel = body.find_child("Skeleton3D", true, false) as Skeleton3D
@@ -76,6 +87,8 @@ func _setup(o: Dictionary) -> void:
 	if dragon:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
 			_tint(m as MeshInstance3D, Color(skin.r / 0.69, skin.g / 0.376, skin.b / 0.172))
+	elif own != "":
+		pass
 	else:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
 			var nm := String(m.name).to_lower()
@@ -95,7 +108,11 @@ func _setup(o: Dictionary) -> void:
 	var w: float = rd.get("w", 1.0)
 	var h: float = rd.get("h", 1.0) * (1.0 if male else 0.97)
 	var shape: Dictionary = SHAPE.get("%s:%s" % [race, "m" if male else "f"], {})
-	if shape.is_empty():
+	if own != "":
+		height_m = float(OWN[own].height)
+		for bn in ["upperarm_l", "upperarm_r"]:  # braços do modelo vêm longos demais para o corpo
+			skel.set_bone_pose_scale(skel.find_bone(bn), Vector3.ONE * float(OWN[own].arm))
+	elif shape.is_empty():
 		body.scale = Vector3(w, h, w)
 		height_m = 1.8 * h
 	else:
@@ -109,7 +126,7 @@ func _setup(o: Dictionary) -> void:
 		height_m = (1.8 + (0.12 if race == "anao" else 0.0)) * k - float(shape.drop) * k
 	anim = AnimationPlayer.new()
 	body.add_child(anim)
-	anim.add_animation_library("", _clips(skel))
+	anim.add_animation_library("", _clips(skel, own))
 	anim.playback_default_blend_time = 0.18
 	var wid := str(eq.get("arma", ""))
 	var kind := wid.split("_")[0]
@@ -140,10 +157,11 @@ func _attach(file: String, tint := Color(0, 0, 0, 0)) -> void:
 
 
 # as animações vêm em arquivos sem malha; as trilhas são reapontadas para os ossos do esqueleto
-static func _clips(sk: Skeleton3D) -> AnimationLibrary:
-	if _library:
-		return _library
-	_library = AnimationLibrary.new()
+static func _clips(sk: Skeleton3D, own := "") -> AnimationLibrary:
+	if _libraries.has(own):
+		return _libraries[own]
+	var lib := AnimationLibrary.new()
+	var hip: float = OWN[own].hip if own != "" else 1.0
 	for f in ["anims_a", "anims_b"]:
 		var sc: Node = (load(DIR + f + ".glb") as PackedScene).instantiate()
 		var ap := sc.find_child("AnimationPlayer", true, false) as AnimationPlayer
@@ -154,13 +172,17 @@ static func _clips(sk: Skeleton3D) -> AnimationLibrary:
 				var bone := String(p.get_name(p.get_name_count() - 1))
 				if sk.find_bone(bone) < 0:
 					a.remove_track(t)
-				else:
-					a.track_set_path(t, NodePath("Armature/Skeleton3D:" + bone))
+					continue
+				a.track_set_path(t, NodePath("Armature/Skeleton3D:" + bone))
+				if hip != 1.0 and a.track_get_type(t) == Animation.TYPE_POSITION_3D:
+					for k in a.track_get_key_count(t):
+						a.track_set_key_value(t, k, (a.track_get_key_value(t, k) as Vector3) * hip)
 			if n in ["Idle", "Walk", "Jog_Fwd", "Sprint", "Dance", "Idle_Talking", "Sitting_Idle", "Idle_FoldArms", "Idle_Shield", "Spell_Simple_Idle"]:
 				a.loop_mode = Animation.LOOP_LINEAR
-			_library.add_animation(n, a)
+			lib.add_animation(n, a)
 		sc.free()
-	return _library
+	_libraries[own] = lib
+	return lib
 
 
 func _weapon(file: String, length: float) -> void:
