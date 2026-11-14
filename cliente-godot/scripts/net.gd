@@ -5,8 +5,25 @@ const URL := "https://irpzdghikvoezfeodyiq.supabase.co"
 # chave pública do projeto (a mesma que o site usa); não dá acesso de administrador
 const KEY := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlycHpkZ2hpa3ZvZXpmZW9keWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzMzc3NzMsImV4cCI6MjEwOTkxMzc3M30.aQPcA_-gO2XA2MwydJ4DOOh0_MHya2Yic_XasmhQzQk"
 const DOMAIN := "@jogadores.reinosdeaurora.app"
+# "producao" no jogo oficial; o executável de TESTE é gerado com "testes" e com o endereço do projeto de testes
+const AMBIENTE := "producao"
+const PROD_REF := "irpzdghikvoezfeodyiq"  # projeto oficial: o executável de teste nunca pode apontar para ele
 
 var token := ""
+
+
+func _ready() -> void:
+	# trava do ambiente de testes: se o executável de teste apontar para a produção, não abre
+	if AMBIENTE == "testes" and (URL.contains(PROD_REF) or KEY.contains("ImlycHpkZ2hpa3ZvZXpmZW9keWlx")):
+		push_error("Executável de TESTE apontando para a PRODUÇÃO: abertura bloqueada.")
+		OS.alert("Este é o executável de TESTE e ele está configurado para o servidor oficial. Por segurança, ele não vai abrir.", "Valtheria — ambiente de testes")
+		get_tree().quit(1)
+
+
+func ambiente_teste() -> bool:
+	return AMBIENTE == "testes"
+
+
 var username := ""
 var refresh := ""
 var char_id := ""

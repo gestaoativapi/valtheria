@@ -112,6 +112,22 @@ func _ready() -> void:
 	ui = UI.new()
 	ui.info = world.info
 	add_child(ui)
+	if net.ambiente_teste():
+		# aviso fixo na tela: este jogo usa o servidor de testes, não o oficial
+		var faixa := Label.new()
+		faixa.text = "AMBIENTE DE TESTES — servidor de testes (não é o jogo oficial)"
+		faixa.add_theme_color_override("font_color", Color(1, 0.85, 0.2))
+		faixa.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+		faixa.add_theme_constant_override("outline_size", 6)
+		faixa.add_theme_font_size_override("font_size", 18)
+		faixa.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		faixa.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		faixa.offset_top = 6
+		faixa.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var camada := CanvasLayer.new()
+		camada.layer = 100
+		camada.add_child(faixa)
+		add_child(camada)
 	combat = Combat.new()
 	add_child(combat)
 	combat.setup(self)

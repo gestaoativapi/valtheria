@@ -37,7 +37,19 @@ jobs:
           curl -sSfL -o tpl.tpz https://github.com/godotengine/godot/releases/download/$GODOT/Godot_v${GODOT}_export_templates.tpz
           mkdir -p ~/.local/share/godot/export_templates/$TPL
           unzip -qj tpl.tpz templates/version.txt templates/windows_release_x86_64.exe templates/windows_release_x86_64_console.exe -d ~/.local/share/godot/export_templates/$TPL
+      - name: Configurar o AMBIENTE DE TESTES (nunca a producao)
+        run: |
+          cd cliente-godot
+          if [ ! -f teste/ambiente_teste.env ]; then echo "Sem teste/ambiente_teste.env: o executavel de teste nao sera gerado."; echo "SEM_AMBIENTE=1" >> $GITHUB_ENV; exit 0; fi
+          . teste/ambiente_teste.env
+          case "$TESTE_URL" in *irpzdghikvoezfeodyiq*) echo "ERRO: endereco de producao"; exit 1;; esac
+          sed -i "s#^const URL := .*#const URL := \"$TESTE_URL\"#" scripts/net.gd
+          sed -i "s#^const KEY := .*#const KEY := \"$TESTE_KEY\"#" scripts/net.gd
+          sed -i 's#^const AMBIENTE := .*#const AMBIENTE := "testes"#' scripts/net.gd
+          if grep -E '^const (URL|KEY) ' scripts/net.gd | grep -qE 'irpzdghikvoezfeodyiq|ImlycHpkZ2hpa3ZvZXpmZW9keWlx'; then echo "ERRO: producao no executavel de teste"; exit 1; fi
+          grep -E '^const (URL|AMBIENTE) ' scripts/net.gd
       - name: Gerar o executavel de teste
+        if: env.SEM_AMBIENTE != '1'
         run: |
           cd cliente-godot
           mkdir -p build
@@ -46,7 +58,8 @@ jobs:
           test -s build/Valtheria.exe
           cp windows/*.bat build/
       - uses: actions/upload-artifact@v4
+        if: env.SEM_AMBIENTE != '1'
         with:
-          name: Valtheria-TESTE-${{ github.ref_name }}
+          name: Valtheria-AMBIENTE-DE-TESTES-${{ github.ref_name }}
           path: cliente-godot/build/
           retention-days: 14
