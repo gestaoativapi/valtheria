@@ -16,6 +16,8 @@ signal want_exit_to_login
 signal want_new_char
 signal want_create(o: Dictionary)
 signal want_preview(o: Dictionary)
+signal want_show_char(c: Dictionary)  # tela de entrada: mostra o personagem escolhido como ele está
+signal want_gm(cmd: String, args: Dictionary)
 signal want_back_to_chars
 signal want_skill(i: int)
 signal want_action(fn: String, args: Dictionary)
@@ -94,6 +96,8 @@ var fx_sig := ""
 var hot_custom := {}
 var skill_list: Array = []
 var _detail_id := ""
+var gm_btn: Button
+var gm_view := {}  # estado mostrado no painel de GM (ligado/desligado, jogadores online)
 # ações do personagem: [id, ícone, nome, descrição]
 const ACTIONS := [["atacar", "atacar", "Atacar", "Ataca o alvo selecionado (tecla F)"], ["sentar", "sentar", "Sentar", "Senta no chão até você andar de novo"], ["pular", "pular", "Pular", "Dá um salto (barra de espaço)"],
 	["dancar", "dancar", "Dançar", "Dança até você andar de novo"], ["sorrir", "sorrir", "Sorrir", "Mostra um sorriso sobre o personagem"], ["chorar", "chorar", "Chorar", "Mostra o choro sobre o personagem"],
@@ -523,6 +527,10 @@ func _build_hud() -> void:
 			else:
 				want_window.emit(act))
 		dh.add_child(ib)
+	gm_btn = _icon("coroa", "Painel de GM (F10)", 40)
+	gm_btn.visible = false
+	gm_btn.pressed.connect(func(): want_window.emit("gm"))
+	dh.add_child(gm_btn)
 	_movable(dock, "doca")
 
 	# bate-papo
@@ -1097,6 +1105,9 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 	w_me = me
 	w_inv = inv
 	w_extra = extra
+	if name == "gm":
+		_gm_window()
+		return
 	if name == "bolsa":
 		win_title.text = "◆ Personagem   ·   %d aurum" % aurum
 		var eq: Dictionary = me.get("equipment") if me.get("equipment") is Dictionary else {}
@@ -1427,12 +1438,37 @@ func show_chars(list: Array, account: String) -> void:
 		char_box.add_child(l)
 	else:
 		char_box.add_child(_label("Escolha o personagem", 18, GOLD, true))
+		var pick_info := _label("", 14, Color(0.78, 0.8, 0.85))
+		pick_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var enter := _button("Entrar no jogo", true)
+		var group: Array = []
+		var chosen := {"c": {}}
+		var choose := func(d: Dictionary, b: Button):
+			chosen.c = d
+			for x in group:
+				(x as Button).modulate = Color(1, 1, 1, 0.62)
+			b.modulate = Color(1, 1, 1, 1)
+			var eq: Dictionary = d.get("equipment") if d.get("equipment") is Dictionary else {}
+			var gear: Array = []
+			for slot in ["arma", "armadura", "escudo"]:
+				var iid := str(eq.get(slot, ""))
+				if iid != "" and (info.get("items", {}) as Dictionary).has(iid):
+					gear.append(str(info.items[iid].get("name", iid)))
+			pick_info.text = "%s  ·  Nível %d%s" % [d.get("name", "?"), int(d.get("level", 1)), ("\n" + ", ".join(gear)) if not gear.is_empty() else ""]
+			want_show_char.emit(d)
 		for c in list:
 			var d: Dictionary = c
 			var race: String = info.races[d.race].name if (info.get("races", {}) as Dictionary).has(str(d.get("race", ""))) else str(d.get("race", "")).capitalize()
-			var b := _button("%s   ·   Nv %s   ·   %s" % [d.get("name", "?"), str(int(d.get("level", 1))), race], true)
-			b.pressed.connect(func(): want_char.emit(d))
+			var b := _button("%s   ·   Nv %s   ·   %s" % [d.get("name", "?"), str(int(d.get("level", 1))), race], false)
+			group.append(b)
+			b.pressed.connect(func(): choose.call(d, b))
 			char_box.add_child(b)
+		char_box.add_child(pick_info)
+		enter.pressed.connect(func():
+			if not (chosen.c as Dictionary).is_empty():
+				want_char.emit(chosen.c))
+		char_box.add_child(enter)
+		choose.call(list[0], group[0])
 	if list.size() < 3:
 		var nb := _button("Criar personagem")
 		nb.pressed.connect(func(): want_new_char.emit())
@@ -1441,3 +1477,151 @@ func show_chars(list: Array, account: String) -> void:
 	out.pressed.connect(func(): want_exit_to_login.emit())
 	char_box.add_child(out)
 	set_status("")
+
+
+# ---------- painel de GM ----------
+func set_gm(on: bool) -> void:
+	if gm_btn:
+		gm_btn.visible = on
+		var dock := gm_btn.get_parent().get_parent() as Control
+		dock.offset_top = dock.offset_bottom - (176.0 - 40.0) - (46.0 if on else 0.0)
+
+
+func _gm_row(parent: Control, defs: Array) -> void:
+	var h := HFlowContainer.new()
+	h.add_theme_constant_override("h_separation", 6)
+	h.add_theme_constant_override("v_separation", 6)
+	for d in defs:  # [texto, comando, argumentos, destaque]
+		var b := _button(str(d[0]), d.size() > 3 and bool(d[3]))
+		b.custom_minimum_size = Vector2(0, 30)
+		b.add_theme_font_size_override("font_size", 13)
+		b.focus_mode = Control.FOCUS_NONE
+		var cmd: String = d[1]
+		var args: Dictionary = d[2]
+		b.pressed.connect(func(): want_gm.emit(cmd, args))
+		h.add_child(b)
+	parent.add_child(h)
+
+
+func _gm_title(t: String) -> void:
+	win_list.add_child(_label(t, 15, GOLD, true))
+
+
+func _gm_window() -> void:
+	win_title.text = "♛ Painel de GM"
+	_tabs([["gm_mundo", "Teleporte"], ["gm_poder", "Poderes"], ["gm_mob", "Monstros"], ["gm_char", "Personagem"], ["gm_jog", "Jogadores"]], tab if tab.begins_with("gm_") else "gm_mundo", func(k):
+		tab = k
+		open_window("gm", w_me, w_inv, w_extra))
+	var cur: String = tab if tab.begins_with("gm_") else "gm_mundo"
+	var v: Dictionary = gm_view
+	match cur:
+		"gm_mundo":
+			_gm_title("Cidades")
+			var defs: Array = []
+			for t in info.towns:
+				defs.append([t.name, "tp", {"x": float(t.x) + 3.0, "z": float(t.z) + 8.0}])
+			_gm_row(win_list, defs)
+			for grp in [["castles", "Castelos"], ["villages", "Vilas"]]:
+				var lst: Array = (v.get("mapa", {}) as Dictionary).get(grp[0], [])
+				if lst.is_empty():
+					continue
+				_gm_title(grp[1])
+				defs = []
+				for c in lst:
+					defs.append([c.name, "tp", {"x": float(c.x), "z": float(c.z) + (44.0 if grp[0] == "castles" else 10.0)}])
+				_gm_row(win_list, defs)
+			_gm_title("Ruínas e pontos")
+			defs = []
+			for l in info.get("landmarks", []):
+				defs.append([l.name, "tp", {"x": float(l.x), "z": float(l.z) + float(l.get("r", 40)) * 0.7}])
+			_gm_row(win_list, defs)
+			_gm_title("Interiores")
+			_gm_row(win_list, [["Taverna", "interior", {"kind": "taverna"}], ["Forja", "interior", {"kind": "forja"}], ["Igreja", "interior", {"kind": "igreja"}], ["Casa", "interior", {"kind": "casa"}], ["Loja", "interior", {"kind": "loja"}]])
+			_note("Também pelo bate-papo: /tp x z   ·   /ir nome   ·   clique com Ctrl+Alt no chão para teleportar ali.")
+		"gm_poder":
+			_gm_title("Seu personagem")
+			_gm_row(win_list, [["Invencível: " + ("ligado" if v.get("god", false) else "desligado"), "deus", {}, v.get("god", false)],
+				["Velocidade x3: " + ("ligada" if v.get("speed", false) else "desligada"), "vel", {}, v.get("speed", false)],
+				["Voar: " + ("ligado" if v.get("fly", false) else "desligado"), "voar", {}, v.get("fly", false)],
+				["Invisível para monstros: " + ("ligado" if v.get("hide", false) else "desligado"), "oculto", {}, v.get("hide", false)],
+				["Curar tudo", "curar", {}]])
+			_note("Voando: Espaço sobe, X desce, V liga e desliga.")
+			_gm_title("Hora e clima")
+			_gm_row(win_list, [["Amanhecer", "hora", {"h": 6.0}], ["Meio-dia", "hora", {"h": 12.0}], ["Entardecer", "hora", {"h": 18.0}], ["Meia-noite", "hora", {"h": 0.0}], ["Chuva", "clima", {"w": "chuva"}], ["Céu limpo", "clima", {"w": "limpo"}]])
+			_gm_title("Mundo")
+			_gm_row(win_list, [["Recursos renascem", "reset_nos", {}], ["Mostrar posição", "onde", {}]])
+		"gm_mob":
+			_gm_title("Alvo e arredores")
+			_gm_row(win_list, [["Matar alvo", "matar", {}], ["Matar todos (40 m)", "matartodos", {"r": 40.0}], ["Limpar sem recompensa (60 m)", "limpar", {"r": 60.0}]])
+			_gm_title("Criar monstro aqui (nível do seu personagem)")
+			var defs: Array = []
+			var seen := {}
+			for band in info.mobs:
+				for f in band:
+					if not seen.has(f.id):
+						seen[f.id] = true
+						defs.append([("Chefe " if f.boss else "") + str(f.name), "spawn", {"fam": f.id}])
+			_gm_row(win_list, defs)
+		"gm_char":
+			var alvo := _edit("Jogador (vazio = você)")
+			alvo.text = str(v.get("alvo", ""))
+			alvo.text_changed.connect(func(t): gm_view.alvo = t)
+			win_list.add_child(alvo)
+			_gm_title("Nível e moeda")
+			_gm_row(win_list, [["Nível 20", "nivel", {"nivel": 20}], ["Nível 40", "nivel", {"nivel": 40}], ["Nível 61", "nivel", {"nivel": 61}], ["Nível 76", "nivel", {"nivel": 76}], ["Nível 80", "nivel", {"nivel": 80}],
+				["+10 mil aurum", "aurum", {"qtd": 10000}], ["+1 milhão aurum", "aurum", {"qtd": 1000000}], ["Karma zero", "karma", {"qtd": 0}], ["Ver ficha", "info", {}]])
+			_gm_title("Profissões no nível 30")
+			_gm_row(win_list, [["Coleta", "prof", {"prof": "coleta", "nivel": 30}], ["Refino", "prof", {"prof": "refino", "nivel": 30}], ["Forja", "prof", {"prof": "forja", "nivel": 30}]])
+			_gm_title("Dar item")
+			var row := HBoxContainer.new()
+			var ids: Array = (info.items as Dictionary).keys()
+			ids.sort_custom(func(a, b): return str(info.items[a].name) < str(info.items[b].name))
+			var ob := OptionButton.new()
+			ob.custom_minimum_size = Vector2(260, 32)
+			for iid in ids:
+				ob.add_item(str(info.items[iid].name))
+			ob.fit_to_longest_item = false
+			row.add_child(ob)
+			var qty := SpinBox.new()
+			qty.min_value = 1
+			qty.max_value = 9999
+			qty.value = 1
+			row.add_child(qty)
+			var give := _button("Entregar", true)
+			give.custom_minimum_size = Vector2(110, 32)
+			give.pressed.connect(func(): want_gm.emit("give", {"item": ids[ob.selected], "qtd": int(qty.value)}))
+			row.add_child(give)
+			win_list.add_child(row)
+			_gm_title("Anúncio para todos")
+			var an := _edit("Texto do anúncio")
+			win_list.add_child(an)
+			var ab := _button("Anunciar")
+			ab.pressed.connect(func(): want_gm.emit("anuncio", {"msg": an.text}))
+			win_list.add_child(ab)
+		"gm_jog":
+			var online: Array = v.get("online", [])
+			_gm_title("Jogadores perto de você (%d)" % online.size())
+			if online.is_empty():
+				_note("Ninguém por perto agora.")
+			for p in online:
+				var h := HBoxContainer.new()
+				var l := _label("%s  ·  Nv %d" % [p.name, int(p.lvl)], 15)
+				l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				h.add_child(l)
+				win_list.add_child(h)
+				_gm_row(win_list, [["Ir até", "tp", {"x": float(p.x) + 1.5, "z": float(p.z)}], ["Puxar", "puxar", {"alvo": p.name}], ["Ficha", "info", {"alvo": p.name}], ["Desconectar", "kick", {"alvo": p.name}], ["Banir", "ban", {"alvo": p.name}]])
+			_gm_title("Por nome")
+			var nm := _edit("Nome do jogador")
+			win_list.add_child(nm)
+			var defs: Array = []
+			for k in [["Ficha", "info"], ["Puxar", "puxar"], ["Desconectar", "kick"], ["Banir", "ban"], ["Desbanir", "desban"], ["Tornar GM", "setgm"]]:
+				var b := _button(k[0])
+				b.custom_minimum_size = Vector2(0, 30)
+				var cmd: String = k[1]
+				b.pressed.connect(func(): want_gm.emit(cmd, {"alvo": nm.text.strip_edges()}))
+				defs.append(b)
+			var hf := HFlowContainer.new()
+			for b in defs:
+				hf.add_child(b)
+			win_list.add_child(hf)
+	_note("Tudo o que vai ao servidor fica registrado no histórico de GM.")

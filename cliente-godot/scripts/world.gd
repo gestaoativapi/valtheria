@@ -2,6 +2,8 @@ extends Node3D
 # Mundo real de Valtheria: o mesmo relevo do servidor (assado em data/height.bin), carregado por blocos em volta do jogador.
 
 const FX = preload("res://scripts/fx.gd")
+const Cidade = preload("res://scripts/cidade.gd")
+const Especial = preload("res://scripts/especial.gd")
 const CH := 100.0  # tamanho do bloco de terreno, em metros
 const WATER_Y := 0.0
 
@@ -42,6 +44,11 @@ var lamp_mat: StandardMaterial3D
 var fire_mat: StandardMaterial3D
 var fires: Array = []
 var counts := {"arvores": 0, "grama": 0, "blocos": 0}
+var floors: Array = []  # pisos acima do chão (cais, pontes, plataformas da árvore): {"kind": "rect"|"ring"|"helix", ...}
+var doors: Array = []  # portas com interior: {"kind", "name", "pos", "yaw", "town"}
+var zones: Array = []  # lugares com luz própria: {"kind": "caverna"|"submarina", "c": Vector2, "r", "y"}
+var window_mat: StandardMaterial3D  # janelas: acendem à noite
+var town_svc_extra := {}  # cidade -> pontos especiais (arena, loja de lendários, palácio...)
 
 const TERRAIN_SHADER := """
 shader_type spatial;
@@ -145,6 +152,19 @@ func _init() -> void:
 	lo = info.lo
 	hrange = info.range
 	hb = FileAccess.get_file_as_bytes("res://data/height.bin")
+	for t in info.towns:  # cidades grandes: portões nas quatro avenidas retas
+		match size_of(t):
+			"capital", "grande":
+				t.gates = [PI, PI * 0.5, -PI * 0.5] if str(t.id) == "porto" else [0.0, PI * 0.5, PI, -PI * 0.5]
+		if special_of(t) in ["ilha", "submarina"]:
+			t.gates = []
+	window_mat = StandardMaterial3D.new()
+	window_mat.albedo_color = Color(0.12, 0.14, 0.18)
+	window_mat.roughness = 0.2
+	window_mat.metallic = 0.4
+	window_mat.emission_enabled = true
+	window_mat.emission = Color(1.0, 0.72, 0.38)
+	window_mat.emission_energy_multiplier = 0.0
 	splat_img = (load("res://data/splat.png") as Texture2D).get_image()
 	if splat_img.is_compressed():
 		splat_img.decompress()
@@ -206,11 +226,93 @@ func nearest_town(x: float, z: float) -> Dictionary:
 	var best := {}
 	var bd := 1e9
 	for t in info.towns:
-		var d := Vector2(x - t.x, z - t.z).length()
+		var d := tdist(t, x, z) - wall_r(t)  # distância até a muralha: cidades grandes contam pelo tamanho
 		if d < bd:
 			bd = d
 			best = t
-	return {"town": best, "dist": bd}
+	var real := tdist(best, x, z)
+	return {"town": best, "dist": real, "safe": safe_r(best), "wall": wall_r(best), "in_safe": real < safe_r(best)}
+
+
+# distância ao centro; cidades grandes têm muralha quadrada, então conta o maior dos dois eixos
+func tdist(t: Dictionary, x: float, z: float) -> float:
+	if size_of(t) in ["capital", "grande"]:
+		return maxf(absf(x - float(t.x)), absf(z - float(t.z)))
+	return Vector2(x - float(t.x), z - float(t.z)).length()
+
+
+func town_meta(t: Dictionary) -> Dictionary:
+	return mapa.get("towns", {}).get(str(t.get("id", "")), {})
+
+
+func size_of(t: Dictionary) -> String:
+	return str(town_meta(t).get("size", "media"))
+
+
+func special_of(t: Dictionary) -> String:
+	return str(town_meta(t).get("special", ""))
+
+
+# raio da muralha (metros a partir do centro) e da zona segura, pelo porte da cidade
+func wall_r(t: Dictionary) -> float:
+	match size_of(t):
+		"capital":
+			return 200.0
+		"grande":
+			return 128.0
+	match special_of(t):
+		"submarina":
+			return 84.0
+		"ilha":
+			return 60.0
+	return 86.0
+
+
+func safe_r(t: Dictionary) -> float:
+	return wall_r(t) - 12.0
+
+
+# altura do piso em x, z: o chão ou algo construído por cima (cais, ponte, plataforma), se estiver ao alcance do pé
+func floor_y(x: float, z: float, cur_y: float) -> float:
+	var g := height(x, z)
+	for f in floors:
+		var c: Vector2 = f.c
+		var dx := x - c.x
+		var dz := z - c.y
+		match str(f.kind):
+			"rect":
+				if absf(dx) > 80.0 or absf(dz) > 80.0:
+					continue
+				var a: float = -float(f.yaw)
+				var lx := dx * cos(a) - dz * sin(a)
+				var lz := dx * sin(a) + dz * cos(a)
+				var fy: float = f.y
+				if absf(lx) <= float(f.hw) and absf(lz) <= float(f.hd) and fy > g and fy <= cur_y + 1.0:
+					g = fy
+			"ring":
+				var d := sqrt(dx * dx + dz * dz)
+				var fy: float = f.y
+				if d >= float(f.r1) and d <= float(f.r2) and fy > g and fy <= cur_y + 1.0:
+					g = fy
+			"helix":  # rampa em espiral em volta da árvore
+				var d := sqrt(dx * dx + dz * dz)
+				if d < float(f.r1) or d > float(f.r2):
+					continue
+				var ang := fposmod(atan2(dx, dz), TAU)
+				for k in int(f.turns) + 1:
+					var fy: float = float(f.y0) + float(f.pitch) * (ang + TAU * k)
+					if fy > float(f.y1):
+						break
+					if fy > g and fy <= cur_y + 1.0 and fy >= cur_y - 2.5:
+						g = fy
+	return g
+
+
+func zone_at(x: float, z: float) -> Dictionary:
+	for zn in zones:
+		if Vector2(x, z).distance_to(zn.c) < float(zn.r):
+			return zn
+	return {}
 
 
 # dentro de castelo, vila ou ruína: sem árvores nem pedras no meio das construções
@@ -505,7 +607,8 @@ func _vegetation(key: Vector2i, parent: Node3D) -> void:
 		var s := r.randf_range(0.75, 1.35)
 		var yaw := r.randf() * TAU
 		var g := ground(x, z)
-		if g.g < 0.75 or height(x, z) < 1.6 or nearest_town(x, z).dist < 100.0 or _built_up(x, z):
+		var ntt: Dictionary = nearest_town(x, z)
+		if g.g < 0.75 or height(x, z) < 1.6 or ntt.dist < float(ntt.wall) + 14.0 or _built_up(x, z):
 			continue
 		if not by_file.has(pick[0]):
 			by_file[pick[0]] = [pick[1], []]
@@ -523,7 +626,8 @@ func _vegetation(key: Vector2i, parent: Node3D) -> void:
 		for i in 2:
 			var x := (key.x + r.randf()) * CH
 			var z := (key.y + r.randf()) * CH
-			if ground(x, z).g > 0.75 and height(x, z) > 1.6 and nearest_town(x, z).dist > 100.0 and not _built_up(x, z):
+			var ntr: Dictionary = nearest_town(x, z)
+			if ground(x, z).g > 0.75 and height(x, z) > 1.6 and ntr.dist > float(ntr.wall) + 14.0 and not _built_up(x, z):
 				rare.append(at(x, z, r.randf() * TAU, r.randf_range(0.8, 1.2), 0.15))
 		if not rare.is_empty():
 			place(parent, ["n_tree_light_1", "n_tree_light_2", "n_tree_spiral_1"][r.randi() % 3], rare, 8.5, tree_shadows)
@@ -534,7 +638,8 @@ func _vegetation(key: Vector2i, parent: Node3D) -> void:
 			var z := (key.y + r.randf()) * CH
 			var g := ground(x, z)
 			var rocky: bool = String(sdef[0]).contains("rock") or String(sdef[0]).begins_with("d_")
-			if height(x, z) < 1.4 or g.r > 0.3 or nearest_town(x, z).dist < 70.0 or (not rocky and g.g < 0.6) or _built_up(x, z, 0.7):
+			var ntv: Dictionary = nearest_town(x, z)
+			if height(x, z) < 1.4 or g.r > 0.3 or ntv.dist < float(ntv.wall) - 10.0 or (not rocky and g.g < 0.6) or _built_up(x, z, 0.7):
 				continue
 			pts.append(at(x, z, r.randf() * TAU, r.randf_range(0.6, 1.5), 0.1))
 		if not pts.is_empty():
@@ -647,6 +752,39 @@ func _build_town(t: Dictionary) -> void:
 	var r := RandomNumberGenerator.new()
 	r.seed = hash(t.id)
 	var style := str(mapa.get("towns", {}).get(str(t.id), {}).get("style", "radial"))
+	var urb: RefCounted = Cidade.new(self)
+	var tsize := size_of(t)
+	var sp := special_of(t)
+	if tsize in ["capital", "grande"] or sp in ["submarina", "ilha", "arvore"]:
+		var svc: Dictionary
+		if tsize in ["capital", "grande"]:
+			urb.begin(root, cx, cz)
+			svc = urb.build_big(t, tsize, str(town_meta(t).get("theme", "")))
+			urb.finish()
+			if str(t.id) == "porto":
+				var abis := town_by_id("abissal")
+				Especial.portal(self, root, Vector3(cx, 1.45, cz + 190.0), Vector3(float(abis.x), 0.0, float(abis.z) + 28.0), "Redemoinho para Abissália")
+		elif sp == "submarina":
+			svc = Especial.abissal(self, t, root, urb)
+		elif sp == "ilha":
+			svc = Especial.ilha(self, t, root, urb)
+		else:
+			svc = Especial.arvore(self, t, root)
+			urb.begin(root, cx, cz)
+			urb.pave_discs.append([0.0, 0.0, 30.0])
+			urb.fountain(-24.0, 26.0, 3.0, false)
+			urb.garden(26.0, 30.0, 9.0, 7.0, false)
+			urb.finish()
+			_plaza_core(root, t, svc, false)
+		town_svc[str(t.id)] = svc
+		for d in urb.doors:
+			d.town = str(t.id)
+			doors.append(d)
+		if sp != "arvore":
+			_town_marks(t, root, sp != "submarina")
+		else:
+			_town_marks(t, root, false)
+		return
 	var lay := _layout(style, t, r)
 	town_svc[str(t.id)] = lay.svc
 	for hdef in lay.houses:
@@ -680,6 +818,13 @@ func _build_town(t: Dictionary) -> void:
 			block(cx + bx, cz + bz, minf(float(bdef[3]), float(bdef[5])) * 0.5)
 	for key in by_mat:
 		_boxes(root, mats[key], by_mat[key], 900.0)
+	Especial.enfeites(self, t, root, urb)
+	for d in [["taverna", "Pousada", lay.svc.pousada], ["forja", "Ferraria", lay.svc.forja]]:
+		var sv: Vector2 = d[2]
+		var toward := -sv.normalized() * 8.5
+		doors.append({"kind": d[0], "name": d[1], "pos": Vector3(cx + sv.x + toward.x, height(cx + sv.x + toward.x, cz + sv.y + toward.y), cz + sv.y + toward.y), "yaw": atan2(toward.x, toward.y), "town": str(t.id)})
+	if sp == "caverna":
+		Especial.caverna(self, t, root)
 	# praça (igual em função, muda de lugar o que é de serviço)
 	_building(root, "b_inn", cx + lay.svc.pousada.x, cz + lay.svc.pousada.y, 10.5, cx, cz)
 	_building(root, "b_blacksmith", cx + lay.svc.forja.x, cz + lay.svc.forja.y, 6.8, cx, cz)
@@ -753,8 +898,8 @@ func _build_town(t: Dictionary) -> void:
 	# anel dourado no chão: limite da zona segura
 	var ring := MeshInstance3D.new()
 	var tm := TorusMesh.new()
-	tm.inner_radius = 69.6
-	tm.outer_radius = 70.0
+	tm.inner_radius = safe_r(t) - 0.4
+	tm.outer_radius = safe_r(t)
 	tm.rings = 96
 	tm.ring_segments = 4
 	var rmat := StandardMaterial3D.new()
@@ -787,6 +932,74 @@ func _build_town(t: Dictionary) -> void:
 	plate.visibility_range_begin = 60.0
 	plate.visibility_range_end = 700.0
 	root.add_child(plate)
+
+
+# anel da zona segura e placa com o nome (cidades grandes e especiais)
+func _town_marks(t: Dictionary, root: Node3D, ring_on := true) -> void:
+	var cx: float = t.x
+	var cz: float = t.z
+	var gy := height(cx, cz)
+	if ring_on and size_of(t) in ["capital", "grande"]:  # zona segura quadrada, como a muralha
+		ring_on = false
+		var sm := StandardMaterial3D.new()
+		sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		sm.albedo_color = Color(1.0, 0.82, 0.4, 0.55)
+		var S := safe_r(t)
+		var segs: Array = []
+		var k := -S
+		while k < S:
+			for e in [[k + 2.0, -S, 0.0], [k + 2.0, S, 0.0], [-S, k + 2.0, PI * 0.5], [S, k + 2.0, PI * 0.5]]:
+				segs.append(_box(Vector3(e[0], height(cx + float(e[0]), cz + float(e[1])) + 0.1, e[1]), Vector3(4.05, 0.06, 0.4), e[2]))
+			k += 4.0
+		_boxes(root, sm, segs, 400.0)
+	if ring_on:
+		var ring := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = safe_r(t) - 0.4
+		tm.outer_radius = safe_r(t)
+		tm.rings = 160
+		tm.ring_segments = 4
+		var rmat := StandardMaterial3D.new()
+		rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		rmat.albedo_color = Color(1.0, 0.82, 0.4, 0.55)
+		tm.material = rmat
+		ring.mesh = tm
+		ring.position = Vector3(0.0, gy + 0.12, 0.0)
+		ring.scale = Vector3(1.0, 0.2, 1.0)
+		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(ring)
+	if special_of(t) in ["arvore", "submarina", "ilha"]:
+		return
+	var plate := Label3D.new()
+	plate.text = t.name
+	plate.font = load("res://assets/cinzel.ttf")
+	plate.font_size = 120 if size_of(t) == "capital" else 104
+	plate.pixel_size = 0.02 if size_of(t) != "capital" else 0.03
+	plate.outline_size = 18
+	plate.modulate = Color(1.0, 0.9, 0.62)
+	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	plate.position = Vector3(0.0, gy + (60.0 if size_of(t) == "capital" else 40.0), 0.0)
+	plate.visibility_range_begin = 90.0
+	plate.visibility_range_end = 1400.0
+	root.add_child(plate)
+
+
+# núcleo de serviço comum (pousada, ferraria, estábulo, poço, bancas) para cidades de planta própria
+func _plaza_core(root: Node3D, t: Dictionary, svc: Dictionary, fire := true) -> void:
+	var cx: float = t.x
+	var cz: float = t.z
+	_building(root, "b_inn", cx + svc.pousada.x, cz + svc.pousada.y, 10.5, cx, cz)
+	_building(root, "b_blacksmith", cx + svc.forja.x, cz + svc.forja.y, 6.8, cx, cz)
+	_building(root, "b_stable", cx + svc.estabulo.x, cz + svc.estabulo.y, 6.2, cx, cz)
+	_building(root, "b_marketstand_1", cx - 28.0, cz + 18.0, 3.1, cx, cz)
+	_building(root, "b_marketstand_2", cx - 30.0, cz - 8.0, 3.1, cx, cz)
+	place(root, "b_bench_1", [at(cx + 26.0, cz - 14.0, 0.0), at(cx - 20.0, cz - 26.0, 0.3)], 0.95, true, 150.0)
+	for d in [["taverna", "Pousada", svc.pousada], ["forja", "Ferraria", svc.forja]]:
+		var sv: Vector2 = d[2]
+		var toward := -sv.normalized() * 8.5
+		doors.append({"kind": d[0], "name": d[1], "pos": Vector3(cx + sv.x + toward.x, height(cx + sv.x + toward.x, cz + sv.y + toward.y), cz + sv.y + toward.y), "yaw": atan2(toward.x, toward.y), "town": str(t.id)})
 
 
 func _near_gate(t: Dictionary, a: float, tol: float) -> bool:
@@ -839,15 +1052,20 @@ func _build_walls(t: Dictionary) -> void:
 	var root: Node3D = get_node(str(t.id))
 	var style := str(mapa.get("towns", {}).get(str(t.id), {}).get("style", "radial"))
 	var shape: int = WALL_SHAPE.get(style, 60)
+	if special_of(t) in ["ilha", "submarina"]:
+		return
+	var big := size_of(t) in ["capital", "grande"]
+	if big:
+		shape = 4
 	var palisade := shape < 0
 	var n := 48 if palisade else shape
 	var tones := [Color(0.72, 0.7, 0.66), Color(0.8, 0.74, 0.58), Color(0.62, 0.62, 0.64), Color(0.6, 0.68, 0.6), Color(0.7, 0.5, 0.42), Color(0.78, 0.86, 0.95)]
 	var mat: Material = _wood_mat() if palisade else _stone(tones[clampi(int(t.band), 0, 5)])
 	var wood := _wood_mat()
-	var R := 86.0
+	var R := wall_r(t)
 	var phase := PI / n if n <= 6 else 0.0
 	var Rv := R / cos(PI / n)  # raio dos cantos, para o meio de cada lado ficar a 86 m
-	var tall := 4.6 if palisade else 6.6
+	var tall := 4.6 if palisade else (9.5 if size_of(t) == "capital" else (7.8 if big else 6.6))
 	var walls: Array = []
 	var merlons: Array = []
 	var towers: Array = []
@@ -876,6 +1094,8 @@ func _build_walls(t: Dictionary) -> void:
 				var gh := height(cx + pp.x, cz + pp.y)
 				lo = minf(lo, gh)
 				hi = maxf(hi, gh)
+			if lo < 1.2:  # muralha não entra no mar
+				continue
 			var bottom := lo - 1.6
 			var top := hi + tall
 			walls.append(_box(Vector3(m.x, (top + bottom) * 0.5, m.y), Vector3(plen + 0.5, top - bottom, 0.9 if palisade else 1.7), yaw))
@@ -892,7 +1112,7 @@ func _build_walls(t: Dictionary) -> void:
 				block(cx + o2.x, cz + o2.y, 1.0)
 			if not palisade and n == 60 and (e % 6 == 0) and k == 0:
 				_tower(towers, merlons, Vector3(m.x, 0, m.y), lo, hi, yaw, 4.6)
-		if not palisade and n <= 6 and not _gate_cut(t, p1, 7.0):  # torre em cada canto
+		if not palisade and n <= 6 and not _gate_cut(t, p1, 7.0) and height(cx + p1.x, cz + p1.y) > 1.2:  # torre em cada canto
 			var g1 := height(cx + p1.x, cz + p1.y)
 			_tower(towers, merlons, Vector3(p1.x, 0, p1.y), g1, g1, a1, 6.0)
 			block(cx + p1.x, cz + p1.y, 3.0)
@@ -905,6 +1125,8 @@ func _build_walls(t: Dictionary) -> void:
 			gd = R / cos(rel)
 		var side := Vector3(cos(a), 0, -sin(a))
 		var c := Vector3(sin(a) * gd, height(cx + sin(a) * gd, cz + cos(a) * gd), cos(a) * gd)
+		if c.y < 1.2:
+			continue
 		for sgn in [-1.0, 1.0]:
 			var tp: Vector3 = c + side * sgn * 5.6
 			var tg := height(cx + tp.x, cz + tp.z)
@@ -1095,25 +1317,13 @@ func _build_village(v: Dictionary) -> void:
 func _build_bridge(b: Array) -> void:
 	var a := Vector3(float(b[0]), 0, float(b[1]))
 	var c := Vector3(float(b[2]), 0, float(b[3]))
-	var dir := (c - a).normalized()
-	var yaw := atan2(dir.x, dir.z)
-	var len := a.distance_to(c) + 14.0
-	var mid := (a + c) * 0.5
 	var root := Node3D.new()
 	root.name = "Ponte"
-	root.position = Vector3(mid.x, 2.3, mid.z)
 	add_child(root)
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.42, 0.3, 0.18)
-	wood.roughness = 0.9
-	var parts: Array = [_box(Vector3.ZERO, Vector3(6.0, 0.35, len), yaw)]
-	var side := Vector3(dir.z, 0, -dir.x)
-	for sgn in [-1.0, 1.0]:
-		parts.append(_box(side * sgn * 2.9 + Vector3(0, 1.0, 0), Vector3(0.18, 0.18, len), yaw))
-		for k in range(0, int(len / 4.0) + 1):
-			var along := dir * (k * 4.0 - len * 0.5)
-			parts.append(_box(side * sgn * 2.9 + along + Vector3(0, -1.2, 0), Vector3(0.3, 4.6, 0.3), yaw))
-	_boxes(root, wood, parts, 500.0)
+	var urb: RefCounted = Cidade.new(self)
+	urb.begin(root, 0.0, 0.0)
+	urb.stone_bridge(a, c, maxf(2.3, maxf(height(a.x, a.z), height(c.x, c.z)) + 0.2))
+	urb.finish()
 
 
 func _build_water() -> void:

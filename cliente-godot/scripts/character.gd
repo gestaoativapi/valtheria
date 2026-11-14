@@ -530,3 +530,47 @@ func _process(dt: float) -> void:
 	var want := clampf(foot_off - gap, -0.35, 0.25)
 	foot_off = lerpf(foot_off, want, clampf(dt * 10.0, 0.0, 1.0))
 	body_node.position.y = body_base_y + foot_off / maxf(scale.y, 0.01)
+
+
+# roupa de frio: capa de pele nas costas, gola felpuda e capuz (lugares gelados)
+func winter(seed: int) -> void:
+	var h := height_m
+	var k := h / 1.8
+	var furs := [Color(0.45, 0.32, 0.2), Color(0.32, 0.24, 0.18), Color(0.62, 0.58, 0.52), Color(0.38, 0.12, 0.1), Color(0.2, 0.26, 0.38)]
+	var cloth := StandardMaterial3D.new()
+	cloth.albedo_color = furs[absi(seed) % furs.size()]
+	cloth.roughness = 1.0
+	var fur := StandardMaterial3D.new()
+	fur.albedo_color = Color(0.86, 0.82, 0.74) if seed % 2 == 0 else Color(0.5, 0.4, 0.3)
+	fur.roughness = 1.0
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.46 * k, 0.62 * h, 0.04 * k)
+	bm.material = cloth
+	var cape := MeshInstance3D.new()
+	cape.mesh = bm
+	cape.position = Vector3(0, 0.5 * h, -0.16 * k)
+	cape.rotation.x = 0.1
+	add_child(cape)
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.08 * k
+	tm.outer_radius = 0.16 * k
+	tm.rings = 12
+	tm.ring_segments = 6
+	tm.material = fur
+	var collar := MeshInstance3D.new()
+	collar.mesh = tm
+	collar.position = Vector3(0, 0.815 * h, -0.02 * k)
+	collar.scale = Vector3(1.0, 0.55, 0.9)
+	add_child(collar)
+	var sm := SphereMesh.new()
+	sm.radius = 0.12 * k
+	sm.height = 0.24 * k
+	sm.is_hemisphere = true
+	sm.radial_segments = 12
+	sm.rings = 6
+	sm.material = cloth
+	var hood := MeshInstance3D.new()
+	hood.mesh = sm
+	hood.position = Vector3(0, 0.915 * h, -0.025 * k)
+	hood.scale = Vector3(1.0, 1.1, 1.15)
+	add_child(hood)

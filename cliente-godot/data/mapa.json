@@ -3,57 +3,107 @@
   "aurora": {
    "style": "radial",
    "desc": "Casas em dois anéis em volta da praça; torre do sino; moinho.",
-   "size": "?"
+   "size": "media",
+   "theme": "",
+   "special": ""
   },
   "dourado": {
-   "style": "campos",
-   "desc": "Casas pequenas em quadras, celeiros, plantações e fardos de feno; coreto no centro.",
-   "size": "?"
+   "style": "grande",
+   "desc": "Cidade grande (mercado de grãos e feiras): ruas retas, casas grandes lado a lado, jardins, soldados de ronda, povo de várias raças. Casas pequenas em quadras, celeiros, plantações e fardos de feno; coreto no centro.",
+   "size": "grande",
+   "theme": "dourado",
+   "special": ""
   },
   "pedra": {
    "style": "terracos",
    "desc": "Muralha quadrada; casas em três terraços; bairro das forjas com caldeirões; salão de pedra.",
-   "size": "?"
+   "size": "media",
+   "theme": "",
+   "special": ""
   },
   "sylvar": {
    "style": "bosque",
    "desc": "Casas soltas entre árvores grandes e árvores luminosas; pavilhão central; sem ruas retas.",
-   "size": "?"
+   "size": "media",
+   "theme": "",
+   "special": "arvore"
   },
   "rubra": {
-   "style": "fortaleza",
-   "desc": "Muralha quadrada; quartéis em fileiras; arena de pedra no centro; braseiros.",
-   "size": "?"
+   "style": "grande",
+   "desc": "Cidade grande (quartéis e arena de guerra): ruas retas, casas grandes lado a lado, jardins, soldados de ronda, povo de várias raças. Muralha quadrada; quartéis em fileiras; arena de pedra no centro; braseiros.",
+   "size": "grande",
+   "theme": "rubra",
+   "special": ""
   },
   "celeste": {
    "style": "mirante",
    "desc": "Muralha hexagonal; casas em espiral subindo; torre alta no centro.",
-   "size": "?"
+   "size": "media",
+   "theme": "",
+   "special": "montanha"
   },
   "presas": {
    "style": "acampamento",
    "desc": "Paliçada de madeira; cabanas em círculo grande; totens de pedra; várias fogueiras.",
-   "size": "?"
+   "size": "media",
+   "theme": "",
+   "special": ""
   },
   "umbraval": {
    "style": "crescente",
    "desc": "Casas em meia-lua em volta de um obelisco escuro; colunas; luz fria.",
-   "size": "?"
+   "size": "media",
+   "theme": "",
+   "special": "caverna"
   },
   "pico": {
    "style": "encosta",
    "desc": "Uma rua principal com casas dos dois lados; santuário do dragão no fim da rua.",
-   "size": "?"
+   "size": "media",
+   "theme": "",
+   "special": "montanha"
   },
   "noctis": {
-   "style": "gotica",
-   "desc": "Muralha quadrada; quadras retas; catedral de pedra com torres no centro; grades de ferro.",
-   "size": "?"
+   "style": "grande",
+   "desc": "Cidade grande (catedral e bairro nobre): ruas retas, casas grandes lado a lado, jardins, soldados de ronda, povo de várias raças. Muralha quadrada; quadras retas; catedral de pedra com torres no centro; grades de ferro.",
+   "size": "grande",
+   "theme": "noctis",
+   "special": ""
   },
   "glacial": {
    "style": "salao",
-   "desc": "Poucas casas grandes em volta de um grande salão; muralha redonda.",
-   "size": "?"
+   "desc": "Poucas casas grandes em volta de um grande salão; muralha redonda; povo com roupa de frio.",
+   "size": "media",
+   "theme": "",
+   "special": "frio"
+  },
+  "capital": {
+   "style": "capital",
+   "desc": "Capital do jogo: ruas retas em grade, quarteirões de casas grandes lado a lado, palácio real, Arena dos Heróis, jardins, cavaleiros, artesão lendário e loja de itens únicos.",
+   "size": "capital",
+   "theme": "",
+   "special": ""
+  },
+  "porto": {
+   "style": "grande",
+   "desc": "Cidade grande (cais e mercado do mar): ruas retas, casas grandes lado a lado, jardins, soldados de ronda, povo de várias raças. Cidade grande na praia: ruas retas, mercado do porto, cais com barcos, farol.",
+   "size": "grande",
+   "theme": "porto",
+   "special": "praia"
+  },
+  "coralis": {
+   "style": "ilha",
+   "desc": "Cidade numa ilha da Baía das Marés: casas de praia, coqueiros e cais; chega-se nadando ou voando.",
+   "size": "media",
+   "theme": "",
+   "special": "ilha"
+  },
+  "abissal": {
+   "style": "abissal",
+   "desc": "Cidade no fundo do mar, dentro de uma bolha de ar; corais e luz azul; entrada pelo redemoinho do porto.",
+   "size": "media",
+   "theme": "",
+   "special": "submarina"
   }
  },
  "castles": [
@@ -69,41 +119,41 @@
    "id": "castelo_dourado",
    "name": "Castelo do Vale Dourado",
    "town": "dourado",
-   "x": 650,
-   "z": 1699,
-   "dist": 351
+   "x": 762,
+   "z": 1632,
+   "dist": 433
   },
   {
    "id": "castelo_pedra",
    "name": "Castelo de Pedra Alta",
    "town": "pedra",
-   "x": 2046,
-   "z": 2126,
-   "dist": 351
+   "x": 2311,
+   "z": 1655,
+   "dist": 298
   },
   {
    "id": "castelo_sylvar",
    "name": "Castelo de Sylvar",
    "town": "sylvar",
-   "x": 1266,
-   "z": 1315,
-   "dist": 270
+   "x": 1232,
+   "z": 1718,
+   "dist": 379
   },
   {
    "id": "castelo_rubra",
    "name": "Castelo Rubro",
    "town": "rubra",
-   "x": 526,
-   "z": 500,
-   "dist": 325
+   "x": 311,
+   "z": 891,
+   "dist": 351
   },
   {
    "id": "castelo_celeste",
    "name": "Castelo Celeste",
    "town": "celeste",
-   "x": 2654,
-   "z": 826,
-   "dist": 351
+   "x": 2675,
+   "z": 516,
+   "dist": 352
   },
   {
    "id": "castelo_sangue",
@@ -128,6 +178,14 @@
    "x": 520,
    "z": 520,
    "dist": 269
+  },
+  {
+   "id": "castelo_real",
+   "name": "Castelo Real de Valtheria",
+   "town": "capital",
+   "x": 1624,
+   "z": 1685,
+   "dist": 325
   }
  ],
  "villages": [
@@ -137,8 +195,8 @@
    "towns": [
     "aurora"
    ],
-   "x": 1537,
-   "z": 2270,
+   "x": 1220,
+   "z": 2587,
    "houses": 11,
    "seed": 76346
   },
@@ -172,8 +230,8 @@
     "dourado",
     "presas"
    ],
-   "x": 883,
-   "z": 1990,
+   "x": 729,
+   "z": 1831,
    "houses": 12,
    "seed": 35735
   },
@@ -183,8 +241,8 @@
    "towns": [
     "pedra"
    ],
-   "x": 2447,
-   "z": 1715,
+   "x": 2126,
+   "z": 1778,
    "houses": 10,
    "seed": 9315
   },
@@ -195,8 +253,8 @@
     "aurora",
     "pedra"
    ],
-   "x": 2102,
-   "z": 2386,
+   "x": 2056,
+   "z": 2119,
    "houses": 11,
    "seed": 99748
   },
@@ -218,8 +276,8 @@
     "sylvar",
     "umbraval"
    ],
-   "x": 2008,
-   "z": 1137,
+   "x": 1986,
+   "z": 987,
    "houses": 11,
    "seed": 1926
   },
@@ -229,8 +287,8 @@
    "towns": [
     "rubra"
    ],
-   "x": 840,
-   "z": 946,
+   "x": 478,
+   "z": 1024,
    "houses": 12,
    "seed": 54259
   },
@@ -240,8 +298,8 @@
    "towns": [
     "celeste"
    ],
-   "x": 2350,
-   "z": 990,
+   "x": 2038,
+   "z": 243,
    "houses": 11,
    "seed": 66588
   },
@@ -251,8 +309,8 @@
    "towns": [
     "pico"
    ],
-   "x": 1542,
-   "z": 198,
+   "x": 1958,
+   "z": 487,
    "houses": 9,
    "seed": 11248
   },
@@ -263,8 +321,8 @@
     "pico",
     "rubra"
    ],
-   "x": 889,
-   "z": 703,
+   "x": 892,
+   "z": 768,
    "houses": 9,
    "seed": 92056
   },
@@ -275,8 +333,8 @@
     "noctis",
     "umbraval"
    ],
-   "x": 2379,
-   "z": 1321,
+   "x": 2502,
+   "z": 974,
    "houses": 11,
    "seed": 58814
   },
@@ -286,10 +344,44 @@
    "towns": [
     "glacial"
    ],
-   "x": 330,
-   "z": 584,
+   "x": 82,
+   "z": 227,
    "houses": 8,
    "seed": 30919
+  },
+  {
+   "id": "vila_quinta",
+   "name": "Quinta Real",
+   "towns": [
+    "capital"
+   ],
+   "x": 1544,
+   "z": 2322,
+   "houses": 12,
+   "seed": 63305
+  },
+  {
+   "id": "vila_farol",
+   "name": "Vila do Farol",
+   "towns": [
+    "porto"
+   ],
+   "x": 2081,
+   "z": 2399,
+   "houses": 8,
+   "seed": 36831
+  },
+  {
+   "id": "vila_estrada",
+   "name": "Pouso da Estrada Real",
+   "towns": [
+    "capital",
+    "aurora"
+   ],
+   "x": 1715,
+   "z": 2210,
+   "houses": 11,
+   "seed": 55418
   }
  ]
 }

@@ -16,6 +16,7 @@ var ws_ref := 0
 var ws_joined := false
 var ws_beat := 0.0
 var ws_me := {}
+var is_gm := false  # conta de GM (vem de game_chars)
 signal remote_pos(p: Dictionary)
 signal remote_leave(id: String)
 
@@ -95,7 +96,8 @@ func chars() -> Dictionary:
 	var list: Array = []
 	if r.ok and r.data is Dictionary and (r.data as Dictionary).get("chars") is Array:
 		list = r.data.chars
-	return {"ok": r.ok, "chars": list, "erro": r.erro}
+		is_gm = bool((r.data as Dictionary).get("is_gm", false))
+	return {"ok": r.ok, "chars": list, "erro": r.erro, "is_gm": is_gm}
 
 
 func create_char(o: Dictionary) -> String:
@@ -190,9 +192,18 @@ func _process(dt: float) -> void:
 				remote_leave.emit(str(k))
 
 
+# comando de GM no servidor (registrado em game.gm_log); devolve o texto da resposta
+func gm(cmd: String, args := {}) -> String:
+	var r := await rpc_call("game_gm", {"p_char": char_id, "p_cmd": cmd, "p_args": args})
+	if not r.ok:
+		return "Erro: " + str(r.erro)
+	return str(r.data)
+
+
 func logout() -> void:
 	rt_leave()
 	inventory = {}
+	is_gm = false
 	token = ""
 	username = ""
 	refresh = ""

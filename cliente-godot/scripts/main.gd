@@ -59,6 +59,15 @@ var test_fight := false
 var log_file: FileAccess
 var log_t := 0.0
 var forward := true
+var showing := false  # tela de entrada mostrando o personagem escolhido
+var gm := false  # conta de GM
+var gm_god := false
+var gm_speed := false
+var gm_fly := false
+var gm_hide := false
+var fly_y := 0.0
+var interiores: Node3D
+var swimming := false
 
 
 func _ready() -> void:
@@ -117,6 +126,9 @@ func _ready() -> void:
 	social = Social.new()
 	add_child(social)
 	social.setup(self)
+	interiores = load("res://scripts/interiores.gd").new()
+	add_child(interiores)
+	interiores.setup(self)
 	ui.want_window.connect(_window)
 	ui.want_do.connect(_do)
 	ui.want_self.connect(func():
@@ -127,13 +139,17 @@ func _ready() -> void:
 	ui.want_new_char.connect(_new_char)
 	ui.want_preview.connect(_preview)
 	ui.want_create.connect(_create)
+	ui.want_show_char.connect(_show_char)
+	ui.want_gm.connect(_gm)
 	ui.want_back_to_chars.connect(func():
 		creating = false
 		_preview({"equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}})
 		ui.show_chars(ui.last_chars, ui.last_account))
 	ui.want_login.connect(_login)
 	ui.want_signup.connect(_signup)
-	ui.want_offline.connect(func(): _enter({"name": "Viajante", "level": 1, "equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}}))
+	ui.want_offline.connect(func():
+		gm = true  # sozinho no mundo: comandos de GM liberados para teste
+		_enter({"name": "Viajante", "level": 1, "equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}}))
 	ui.want_char.connect(_enter)
 	ui.want_quality.connect(func(): _set_quality((quality + 1) % QUALITY.size()))
 	ui.want_vsync.connect(_toggle_vsync)
@@ -234,6 +250,19 @@ func _ready() -> void:
 			facing = PI
 		elif a == "--crowd":
 			_spawn_crowd()
+		elif a.begins_with("--look="):  # teste: câmera atrás do personagem olhando para x, z
+			var lk := a.trim_prefix("--look=").split(",")
+			yaw = atan2(player.position.x - float(lk[0]), player.position.z - float(lk[1]))
+			facing = yaw + PI
+			player.rotation.y = facing
+		elif a == "--gm":
+			gm = true
+			ui.set_gm(true)
+		elif a.begins_with("--interior="):  # teste: abre um interior
+			interiores.call_deferred("enter_kind", a.trim_prefix("--interior="))
+		elif a == "--showchar":  # teste: tela de escolha com o personagem como está
+			ui.show_chars([{"name": "SpeedX", "level": 80, "race": test_race, "gender": test_gender, "look": {"skin": 1, "hair": 2, "hair_color": 1}, "equipment": {"armadura": test_armor, "arma": test_weapon, "escudo": test_shield}},
+				{"name": "Dragonitte", "level": 1, "race": "draconato", "gender": "f", "equipment": {"armadura": "leve_ng"}}], "robsonpereira26")
 		elif a.begins_with("--at="):
 			var p := a.trim_prefix("--at=").split(",")
 			home = Vector3(float(p[0]), 0, float(p[1]))
@@ -255,6 +284,7 @@ func _ready() -> void:
 
 func _place_player(p: Vector3) -> void:
 	player.position = Vector3(p.x, world.height(p.x, p.z), p.z)
+	player.position.y = _ground_at(p.x, p.z)
 
 
 # ---------- conta ----------
@@ -289,6 +319,7 @@ func _list_chars() -> void:
 		ui.busy(false)
 		ui.set_status(r.erro)
 		return
+	gm = bool(r.get("is_gm", false))
 	ui.show_chars(r.chars, net.username)
 
 
@@ -305,6 +336,17 @@ func _swap_player(o: Dictionary) -> void:
 
 func _preview(o: Dictionary) -> void:
 	_swap_player(o)
+
+
+# tela de entrada: o personagem aparece como está agora (raça, visual, armadura e arma equipadas)
+func _show_char(c: Dictionary) -> void:
+	showing = true
+	_swap_player(c)
+	_place_player(home)
+	facing = 0.0
+	player.rotation.y = facing
+	player.set_battle(true)
+	player.set_tag("%s%s  Nv %d" % ["[GM] " if gm else "", str(c.get("name", "?")), int(c.get("level", 1))], Color(1.0, 0.82, 0.35) if gm else Color(0.9, 0.95, 1.0))
 
 
 func _new_char() -> void:
@@ -326,6 +368,7 @@ func _create(o: Dictionary) -> void:
 
 func _enter(c: Dictionary) -> void:
 	creating = false
+	showing = false
 	me = c.duplicate(true)
 	if c.has("id") and net.token != "":
 		ui.busy(true)
@@ -336,6 +379,7 @@ func _enter(c: Dictionary) -> void:
 			ui.set_status("Não foi possível carregar o personagem. Tente de novo.")
 			return
 		me = st
+	me.is_gm = gm
 	_swap_player(me)
 	var pos := Vector3(float(me.get("x", home.x)), 0.0, float(me.get("z", home.z)))
 	_place_player(pos)
@@ -344,7 +388,11 @@ func _enter(c: Dictionary) -> void:
 	for i in 6:
 		world.stream(player.position, 8)
 	var nm := str(me.get("name", "Viajante"))
-	player.set_tag(nm)
+	if gm:
+		player.set_tag("[GM] " + nm, Color(1.0, 0.8, 0.3))
+	else:
+		player.set_tag(nm)
+	ui.set_gm(gm)
 	player.set_battle(false)
 	has_target = false
 	playing = true
@@ -517,7 +565,17 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9:
 				ui.use_assist(ev.keycode - KEY_F1)
 			KEY_SPACE:
-				_do("pular")
+				if not gm_fly:
+					_do("pular")
+			KEY_E:
+				if not ui.typing():
+					interiores.key_e()
+			KEY_V:
+				if gm and not ui.typing():
+					_gm("voar", {})
+			KEY_F10:
+				if gm:
+					_window("gm")
 			KEY_J:
 				_window("acoes")
 			KEY_I:
@@ -548,6 +606,16 @@ func _unhandled_input(ev: InputEvent) -> void:
 		elif ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
 			var ro := cam.project_ray_origin(ev.position)
 			var rd := cam.project_ray_normal(ev.position)
+			if not interiores.inside.is_empty():
+				if interiores.talk_near(ro, rd):
+					return
+				if rd.y < -0.01:
+					var tt: float = (interiores.ground() - ro.y) / rd.y
+					target = ro + rd * tt
+					has_target = true
+					marker.position = target + Vector3(0, 0.08, 0)
+					marker.visible = true
+				return
 			var npc: Dictionary = npcs.pick_npc(ro, rd)
 			if not npc.is_empty():
 				if sel.get("kind", "") == "npc" and sel.get("node") == npc.node and str(npc.window) != "":
@@ -579,6 +647,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 			sel = {}
 			combat.stop_auto()
 			var hit: Variant = _ground_under(ev.position) if not combat.dead else null
+			if gm and hit != null and Input.is_key_pressed(KEY_CTRL) and Input.is_key_pressed(KEY_ALT):
+				_teleport((hit as Vector3).x, (hit as Vector3).z)
+				return
 			if hit != null:
 				target = hit
 				has_target = true
@@ -652,30 +723,52 @@ func _physics_process(dt: float) -> void:
 		var sprint := Input.is_physical_key_pressed(KEY_SHIFT)
 		var walk := Input.is_physical_key_pressed(KEY_CTRL)
 		var speed: float = WALK if walk else float(combat.st.get("speed", RUN)) * (1.0 if not sprint else 1.0)
+		if gm_speed:
+			speed *= 3.0
 		var step := speed * dt
 		if has_target:  # nunca passa do destino
 			var left := Vector2(target.x - player.position.x, target.z - player.position.z).length()
 			step = minf(step, left)
-		var p: Vector3 = world.resolve(player.position + move * step, player.position)
-		player.position = Vector3(p.x, world.height(p.x, p.z), p.z)
+		if swimming:
+			step *= 0.55
+		if not interiores.inside.is_empty():
+			player.position = interiores.clamp_move(player.position + move * step, player.position)
+		else:
+			var p: Vector3 = world.resolve(player.position + move * step, player.position)
+			var zo: Dictionary = world.zone_at(player.position.x, player.position.z)
+			if str(zo.get("kind", "")) == "submarina" and world.zone_at(p.x, p.z).is_empty():
+				p = player.position  # a bolha de ar de Abissália: não dá para sair a pé
+			player.position = Vector3(p.x, _ground_at(p.x, p.z), p.z)
 		facing = lerp_angle(facing, atan2(move.x, move.z), minf(1.0, dt * 12.0))
 		player.rotation.y = facing
-		player.play("Walk" if walk else "Jog_Fwd", 1.1 if walk else speed / 5.2)
+		player.play("Walk" if walk or swimming else "Jog_Fwd", 0.7 if swimming else (1.1 if walk else speed / 5.2))
 		emote = ""
 	elif not player.is_busy() and not combat.dead:
 		if combat.auto:
 			emote = ""
 		player.play(emote if emote != "" else "Idle")
+	if gm_fly:
+		if not typing and Input.is_physical_key_pressed(KEY_SPACE):
+			fly_y += 9.0 * dt
+		if not typing and Input.is_physical_key_pressed(KEY_X):
+			fly_y -= 9.0 * dt
+		var gy: float = world.height(player.position.x, player.position.z)
+		fly_y = maxf(fly_y, gy)
+		player.position.y = fly_y
+		if move == Vector3.ZERO and not player.is_busy():
+			player.play("Idle")
 	if jumping:
 		jump_t += dt / 0.62
 		if jump_t >= 1.0:
 			jumping = false
 			jump_t = 1.0
-		player.position.y = world.height(player.position.x, player.position.z) + sin(PI * jump_t) * 0.85
+		var base_y: float = interiores.ground() if not interiores.inside.is_empty() else _ground_at(player.position.x, player.position.z)
+		player.position.y = base_y + sin(PI * jump_t) * 0.85
 
 
 func _process(dt: float) -> void:
-	world.stream(player.position, 2)
+	if interiores == null or interiores.inside.is_empty():
+		world.stream(player.position, 2)
 	log_t += dt
 	if log_t > 2.0:
 		log_t = 0.0
@@ -690,10 +783,14 @@ func _process(dt: float) -> void:
 	if playing:
 		var focus := player.position + Vector3(0, player.height_m * 0.82, 0)
 		var dir := Vector3(sin(yaw) * cos(pitch), -sin(pitch), cos(yaw) * cos(pitch))
-		var want := focus + dir * dist
-		var floor_y: float = maxf(world.height(want.x, want.z), 0.0) + 0.35
-		if want.y < floor_y:
-			want.y = floor_y
+		var want := focus + dir * (dist if interiores.inside.is_empty() else minf(dist, 5.0))
+		if not interiores.inside.is_empty():
+			want = interiores.clamp_cam(want)
+		else:
+			var under_sea: bool = str(world.zone_at(player.position.x, player.position.z).get("kind", "")) == "submarina"
+			var floor_y: float = (world.height(want.x, want.z) if under_sea else maxf(world.height(want.x, want.z), 0.0)) + 0.35
+			if want.y < floor_y:
+				want.y = floor_y
 		cam.position = cam.position.lerp(want, minf(1.0, dt * 14.0))
 		cam.look_at(focus)
 		if marker.visible:
@@ -708,7 +805,7 @@ func _process(dt: float) -> void:
 			var cs: Dictionary = combat.st
 			ui.stats_view = {"Vida": "%d / %d" % [int(combat.hp), int(cs.get("maxHp", 0))], "Mana": "%d / %d" % [int(combat.mp), int(cs.get("maxMp", 0))], "Ataque físico": str(int(cs.get("patk", 0))), "Ataque mágico": str(int(cs.get("matk", 0))), "Defesa": str(int(cs.get("pdef", 0))), "Velocidade": "%.1f m/s" % float(cs.get("speed", 0)), "Alcance": "%.1f m" % float(cs.get("range", 0)), "Intervalo de ataque": "%.2f s" % float(cs.get("interval", 0)), "Elemento": str(combat.my_elem).capitalize()}
 		# na cidade ninguém fica em postura de combate: arma guardada dentro da zona segura
-		var in_town: bool = world.nearest_town(player.position.x, player.position.z).dist < 70.0
+		var in_town: bool = world.nearest_town(player.position.x, player.position.z).in_safe
 		var fighting: bool = (combat.auto or combat.now() < combat.combat_until) and not in_town
 		if fighting != player.armed:
 			player.magic_idle = bool(combat.st.get("magic", false))
@@ -723,9 +820,14 @@ func _process(dt: float) -> void:
 			_save_now()
 		if Engine.get_frames_drawn() % 30 == 0:
 			var nt: Dictionary = world.nearest_town(player.position.x, player.position.z)
-			var where: String = nt.town.name + ("  ·  zona segura" if nt.dist < 70.0 else "  ·  arredores (nível %d a %d)" % [int(nt.town.min), int(nt.town.max)])
+			if not interiores.inside.is_empty():
+				var dt_: Dictionary = interiores.inside.door
+				nt = world.nearest_town((dt_.pos as Vector3).x, (dt_.pos as Vector3).z)
+				nt.in_safe = true
+				nt.town = {"name": "%s · %s" % [interiores.inside.name, nt.town.name], "min": 1, "max": 1}
+			var where: String = nt.town.name + ("  ·  zona segura" if nt.in_safe else "  ·  arredores (nível %d a %d)" % [int(nt.town.min), int(nt.town.max)])
 			ui.place_label.text = "%s\nPosição %d, %d   ·   %s%s" % [where, int(player.position.x), int(player.position.z), atmos.hour_text(), "   ·   chuva" if atmos.wet > 0.3 else ""]
-	elif creating:
+	elif creating or showing:
 		var f := Vector3(sin(facing), 0, cos(facing))
 		var side := Vector3(f.z, 0, -f.x)
 		cam.position = player.position + f * 3.8 - side * 0.9 + Vector3(0, player.height_m * 0.62, 0)
@@ -864,10 +966,18 @@ func _online() -> bool:
 
 
 func _window(name: String) -> void:
+	if name == "gm":
+		if not gm:
+			return
+		if ui.win.visible and ui.win_name == "gm":
+			ui.close_window()
+			return
+		_gm_open()
+		return
 	if ui.win.visible and ui.win_name == name:
 		ui.close_window()
 		return
-	if name == "loja" and world.nearest_town(player.position.x, player.position.z).dist > 80.0:
+	if name == "loja" and not world.nearest_town(player.position.x, player.position.z).in_safe:
 		ui.say("A loja só abre dentro de uma cidade")
 		return
 	if _online() and name != "cla":
@@ -924,6 +1034,9 @@ var fn_heals := false
 
 
 func _chat(text: String) -> void:
+	if text.begins_with("/") and not text.begins_with("/cla "):
+		_command(text)
+		return
 	if text.begins_with("/cla "):
 		var p := text.trim_prefix("/cla ").strip_edges().rsplit(" ", false, 1)
 		if p.size() < 2:
@@ -932,3 +1045,172 @@ func _chat(text: String) -> void:
 		_action("game_clan_create", {"p_name": p[0], "p_tag": p[1]})
 		return
 	social.say(text)
+
+
+# ---------- GM ----------
+func _gm_open() -> void:
+	var online: Array = []
+	for id in social.others:
+		var o: Dictionary = social.others[id]
+		online.append({"name": o.name, "lvl": o.lvl, "x": (o.pos as Vector3).x, "z": (o.pos as Vector3).z})
+	ui.gm_view.merge({"god": gm_god, "speed": gm_speed, "fly": gm_fly, "hide": gm_hide, "online": online, "mapa": world.mapa}, true)
+	ui.open_window("gm", me, net.inventory, {})
+
+
+func _teleport(x: float, z: float) -> void:
+	has_target = false
+	marker.visible = false
+	combat.stop_auto()
+	_place_player(Vector3(x, 0, z))
+	fly_y = player.position.y
+	for i in 8:
+		world.stream(player.position, 8)
+	ui.say("Teleportado para %d, %d" % [int(x), int(z)])
+	_save_now(true)
+
+
+func _gm(cmd: String, args: Dictionary) -> void:
+	if not gm:
+		ui.say("Apenas GM")
+		return
+	var msg := ""
+	match cmd:
+		"tp":
+			_teleport(float(args.x), float(args.z))
+		"interior":
+			if has_node("Interiores"):
+				get_node("Interiores").call("enter_kind", str(args.kind))
+		"deus":
+			gm_god = not gm_god
+			msg = "Invencível " + ("ligado" if gm_god else "desligado")
+		"vel":
+			gm_speed = not gm_speed
+			msg = "Velocidade de GM " + ("ligada" if gm_speed else "desligada")
+		"voar":
+			gm_fly = not gm_fly
+			fly_y = player.position.y
+			msg = "Voo " + ("ligado (Espaço sobe, X desce)" if gm_fly else "desligado")
+			if not gm_fly:
+				player.position.y = world.height(player.position.x, player.position.z)
+		"oculto":
+			gm_hide = not gm_hide
+			for m in combat.mobs:
+				m.aggro = false
+			msg = "Monstros " + ("não enxergam você" if gm_hide else "voltam a enxergar você")
+		"curar":
+			combat.recalc()
+			combat.hp = float(combat.st.get("maxHp", combat.hp))
+			combat.mp = float(combat.st.get("maxMp", combat.mp))
+			msg = "Vida e mana cheias"
+		"hora":
+			atmos.t_day = float(args.h) / 24.0
+			msg = "Hora: " + atmos.hour_text()
+		"clima":
+			atmos.weather = str(args.w)
+			atmos.weather_t = 240.0
+			msg = "Clima: " + str(args.w)
+		"onde":
+			msg = "Posição %.1f, %.1f (altura %.1f)" % [player.position.x, player.position.z, player.position.y]
+		"matar":
+			if combat.target == null:
+				msg = "Selecione um monstro primeiro"
+			else:
+				combat.gm_kill(combat.target, true)
+				msg = "Monstro eliminado"
+		"matartodos", "limpar":
+			var n: int = combat.gm_area(float(args.get("r", 40.0)), cmd == "matartodos")
+			msg = "%d monstro(s) %s" % [n, "eliminado(s)" if cmd == "matartodos" else "removido(s)"]
+		"spawn":
+			var a := facing
+			if combat.gm_spawn(str(args.fam), player.position.x + sin(a) * 6.0, player.position.z + cos(a) * 6.0):
+				msg = "Monstro criado"
+			else:
+				msg = "Família desconhecida: " + str(args.fam)
+		_:
+			# comandos do servidor
+			if not _online():
+				ui.say("Esse comando precisa de conta online")
+				return
+			var a := args.duplicate()
+			if not a.has("alvo") and str(ui.gm_view.get("alvo", "")).strip_edges() != "":
+				a.alvo = str(ui.gm_view.alvo).strip_edges()
+			if cmd == "puxar":
+				a.x = player.position.x + 2.0
+				a.z = player.position.z
+			msg = await net.gm(cmd, a)
+			await _refresh_char()
+			combat.recalc()
+			ui.set_who(me)
+	if msg != "":
+		ui.say(msg)
+		ui.chat_line("GM", msg, "sistema")
+	if ui.win.visible and ui.win_name == "gm":
+		_gm_open()
+
+
+func _command(text: String) -> void:
+	var p := text.substr(1).strip_edges().split(" ", false)
+	if p.is_empty():
+		return
+	var c := p[0].to_lower()
+	var a := p.slice(1)
+	match c:
+		"ajuda":
+			ui.chat_line("", "Comandos: /onde" + (" | GM: /tp x z, /ir nome, /vel, /deus, /voar, /oculto, /curar, /hora h, /chuva, /limpo, /give item qtd [jogador], /aurum qtd [jogador], /nivel n [jogador], /karma n [jogador], /prof coleta|refino|forja n, /info j, /puxar j, /kick j, /ban j, /desban j, /anuncio texto, /matar, /matartodos [raio], /limpar [raio], /spawn família, /reset, /interior taverna|forja|igreja|casa|loja" if gm else ""), "sistema")
+			return
+		"onde":
+			ui.chat_line("", "Posição %d, %d" % [int(player.position.x), int(player.position.z)], "sistema")
+			return
+	if not gm:
+		ui.chat_line("", "Comando desconhecido. Use /ajuda", "sistema")
+		return
+	var n := func(i: int, d: float) -> float: return float(a[i]) if a.size() > i and a[i].is_valid_float() else d
+	var who := func(i: int) -> Dictionary: return {"alvo": a[i]} if a.size() > i else {}
+	match c:
+		"tp": _gm("tp", {"x": n.call(0, player.position.x), "z": n.call(1, player.position.z)})
+		"ir":
+			var q := " ".join(a).to_lower()
+			var dest := {}
+			for t in world.info.towns:
+				if str(t.id).begins_with(q) or str(t.name).to_lower().contains(q):
+					dest = {"x": float(t.x) + 3.0, "z": float(t.z) + 8.0}
+					break
+			if dest.is_empty():
+				for grp in ["castles", "villages"]:
+					for v in world.mapa.get(grp, []):
+						if dest.is_empty() and (str(v.id).begins_with(q) or str(v.name).to_lower().contains(q)):
+							dest = {"x": float(v.x), "z": float(v.z) + 40.0}
+			if dest.is_empty():
+				for l in world.info.landmarks:
+					if dest.is_empty() and (str(l.id).begins_with(q) or str(l.name).to_lower().contains(q)):
+						dest = {"x": float(l.x), "z": float(l.z) + 30.0}
+			if dest.is_empty():
+				ui.chat_line("", "Destino não encontrado", "sistema")
+			else:
+				_gm("tp", dest)
+		"vel", "deus", "voar", "oculto", "curar", "matar", "reset":
+			_gm({"reset": "reset_nos"}.get(c, c), {})
+		"hora": _gm("hora", {"h": n.call(0, 12.0)})
+		"chuva", "limpo": _gm("clima", {"w": c})
+		"matartodos", "limpar": _gm(c, {"r": n.call(0, 40.0)})
+		"spawn": _gm("spawn", {"fam": a[0] if a.size() > 0 else "javali"})
+		"interior": _gm("interior", {"kind": a[0] if a.size() > 0 else "taverna"})
+		"give": _gm("give", {"item": a[0] if a.size() > 0 else "", "qtd": int(n.call(1, 1.0))}.merged(who.call(2)))
+		"aurum": _gm("aurum", {"qtd": int(n.call(0, 0.0))}.merged(who.call(1)))
+		"nivel": _gm("nivel", {"nivel": int(n.call(0, 1.0))}.merged(who.call(1)))
+		"karma": _gm("karma", {"qtd": int(n.call(0, 0.0))}.merged(who.call(1)))
+		"prof": _gm("prof", {"prof": a[0] if a.size() > 0 else "coleta", "nivel": int(n.call(1, 1.0))}.merged(who.call(2)))
+		"info", "puxar", "kick", "ban", "desban", "setgm": _gm(c, who.call(0))
+		"anuncio": _gm("anuncio", {"msg": " ".join(a)})
+		_: ui.chat_line("", "Comando desconhecido. Use /ajuda", "sistema")
+
+
+
+# chão onde o personagem pisa: relevo, cais, ponte, plataformas; em água funda ele nada
+func _ground_at(x: float, z: float) -> float:
+	var f: float = world.floor_y(x, z, player.position.y)
+	if f < world.WATER_Y - 1.25 and world.zone_at(x, z).is_empty():
+		swimming = true
+		return world.WATER_Y - 1.25
+	swimming = false
+	return f

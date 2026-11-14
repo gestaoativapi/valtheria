@@ -19,6 +19,7 @@ var rng := RandomNumberGenerator.new()
 
 
 var lamp_t := 0.0
+var amb_src := -1
 
 
 func setup(m: Node3D) -> void:
@@ -142,3 +143,35 @@ func _process(dt: float) -> void:
 	var leaf := Color(0.55, 0.7, 0.25, 0.9) if band in [0, 3] else (Color(0.85, 0.7, 0.25, 0.9) if band == 1 else (Color(0.6, 0.62, 0.55, 0.7) if band == 2 else Color(1.0, 0.45, 0.12, 0.9)))
 	g.set_color(1, leaf)
 	g.set_color(2, Color(leaf.r, leaf.g, leaf.b, 0.0))
+	# janelas acesas à noite
+	if world.window_mat:
+		world.window_mat.emission_energy_multiplier = smoothstep(0.3, 0.8, night) * 1.8
+	# luz própria: dentro de prédios, na caverna de Umbraval e no fundo do mar
+	var indoor: bool = main.interiores != null and not main.interiores.inside.is_empty()
+	var zn: Dictionary = world.zone_at(p.x, p.z)
+	var kind := "interior" if indoor else str(zn.get("kind", ""))
+	if amb_src < 0:
+		amb_src = world.env.ambient_light_source
+	world.env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR if kind == "interior" else amb_src
+	match kind:
+		"interior":
+			world.env.ambient_light_color = Color(0.95, 0.82, 0.66)
+			sun.light_energy *= 0.06
+			world.env.ambient_light_energy = 1.0
+			world.env.fog_density = 0.0
+		"caverna":
+			sun.light_energy *= 0.12
+			sun.light_color = Color(0.7, 0.6, 1.0)
+			world.env.ambient_light_energy = 0.75
+			world.env.fog_light_color = Color(0.2, 0.15, 0.3)
+			world.env.fog_density = 0.0018
+		"submarina":
+			sun.light_energy *= 0.4
+			sun.light_color = Color(0.5, 0.85, 1.0)
+			world.env.ambient_light_energy = 0.75
+			world.env.fog_light_color = Color(0.04, 0.26, 0.4)
+			world.env.fog_density = 0.016
+	if kind != "":
+		rain.emitting = false
+		snow.emitting = false
+		flies.emitting = false

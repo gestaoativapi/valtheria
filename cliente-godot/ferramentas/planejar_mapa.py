@@ -44,8 +44,19 @@ STYLE = {
     "umbraval": ("crescente",   "Casas em meia-lua em volta de um obelisco escuro; colunas; luz fria."),
     "pico":     ("encosta",     "Uma rua principal com casas dos dois lados; santuário do dragão no fim da rua."),
     "noctis":   ("gotica",      "Muralha quadrada; quadras retas; catedral de pedra com torres no centro; grades de ferro."),
-    "glacial":  ("salao",       "Poucas casas grandes em volta de um grande salão; muralha redonda."),
+    "glacial":  ("salao",       "Poucas casas grandes em volta de um grande salão; muralha redonda; povo com roupa de frio."),
+    "capital":  ("capital",     "Capital do jogo: ruas retas em grade, quarteirões de casas grandes lado a lado, palácio real, Arena dos Heróis, jardins, cavaleiros, artesão lendário e loja de itens únicos."),
+    "porto":    ("grande",      "Cidade grande na praia: ruas retas, mercado do porto, cais com barcos, farol."),
+    "coralis":  ("ilha",        "Cidade numa ilha da Baía das Marés: casas de praia, coqueiros e cais; chega-se nadando ou voando."),
+    "abissal":  ("abissal",     "Cidade no fundo do mar, dentro de uma bolha de ar; corais e luz azul; entrada pelo redemoinho do porto."),
 }
+
+# porte: capital (gigante), grande ou média. Mude aqui e rode de novo.
+SIZE = {"capital": "capital", "porto": "grande", "dourado": "grande", "rubra": "grande", "noctis": "grande"}
+# cidades grandes trocam a planta antiga pela planta de cidade grande (o tema de cada uma continua)
+BIG_THEME = {"dourado": "mercado de grãos e feiras", "rubra": "quartéis e arena de guerra", "noctis": "catedral e bairro nobre", "porto": "cais e mercado do mar"}
+# cidades com relevo especial (feito por ferramentas/relevo_cidades.py) e povo com roupa de frio
+SPECIAL = {"pico": "montanha", "celeste": "montanha", "umbraval": "caverna", "sylvar": "arvore", "glacial": "frio", "coralis": "ilha", "abissal": "submarina", "porto": "praia"}
 
 # ------------------------------------------------------------------ castelos (sempre fora da cidade: 260 a 460 m dela)
 CASTLES = [
@@ -58,6 +69,7 @@ CASTLES = [
     ("castelo_sangue", "Castelo do Sangue Eterno", "noctis", (2650, 820)),
     ("castelo_pico", "Castelo do Pico", "pico", None),
     ("castelo_inverno", "Castelo do Trono do Inverno", "glacial", (520, 520)),
+    ("castelo_real", "Castelo Real de Valtheria", "capital", None),
 ]
 
 # ------------------------------------------------------------------ vilas: [id, nome, cidade dona] ou entre duas cidades
@@ -76,6 +88,9 @@ VILLAGES = [
     ("vila_fronteira", "Posto da Fronteira", ["pico", "rubra"]),
     ("vila_corvo", "Vigia do Corvo", ["noctis", "umbraval"]),
     ("vila_geada", "Aldeia da Geada", ["glacial"]),
+    ("vila_quinta", "Quinta Real", ["capital"]),
+    ("vila_farol", "Vila do Farol", ["porto"]),
+    ("vila_estrada", "Pouso da Estrada Real", ["capital", "aurora"]),
 ]
 
 
@@ -101,7 +116,7 @@ def find(cx, cz, rmin, rmax, others, need_high=False, wide=40, **kw):
 
 
 def main():
-    placed = []
+    placed = [fixed for _, _, _, fixed in CASTLES if fixed]  # castelos de lugar fixo entram primeiro: ninguém nasce em cima deles
     castles = []
     for cid, name, town, fixed in CASTLES:
         t = TOWNS[town]
@@ -109,13 +124,15 @@ def main():
         if pos is None:
             print("sem lugar para", cid)
             continue
-        placed.append(pos)
+        if pos not in placed:
+            placed.append(pos)
         castles.append({"id": cid, "name": name, "town": town, "x": pos[0], "z": pos[1], "dist": round(math.hypot(pos[0] - t["x"], pos[1] - t["z"]))})
     villages = []
     for vid, name, owners in VILLAGES:
         if len(owners) == 1:
             t = TOWNS[owners[0]]
-            pos = find(t["x"], t["z"], 240, 340, placed, wide=30, d_other=200)
+            far = SPECIAL.get(owners[0]) == "montanha"  # a vila fica no pé da montanha, não na encosta
+            pos = find(t["x"], t["z"], 450 if far else 240, 560 if far else 340, placed, wide=30, d_other=200)
         else:
             a, b = TOWNS[owners[0]], TOWNS[owners[1]]
             mx, mz = (a["x"] + b["x"]) / 2, (a["z"] + b["z"]) / 2
@@ -126,7 +143,12 @@ def main():
         placed.append(pos)
         villages.append({"id": vid, "name": name, "towns": owners, "x": pos[0], "z": pos[1],
                          "houses": 7 + zlib.crc32(vid.encode()) % 6, "seed": zlib.crc32(vid.encode()) % 100000})
-    towns = {tid: {"style": s, "desc": d, "size": "?"} for tid, (s, d) in STYLE.items()}
+    towns = {}
+    for tid, (st, d) in STYLE.items():
+        size = SIZE.get(tid, "media")
+        if size == "grande" and tid in BIG_THEME:
+            st, d = "grande", f"Cidade grande ({BIG_THEME[tid]}): ruas retas, casas grandes lado a lado, jardins, soldados de ronda, povo de várias raças. " + d
+        towns[tid] = {"style": st, "desc": d, "size": size, "theme": tid if tid in BIG_THEME else "", "special": SPECIAL.get(tid, "")}
     out = {"towns": towns, "castles": castles, "villages": villages}
     with open(os.path.join(DATA, "mapa.json"), "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)

@@ -136,7 +136,7 @@ func clear() -> void:
 func _level_at(x: float, z: float) -> Dictionary:
 	var nt: Dictionary = world.nearest_town(x, z)
 	var t: Dictionary = nt.town
-	var k := clampf((nt.dist - 70.0) / 450.0, 0.0, 1.0)
+	var k := clampf((nt.dist - float(nt.safe)) / 450.0, 0.0, 1.0)
 	return {"L": maxi(1, roundi(float(t.min) + (float(t.max) - float(t.min)) * k)), "band": int(t.band), "dist": nt.dist}
 
 
@@ -343,7 +343,8 @@ func _manage_spawns(dt: float) -> void:
 		var z := p.z + cos(a) * r
 		if x < 30.0 or z < 30.0 or x > world.size - 30.0 or z > world.size - 30.0:
 			continue
-		if world.nearest_town(x, z).dist < 115.0 or world.height(x, z) < 1.2 or world.normal(x, z).y < 0.85 or world.ground(x, z).r > 0.5:
+		var ntm: Dictionary = world.nearest_town(x, z)
+		if ntm.dist < float(ntm.wall) + 30.0 or not world.zone_at(x, z).is_empty() or world.height(x, z) < 1.2 or world.normal(x, z).y < 0.85 or world.ground(x, z).r > 0.5:
 			continue
 		_spawn(x, z)
 		alive += 1
@@ -358,7 +359,7 @@ func _mob_tick(m: Dictionary, dt: float) -> void:
 	var d := Vector2(pp.x - node.position.x, pp.z - node.position.z).length()
 	if t < float(m.stun):
 		return
-	if not m.aggro and m.fam.aggro and not dead and d < 11.0 and world.nearest_town(pp.x, pp.z).dist > 80.0:
+	if not m.aggro and m.fam.aggro and not dead and not main.gm_hide and d < 11.0 and not world.nearest_town(pp.x, pp.z).in_safe:
 		m.aggro = true
 	if m.aggro and (dead or (node.position as Vector3).distance_to(m.home) > 55.0):
 		m.aggro = false
@@ -424,7 +425,7 @@ func _float_text(pos: Vector3, text: String, col: Color) -> void:
 
 
 func _hurt_player(dmg: float) -> void:
-	if dead:
+	if dead or main.gm_god:
 		return
 	combat_until = now() + 6.0
 	if shield > 0.0 and now() < shield_until:
@@ -734,3 +735,35 @@ func _physics_process(dt: float) -> void:
 					FX.bolt(self, _chest(), _center(target), my_elem)
 	else:
 		main.chasing = false
+
+
+# ---------- GM ----------
+func gm_kill(m: Dictionary, reward := true) -> void:
+	if m.dead:
+		return
+	if reward:
+		_hit_mob(m, float(m.hp) + 1.0, false)
+	else:
+		m.dead = true
+		if is_instance_valid(m.node):
+			(m.node as Node3D).queue_free()
+		mobs.erase(m)
+		if target == m:
+			target = null
+
+
+func gm_area(r: float, reward: bool) -> int:
+	var pp: Vector3 = main.player.position
+	var hit: Array = mobs.filter(func(m): return not m.dead and (m.node as Node3D).position.distance_to(pp) <= r)
+	for m in hit:
+		gm_kill(m, reward)
+	return hit.size()
+
+
+func gm_spawn(fam_id: String, x: float, z: float) -> bool:
+	for band in info.mobs:
+		for f in band:
+			if str(f.id) == fam_id:
+				_spawn(x, z, bool(f.boss), int(main.me.get("level", 1)), "gm", f)
+				return true
+	return false

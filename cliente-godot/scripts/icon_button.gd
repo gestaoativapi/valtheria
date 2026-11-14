@@ -257,6 +257,12 @@ func _glyph(c: Vector2, u: float, col: Color, mono: bool) -> void:
 		"cura":
 			draw_rect(Rect2(c + Vector2(-4.5, -14) * u, Vector2(9, 28) * u), col)
 			draw_rect(Rect2(c + Vector2(-14, -4.5) * u, Vector2(28, 9) * u), col)
+		"coroa":  # GM
+			_poly(c, u, [[-15, 10], [-15, -8], [-8, 0], [0, -14], [8, 0], [15, -8], [15, 10]], col)
+			if not mono:
+				_ln(c, u, [-14, 6], [14, 6], lt, 1.6)
+		"porta":
+			_poly(c, u, [[-10, 15], [-10, -8], [-6, -14], [6, -14], [10, -8], [10, 15]], col)
 		"estrela":
 			var p := []
 			for i in 10:
