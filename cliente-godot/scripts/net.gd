@@ -17,6 +17,9 @@ var ws_joined := false
 var ws_beat := 0.0
 var ws_me := {}
 var is_gm := false  # conta de GM (vem de game_chars)
+var ws_want := false  # tempo real desejado: se cair, reconecta sozinho
+var ws_retry := 0.0  # segundos até a próxima tentativa
+var ws_backoff := 2.0  # espera cresce até 30 s entre tentativas
 signal remote_pos(p: Dictionary)
 signal remote_leave(id: String)
 
@@ -115,11 +118,15 @@ func state(id: String) -> Dictionary:
 	return {}
 
 
-func save(x: float, z: float, hp: float, mp: float) -> bool:
+# salva posição, vida e mana; o servidor (game_save2) limita a vida e a mana ao máximo
+# e recusa deslocamento impossível, devolvendo a posição que ele tem registrada
+func save(x: float, z: float, hp: float, mp: float) -> Dictionary:
 	if token == "" or char_id == "":
-		return false
-	var r := await rpc_call("game_save", {"p_char": char_id, "p_x": x, "p_z": z, "p_hp": hp, "p_mp": mp})
-	return r.ok
+		return {"ok": false}
+	var r := await rpc_call("game_save2", {"p_char": char_id, "p_x": x, "p_z": z, "p_hp": hp, "p_mp": mp})
+	if not r.ok or not (r.data is Dictionary):
+		return {"ok": false, "erro": r.erro}
+	return r.data
 
 
 # ação do personagem no servidor (equipar, comprar, usar...); devolve "" ou a mensagem de erro
@@ -136,6 +143,12 @@ func rt_join(me: Dictionary) -> void:
 	if token == "" or not me.has("id"):
 		return
 	ws_me = me
+	ws_want = true
+	ws_backoff = 2.0
+	_rt_open()
+
+
+func _rt_open() -> void:
 	ws = WebSocketPeer.new()
 	ws_joined = false
 	if ws.connect_to_url(URL.replace("https://", "wss://") + "/realtime/v1/websocket?apikey=" + KEY + "&vsn=1.0.0") != OK:
@@ -143,6 +156,7 @@ func rt_join(me: Dictionary) -> void:
 
 
 func rt_leave() -> void:
+	ws_want = false
 	if ws:
 		ws.close()
 	ws = null
@@ -163,17 +177,26 @@ func rt_pos(p: Dictionary) -> void:
 
 func _process(dt: float) -> void:
 	if ws == null:
+		# conexão caiu: tenta de novo com espera crescente (2, 4, 8... até 30 s)
+		if ws_want and token != "":
+			ws_retry -= dt
+			if ws_retry <= 0.0:
+				ws_retry = ws_backoff
+				ws_backoff = minf(30.0, ws_backoff * 2.0)
+				_rt_open()
 		return
 	ws.poll()
 	var state := ws.get_ready_state()
 	if state == WebSocketPeer.STATE_CLOSED:
 		ws = null
 		ws_joined = false
+		ws_retry = ws_backoff
 		return
 	if state != WebSocketPeer.STATE_OPEN:
 		return
 	if not ws_joined:
 		ws_joined = true
+		ws_backoff = 2.0
 		_rt_send("realtime:mundo", "phx_join", {"config": {"broadcast": {"self": false}, "presence": {"key": str(ws_me.get("id", ""))}}, "access_token": token})
 		_rt_send("realtime:mundo", "presence", {"type": "presence", "event": "track", "payload": {"name": str(ws_me.get("name", "")), "gm": bool(ws_me.get("is_gm", false))}})
 	ws_beat += dt

@@ -1,0 +1,22 @@
+name: Testes do cliente nativo
+on:
+  push:
+    paths: ['cliente-godot/**', '.github/workflows/testes.yml']
+  pull_request:
+    paths: ['cliente-godot/**']
+  workflow_dispatch:
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    env:
+      GODOT: 4.7.2-stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Baixar o Godot
+        run: |
+          curl -sSfL -o godot.zip https://github.com/godotengine/godot/releases/download/$GODOT/Godot_v${GODOT}_linux.x86_64.zip
+          unzip -q godot.zip
+      - name: Rodar os testes de regressão
+        run: |
+          cd cliente-godot
+          bash testes/regressao.sh ../Godot_v${GODOT}_linux.x86_64

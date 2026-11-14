@@ -500,9 +500,14 @@ func _reward(m: Dictionary) -> void:
 	var head: Vector3 = main.player.position + Vector3(0, main.player.height_m + 0.5, 0)
 	if c.has("id") and main.net.token != "":
 		# online: experiência, dinheiro e itens vêm do servidor
-		var r: Dictionary = await main.net.rpc_call("game_kill3", {"p_char": main.net.char_id, "p_mob_level": L, "p_boss": bool(m.boss), "p_fam": str(m.fam.id)})
+		# game_kill4: o servidor decide nível, chefe e recompensa pela posição; o cliente só diz quem caiu e onde
+		var mp3: Vector3 = (m.node as Node3D).position
+		var r: Dictionary = await main.net.rpc_call("game_kill4", {"p_char": main.net.char_id, "p_fam": str(m.fam.id), "p_x": mp3.x, "p_z": mp3.z, "p_spot": str(m.spot) if m.boss else null})
 		if not r.ok or not (r.data is Dictionary):
 			message.emit(r.erro if r.erro != "" else "O servidor não registrou a vitória")
+			return
+		if (r.data as Dictionary).has("recusado"):
+			message.emit(str(r.data.recusado))
 			return
 		var d: Dictionary = r.data
 		c.level = int(d.get("level", lvl))

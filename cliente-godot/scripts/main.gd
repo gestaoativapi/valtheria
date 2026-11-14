@@ -413,7 +413,20 @@ func _save_now(force := false) -> void:
 	if not me.has("id") or (not force and player.position.distance_to(saved_pos) < 0.5):
 		return
 	saved_pos = player.position
-	await net.save(player.position.x, player.position.z, maxf(1.0, combat.hp), combat.mp)
+	# dentro de um prédio o personagem fica numa sala fora do mapa: salva a porta por onde entrou
+	var p := player.position
+	if interiores and not interiores.inside.is_empty() and (interiores.inside.get("door") is Dictionary):
+		var dp: Variant = (interiores.inside.door as Dictionary).get("pos")
+		if dp is Vector3:
+			p = dp
+	var r: Dictionary = await net.save(p.x, p.z, maxf(1.0, combat.hp), combat.mp)
+	if not bool(r.get("ok", false)) and str(r.get("motivo", "")) == "movimento" and r.has("x"):
+		# o servidor não aceitou o deslocamento: volta para a última posição registrada
+		ui.say("Posição corrigida pelo servidor")
+		if interiores and not interiores.inside.is_empty():
+			return
+		_place_player(Vector3(float(r.x), 0, float(r.z)))
+		saved_pos = player.position
 
 
 func _to_login() -> void:
