@@ -28,16 +28,18 @@ func _ready() -> void:
 		return
 	_cena()
 	# corpo, armadura e arma medidos em separado; a V2 ainda não tem armadura nem espada (etapas seguintes)
-	var variantes := [["corpo_atual", "atual", {}], ["corpo_v2", "v2", {}], ["atual_com_armadura", "atual", {"armadura": "leve_c"}], ["atual_completo_armadura_e_espada", "atual", {"armadura": "leve_c", "arma": "espada_c"}]]
-	var res := {"diagnostico": diag, "config": {"aquecimento_s": aquece, "medicao_s": mede, "rodadas": rodadas, "personagens": 20, "camera": "volta fixa de 30 s, raio 9 m, altura 3 m", "resolucao": str(get_viewport().get_visible_rect().size)}, "variantes": {}}
+	# [nome, tipo, equipamento, quantidade]; as de 40 são só diagnóstico (sem meta de FPS)
+	var variantes := [["corpo_atual", "atual", {}, 20], ["corpo_v2", "v2", {}, 20], ["atual_com_armadura", "atual", {"armadura": "leve_c"}, 20], ["atual_completo_armadura_e_espada", "atual", {"armadura": "leve_c", "arma": "espada_c"}, 20],
+		["diag40_atual_completo", "atual", {"armadura": "leve_c", "arma": "espada_c"}, 40], ["diag40_corpo_v2", "v2", {}, 40]]
+	var res := {"diagnostico": diag, "config": {"aquecimento_s": aquece, "medicao_s": mede, "rodadas": rodadas, "personagens": "20 (e 40 nas variantes diag40)", "camera": "volta fixa de 30 s, raio 9 m, altura 3 m", "resolucao": str(get_viewport().get_visible_rect().size)}, "variantes": {}}
 	for v in variantes:
-		var grupo := _povoa(str(v[1]), v[2])
+		var grupo := _povoa(str(v[1]), v[2], int(v[3]))
 		var rs: Array = []
 		for r in rodadas:
 			rs.append(await _rodada())
 		grupo.queue_free()
 		await get_tree().process_frame
-		res.variantes[v[0]] = {"rodadas": rs, "mediana": _mediana(rs)}
+		res.variantes[v[0]] = {"personagens": int(v[3]), "rodadas": rs, "mediana": _mediana(rs)}
 		print("VARIANTE ", v[0], " ", JSON.stringify(res.variantes[v[0]].mediana))
 	var nome := "benchmark_%s.json" % Time.get_datetime_string_from_system().replace(":", "-")
 	_escreve(nome, JSON.stringify(res, "  "))
@@ -81,10 +83,10 @@ func _cena() -> void:
 	cam.make_current()
 
 
-func _povoa(tipo: String, eq: Dictionary) -> Node3D:
+func _povoa(tipo: String, eq: Dictionary, qtd: int) -> Node3D:
 	var g := Node3D.new()
 	add_child(g)
-	for i in 20:
+	for i in qtd:
 		var gen := "m" if i % 2 == 0 else "f"
 		var n: Node3D
 		if tipo == "atual":
@@ -97,7 +99,7 @@ func _povoa(tipo: String, eq: Dictionary) -> Node3D:
 			ap.add_animation_library("", _lib(sk, float(HIP[gen])))
 			ap.play("Idle")
 		g.add_child(n)
-		n.position = Vector3((i % 5) * 1.6 - 3.2, 0, floorf(i / 5.0) * 1.8 - 2.7)  # grade fixa 5 x 4
+		n.position = Vector3((i % 5) * 1.6 - 3.2, 0, floorf(i / 5.0) * 1.8 - 2.7 - (3.6 if qtd > 20 else 0.0))  # grade fixa de 5 colunas (5 x 4 ou 5 x 8)
 	return g
 
 
