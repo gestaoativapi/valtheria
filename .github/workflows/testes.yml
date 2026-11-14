@@ -38,11 +38,17 @@ jobs:
           mkdir -p ~/.local/share/godot/export_templates/$TPL
           unzip -qj tpl.tpz templates/version.txt templates/windows_release_x86_64.exe templates/windows_release_x86_64_console.exe -d ~/.local/share/godot/export_templates/$TPL
       - name: Configurar o AMBIENTE DE TESTES (nunca a producao)
+        env:
+          TESTE_KEY: ${{ secrets.TESTE_ANON_KEY }}
         run: |
           cd cliente-godot
           if [ ! -f teste/ambiente_teste.env ]; then echo "Sem teste/ambiente_teste.env: o executavel de teste nao sera gerado."; echo "SEM_AMBIENTE=1" >> $GITHUB_ENV; exit 0; fi
           . teste/ambiente_teste.env
           case "$TESTE_URL" in *irpzdghikvoezfeodyiq*) echo "ERRO: endereco de producao"; exit 1;; esac
+          if [ -z "$TESTE_KEY" ]; then echo "Sem o segredo TESTE_ANON_KEY: o executavel de teste nao sera gerado."; echo "SEM_AMBIENTE=1" >> $GITHUB_ENV; exit 0; fi
+          P=$(echo "$TESTE_KEY" | cut -d. -f2 | tr '_-' '/+'); while [ $(( ${#P} % 4 )) -ne 0 ]; do P="$P="; done; P=$(echo "$P" | base64 -d)
+          [ "$(echo "$P" | jq -r .role)" = "anon" ] || { echo "ERRO: a chave do executavel tem que ser a publica (anon)"; exit 1; }
+          [ "$(echo "$P" | jq -r .ref)" = "$TESTE_REF" ] || { echo "ERRO: a chave nao e do projeto de testes"; exit 1; }
           sed -i "s#^const URL := .*#const URL := \"$TESTE_URL\"#" scripts/net.gd
           sed -i "s#^const KEY := .*#const KEY := \"$TESTE_KEY\"#" scripts/net.gd
           sed -i 's#^const AMBIENTE := .*#const AMBIENTE := "testes"#' scripts/net.gd
@@ -56,6 +62,8 @@ jobs:
           ../Godot_v${GODOT}_linux.x86_64 --headless --path . --import || true
           ../Godot_v${GODOT}_linux.x86_64 --headless --path . --export-release "Windows Desktop" build/Valtheria.exe
           test -s build/Valtheria.exe
+          if grep -c -a 'irpzdghikvoezfeodyiq' build/Valtheria.exe build/*.pck 2>/dev/null | grep -qv ':0$'; then echo "ERRO: referencia da producao dentro do executavel de teste"; exit 1; fi
+          grep -q -a 'mxhhqxvrryvqcsvokyla' build/Valtheria.exe build/*.pck 2>/dev/null && echo "Executavel aponta so para o projeto de testes"
           cp windows/*.bat build/
       - uses: actions/upload-artifact@v4
         if: env.SEM_AMBIENTE != '1'
@@ -63,3 +71,18 @@ jobs:
           name: Valtheria-AMBIENTE-DE-TESTES-${{ github.ref_name }}
           path: cliente-godot/build/
           retention-days: 14
+  homologacao-servidor:
+    # D45: cadastro, login, criacao de personagem e isolamento entre duas contas, SO no projeto de testes.
+    if: github.ref != 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testes de funcionamento e isolamento
+        env:
+          TESTE_KEY: ${{ secrets.TESTE_ANON_KEY }}
+        run: |
+          cd cliente-godot
+          . teste/ambiente_teste.env
+          if [ -z "$TESTE_KEY" ]; then echo "Sem o segredo TESTE_ANON_KEY: testes nao executados."; exit 1; fi
+          export TESTE_URL TESTE_REF TESTE_KEY
+          bash teste/homologacao_servidor.sh
