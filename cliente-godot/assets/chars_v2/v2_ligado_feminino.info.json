@@ -1,0 +1,10 @@
+{
+ "arquivo": "saida/v2_ligado_feminino.glb",
+ "ossos": 65,
+ "vertices": 14517,
+ "triangulos": 26756,
+ "rot_local_max_dif_graus": 0.0,
+ "hip": 0.9573,
+ "escala_pontas": 1.0485,
+ "altura": 1.682
+}

@@ -71,6 +71,14 @@ var swimming := false
 
 
 func _ready() -> void:
+	# ramificação de teste v2-prova-visual: diagnóstico de vídeo e medição (D42); o jogo normal não passa por aqui
+	var ua := OS.get_cmdline_user_args()
+	if "--benchmark" in ua or "--diagnostico-video" in ua:
+		set_process(false)
+		set_physics_process(false)
+		set_process_input(false)
+		get_tree().change_scene_to_file.call_deferred("res://testes/benchmark.tscn")
+		return
 	_log_open()
 	compat = RenderingServer.get_current_rendering_method() == "gl_compatibility"
 	forward = RenderingServer.get_current_rendering_method() == "forward_plus"

@@ -1,0 +1,52 @@
+name: Testes do cliente nativo
+on:
+  push:
+    paths: ['cliente-godot/**', '.github/workflows/testes.yml']
+  pull_request:
+    paths: ['cliente-godot/**']
+  workflow_dispatch:
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    env:
+      GODOT: 4.7.2-stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Baixar o Godot
+        run: |
+          curl -sSfL -o godot.zip https://github.com/godotengine/godot/releases/download/$GODOT/Godot_v${GODOT}_linux.x86_64.zip
+          unzip -q godot.zip
+      - name: Rodar os testes de regressão
+        run: |
+          cd cliente-godot
+          bash testes/regressao.sh ../Godot_v${GODOT}_linux.x86_64
+  versao-de-teste:
+    # Gera o executável de TESTE (só em ramificações que não são a main). Não publica release: fica para download em Actions > Artifacts.
+    if: github.ref != 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: testes
+    runs-on: ubuntu-latest
+    env:
+      GODOT: 4.7.2-stable
+      TPL: 4.7.2.stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Baixar o Godot e os modelos de exportacao
+        run: |
+          curl -sSfL -o godot.zip https://github.com/godotengine/godot/releases/download/$GODOT/Godot_v${GODOT}_linux.x86_64.zip
+          unzip -q godot.zip
+          curl -sSfL -o tpl.tpz https://github.com/godotengine/godot/releases/download/$GODOT/Godot_v${GODOT}_export_templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/$TPL
+          unzip -qj tpl.tpz templates/version.txt templates/windows_release_x86_64.exe templates/windows_release_x86_64_console.exe -d ~/.local/share/godot/export_templates/$TPL
+      - name: Gerar o executavel de teste
+        run: |
+          cd cliente-godot
+          mkdir -p build
+          ../Godot_v${GODOT}_linux.x86_64 --headless --path . --import || true
+          ../Godot_v${GODOT}_linux.x86_64 --headless --path . --export-release "Windows Desktop" build/Valtheria.exe
+          test -s build/Valtheria.exe
+          cp windows/*.bat build/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Valtheria-TESTE-${{ github.ref_name }}
+          path: cliente-godot/build/
+          retention-days: 14

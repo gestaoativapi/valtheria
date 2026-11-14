@@ -1,0 +1,10 @@
+{
+ "arquivo": "saida/v2_ligado_masculino.glb",
+ "ossos": 65,
+ "vertices": 14517,
+ "triangulos": 26756,
+ "rot_local_max_dif_graus": 0.0,
+ "hip": 1.0302,
+ "escala_pontas": 1.0268,
+ "altura": 1.799
+}
