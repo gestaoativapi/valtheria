@@ -24,5 +24,7 @@ for p in "1500,1985" "1500,2550" "1500,1450" "2150,1300" "2290,2800" "1250,2250"
     echo "ok: $p"
   fi
 done
+echo "== 3. Reconexão do tempo real"
+if timeout 120 "$G" --headless --path . --script testes/test_reconexao.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: reconexão"; else echo "FALHOU: reconexão"; falhas=$((falhas+1)); fi
 echo "== Resultado: $falhas falha(s)"
 [ "$falhas" -eq 0 ]
