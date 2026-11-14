@@ -37,7 +37,7 @@ c=$(post "/auth/v1/token?grant_type=password" "{\"email\":\"$UA@jogadores.reinos
 c=$(post "/auth/v1/token?grant_type=password" "{\"email\":\"$UB@jogadores.reinosdeaurora.app\",\"password\":\"$SB\"}"); TB=$(jq -r '.access_token // empty' /tmp/r.json)
 [ "$c" = 200 ] && [ -n "$TB" ] && ok "login da conta B" || erro "login B ($c)"
 c=$(post "/auth/v1/token?grant_type=password" "{\"email\":\"$UA@jogadores.reinosdeaurora.app\",\"password\":\"senha_errada_123\"}"); [ "$c" = 400 ] && ok "senha errada é recusada" || erro "senha errada ($c)"
-[ "$(payload "$TA" | jq -r .ref)" = "$TESTE_REF" ] && ok "sessão emitida pelo projeto de testes" || erro "sessão de outro projeto"
+payload "$TA" | jq -r .iss | grep -q "^https://$TESTE_REF.supabase.co/" && ok "sessão emitida pelo projeto de testes" || erro "sessão de outro projeto"
 
 # 3. Criação de personagem
 c=$(post /rest/v1/rpc/game_create_char2 "{\"p_name\":\"PA$rnd\",\"p_race\":\"humano\",\"p_type\":\"l\",\"p_gender\":\"m\",\"p_look\":{}}" "$TA"); CA=$(jq -r '. // empty' /tmp/r.json)

@@ -62,8 +62,9 @@ jobs:
           ../Godot_v${GODOT}_linux.x86_64 --headless --path . --import || true
           ../Godot_v${GODOT}_linux.x86_64 --headless --path . --export-release "Windows Desktop" build/Valtheria.exe
           test -s build/Valtheria.exe
-          if grep -c -a 'irpzdghikvoezfeodyiq' build/Valtheria.exe build/*.pck 2>/dev/null | grep -qv ':0$'; then echo "ERRO: referencia da producao dentro do executavel de teste"; exit 1; fi
-          grep -q -a 'mxhhqxvrryvqcsvokyla' build/Valtheria.exe build/*.pck 2>/dev/null && echo "Executavel aponta so para o projeto de testes"
+          # confere o conteudo exportado (mesmo preset): le as constantes de rede de dentro do pacote
+          ../Godot_v${GODOT}_linux.x86_64 --headless --path . --export-pack "Windows Desktop" /tmp/conferencia.pck
+          ../Godot_v${GODOT}_linux.x86_64 --headless --main-pack /tmp/conferencia.pck --script res://teste/conferir_ambiente.gd
           cp windows/*.bat build/
       - uses: actions/upload-artifact@v4
         if: env.SEM_AMBIENTE != '1'
