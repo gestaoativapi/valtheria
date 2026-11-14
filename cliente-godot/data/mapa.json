@@ -1,0 +1,295 @@
+{
+ "towns": {
+  "aurora": {
+   "style": "radial",
+   "desc": "Casas em dois anéis em volta da praça; torre do sino; moinho.",
+   "size": "?"
+  },
+  "dourado": {
+   "style": "campos",
+   "desc": "Casas pequenas em quadras, celeiros, plantações e fardos de feno; coreto no centro.",
+   "size": "?"
+  },
+  "pedra": {
+   "style": "terracos",
+   "desc": "Muralha quadrada; casas em três terraços; bairro das forjas com caldeirões; salão de pedra.",
+   "size": "?"
+  },
+  "sylvar": {
+   "style": "bosque",
+   "desc": "Casas soltas entre árvores grandes e árvores luminosas; pavilhão central; sem ruas retas.",
+   "size": "?"
+  },
+  "rubra": {
+   "style": "fortaleza",
+   "desc": "Muralha quadrada; quartéis em fileiras; arena de pedra no centro; braseiros.",
+   "size": "?"
+  },
+  "celeste": {
+   "style": "mirante",
+   "desc": "Muralha hexagonal; casas em espiral subindo; torre alta no centro.",
+   "size": "?"
+  },
+  "presas": {
+   "style": "acampamento",
+   "desc": "Paliçada de madeira; cabanas em círculo grande; totens de pedra; várias fogueiras.",
+   "size": "?"
+  },
+  "umbraval": {
+   "style": "crescente",
+   "desc": "Casas em meia-lua em volta de um obelisco escuro; colunas; luz fria.",
+   "size": "?"
+  },
+  "pico": {
+   "style": "encosta",
+   "desc": "Uma rua principal com casas dos dois lados; santuário do dragão no fim da rua.",
+   "size": "?"
+  },
+  "noctis": {
+   "style": "gotica",
+   "desc": "Muralha quadrada; quadras retas; catedral de pedra com torres no centro; grades de ferro.",
+   "size": "?"
+  },
+  "glacial": {
+   "style": "salao",
+   "desc": "Poucas casas grandes em volta de um grande salão; muralha redonda.",
+   "size": "?"
+  }
+ },
+ "castles": [
+  {
+   "id": "castelo_corvos",
+   "name": "Castelo dos Corvos",
+   "town": "aurora",
+   "x": 1180,
+   "z": 2250,
+   "dist": 439
+  },
+  {
+   "id": "castelo_dourado",
+   "name": "Castelo do Vale Dourado",
+   "town": "dourado",
+   "x": 650,
+   "z": 1699,
+   "dist": 351
+  },
+  {
+   "id": "castelo_pedra",
+   "name": "Castelo de Pedra Alta",
+   "town": "pedra",
+   "x": 2046,
+   "z": 2126,
+   "dist": 351
+  },
+  {
+   "id": "castelo_sylvar",
+   "name": "Castelo de Sylvar",
+   "town": "sylvar",
+   "x": 1266,
+   "z": 1315,
+   "dist": 270
+  },
+  {
+   "id": "castelo_rubra",
+   "name": "Castelo Rubro",
+   "town": "rubra",
+   "x": 526,
+   "z": 500,
+   "dist": 325
+  },
+  {
+   "id": "castelo_celeste",
+   "name": "Castelo Celeste",
+   "town": "celeste",
+   "x": 2654,
+   "z": 826,
+   "dist": 351
+  },
+  {
+   "id": "castelo_sangue",
+   "name": "Castelo do Sangue Eterno",
+   "town": "noctis",
+   "x": 2650,
+   "z": 820,
+   "dist": 337
+  },
+  {
+   "id": "castelo_pico",
+   "name": "Castelo do Pico",
+   "town": "pico",
+   "x": 1150,
+   "z": 544,
+   "dist": 325
+  },
+  {
+   "id": "castelo_inverno",
+   "name": "Castelo do Trono do Inverno",
+   "town": "glacial",
+   "x": 520,
+   "z": 520,
+   "dist": 269
+  }
+ ],
+ "villages": [
+  {
+   "id": "vila_campina",
+   "name": "Campina Velha",
+   "towns": [
+    "aurora"
+   ],
+   "x": 1537,
+   "z": 2270,
+   "houses": 11,
+   "seed": 76346
+  },
+  {
+   "id": "vila_moinhos",
+   "name": "Aldeia dos Moinhos",
+   "towns": [
+    "aurora",
+    "dourado"
+   ],
+   "x": 967,
+   "z": 2271,
+   "houses": 10,
+   "seed": 37765
+  },
+  {
+   "id": "vila_trigal",
+   "name": "Trigal",
+   "towns": [
+    "dourado"
+   ],
+   "x": 415,
+   "z": 2147,
+   "houses": 7,
+   "seed": 97228
+  },
+  {
+   "id": "vila_vau",
+   "name": "Vau das Presas",
+   "towns": [
+    "dourado",
+    "presas"
+   ],
+   "x": 883,
+   "z": 1990,
+   "houses": 12,
+   "seed": 35735
+  },
+  {
+   "id": "vila_mina",
+   "name": "Mina Funda",
+   "towns": [
+    "pedra"
+   ],
+   "x": 2447,
+   "z": 1715,
+   "houses": 10,
+   "seed": 9315
+  },
+  {
+   "id": "vila_ponte",
+   "name": "Ponte de Pedra",
+   "towns": [
+    "aurora",
+    "pedra"
+   ],
+   "x": 2102,
+   "z": 2386,
+   "houses": 11,
+   "seed": 99748
+  },
+  {
+   "id": "vila_clareira",
+   "name": "Clareira de Lys",
+   "towns": [
+    "sylvar"
+   ],
+   "x": 1531,
+   "z": 1212,
+   "houses": 10,
+   "seed": 30025
+  },
+  {
+   "id": "vila_sombria",
+   "name": "Encruzilhada Sombria",
+   "towns": [
+    "sylvar",
+    "umbraval"
+   ],
+   "x": 2008,
+   "z": 1137,
+   "houses": 11,
+   "seed": 1926
+  },
+  {
+   "id": "vila_cinzas",
+   "name": "Acampamento das Cinzas",
+   "towns": [
+    "rubra"
+   ],
+   "x": 840,
+   "z": 946,
+   "houses": 12,
+   "seed": 54259
+  },
+  {
+   "id": "vila_nuvens",
+   "name": "Pouso das Nuvens",
+   "towns": [
+    "celeste"
+   ],
+   "x": 2350,
+   "z": 990,
+   "houses": 11,
+   "seed": 66588
+  },
+  {
+   "id": "vila_escamas",
+   "name": "Vila das Escamas",
+   "towns": [
+    "pico"
+   ],
+   "x": 1542,
+   "z": 198,
+   "houses": 9,
+   "seed": 11248
+  },
+  {
+   "id": "vila_fronteira",
+   "name": "Posto da Fronteira",
+   "towns": [
+    "pico",
+    "rubra"
+   ],
+   "x": 889,
+   "z": 703,
+   "houses": 9,
+   "seed": 92056
+  },
+  {
+   "id": "vila_corvo",
+   "name": "Vigia do Corvo",
+   "towns": [
+    "noctis",
+    "umbraval"
+   ],
+   "x": 2379,
+   "z": 1321,
+   "houses": 11,
+   "seed": 58814
+  },
+  {
+   "id": "vila_geada",
+   "name": "Aldeia da Geada",
+   "towns": [
+    "glacial"
+   ],
+   "x": 330,
+   "z": 584,
+   "houses": 8,
+   "seed": 30919
+  }
+ ]
+}

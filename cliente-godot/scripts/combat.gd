@@ -316,7 +316,7 @@ func _manage_spawns(dt: float) -> void:
 						message.emit("Um chefe ronda %s" % sp.name)
 	# ruínas: até 6 guardiões por sítio, perto do jogador
 	for l in info.get("landmarks", []):
-		if str(l.id) == "era_neon":
+		if str(l.id) == "era_neon" or str(l.id) in world.CASTLE_POIS:
 			continue
 		var ld := Vector2(float(l.x) - p.x, float(l.z) - p.z).length()
 		if ld > float(l.r) + 90.0:

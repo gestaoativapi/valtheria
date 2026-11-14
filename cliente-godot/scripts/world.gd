@@ -32,6 +32,10 @@ var detail_f := 1.0
 var tree_shadows := true
 var base_fog := 0.0016
 var sky_shader: ShaderMaterial
+var mapa := {}  # estilo das cidades, castelos e vilas (data/mapa.json, gerado por ferramentas/planejar_mapa.py)
+var town_svc := {}  # cidade -> {"forja": Vector2, "pousada": Vector2, "estabulo": Vector2} (posição a partir do centro)
+var villages: Array = []  # vilas prontas, para os moradores
+const CASTLE_POIS := ["castelo_corvos", "castelo_sangue", "trono_gelo"]  # pontos antigos que viraram castelos inteiros
 var lamps: Array = []  # pontos de luz dos postes (mundo)
 var lamp_pool: Array = []  # poucas luzes reais que vão para os postes mais perto à noite
 var lamp_mat: StandardMaterial3D
@@ -133,6 +137,8 @@ void fragment() {
 func _init() -> void:
 	rng.seed = 12345
 	info = JSON.parse_string(FileAccess.get_file_as_string("res://data/world.json"))
+	if FileAccess.file_exists("res://data/mapa.json"):
+		mapa = JSON.parse_string(FileAccess.get_file_as_string("res://data/mapa.json"))
 	size = info.size
 	step = info.step
 	n = int(info.n)
@@ -164,8 +170,12 @@ func build() -> void:
 	for b in info.get("bridges", []):
 		_build_bridge(b)
 	for l in info.get("landmarks", []):
-		if str(l.id) != "era_neon":
+		if str(l.id) != "era_neon" and not (str(l.id) in CASTLE_POIS):
 			_build_ruin(l)
+	for c in mapa.get("castles", []):
+		_build_castle(c)
+	for v in mapa.get("villages", []):
+		_build_village(v)
 
 
 # ---------- relevo ----------
@@ -201,6 +211,20 @@ func nearest_town(x: float, z: float) -> Dictionary:
 			bd = d
 			best = t
 	return {"town": best, "dist": bd}
+
+
+# dentro de castelo, vila ou ruína: sem árvores nem pedras no meio das construções
+func _built_up(x: float, z: float, k := 1.0) -> bool:
+	for c in mapa.get("castles", []):
+		if absf(x - float(c.x)) < 58.0 * k and absf(z - float(c.z)) < 58.0 * k:
+			return true
+	for v in mapa.get("villages", []):
+		if Vector2(x - float(v.x), z - float(v.z)).length() < 34.0 * k:
+			return true
+	for l in info.get("landmarks", []):
+		if Vector2(x - float(l.x), z - float(l.z)).length() < float(l.r) * 0.6 * k:
+			return true
+	return false
 
 
 func town_by_id(id: String) -> Dictionary:
@@ -481,7 +505,7 @@ func _vegetation(key: Vector2i, parent: Node3D) -> void:
 		var s := r.randf_range(0.75, 1.35)
 		var yaw := r.randf() * TAU
 		var g := ground(x, z)
-		if g.g < 0.75 or height(x, z) < 1.6 or nearest_town(x, z).dist < 100.0:
+		if g.g < 0.75 or height(x, z) < 1.6 or nearest_town(x, z).dist < 100.0 or _built_up(x, z):
 			continue
 		if not by_file.has(pick[0]):
 			by_file[pick[0]] = [pick[1], []]
@@ -499,7 +523,7 @@ func _vegetation(key: Vector2i, parent: Node3D) -> void:
 		for i in 2:
 			var x := (key.x + r.randf()) * CH
 			var z := (key.y + r.randf()) * CH
-			if ground(x, z).g > 0.75 and height(x, z) > 1.6 and nearest_town(x, z).dist > 100.0:
+			if ground(x, z).g > 0.75 and height(x, z) > 1.6 and nearest_town(x, z).dist > 100.0 and not _built_up(x, z):
 				rare.append(at(x, z, r.randf() * TAU, r.randf_range(0.8, 1.2), 0.15))
 		if not rare.is_empty():
 			place(parent, ["n_tree_light_1", "n_tree_light_2", "n_tree_spiral_1"][r.randi() % 3], rare, 8.5, tree_shadows)
@@ -510,7 +534,7 @@ func _vegetation(key: Vector2i, parent: Node3D) -> void:
 			var z := (key.y + r.randf()) * CH
 			var g := ground(x, z)
 			var rocky: bool = String(sdef[0]).contains("rock") or String(sdef[0]).begins_with("d_")
-			if height(x, z) < 1.4 or g.r > 0.3 or nearest_town(x, z).dist < 70.0 or (not rocky and g.g < 0.6):
+			if height(x, z) < 1.4 or g.r > 0.3 or nearest_town(x, z).dist < 70.0 or (not rocky and g.g < 0.6) or _built_up(x, z, 0.7):
 				continue
 			pts.append(at(x, z, r.randf() * TAU, r.randf_range(0.6, 1.5), 0.1))
 		if not pts.is_empty():
@@ -622,21 +646,44 @@ func _build_town(t: Dictionary) -> void:
 	add_child(root)
 	var r := RandomNumberGenerator.new()
 	r.seed = hash(t.id)
-	var kinds := ["b_house_1", "b_house_2", "b_house_3", "b_house_4"]
-	for ring in 2:
-		var count := 9 if ring == 0 else 14
-		var rad := 30.0 if ring == 0 else 50.0
-		for i in count:
-			var a := TAU * (i + 0.5 * ring) / count + 0.3
-			if _near_gate(t, a, 0.22 if ring == 1 else 0.3):
-				continue  # ruas que levam aos portões
-			var rr := rad + r.randf_range(-2.5, 2.5)
-			_building(root, kinds[r.randi() % 4], cx + sin(a) * rr, cz + cos(a) * rr, r.randf_range(6.8, 8.2), cx, cz)
-	_building(root, "b_inn", cx - 7.0, cz - 66.0, 10.5, cx, cz)
-	_building(root, "b_blacksmith", cx - 66.0, cz - 12.0, 6.8, cx, cz)
-	_building(root, "b_stable", cx + 66.0, cz + 18.0, 6.2, cx, cz)
-	_building(root, "b_bell_tower", cx + 14.0, cz - 16.0, 17.0, cx, cz)
-	_building(root, "b_mill", cx - 60.0, cz + 52.0, 13.0, cx, cz)
+	var style := str(mapa.get("towns", {}).get(str(t.id), {}).get("style", "radial"))
+	var lay := _layout(style, t, r)
+	town_svc[str(t.id)] = lay.svc
+	for hdef in lay.houses:
+		var hx: float = hdef[1]
+		var hz: float = hdef[2]
+		if not _clear_of_gates(t, hx, hz, 7.5):
+			continue
+		var yaw: float = hdef[4] if hdef.size() > 4 else atan2(-hx, -hz)
+		var sz := place(root, hdef[0], [at(cx + hx, cz + hz, yaw, 1.0, 0.15)], hdef[3], true, 900.0)
+		block(cx + hx, cz + hz, maxf(sz.x, sz.z) * 0.42)
+	for pdef in lay.props:
+		if _clear_of_gates(t, pdef[1], pdef[2], 5.0):
+			place(root, pdef[0], [at(cx + float(pdef[1]), cz + float(pdef[2]), float(pdef[4]) if pdef.size() > 4 else r.randf() * TAU, 1.0, 0.1)], pdef[3], true, 400.0)
+			if float(pdef[3]) > 1.5:
+				block(cx + float(pdef[1]), cz + float(pdef[2]), 1.0)
+	for tdef in lay.trees:
+		if _clear_of_gates(t, tdef[1], tdef[2], 6.0):
+			place(root, tdef[0], [at(cx + float(tdef[1]), cz + float(tdef[2]), r.randf() * TAU, r.randf_range(0.85, 1.15), 0.2)], tdef[3], tree_shadows, 900.0)
+			block(cx + float(tdef[1]), cz + float(tdef[2]), 0.8)
+	var mats := {"pedra": _stone(Color(0.68, 0.66, 0.62)), "escura": _stone(Color(0.32, 0.3, 0.36)), "clara": _stone(Color(0.86, 0.88, 0.95)), "madeira": _wood_mat(), "pano": _cloth_mat(lay.get("cloth", Color(0.6, 0.15, 0.12)))}
+	var by_mat := {}
+	for bdef in lay.boxes:  # [x, altura da base, z, largura, altura, fundo, giro, material]
+		var bx: float = bdef[0]
+		var bz: float = bdef[2]
+		var g := height(cx + bx, cz + bz)
+		var key: String = bdef[7]
+		if not by_mat.has(key):
+			by_mat[key] = []
+		by_mat[key].append(_box(Vector3(bx, g + float(bdef[1]) + float(bdef[4]) * 0.5, bz), Vector3(bdef[3], bdef[4], bdef[5]), bdef[6]))
+		if float(bdef[1]) < 1.0 and float(bdef[4]) > 1.2:
+			block(cx + bx, cz + bz, minf(float(bdef[3]), float(bdef[5])) * 0.5)
+	for key in by_mat:
+		_boxes(root, mats[key], by_mat[key], 900.0)
+	# praça (igual em função, muda de lugar o que é de serviço)
+	_building(root, "b_inn", cx + lay.svc.pousada.x, cz + lay.svc.pousada.y, 10.5, cx, cz)
+	_building(root, "b_blacksmith", cx + lay.svc.forja.x, cz + lay.svc.forja.y, 6.8, cx, cz)
+	_building(root, "b_stable", cx + lay.svc.estabulo.x, cz + lay.svc.estabulo.y, 6.2, cx, cz)
 	_building(root, "b_well", cx + 7.0, cz + 6.0, 2.6, cx + 30.0, cz + 30.0)
 	_building(root, "b_marketstand_1", cx - 10.0, cz + 9.0, 3.1, cx, cz)
 	_building(root, "b_marketstand_2", cx - 12.5, cz - 3.0, 3.1, cx, cz)
@@ -782,75 +829,266 @@ func _box(pos: Vector3, size: Vector3, yaw: float) -> Transform3D:
 	return Transform3D(Basis(Vector3.UP, yaw).scaled(size), pos)
 
 
-# muralha de pedra em volta da cidade, com torres e um portão em cada estrada
+# muralha em volta da cidade: o formato muda com o estilo (redonda, quadrada, hexagonal ou paliçada de madeira)
+const WALL_SHAPE := {"terracos": 4, "fortaleza": 4, "gotica": 4, "mirante": 6, "acampamento": -1, "campos": -1}
+
+
 func _build_walls(t: Dictionary) -> void:
 	var cx: float = t.x
 	var cz: float = t.z
 	var root: Node3D = get_node(str(t.id))
+	var style := str(mapa.get("towns", {}).get(str(t.id), {}).get("style", "radial"))
+	var shape: int = WALL_SHAPE.get(style, 60)
+	var palisade := shape < 0
+	var n := 48 if palisade else shape
 	var tones := [Color(0.72, 0.7, 0.66), Color(0.8, 0.74, 0.58), Color(0.62, 0.62, 0.64), Color(0.6, 0.68, 0.6), Color(0.7, 0.5, 0.42), Color(0.78, 0.86, 0.95)]
-	var mat := _stone(tones[clampi(int(t.band), 0, 5)])
-	var wood := StandardMaterial3D.new()
-	wood.albedo_color = Color(0.32, 0.22, 0.13)
+	var mat: Material = _wood_mat() if palisade else _stone(tones[clampi(int(t.band), 0, 5)])
+	var wood := _wood_mat()
 	var R := 86.0
-	var segs := 60
+	var phase := PI / n if n <= 6 else 0.0
+	var Rv := R / cos(PI / n)  # raio dos cantos, para o meio de cada lado ficar a 86 m
+	var tall := 4.6 if palisade else 6.6
 	var walls: Array = []
 	var merlons: Array = []
 	var towers: Array = []
 	var beams: Array = []
-	for i in segs:
-		var a := TAU * (i + 0.5) / segs
-		if _near_gate(t, a, 0.075):
-			continue
-		var len := TAU * R / segs + 0.5
-		var along := Vector3(cos(a), 0, -sin(a))
-		var mid := Vector3(sin(a) * R, 0, cos(a) * R)
-		# a muralha acompanha o terreno: base enterrada abaixo do ponto mais baixo, topo a 6,6 m do mais alto
-		var lo := 1e9
-		var hi := -1e9
-		for k in 5:
-			var q: Vector3 = mid + along * (k - 2) * len / 4.0
-			for d in [-0.9, 0.9]:
-				var gh := height(cx + q.x + sin(a) * d, cz + q.z + cos(a) * d)
+	for e in n:
+		var a1 := phase + TAU * e / n
+		var a2 := phase + TAU * (e + 1) / n
+		var p1 := Vector2(sin(a1), cos(a1)) * Rv
+		var p2 := Vector2(sin(a2), cos(a2)) * Rv
+		var edge := p2 - p1
+		var pieces := maxi(1, int(ceil(edge.length() / 6.5)))
+		var dir := edge.normalized()
+		var yaw := atan2(-dir.y, dir.x)
+		var nrm := Vector2(dir.y, -dir.x)  # para fora
+		if nrm.dot((p1 + p2) * 0.5) < 0.0:
+			nrm = -nrm
+		var plen := edge.length() / pieces
+		for k in pieces:
+			var m: Vector2 = p1 + dir * plen * (k + 0.5)
+			if _gate_cut(t, m, 6.5):
+				continue
+			var lo := 1e9
+			var hi := -1e9
+			for q in [-0.5, 0.0, 0.5]:
+				var pp: Vector2 = m + dir * plen * q
+				var gh := height(cx + pp.x, cz + pp.y)
 				lo = minf(lo, gh)
 				hi = maxf(hi, gh)
-		var bottom := lo - 1.6
-		var top := hi + 6.6
-		walls.append(_box(mid + Vector3(0, (top + bottom) * 0.5, 0), Vector3(len, top - bottom, 1.7), a))
-		for k in 3:
-			var off := (k - 1) * len / 3.0
-			merlons.append(_box(mid + along * off + Vector3(sin(a), 0, cos(a)) * 0.45 + Vector3(0, top + 0.45, 0), Vector3(len / 5.0, 0.9, 0.7), a))
-		if i % 6 == 0:
-			var tb := lo - 1.6
-			var tt := hi + 10.0
-			towers.append(_box(mid + Vector3(0, (tt + tb) * 0.5, 0), Vector3(4.6, tt - tb, 4.6), a))
-			for k in 4:  # ameias no topo da torre
-				var dk := Vector3(sin(a + k * PI * 0.5), 0, cos(a + k * PI * 0.5)) * 1.9
-				merlons.append(_box(mid + dk + Vector3(0, tt + 0.5, 0), Vector3(1.2, 1.0, 1.2), a))
-		for k in 5:
-			var bx := cx + mid.x + along.x * (k - 2) * len / 5.0
-			var bz := cz + mid.z + along.z * (k - 2) * len / 5.0
-			block(bx, bz, 1.0)
+			var bottom := lo - 1.6
+			var top := hi + tall
+			walls.append(_box(Vector3(m.x, (top + bottom) * 0.5, m.y), Vector3(plen + 0.5, top - bottom, 0.9 if palisade else 1.7), yaw))
+			if palisade:  # pontas dos troncos
+				for j in 3:
+					var o: Vector2 = m + dir * plen * (j - 1) / 3.0
+					merlons.append(_box(Vector3(o.x, top + 0.4, o.y), Vector3(plen / 3.6, 0.8, 0.5), yaw + 0.785))
+			else:
+				for j in 3:
+					var o: Vector2 = m + dir * plen * (j - 1) / 3.0 + nrm * 0.45
+					merlons.append(_box(Vector3(o.x, top + 0.45, o.y), Vector3(plen / 5.0, 0.9, 0.7), yaw))
+			for j in 3:
+				var o2: Vector2 = m + dir * plen * (j - 1) / 3.0
+				block(cx + o2.x, cz + o2.y, 1.0)
+			if not palisade and n == 60 and (e % 6 == 0) and k == 0:
+				_tower(towers, merlons, Vector3(m.x, 0, m.y), lo, hi, yaw, 4.6)
+		if not palisade and n <= 6 and not _gate_cut(t, p1, 7.0):  # torre em cada canto
+			var g1 := height(cx + p1.x, cz + p1.y)
+			_tower(towers, merlons, Vector3(p1.x, 0, p1.y), g1, g1, a1, 6.0)
+			block(cx + p1.x, cz + p1.y, 3.0)
+	# portões: onde a rua cruza a muralha
 	for g in t.get("gates", []):
 		var a := float(g)
+		var gd := R
+		if n <= 6:
+			var rel := wrapf(a - phase - PI / n, -PI / n, PI / n)
+			gd = R / cos(rel)
 		var side := Vector3(cos(a), 0, -sin(a))
-		var c := Vector3(sin(a) * R, height(cx + sin(a) * R, cz + cos(a) * R), cos(a) * R)
+		var c := Vector3(sin(a) * gd, height(cx + sin(a) * gd, cz + cos(a) * gd), cos(a) * gd)
 		for sgn in [-1.0, 1.0]:
 			var tp: Vector3 = c + side * sgn * 5.6
 			var tg := height(cx + tp.x, cz + tp.z)
 			tp.y = tg
 			var low := minf(tg, c.y) - 1.6
-			var tall := maxf(tg, c.y) + 11.0
-			towers.append(_box(Vector3(tp.x, (low + tall) * 0.5, tp.z), Vector3(4.2, tall - low, 4.2), a))
+			var up := maxf(tg, c.y) + (6.5 if palisade else 11.0)
+			towers.append(_box(Vector3(tp.x, (low + up) * 0.5, tp.z), Vector3(2.0 if palisade else 4.2, up - low, 2.0 if palisade else 4.2), a))
 			block(cx + tp.x, cz + tp.z, 2.4)
 			var tf: Node3D = FX.fire(0.5, false)
 			tf.position = tp + Vector3(sin(a), 0, cos(a)) * 2.6 + Vector3(0, 3.4, 0)
 			root.add_child(tf)
-		walls.append(_box(c + Vector3(0, 8.4, 0), Vector3(8.0, 3.0, 1.9), a))
-		beams.append(_box(c + Vector3(0, 6.7, 0), Vector3(7.6, 0.45, 2.3), a))
+		if not palisade:
+			walls.append(_box(c + Vector3(0, 8.4, 0), Vector3(8.0, 3.0, 1.9), a))
+		beams.append(_box(c + Vector3(0, 5.6 if palisade else 6.7, 0), Vector3(7.6, 0.45, 2.3), a))
 	_boxes(root, mat, walls)
 	_boxes(root, mat, merlons, 260.0)
-	_boxes(root, mat, towers)
+	_boxes(root, wood if palisade else mat, towers)
 	_boxes(root, wood, beams, 300.0)
+
+
+func _tower(towers: Array, merlons: Array, p: Vector3, lo: float, hi: float, yaw: float, w: float) -> void:
+	var tb := lo - 1.6
+	var tt := hi + 10.0
+	towers.append(_box(Vector3(p.x, (tt + tb) * 0.5, p.z), Vector3(w, tt - tb, w), yaw))
+	for k in 4:
+		var dk := Vector3(sin(yaw + k * PI * 0.5), 0, cos(yaw + k * PI * 0.5)) * (w * 0.41)
+		merlons.append(_box(Vector3(p.x, tt + 0.5, p.z) + dk, Vector3(1.2, 1.0, 1.2), yaw))
+
+
+# o trecho do muro em m (a partir do centro) fica no caminho de um portão?
+func _gate_cut(t: Dictionary, m: Vector2, half: float) -> bool:
+	for g in t.get("gates", []):
+		var a := float(g)
+		var along := m.x * sin(a) + m.y * cos(a)
+		var perp := absf(m.x * cos(a) - m.y * sin(a))
+		if along > 0.0 and perp < half:
+			return true
+	return false
+
+
+# ---------- castelos (fora das cidades; futuras zonas de cerco) ----------
+func _build_castle(c: Dictionary) -> void:
+	var cx: float = float(c.x)
+	var cz: float = float(c.z)
+	var root := Node3D.new()
+	root.name = "Castelo_" + str(c.id)
+	add_child(root)
+	var town := town_by_id(str(c.town))
+	var face := atan2(float(town.x) - cx, float(town.z) - cz) if not town.is_empty() else 0.0  # portão virado para a cidade
+	var stone := _stone(Color(0.58, 0.57, 0.55))
+	var dark := _stone(Color(0.4, 0.38, 0.38))
+	var walls: Array = []
+	var merl: Array = []
+	var towers: Array = []
+	var keep: Array = []
+	var half := 34.0
+	for e in 4:
+		var a := face + e * PI * 0.5
+		var out := Vector2(sin(a), cos(a))
+		var along := Vector2(cos(a), -sin(a))
+		var pieces := 11
+		for k in pieces:
+			var t := (k + 0.5) / pieces - 0.5
+			var m: Vector2 = out * half + along * t * half * 2.0
+			if e == 0 and absf(t) < 0.06:
+				continue  # portão
+			var lo := 1e9
+			var hi := -1e9
+			for q in [-0.5, 0.5]:
+				var pp: Vector2 = m + along * q * (half * 2.0 / pieces)
+				var gh := height(cx + pp.x, cz + pp.y)
+				lo = minf(lo, gh)
+				hi = maxf(hi, gh)
+			var plen := half * 2.0 / pieces + 0.4
+			walls.append(_box(Vector3(cx + m.x, (lo - 2.0 + hi + 9.0) * 0.5, cz + m.y), Vector3(plen, hi + 9.0 - lo + 2.0, 2.4), a))
+			for j in 2:
+				var o: Vector2 = m + along * (j - 0.5) * plen * 0.5 + out * 0.8
+				merl.append(_box(Vector3(cx + o.x, hi + 9.6, cz + o.y), Vector3(plen / 3.5, 1.2, 0.8), a))
+			block(cx + m.x, cz + m.y, 1.6)
+		var corner: Vector2 = out * half + along * half
+		var cg := height(cx + corner.x, cz + corner.y)
+		_tower(towers, merl, Vector3(cx + corner.x, 0, cz + corner.y), cg, cg + 4.0, a, 8.0)
+		block(cx + corner.x, cz + corner.y, 4.0)
+	# portão com duas torres
+	var gate_c := Vector2(sin(face), cos(face)) * half
+	var gside := Vector2(cos(face), -sin(face))
+	for sg in [-1.0, 1.0]:
+		var tp: Vector2 = gate_c + gside * sg * 6.0
+		var tg := height(cx + tp.x, cz + tp.y)
+		_tower(towers, merl, Vector3(cx + tp.x, 0, cz + tp.y), tg, tg + 3.0, face, 5.5)
+		block(cx + tp.x, cz + tp.y, 2.8)
+	var gg := height(cx + gate_c.x, cz + gate_c.y)
+	walls.append(_box(Vector3(cx + gate_c.x, gg + 10.5, cz + gate_c.y), Vector3(8.0, 3.0, 3.0), face))
+	# torre de menagem no centro
+	var kg := height(cx, cz)
+	keep.append(_box(Vector3(cx, kg + 9.0, cz), Vector3(18.0, 22.0, 18.0), face))
+	for k in 4:
+		var a := face + PI * 0.25 + k * PI * 0.5
+		var p := Vector2(sin(a), cos(a)) * 12.2
+		keep.append(_box(Vector3(cx + p.x, kg + 12.0, cz + p.y), Vector3(5.0, 28.0, 5.0), face))
+		merl.append(_box(Vector3(cx + p.x, kg + 26.6, cz + p.y), Vector3(5.6, 1.2, 5.6), face))
+	block(cx, cz, 12.0)
+	_boxes(root, stone, walls, 1400.0)
+	_boxes(root, stone, merl, 500.0)
+	_boxes(root, stone, towers, 1400.0)
+	_boxes(root, dark, keep, 1600.0)
+	# bandeiras no alto da torre de menagem
+	var banners: Array = []
+	for k in 2:
+		var a := face + k * PI
+		var p := Vector2(sin(a), cos(a)) * 9.2
+		banners.append(_box(Vector3(cx + p.x, kg + 15.0, cz + p.y), Vector3(4.0, 7.0, 0.15), a))
+	_boxes(root, _cloth_mat(Color(0.55, 0.08, 0.1)), banners, 900.0)
+	for sg in [-1.0, 1.0]:
+		var tp: Vector2 = gate_c + gside * sg * 6.0 + Vector2(sin(face), cos(face)) * 3.4
+		var tf: Node3D = FX.fire(0.6, false)
+		tf.position = Vector3(cx + tp.x, height(cx + tp.x, cz + tp.y) + 4.2, cz + tp.y)
+		root.add_child(tf)
+		fires.append(tf)
+	var plate := Label3D.new()
+	plate.text = "%s\n(zona de cerco)" % c.name
+	plate.font = load("res://assets/cinzel.ttf")
+	plate.font_size = 88
+	plate.pixel_size = 0.022
+	plate.outline_size = 18
+	plate.modulate = Color(1.0, 0.75, 0.55)
+	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	plate.position = Vector3(cx, kg + 38.0, cz)
+	plate.visibility_range_begin = 50.0
+	plate.visibility_range_end = 1200.0
+	root.add_child(plate)
+
+
+# ---------- vilas ----------
+func _build_village(v: Dictionary) -> void:
+	var cx: float = float(v.x)
+	var cz: float = float(v.z)
+	var root := Node3D.new()
+	root.name = "Vila_" + str(v.id)
+	add_child(root)
+	var r := RandomNumberGenerator.new()
+	r.seed = int(v.get("seed", 1))
+	var H := ["b_house_1", "b_house_2", "b_house_3", "b_house_4"]
+	var homes: Array = []
+	var n := int(v.get("houses", 8))
+	for k in n:
+		var a := TAU * k / n + r.randf_range(-0.15, 0.15)
+		var d := r.randf_range(15.0, 25.0)
+		var x := cx + sin(a) * d
+		var z := cz + cos(a) * d
+		_building(root, H[r.randi() % 4], x, z, r.randf_range(6.0, 7.2), cx, cz)
+		homes.append(Vector3(sin(a) * (d - 5.0), 0, cos(a) * (d - 5.0)))
+	_building(root, "b_well", cx + 3.0, cz + 2.0, 2.4, cx + 20.0, cz + 20.0)
+	place(root, "b_bonfire_lit", [at(cx - 4.0, cz - 3.0)], 1.3, true, 300.0)
+	var bf: Node3D = FX.fire(1.0)
+	bf.position = Vector3(cx - 4.0, height(cx - 4.0, cz - 3.0) + 0.5, cz - 3.0)
+	root.add_child(bf)
+	fires.append(bf)
+	var extra := ["b_hay", "b_hay", "b_cart", "b_barrel", "b_crate", "b_bench_1"]
+	for k in 10:
+		var a := r.randf() * TAU
+		var d := r.randf_range(30.0, 42.0) if k < 6 else r.randf_range(6.0, 11.0)
+		place(root, extra[k % extra.size()], [at(cx + sin(a) * d, cz + cos(a) * d, r.randf() * TAU)], 1.2, true, 250.0)
+	var lamp_pts: Array = []
+	for k in 3:
+		var a := TAU * k / 3.0 + 0.5
+		lamp_pts.append(at(cx + sin(a) * 9.0, cz + cos(a) * 9.0, a))
+	var sz := place(root, "n_light_street_1", lamp_pts, 4.0, true, 260.0)
+	for xf in lamp_pts:
+		lamps.append((xf as Transform3D).origin + Vector3(0, sz.y * 0.9, 0))
+	var plate := Label3D.new()
+	plate.text = str(v.name)
+	plate.font = load("res://assets/cinzel.ttf")
+	plate.font_size = 72
+	plate.pixel_size = 0.018
+	plate.outline_size = 16
+	plate.modulate = Color(0.95, 0.9, 0.7)
+	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	plate.position = Vector3(cx, height(cx, cz) + 13.0, cz)
+	plate.visibility_range_begin = 40.0
+	plate.visibility_range_end = 500.0
+	root.add_child(plate)
+	var owner := town_by_id(str(v.towns[0]))
+	villages.append({"id": v.id, "name": v.name, "x": cx, "z": cz, "race": owner.get("race", "humano"), "homes": homes, "village": true, "gates": [], "band": owner.get("band", 0)})
 
 
 # ponte de madeira nos trechos em que a estrada cruza a água
@@ -1116,3 +1354,199 @@ func _build_ruin(l: Dictionary) -> void:
 	plate.visibility_range_end = 420.0
 	root.add_child(plate)
 	counts["ruinas"] = int(counts.get("ruinas", 0)) + 1
+
+
+
+# ---------- planta de cada cidade ----------
+# casas: [modelo, x, z, altura, (giro)]; enfeites: [modelo, x, z, altura, (giro)]; árvores: [modelo, x, z, altura]
+# blocos de pedra/madeira: [x, base, z, largura, altura, fundo, giro, material]
+func _layout(style: String, t: Dictionary, r: RandomNumberGenerator) -> Dictionary:
+	var H := ["b_house_1", "b_house_2", "b_house_3", "b_house_4"]
+	var L := {"houses": [], "props": [], "trees": [], "boxes": [], "svc": {"forja": Vector2(-66, -12), "pousada": Vector2(-7, -66), "estabulo": Vector2(66, 18)}}
+	var hs: Array = L.houses
+	var pr: Array = L.props
+	var tr: Array = L.trees
+	var bx: Array = L.boxes
+	match style:
+		"campos":  # Vale Dourado: casinhas em quadras, celeiros, plantações e feno
+			L.svc = {"forja": Vector2(-52, -26), "pousada": Vector2(24, -58), "estabulo": Vector2(58, 26)}
+			for gx in range(-60, 61, 20):
+				for gz in range(-60, 61, 20):
+					var d := Vector2(gx, gz).length()
+					if d < 26.0 or d > 72.0 or (abs(gx) == 60 and abs(gz) == 60):
+						continue
+					if r.randf() < 0.62:
+						hs.append([H[r.randi() % 4], gx + r.randf_range(-2, 2), gz + r.randf_range(-2, 2), r.randf_range(5.0, 6.0), [0.0, PI * 0.5, PI, -PI * 0.5][r.randi() % 4]])
+					else:
+						for k in 3:
+							pr.append(["b_hay", gx + r.randf_range(-6, 6), gz + r.randf_range(-6, 6), 1.3])
+			pr.append(["b_gazebo", 17.0, 15.0, 4.5])
+			pr.append(["b_mill", -58.0, 44.0, 13.0, 0.4])
+			pr.append(["b_mill", 50.0, -48.0, 12.0, 2.2])
+			pr.append(["b_sawmill", 44.0, 54.0, 6.0, 3.6])
+			L.cloth = Color(0.85, 0.65, 0.2)
+		"terracos":  # Pedra Alta: três terraços quadrados, bairro das forjas, salão de pedra
+			L.svc = {"forja": Vector2(-42, -42), "pousada": Vector2(44, 40), "estabulo": Vector2(-46, 46)}
+			for half in [30.0, 48.0, 66.0]:
+				var step := 15.0
+				var k: float = -half
+				while k <= half:
+					for side in [[k, -half, 0.0], [k, half, PI], [-half, k, PI * 0.5], [half, k, -PI * 0.5]]:
+						if r.randf() < 0.75:
+							hs.append([H[r.randi() % 4], side[0], side[1], r.randf_range(6.5, 7.5), side[2]])
+					k += step
+			bx.append([0.0, 0.0, -22.0, 16.0, 9.0, 12.0, 0.0, "pedra"])  # salão
+			bx.append([0.0, 9.0, -22.0, 17.0, 2.2, 13.0, 0.0, "escura"])
+			for p in [[-40.0, -34.0], [-34.0, -42.0], [40.0, -36.0]]:
+				pr.append(["b_cauldron", p[0], p[1], 1.4])
+			pr.append(["b_blacksmith", 40.0, -42.0, 6.5, 0.8])
+			L.cloth = Color(0.3, 0.35, 0.6)
+		"bosque":  # Sylvar: casas soltas entre árvores grandes e luminosas, pavilhão no centro
+			L.svc = {"forja": Vector2(-50, 22), "pousada": Vector2(30, -50), "estabulo": Vector2(52, 38)}
+			var pts: Array = []
+			var tries := 0
+			while pts.size() < 22 and tries < 600:
+				tries += 1
+				var a := r.randf() * TAU
+				var d := r.randf_range(24.0, 72.0)
+				var q := Vector2(sin(a) * d, cos(a) * d)
+				var ok := true
+				for o in pts:
+					if (o as Vector2).distance_to(q) < 15.0:
+						ok = false
+						break
+				if ok:
+					pts.append(q)
+					hs.append([H[r.randi() % 4], q.x, q.y, r.randf_range(6.4, 7.6), r.randf() * TAU])
+			for k in 18:
+				var a := r.randf() * TAU
+				var d := r.randf_range(20.0, 76.0)
+				tr.append([["n_commontree_1", "n_commontree_2", "n_tree_light_1", "n_tree_light_2", "n_tree_spiral_1"][k % 5], sin(a) * d, cos(a) * d, r.randf_range(11.0, 15.0)])
+			pr.append(["b_gazebo", 0.0, -20.0, 5.0, 0.0])
+			L.cloth = Color(0.25, 0.55, 0.35)
+		"fortaleza":  # Cidadela Rubra: quartéis em fileiras e arena de pedra
+			L.svc = {"forja": Vector2(-62, 0), "pousada": Vector2(56, -16), "estabulo": Vector2(56, 46)}
+			for z in [-66.0, -52.0, 52.0, 66.0]:
+				for x in range(-50, 51, 14):
+					hs.append([["b_house_2", "b_house_3"][r.randi() % 2], x, z, 7.0, 0.0 if z > 0 else PI])
+			for k in 16:  # arena
+				var a := TAU * k / 16.0
+				bx.append([sin(a) * 15.0, -0.3, -34.0 + cos(a) * 15.0, 6.0, 2.4, 1.2, a + PI * 0.5, "escura"])
+			for k in 4:
+				var a := TAU * k / 4.0 + 0.4
+				pr.append(["b_bonfire_lit", sin(a) * 19.0, -34.0 + cos(a) * 19.0, 1.3])
+			L.cloth = Color(0.6, 0.1, 0.08)
+		"mirante":  # Bastião Celeste: casas em espiral e torre alta
+			L.svc = {"forja": Vector2(-36, 46), "pousada": Vector2(42, -32), "estabulo": Vector2(-52, -30)}
+			for i in 24:
+				var a := i * 0.62
+				var d := 26.0 + i * 2.0
+				hs.append([H[i % 4], sin(a) * d, cos(a) * d, 6.8])
+			bx.append([0.0, 0.0, -20.0, 7.0, 28.0, 7.0, 0.25, "clara"])
+			bx.append([0.0, 28.0, -20.0, 9.0, 2.0, 9.0, 0.25, "clara"])
+			pr.append(["b_gazebo", 18.0, 16.0, 4.5])
+			L.cloth = Color(0.3, 0.5, 0.85)
+		"acampamento":  # Clã das Presas: cabanas em roda, tendas, totens e fogueiras
+			L.svc = {"forja": Vector2(-32, -56), "pousada": Vector2(46, -42), "estabulo": Vector2(62, 12)}
+			for k in 18:
+				var a := TAU * k / 18.0 + 0.1
+				hs.append([["b_house_1", "b_house_4"][k % 2], sin(a) * 50.0, cos(a) * 50.0, 5.2])
+			for k in 8:
+				var a := TAU * k / 8.0 + 0.3
+				pr.append(["b_gazebo", sin(a) * 30.0, cos(a) * 30.0, 3.6])
+			for k in 6:
+				var a := TAU * k / 6.0
+				bx.append([sin(a) * 18.0, 0.0, cos(a) * 18.0, 0.9, 5.5, 0.9, a, "escura"])
+			for k in 4:
+				var a := TAU * k / 4.0 + 0.8
+				pr.append(["b_bonfire_lit", sin(a) * 38.0, cos(a) * 38.0, 1.3])
+			L.cloth = Color(0.55, 0.35, 0.18)
+		"crescente":  # Umbraval: meia-lua de casas em volta de um obelisco escuro
+			L.svc = {"forja": Vector2(-56, -36), "pousada": Vector2(52, -36), "estabulo": Vector2(0, 64)}
+			for ring in [[38.0, 11], [58.0, 15]]:
+				for k in ring[1]:
+					var a: float = lerpf(-2.1, 2.1, float(k) / float(ring[1] - 1)) + PI
+					hs.append([H[k % 4], sin(a) * ring[0], cos(a) * ring[0], 6.8])
+			bx.append([0.0, 0.0, -24.0, 2.2, 15.0, 2.2, 0.785, "escura"])
+			for k in 8:
+				var a := TAU * k / 8.0
+				pr.append(["d_column", sin(a) * 8.0, -24.0 + cos(a) * 8.0, 5.0])
+			L.cloth = Color(0.35, 0.2, 0.5)
+		"encosta":  # Pico do Dragão: uma rua comprida e o santuário do dragão no fim
+			var g0: float = float(t.get("gates", [0.0])[0])
+			var fwd := Vector2(sin(g0), cos(g0))
+			var side := Vector2(cos(g0), -sin(g0))
+			L.svc = {"forja": -fwd * 22.0 + side * 16.0, "pousada": fwd * 40.0 - side * 17.0, "estabulo": fwd * 55.0 + side * 18.0}
+			var d := -66.0
+			while d <= 66.0:
+				for sg in [-1.0, 1.0]:
+					for off in [13.0, 34.0]:  # rua principal e a de trás
+						if absf(d) < 18.0 and off < 20.0:
+							continue
+						var q: Vector2 = fwd * d + side * sg * off
+						if q.length() < 74.0:
+							hs.append([H[r.randi() % 4], q.x, q.y, 6.8, atan2(-side.x * sg, -side.y * sg)])
+				d += 12.0
+			var sh: Vector2 = -fwd * 58.0
+			for k in 6:
+				var a := TAU * k / 6.0
+				pr.append(["d_column", sh.x + sin(a) * 7.0, sh.y + cos(a) * 7.0, 5.5])
+			bx.append([sh.x, 0.0, sh.y, 4.0, 1.4, 2.0, atan2(fwd.x, fwd.y), "escura"])
+			L.cloth = Color(0.7, 0.35, 0.1)
+		"gotica":  # Castelo Noctis: quadras retas e catedral com torres
+			L.svc = {"forja": Vector2(-56, 46), "pousada": Vector2(50, 46), "estabulo": Vector2(-56, -46)}
+			for x in [-62.0, -46.0, -30.0, 30.0, 46.0, 62.0]:
+				for z in [-14.0, 2.0, 18.0, 34.0, 50.0, 66.0]:
+					if Vector2(x, z).length() < 76.0 and r.randf() < 0.8:
+						hs.append([H[r.randi() % 4], x, z, 7.2, 0.0 if x > 0 else PI])
+			bx.append([0.0, 0.0, -42.0, 18.0, 15.0, 28.0, 0.0, "escura"])
+			bx.append([0.0, 15.0, -42.0, 12.0, 6.0, 26.0, 0.0, "escura"])
+			for sg in [-1.0, 1.0]:
+				bx.append([sg * 7.0, 0.0, -29.0, 5.0, 30.0, 5.0, 0.0, "escura"])
+			L.cloth = Color(0.45, 0.05, 0.1)
+		"salao":  # Fortaleza Glacial: poucas casas grandes e um grande salão
+			L.svc = {"forja": Vector2(-50, 24), "pousada": Vector2(46, 30), "estabulo": Vector2(52, -26)}
+			for k in 9:
+				var a := TAU * k / 9.0 + 0.4
+				hs.append([H[k % 4], sin(a) * 52.0, cos(a) * 52.0, 9.8])
+			bx.append([0.0, 0.0, -34.0, 28.0, 11.0, 16.0, 0.0, "clara"])
+			bx.append([0.0, 11.0, -34.0, 30.0, 3.0, 18.0, 0.0, "madeira"])
+			L.cloth = Color(0.4, 0.6, 0.8)
+		_:  # Vila Aurora (radial): dois anéis de casas, torre do sino, moinho
+			for ring in 2:
+				var count := 9 if ring == 0 else 14
+				var rad := 30.0 if ring == 0 else 50.0
+				for i in count:
+					var a := TAU * (i + 0.5 * ring) / count + 0.3
+					var rr := rad + r.randf_range(-2.5, 2.5)
+					hs.append([H[r.randi() % 4], sin(a) * rr, cos(a) * rr, r.randf_range(6.8, 8.2)])
+			pr.append(["b_bell_tower", 14.0, -16.0, 17.0, 0.6])
+			pr.append(["b_mill", -60.0, 52.0, 13.0, 0.9])
+	return L
+
+
+# true se o ponto (a partir do centro) não fica na rua que leva a um portão
+func _clear_of_gates(t: Dictionary, x: float, z: float, width: float) -> bool:
+	if Vector2(x, z).length() < 14.0:
+		return true
+	for g in t.get("gates", []):
+		var a := float(g)
+		var along := x * sin(a) + z * cos(a)
+		var perp := absf(x * cos(a) - z * sin(a))
+		if along > 8.0 and perp < width:
+			return false
+	return true
+
+
+func _wood_mat() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.4, 0.27, 0.16)
+	m.roughness = 0.9
+	return m
+
+
+func _cloth_mat(c: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = 0.85
+	return m

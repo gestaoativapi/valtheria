@@ -92,7 +92,30 @@ func _w(t: Dictionary, x: float, z: float) -> Vector3:
 	return Vector3(wx, main.world.height(wx, wz), wz)
 
 
+func _spawn_village(v: Dictionary) -> void:
+	town_id = str(v.id)
+	town = v
+	var race := _race_of(v)
+	spots = []
+	homes = []
+	for hp in v.homes:
+		homes.append(_w(v, (hp as Vector3).x, (hp as Vector3).z))
+		spots.append(_w(v, (hp as Vector3).x * 0.5, (hp as Vector3).z * 0.5))
+	for k in 4:
+		var a := TAU * k / 4.0
+		spots.append(_w(v, sin(a) * 34.0, cos(a) * 34.0))  # campos
+	benches = [_w(v, 6.0, 8.0)]
+	fire_pos = _w(v, -4.0, -3.0)
+	for i in 14:
+		queue.append({"kind": "citizen", "race": race})
+	for a in [["a_alpaca", Vector3(30.0, 0, 8.0), 1.5], ["a_shibainu", Vector3(-6.0, 0, 6.0), 0.5], ["a_donkey", Vector3(-28.0, 0, -12.0), 1.25]]:
+		queue.append({"kind": "animal", "def": a})
+
+
 func _spawn(t: Dictionary) -> void:
+	if t.get("village", false):
+		_spawn_village(t)
+		return
 	town_id = str(t.id)
 	town = t
 	var race := _race_of(t)
@@ -180,6 +203,7 @@ func _person(race: String, opts: Dictionary = {}) -> Dictionary:
 		h *= 0.96
 	c.scale = Vector3(w, h, w)
 	add_child(c)
+	c.set_battle(false)  # ninguém anda de arma em punho na cidade nem na estrada
 	return {"node": c, "race": race, "female": female, "age": age, "name": _name(race, female),
 		"speed": (1.2 if age == "adulto" else (2.0 if age == "crianca" else 0.8)) * rng.randf_range(0.9, 1.1)}
 
@@ -194,7 +218,14 @@ func _make(q: Dictionary) -> void:
 			var c: Node3D = info.node
 			var pos: Vector3
 			if role:
-				pos = _w(t, (d[1] as Vector3).x, (d[1] as Vector3).z)
+				var lp: Vector3 = d[1]
+				var svc: Dictionary = main.world.town_svc.get(town_id, {})
+				var key: String = {"Ferreiro": "forja", "Estalajadeiro": "pousada"}.get(str(d[0]), "")
+				if key != "" and svc.has(key):  # perto da forja ou da pousada desta cidade
+					var sp: Vector2 = svc[key]
+					var toward := -sp.normalized() * 5.5
+					lp = Vector3(sp.x + toward.x, 0, sp.y + toward.y)
+				pos = _w(t, lp.x, lp.z)
 				c.rotation.y = d[2]
 				c.play(d[3])
 			else:
@@ -286,12 +317,25 @@ func _process(dt: float) -> void:
 		check_t = 1.0
 		var p: Vector3 = main.player.position
 		var nt: Dictionary = main.world.nearest_town(p.x, p.z)
+		var place: Dictionary = {}
 		if nt.dist < 260.0:
-			if town_id != str(nt.town.id):
+			place = nt.town
+		else:
+			for v in main.world.villages:
+				if Vector2(float(v.x) - p.x, float(v.z) - p.z).length() < 150.0:
+					place = v
+					break
+		if not place.is_empty():
+			if town_id != str(place.id):
 				_clear()
-				_spawn(nt.town)
+				_spawn(place)
 		elif town_id != "" and nt.dist > 340.0:
-			_clear()
+			var still := false
+			for v in main.world.villages:
+				if str(v.id) == town_id and Vector2(float(v.x) - p.x, float(v.z) - p.z).length() < 220.0:
+					still = true
+			if not still:
+				_clear()
 	if list.is_empty():
 		return
 	var pp: Vector3 = main.player.position

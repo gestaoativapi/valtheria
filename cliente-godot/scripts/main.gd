@@ -196,6 +196,17 @@ func _ready() -> void:
 			atmos.weather = "chuva"
 			atmos.wet = 1.0
 			atmos.weather_t = 999.0
+		elif a == "--clean":  # teste: sem névoa e sem interface, para fotos do mapa
+			world.env.fog_enabled = false
+			ui.visible = false
+			for c in ui.get_children():
+				if c is CanvasItem:
+					(c as CanvasItem).visible = false
+		elif a.begins_with("--tilt="):
+			pitch = -float(a.trim_prefix("--tilt="))
+		elif a.begins_with("--aerial="):  # teste: vista do alto (distância em metros)
+			dist = float(a.trim_prefix("--aerial="))
+			pitch = -1.05
 		elif a.begins_with("--yaw="):  # teste: câmera girada (graus em volta do personagem)
 			yaw = facing + deg_to_rad(float(a.trim_prefix("--yaw=")))
 			pitch = -0.05
@@ -470,11 +481,12 @@ func _switch_api() -> void:
 func _spawn_crowd() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = crowd.size() + 1
-	var acts := ["Idle", "Walk", "Jog_Fwd", "Dance", "Idle_Talking", "Sword_Regular_A", "Idle_FoldArms"]
+	var acts := ["Idle", "Walk", "Jog_Fwd", "Dance", "Idle_Talking", "Idle_FoldArms"]
 	for i in 50:
 		var races: Array = world.info.races.keys()
 		var n: Node3D = Character.create({"race": races[rng.randi() % races.size()], "gender": "f" if rng.randf() < 0.5 else "m", "skin": rng.randi() % 4, "hair": rng.randi() % 6, "hair_color": rng.randi() % 8, "equipment": {"armadura": ["pesada_ng", "leve_ng", "robe_ng"][rng.randi() % 3], "arma": ["espada_ng", "espadao_ng", "arco_ng", "cajado_ng", "martelo_ng"][rng.randi() % 5]}})
 		add_child(n)
+		n.set_battle(false)
 		var a := rng.randf() * TAU
 		var r := rng.randf_range(5.0, 17.0)
 		var p: Vector3 = player.position + Vector3(sin(a) * r, 0, cos(a) * r)
@@ -695,7 +707,9 @@ func _process(dt: float) -> void:
 		if ui.win.visible and Engine.get_frames_drawn() % 20 == 0:
 			var cs: Dictionary = combat.st
 			ui.stats_view = {"Vida": "%d / %d" % [int(combat.hp), int(cs.get("maxHp", 0))], "Mana": "%d / %d" % [int(combat.mp), int(cs.get("maxMp", 0))], "Ataque físico": str(int(cs.get("patk", 0))), "Ataque mágico": str(int(cs.get("matk", 0))), "Defesa": str(int(cs.get("pdef", 0))), "Velocidade": "%.1f m/s" % float(cs.get("speed", 0)), "Alcance": "%.1f m" % float(cs.get("range", 0)), "Intervalo de ataque": "%.2f s" % float(cs.get("interval", 0)), "Elemento": str(combat.my_elem).capitalize()}
-		var fighting: bool = combat.auto or combat.now() < combat.combat_until
+		# na cidade ninguém fica em postura de combate: arma guardada dentro da zona segura
+		var in_town: bool = world.nearest_town(player.position.x, player.position.z).dist < 70.0
+		var fighting: bool = (combat.auto or combat.now() < combat.combat_until) and not in_town
 		if fighting != player.armed:
 			player.magic_idle = bool(combat.st.get("magic", false))
 			player.set_battle(fighting)
