@@ -1,0 +1,26 @@
+[
+ {
+  "arquivo": "wp_espada_longa_d.glb",
+  "triangulos": 1772,
+  "materiais": 1,
+  "textura": "512x512",
+  "comprimento_m": 1.001,
+  "largura_guarda_m": 0.273
+ },
+ {
+  "arquivo": "wp_espada_longa_b.glb",
+  "triangulos": 1804,
+  "materiais": 1,
+  "textura": "512x512",
+  "comprimento_m": 1.001,
+  "largura_guarda_m": 0.273
+ },
+ {
+  "arquivo": "wp_espada_longa_s.glb",
+  "triangulos": 1916,
+  "materiais": 1,
+  "textura": "512x512 + emissão",
+  "comprimento_m": 1.001,
+  "largura_guarda_m": 0.273
+ }
+]
