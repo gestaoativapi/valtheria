@@ -1,0 +1,199 @@
+{
+ "descricao": "AUT-021 D60/D61 — protótipo de porte de armas orientado por dados (V3, não integrado ao jogo). Precedência: item > tipo > regra por comprimento. Valores de deslocamento em metros para 1,80 m de altura (multiplicados por altura/1,8), no espaço do modelo (+Y para cima, +Z para a frente), como em character.gd.",
+ "versao": 1,
+ "regra_padrao": {
+  "comprimento_costas_m": 0.85,
+  "ponto_curto": "cintura_esq",
+  "ponto_longo": "costas_diagonal"
+ },
+ "pontos": {
+  "costas_diagonal": {
+   "osso": "spine_03",
+   "direcao_lamina": [
+    -0.42,
+    -0.9,
+    0.0
+   ],
+   "fora": [
+    0,
+    0,
+    -1
+   ],
+   "deslocamento_cabo": [
+    0.2,
+    0.2,
+    -0.17
+   ],
+   "origem": "character.gd _make_sheath(back=true)"
+  },
+  "cintura_esq": {
+   "osso": "pelvis",
+   "direcao_lamina": [
+    0.05,
+    -1.0,
+    -0.75
+   ],
+   "fora": [
+    1,
+    0,
+    0
+   ],
+   "deslocamento_cabo": [
+    0.2,
+    0.04,
+    -0.04
+   ],
+   "origem": "varredura AUT-021 (cetro): antes [0.15,-0.7,-0.7] / [0.2,0.04,0.05] de character.gd"
+  },
+  "cintura_curta": {
+   "osso": "pelvis",
+   "direcao_lamina": [
+    0.2,
+    -1.0,
+    -0.25
+   ],
+   "fora": [
+    1,
+    0,
+    0
+   ],
+   "deslocamento_cabo": [
+    0.28,
+    0.04,
+    -0.04
+   ],
+   "origem": "varredura AUT-021 (adaga): antes [0.1,-0.95,-0.3] / [0.2,0.04,0.05] de character.gd"
+  },
+  "cintura_machado": {
+   "osso": "pelvis",
+   "direcao_lamina": [
+    0.35,
+    -1.0,
+    -0.75
+   ],
+   "fora": [
+    1,
+    0,
+    0
+   ],
+   "deslocamento_cabo": [
+    0.28,
+    0.04,
+    0.04
+   ],
+   "origem": "varredura AUT-021 (machado)"
+  },
+  "cintura_longa": {
+   "de_arquivo": "espada_longa.json",
+   "chave": "bainha_cintura",
+   "fora": [
+    1,
+    0,
+    0
+   ]
+  },
+  "costas_sobre_escudo": {
+   "osso": "spine_03",
+   "direcao_lamina": [
+    -0.42,
+    -0.9,
+    0.0
+   ],
+   "fora": [
+    0,
+    0,
+    -1
+   ],
+   "deslocamento_cabo": [
+    0.2,
+    0.2,
+    -0.3
+   ],
+   "origem": "costas_diagonal recuada 13 cm para passar por fora do escudo (escudo nas costas: spine_03, -0,20 m)",
+   "nota": "reprovado na varredura: a guarda da espada longa toca o escudo até 0,42 m atrás das costas"
+  },
+  "cintura_com_escudo": {
+   "osso": "pelvis",
+   "direcao_lamina": [
+    0.35,
+    -1.0,
+    -0.75
+   ],
+   "fora": [
+    1,
+    0,
+    0
+   ],
+   "deslocamento_cabo": [
+    0.28,
+    0.04,
+    -0.04
+   ],
+   "origem": "varredura AUT-021 (espada longa + escudo), partindo da bainha_cintura de espada_longa.json"
+  }
+ },
+ "tipos": {
+  "adaga": {
+   "ponto": "cintura_curta"
+  },
+  "punhal": {
+   "ponto": "cintura_curta"
+  },
+  "machado": {
+   "ponto": "cintura_machado"
+  },
+  "duplas": {
+   "ponto": "costas_diagonal",
+   "nota": "espadas gêmeas cruzadas nas costas: na cintura (0,8 m) tocavam a coxa em repouso"
+  }
+ },
+ "itens": {
+  "espada_longa": {
+   "ponto": "costas_diagonal",
+   "com_escudo": "cintura_com_escudo",
+   "alternativa_cintura": "cintura_longa",
+   "nota": "D60: espada longa (P5, 1 m) nas costas; com escudo nas costas, vai para a cintura (ponto ajustado a partir da bainha de espada_longa.json)"
+  }
+ },
+ "com_escudo": {
+  "costas_diagonal": "cintura_com_escudo"
+ },
+ "estados": {
+  "combate": {
+   "animacoes": [
+    "Sword_",
+    "Shield_",
+    "Idle_Shield",
+    "Spell_",
+    "Hit_",
+    "Punch_"
+   ],
+   "acao": "mao",
+   "nota": "em combate (golpes, defesa, magia, ser atingido) a arma está na mão (regra oficial set_battle(true)); não entra no teste de arma guardada"
+  },
+  "trabalho": {
+   "animacoes": [
+    "Farm_Harvest",
+    "TreeChopping"
+   ],
+   "acao": "ocultar_acima_de_m",
+   "comprimento_m": 0.85,
+   "nota": "coleta e trabalho: arma longa guardada fica oculta (curvar o tronco levaria a ponta ao chão)"
+  },
+  "morte": {
+   "animacoes": [
+    "Death"
+   ],
+   "acao": "soltar_no_chao",
+   "nota": "a arma cai ao lado do corpo"
+  },
+  "sentado": {
+   "animacoes": [
+    "Sitting"
+   ],
+   "acao": "cintura_para_costas",
+   "comprimento_m": 0.6,
+   "exceto_com_escudo": true
+  }
+ }
+}

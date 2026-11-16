@@ -1,4 +1,6 @@
 # Valtheria V3 — prancha comparativa de evolução facial (AUT-020 3.4). SÓ PROPOSTA: não altera nenhum modelo.
+# AUT-021 (D62): íris sem aumento de contraste (só +25% saturação e +8% brilho na B), sobrancelhas e cílios sem sombra
+# projetada, sol com sombra macia de 6°, 64 amostras, borda da máscara dos lábios mais suave; B sem alvo de escala do olho.
 #   Atual = rosto do marco 1 (MakeHuman neutro, pele repintada);
 #   A = realista pintado (mesma forma; só pintura: pálpebras, olheiras suaves, lábios, rubor, íris mais definida);
 #   B = fantasia semi-realista estilizada (formas levemente idealizadas pelos alvos CC0 do MakeHuman/MPFB + pintura
@@ -57,7 +59,7 @@ def pintura(m, img, marcos, forca):
         mp = nt.nodes.new("ShaderNodeMapping"); mp.inputs["Location"].default_value = (-c.x / achata[0], -c.y / achata[1], -c.z / achata[2])
         mp.inputs["Scale"].default_value = (1 / achata[0], 1 / achata[1], 1 / achata[2]); nt.links.new(co.outputs["Object"], mp.inputs["Vector"])
         d = nt.nodes.new("ShaderNodeVectorMath"); d.operation = "LENGTH"; nt.links.new(mp.outputs["Vector"], d.inputs[0])
-        r = nt.nodes.new("ShaderNodeMapRange"); r.inputs[1].default_value = raio * 0.55; r.inputs[2].default_value = raio
+        r = nt.nodes.new("ShaderNodeMapRange"); r.inputs[1].default_value = raio * 0.40; r.inputs[2].default_value = raio
         r.inputs[3].default_value = 1.0; r.inputs[4].default_value = 0.0; nt.links.new(d.outputs["Value"], r.inputs[0]); return r.outputs[0]
     def misturar(cur, mascara, cor, peso, modo="MIX"):
         mul = nt.nodes.new("ShaderNodeMath"); mul.operation = "MULTIPLY"; mul.inputs[1].default_value = peso; nt.links.new(mascara, mul.inputs[0])
@@ -94,8 +96,8 @@ def montar(alvos, forca):
     me = bpy.data.materials.new("olhos"); me.use_nodes = True; nt = me.node_tree; b = nt.nodes["Principled BSDF"]; b.inputs["Roughness"].default_value = 0.15
     t = nt.nodes.new("ShaderNodeTexImage"); t.image = olho; cur = t.outputs["Color"]
     if forca > 0:  # íris mais definida
-        bc = nt.nodes.new("ShaderNodeBrightContrast"); bc.inputs["Contrast"].default_value = 0.25 * forca; nt.links.new(cur, bc.inputs["Color"])
-        hs = nt.nodes.new("ShaderNodeHueSaturation"); hs.inputs["Saturation"].default_value = 1.0 + 0.35 * forca; nt.links.new(bc.outputs[0], hs.inputs["Color"]); cur = hs.outputs[0]
+        hs = nt.nodes.new("ShaderNodeHueSaturation"); hs.inputs["Saturation"].default_value = 1.0 + 0.25 * forca
+        hs.inputs["Value"].default_value = 1.0 + 0.08 * forca; nt.links.new(cur, hs.inputs["Color"]); cur = hs.outputs[0]
     nt.links.new(cur, b.inputs["Base Color"]); pecas["olhos"].data.materials.clear(); pecas["olhos"].data.materials.append(me)
     for nome in ("sobrancelha", "cilios", "cabelo"):
         o = pecas[nome]; im = None
@@ -112,6 +114,7 @@ def montar(alvos, forca):
         try: mm.blend_method = "HASHED"
         except Exception: pass
         o.data.materials.clear(); o.data.materials.append(mm)
+        if nome in ("sobrancelha", "cilios"): o.visible_shadow = False   # SOL-021: evita sombra pontilhada no rosto
     return hum, marcos
 
 def cena(marcos):
@@ -120,6 +123,11 @@ def cena(marcos):
     w.node_tree.nodes["Background"].inputs[1].default_value = 0.9
     sol = bpy.data.objects.new("sol", bpy.data.lights.new("sol", "SUN")); sc.collection.objects.link(sol)
     sol.rotation_euler = (math.radians(55), 0, math.radians(-35)); sol.data.energy = 3.2; sol.data.color = (1.0, 0.95, 0.86)
+    sol.data.angle = math.radians(6.0)                     # SOL-021: sombra de contato macia (sem serrilhado)
+    try: sol.data.shadow_resolution_limit = 0.0005
+    except Exception: pass
+    try: sc.eevee.taa_render_samples = 64
+    except Exception: pass
     cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam")); sc.collection.objects.link(cam); sc.camera = cam
     cam.data.lens = 85
     return cam

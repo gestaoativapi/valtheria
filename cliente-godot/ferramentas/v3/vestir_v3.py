@@ -189,6 +189,12 @@ PERNA = {"thigh_l", "thigh_r", "calf_l", "calf_r", "pelvis"}
 # AUT-020 3.2: a calça sobe até o quadril por baixo da saia (a coxa não fica sem tecido quando a perna avança)
 calca = copia("calca", [corpo[i] and dom[i] in PERNA and z_bota - 0.07 < P[i][2] < z_quadril for i in range(len(V))], 0.006)
 
+if os.environ.get("V3_CALCA_ENTREPERNAS"):   # AUT-021 D59 (variante de estudo, desligada por padrão): sem a faixa central do entrepernas
+    lx, dz = [float(x) for x in os.environ["V3_CALCA_ENTREPERNAS"].split(",")]
+    bm = bmesh.new(); bm.from_mesh(calca.data)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if abs(v.co.x) < lx and v.co.z > z_quadril - dz], context="VERTS")
+    bm.to_mesh(calca.data); bm.free()
+
 # botas: pele dos pés e da canela até o meio da panturrilha; sola achatada
 PE = {"foot_l", "foot_r", "ball_l", "ball_r", "calf_l", "calf_r"}
 z_tornozelo = Bz["foot_l"].z

@@ -38,6 +38,12 @@ class Peca:
                 W = acc(j, b, at['WEIGHTS_0']).astype(float); Ws.append(W / np.maximum(W.sum(1, keepdims=True), 1e-9))
                 Is.append(acc(j, b, pr['indices']).reshape(-1, 3) + off); off += len(P)
         self.P, self.N, self.J, self.W, self.I = map(np.concatenate, (Ps, Ns, Js, Ws, Is))
+        # AUT-021 (D58): formas corretivas (morph targets) acionadas pelo ângulo da coxa — mesma fórmula do controlador Godot
+        self.T = None; pr0 = j['meshes'][0]['primitives'][0]
+        if pr0.get('targets') and len(j['meshes']) == 1 and len(j['meshes'][0]['primitives']) == 1:
+            self.T = np.stack([acc(j, b, t['POSITION']).astype(float) for t in pr0['targets']])
+            self.T_nomes = j['meshes'][0].get('extras', {}).get('targetNames', [])
+            self.G0 = None
         E = np.concatenate([self.I[:, [0, 1]], self.I[:, [1, 2]], self.I[:, [2, 0]]]); self.E = np.unique(np.sort(E, axis=1), axis=0)
     def pose(self, over):
         loc = {n: mloc(over.get(n, {}).get('t', self.rt[n]), over.get(n, {}).get('r', self.rr[n]), self.rs[n]) for n in self.joints}
@@ -48,7 +54,19 @@ class Peca:
         self.ultimo_G = {n: g(n) for n in self.joints}
         mats = np.stack([g(n) @ self.ibm[k] for k, n in enumerate(self.joints)])
         M = np.einsum('vk,vkij->vij', self.W, mats[self.J])
-        P = np.einsum('vij,vj->vi', M[:, :3, :3], self.P) + M[:, :3, 3]
+        P0 = self.P
+        if self.T is not None:
+            from corretivas_base import pesos
+            if self.G0 is None:
+                self.G0 = {}
+                loc0 = {n: mloc(self.rt[n], self.rr[n], self.rs[n]) for n in self.joints}
+                def g0(n):
+                    if n in self.G0: return self.G0[n]
+                    self.G0[n] = (g0(self.pai[n]) @ loc0[n]) if self.pai[n] else loc0[n]; return self.G0[n]
+                for n in self.joints: g0(n)
+            w = pesos(self.ultimo_G, self.G0); self.ultimos_pesos = w
+            P0 = self.P + np.einsum('t,tvi->vi', np.array([w.get(nm, 0.0) for nm in self.T_nomes]), self.T)
+        P = np.einsum('vij,vj->vi', M[:, :3, :3], P0) + M[:, :3, 3]
         N = np.einsum('vij,vj->vi', M[:, :3, :3], self.N); N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-9)
         return P, N
 
