@@ -124,13 +124,36 @@ def manter_tunica(i):
     if dom[i].startswith("lowerarm") and perto_mao(i, 0.035): return False
     return P[i][2] > z_cintura - 0.02
 def cortar(bm, co, no, filtro):
-    geo = set(v for v in bm.verts if filtro(v.co))
+    # AUT-020: listas em ordem fixa de índice (conjuntos de objetos variavam de ordem entre execuções)
+    bm.verts.index_update(); bm.edges.index_update(); bm.faces.index_update()
+    geo = sorted((v for v in bm.verts if filtro(v.co)), key=lambda v: v.index)
     if not geo: return
-    edges = {e for v in geo for e in v.link_edges}; faces = {f for v in geo for f in v.link_faces}
+    edges = sorted({e for v in geo for e in v.link_edges}, key=lambda e: e.index); faces = sorted({f for v in geo for f in v.link_faces}, key=lambda f: f.index)
     bmesh.ops.bisect_plane(bm, geom=list(geo) + list(edges) + list(faces), plane_co=co, plane_no=no, clear_outer=True)
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
 from mathutils import Vector
 cot = {s: Vector(Bz[f"lowerarm_{s}"][:]) for s in "lr"}; pul = {s: Vector(Bz[f"hand_{s}"][:]) for s in "lr"}
+def cair_do_busto(bm):
+    """AUT-020 3.3: o tecido cai em linha reta do ponto mais saliente do busto até a cintura (frente = -Y),
+    sem acompanhar a curva por baixo do busto; mais 3 mm de folga no peito."""
+    frente = [v for v in bm.verts if abs(v.co.x) < 0.16 and v.co.y < Y0 and z_cintura - 0.01 < v.co.z < z_pesc - 0.06]
+    for v in frente:
+        viz = [w for w in frente if abs(w.co.x - v.co.x) < 0.012]
+        alto = [w for w in viz if w.co.z > z_cintura + 0.08]
+        if not alto: continue
+        apice = min(alto, key=lambda w: w.co.y)
+        if not (z_cintura < v.co.z < apice.co.z): continue
+        cint = [w for w in viz if abs(w.co.z - z_cintura) < 0.02]
+        if not cint: continue
+        yw = min(w.co.y for w in cint)
+        t = (v.co.z - z_cintura) / max(apice.co.z - z_cintura, 1e-3)
+        yt = yw + (apice.co.y - yw) * t
+        if v.co.y > yt: v.co.y = yt
+    for v in frente:  # +3 mm no peito, sumindo para os lados e para a cintura (sem degraus)
+        lado = min(1.0, (Y0 - v.co.y) / 0.06); alt = min(1.0, max(0.0, (v.co.z - z_cintura - 0.02) / 0.06))
+        v.co.y -= 0.003 * lado * alt
+    bmesh.ops.smooth_vert(bm, verts=frente, factor=0.5, use_axis_x=False, use_axis_y=True, use_axis_z=False)
+    bmesh.ops.smooth_vert(bm, verts=frente, factor=0.5, use_axis_x=False, use_axis_y=True, use_axis_z=False)
 def roda(bm):
     cortar(bm, (0, Y0, z_pesc - 0.015), (0, -0.45, 1), lambda c: c.z > z_pesc - 0.15 and abs(c.x) < 0.14)
     for sd in "lr":
@@ -140,12 +163,20 @@ def roda(bm):
     tronco = [v for v in bm.verts if z_cintura + 0.05 < v.co.z < z_pesc - 0.07 and abs(v.co.x) < 0.17]
     for _ in range(10 if SEXO == "f" else 5):
         bmesh.ops.smooth_vert(bm, verts=tronco, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=False)
+    if SEXO == "f": cair_do_busto(bm)
     for v in bm.verts:
         z = v.co.z
         if z < z_cintura - 0.02 and abs(v.co.x) < 0.30:
             t = min(1.0, max(0.0, (z_cintura - z) / max(z_cintura - z_barra, 1e-3)))
-            v.co.x *= 1.0 + 0.10 * t; v.co.y = Y0 + (v.co.y - Y0) * (1.0 + 0.24 * t)
-tunica = copia("tunica", [manter_tunica(i) for i in range(len(V))], lambda v: (0.019 if v.co.z > z_pesc - 0.08 else 0.012) if v.co.z > z_cintura - 0.02 else 0.008, roda)
+            v.co.x *= 1.0 + 0.13 * t; v.co.y = Y0 + (v.co.y - Y0) * (1.0 + 0.28 * t)  # AUT-020: abertura um pouco maior
+BLUSA = float(os.environ.get("V3_BLUSA", "0.015"))
+def folga_saia(v):
+    t = min(1.0, max(0.0, (z_cintura - v.co.z) / max(z_cintura - z_barra, 1e-3)))
+    f = 0.010 + 0.005 * t                                   # 10 mm sob o cinto -> 15 mm na barra
+    if v.co.y < Y0:                                         # frente: tecido "blusado" sob o cinto, onde a coxa sobe ao sentar/agachar
+        f += BLUSA * math.sin(math.pi * min(1.0, t / 0.6)) * min(1.0, (Y0 - v.co.y) / 0.05)
+    return f
+tunica = copia("tunica", [manter_tunica(i) for i in range(len(V))], lambda v: (0.019 if v.co.z > z_pesc - 0.08 else 0.012) if v.co.z > z_cintura - 0.02 else folga_saia(v), roda)  # AUT-020: 15 mm na barra
 
 # cinto: faixa da pele na cintura, mais afastada
 def manter_cinto(i):
@@ -155,7 +186,8 @@ cinto = copia("cinto", [manter_cinto(i) for i in range(len(V))], 0.024)
 # calça: malha auxiliar justa (helper-tights) da cintura até dentro da bota
 PERNA = {"thigh_l", "thigh_r", "calf_l", "calf_r", "pelvis"}
 # só a parte visível (abaixo da barra da túnica + folga): evita atravessar a saia e esticar na virilha
-calca = copia("calca", [corpo[i] and dom[i] in PERNA and z_bota - 0.07 < P[i][2] < z_barra + 0.035 for i in range(len(V))], 0.006)
+# AUT-020 3.2: a calça sobe até o quadril por baixo da saia (a coxa não fica sem tecido quando a perna avança)
+calca = copia("calca", [corpo[i] and dom[i] in PERNA and z_bota - 0.07 < P[i][2] < z_quadril for i in range(len(V))], 0.006)
 
 # botas: pele dos pés e da canela até o meio da panturrilha; sola achatada
 PE = {"foot_l", "foot_r", "ball_l", "ball_r", "calf_l", "calf_r"}
@@ -179,6 +211,77 @@ botas = copia("botas", [corpo[i] and dom[i] in PE and P[i][2] < z_bota for i in 
 bpy.ops.object.select_all(action="DESELECT")
 cinto.select_set(True); tunica.select_set(True); bpy.context.view_layer.objects.active = tunica
 bpy.ops.object.join()
+
+# AUT-020 3.1: pesos da saia sem troca brusca esquerda/direita no centro. Mantém a parte de cada osso que o MakeHuman
+# deu à saia (bacia x coxas), mas reparte a parte das coxas em gradiente pelo centro e suaviza os pesos (3 passadas).
+def suave(a, b, x): return min(1.0, max(0.0, (x - a) / (b - a)))
+COXA_MAX = float(os.environ.get("V3_COXA", "0.95")); COXA_TOPO = float(os.environ.get("V3_COXA_TOPO", "0.7"))
+def pesos_saia(o):
+    nomes = {gr.index: gr.name for gr in o.vertex_groups}
+    ztop = z_cintura - 0.035
+    alvo = {}
+    for v in o.data.vertices:
+        if v.co.z >= ztop: continue
+        w = {}
+        for gr in v.groups:
+            n = nomes[gr.group]
+            if n in ossos and gr.weight > 1e-4: w[n] = w.get(n, 0.0) + gr.weight
+        coxa = w.pop("thigh_l", 0.0) + w.pop("thigh_r", 0.0)
+        # parte mínima das coxas: cresce da articulação do quadril até a barra (a saia acompanha a perna que avança)
+        u = suave(ztop, z_barra, v.co.z); u = u * u * (3 - 2 * u)
+        frente = suave(Y0 + 0.02, Y0 - 0.06, v.co.y)                # 1 na frente (-Y), 0 atrás
+        lateral = suave(0.0, 0.06, abs(v.co.x))                      # o centro entre as pernas fica dividido
+        minimo = COXA_MAX * (COXA_TOPO + (1 - COXA_TOPO) * u) * (0.35 + 0.65 * frente) * (0.5 + 0.5 * lateral)
+        if coxa < minimo:
+            resto = sum(w.values())
+            if resto > 1e-6:
+                for k in w: w[k] *= (1.0 - minimo) / resto
+            coxa = minimo
+        wl = suave(-0.05, 0.05, v.co.x)                      # thigh_l fica em x > 0
+        w["thigh_l"] = coxa * wl; w["thigh_r"] = coxa * (1 - wl)
+        alvo[v.index] = w
+    bm = bmesh.new(); bm.from_mesh(o.data); bm.verts.ensure_lookup_table()
+    for _ in range(3):
+        novo = {}
+        for i, w in alvo.items():
+            viz = [e.other_vert(bm.verts[i]).index for e in bm.verts[i].link_edges if e.other_vert(bm.verts[i]).index in alvo]
+            ks = sorted(set(w).union(*[alvo[j] for j in viz])) if viz else sorted(w)   # ordem fixa (determinístico)
+            novo[i] = {k: 0.5 * w.get(k, 0.0) + (0.5 * sum(alvo[j].get(k, 0.0) for j in viz) / len(viz) if viz else 0.5 * w.get(k, 0.0)) for k in ks}
+        alvo = novo
+    bm.free()
+    for i, w in alvo.items():
+        v = o.data.vertices[i]
+        for gi in [gr.group for gr in v.groups]:
+            if nomes[gi] in ossos: o.vertex_groups[gi].remove([i])
+        top = sorted(w.items(), key=lambda kv: (-kv[1], kv[0]))[:4]; s = sum(x for _, x in top)   # até 4 influências, normalizadas
+        for k, x in top:
+            if x > 1e-4:
+                if k not in o.vertex_groups: o.vertex_groups.new(name=k)
+                o.vertex_groups[k].add([i], x / s, "REPLACE")
+    return len(alvo)
+n_saia = pesos_saia(tunica)
+
+# AUT-020 3.1: forro interno escuro na mesma malha (saia, gola e punhos), marcado para a pintura
+def forro(o):
+    bm = bmesh.new(); bm.from_mesh(o.data); lay = bm.verts.layers.float.new("forro"); bm.normal_update()
+    def precisa(f):
+        c = f.calc_center_median()
+        return c.z < z_cintura - 0.03 or c.z > z_pesc - 0.10 or min((c - pul[s]).length for s in "lr") < 0.10
+    sel = [f for f in bm.faces if precisa(f)]
+    novo = bmesh.ops.duplicate(bm, geom=sel)
+    nf = [e for e in novo["geom"] if isinstance(e, bmesh.types.BMFace)]
+    nv = [e for e in novo["geom"] if isinstance(e, bmesh.types.BMVert)]
+    bmesh.ops.reverse_faces(bm, faces=nf)
+    bm.normal_update()
+    for v in nv: v.co += v.normal * 0.003   # normal já invertida: 3 mm para dentro
+    for v in nv: v[lay] = 1.0
+    bm.to_mesh(o.data); bm.free()
+    at = o.data.attributes.get("forro")
+    ca = o.data.color_attributes.new("forro_cor", "FLOAT_COLOR", "POINT")
+    for i, d in enumerate(at.data): ca.data[i].color = (d.value, d.value, d.value, 1.0)
+    o.data.attributes.remove(o.data.attributes["forro"])
+    return len(nf)
+n_forro = forro(tunica)
 
 # ---------- 4. corpo: tira as auxiliares e a pele coberta (fica cabeça, pescoço e mãos) ----------
 COBERTO = TRONCO | {"thigh_l", "thigh_r"} | PE
@@ -224,6 +327,7 @@ for nome in ("sobrancelha", "cilios", "cabelo"):
 
 sc = bpy.context.scene; sc.render.engine = "CYCLES"; sc.cycles.device = "CPU"; sc.cycles.samples = 8
 sc.render.bake.margin = 6
+sc.render.threads_mode = "FIXED"; sc.render.threads = 1  # AUT-020: bake determinístico (sem ruído de processamento paralelo)
 def no(nt, tipo, **kw):
     n = nt.nodes.new(tipo)
     for k, v in kw.items(): setattr(n, k, v)
@@ -305,7 +409,7 @@ def assar(o, nome, pintura):
     bpy.ops.object.bake(type="DIFFUSE")
     cor = np.array(img.pixels[:]).reshape(-1, 4).copy()
     ao = bpy.data.images.new(nome + "_ao", 1024, 1024); t.image = ao
-    sc.cycles.samples = 16; bpy.ops.object.bake(type="AO"); sc.cycles.samples = 8
+    sc.cycles.samples = 64; bpy.ops.object.bake(type="AO"); sc.cycles.samples = 8  # AUT-020: AO sem ruído
     a = np.array(ao.pixels[:]).reshape(-1, 4)[:, :1]
     cor[:, :3] = np.clip(cor[:, :3] * (0.58 + 0.42 * a), 0, 1)  # sombra pintada nas dobras
     img.pixels = cor.reshape(-1).tolist()
@@ -315,14 +419,15 @@ def assar(o, nome, pintura):
 cfg = CFG; zp, zc = z_pesc, z_cintura
 joelho = {s: Bz[f"calf_{s}"] for s in "lr"}
 def pint_tunica(nt):
-    cur = tecido(nt, cfg["tunica"], 160, [(z_barra - 0.01, z_barra + 0.04), (zc - 0.036, zc + 0.036, tuple(c * 0.75 for c in cfg["couro"])), (zp - 0.09, zp + 0.05)], cfg["barra"], 0.30)
+    cur = tecido(nt, cfg["tunica"], 160, [(z_barra - 0.01, z_barra + 0.04), (zc - 0.031, zc + 0.033, tuple(c * 0.75 for c in cfg["couro"])), (zp - 0.09, zp + 0.05)], cfg["barra"], 0.30)
     for sd in "lr":  # punho tingido
         cur = pintar(nt, cur, mascara_esfera(nt, tuple(pul[sd]), 0.04, 0.085), cfg["barra"])
     # abertura da gola na frente com cordão de couro cruzado
     gola = caixa(nt, 0, 0.016, -1, Y0 - 0.02, zp - 0.16, zp + 0.02, absx=True)
     cur = pintar(nt, cur, gola, tuple(c * 0.55 for c in cfg["tunica"]))
     cur = pintar(nt, cur, mult(nt, gola, listras(nt, "Z", 55)), tuple(c * 0.9 for c in cfg["couro"]))
-    return cur
+    at = no(nt, "ShaderNodeAttribute"); at.attribute_name = "forro_cor"   # forro interno: mesmo tecido, bem mais escuro
+    return pintar(nt, cur, at.outputs["Fac"], tuple(c * 0.30 for c in cfg["tunica"]))
 def pint_calca(nt):
     cur = tecido(nt, cfg["calca"], 120, [], cfg["calca"], 0.30)
     for sd in "lr":  # remendo no joelho, com costura
@@ -339,6 +444,20 @@ def pint_botas(nt):
 assar(tunica, "tunica", pint_tunica)
 assar(calca, "calca", pint_calca)
 assar(botas, "botas", pint_botas)
+tunica.data.color_attributes.remove(tunica.data.color_attributes["forro_cor"])  # não exportar cor por vértice
+for o in (tunica, calca, botas):  # AUT-020: roupas com uma face só (o avesso agora é o forro)
+    for m in o.data.materials: m.use_backface_culling = True
+
+# AUT-020 5: LOD manual simplificado da trança (só P2), alvo ~800 triângulos; o LOD automático do Godot continua valendo
+if CFG["cabelo"] == "braid01":
+    cab = pecas["cabelo"]; lod = cab.copy(); lod.data = cab.data.copy(); lod.name = "cabelo_lod"
+    bpy.context.collection.objects.link(lod)
+    for md in list(lod.modifiers):
+        if md.type != "ARMATURE": lod.modifiers.remove(md)
+    n_tri = sum(len(p.vertices) - 2 for p in lod.data.polygons)
+    bpy.context.view_layer.objects.active = lod
+    dm = lod.modifiers.new("lod", "DECIMATE"); dm.decimate_type = "COLLAPSE"; dm.ratio = 800.0 / n_tri; dm.use_collapse_triangulate = True
+    bpy.ops.object.modifier_move_to_index(modifier="lod", index=0); bpy.ops.object.modifier_apply(modifier="lod")
 
 # ---------- 6. exportação e medidas ----------
 for o in bpy.data.objects:
@@ -351,10 +470,15 @@ bpy.ops.object.select_all(action="DESELECT")
 for o in malhas + [rig]: o.select_set(True)
 bpy.ops.export_scene.gltf(filepath=f"{SAIDA}/mpfb_{SEXO}.glb", use_selection=True, export_skins=True, export_animations=False,
                           export_yup=True, export_image_format="AUTO")
-info = {"sexo": SEXO, "altura_corpo_m": round(CFG["altura"], 2), "triangulos_por_malha": tris, "triangulos_total": sum(tris.values()),
+info = {"sexo": SEXO, "altura_corpo_m": round(CFG["altura"], 2), "triangulos_por_malha": tris, "triangulos_total": sum(v for k, v in tris.items() if not k.endswith("_lod")),
         "z": {"barra_tunica": round(z_barra, 3), "cintura": round(z_cintura, 3), "topo_bota": round(z_bota, 3)},
         "fontes": {"pele": f"MakeHuman young_caucasian_{'male' if SEXO=='m' else 'female'} (CC0), repintada", "olhos": f"MakeHuman low-poly + {CFG['olho']} (CC0)",
                    "sobrancelha": f"MakeHuman {CFG['sobr']} (CC0)", "cilios": f"MakeHuman {CFG['cilio']} (CC0)", "cabelo": f"MakeHuman {CFG['cabelo']} (CC0), tingido",
                    "roupas": "Modeladas a partir de helper-skirt, helper-tights e da pele do corpo-base MakeHuman (CC0); pintura procedural própria"}}
+info["aut020"] = {"vertices_saia_repesados": n_saia, "faces_forro": n_forro}
 json.dump(info, open(f"{SAIDA}/mpfb_{SEXO}.json", "w"), ensure_ascii=False, indent=1)
+if os.environ.get("V3_BLEND"):  # fonte editável (.blend) para conferência e retoque; os scripts continuam sendo a fonte principal
+    for im in bpy.data.images:
+        if im.source == "FILE" and im.filepath: im.pack()
+    bpy.ops.wm.save_as_mainfile(filepath=os.environ["V3_BLEND"], compress=True)
 print("FEITO", json.dumps(info, ensure_ascii=False))

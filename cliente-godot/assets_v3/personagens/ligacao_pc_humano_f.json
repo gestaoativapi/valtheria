@@ -21,20 +21,20 @@
    "pecas": [
     "tunica"
    ],
-   "triangulos": 4862,
-   "vertices": 3222,
+   "triangulos": 5904,
+   "vertices": 4025,
    "materiais": 1,
-   "kb": 1079
+   "kb": 1112
   },
   {
    "arquivo": "rp_aldeao_calca_f.glb",
    "pecas": [
     "calca"
    ],
-   "triangulos": 1280,
-   "vertices": 848,
+   "triangulos": 1960,
+   "vertices": 1305,
    "materiais": 1,
-   "kb": 662
+   "kb": 644
   },
   {
    "arquivo": "rp_botas_couro_f.glb",
@@ -44,7 +44,7 @@
    "triangulos": 1024,
    "vertices": 1044,
    "materiais": 1,
-   "kb": 504
+   "kb": 454
   },
   {
    "arquivo": "ca_tranca_longa.glb",
@@ -55,6 +55,16 @@
    "vertices": 4663,
    "materiais": 1,
    "kb": 1057
+  },
+  {
+   "arquivo": "ca_tranca_longa_lod1.glb",
+   "pecas": [
+    "cabelo_lod"
+   ],
+   "triangulos": 799,
+   "vertices": 1000,
+   "materiais": 1,
+   "kb": 801
   }
  ]
 }

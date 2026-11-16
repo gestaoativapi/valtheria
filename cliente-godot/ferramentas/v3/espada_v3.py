@@ -44,7 +44,7 @@ def construir(grau):
     g = GRAUS[grau]
     bpy.ops.wm.read_factory_settings(use_empty=True)
     mats = {}
-    for nome in ("lamina", "guarda", "cabo", "pomo"):
+    for nome in ("lamina", "guarda", "cabo", "pomo", "medalhao", "arvore"):
         m = bpy.data.materials.new(nome); mats[nome] = m
     me = bpy.data.meshes.new("espada"); ob = bpy.data.objects.new(f"wp_espada_longa_{grau}", me); bpy.context.collection.objects.link(ob)
     for m in mats.values(): me.materials.append(m)
@@ -76,14 +76,23 @@ def construir(grau):
     n0 = len(bm.faces)
     base = anel(bm, (0, 0, 0.205), (0, 0, 1), 0.020, 0.017, 12); topo = anel(bm, (0, 0, 0.245), (0, 0, 1), 0.024, 0.016, 12)
     ponte(bm, base, topo); tampa(bm, base[::-1], (0, 0, 0.205)); tampa(bm, topo, (0, 0, 0.245))
-    for sy in (1, -1):  # medalhão nas duas faces, com a Árvore em relevo (tronco, três galhos, duas raízes)
-        tubo(bm, [(0, sy * 0.010, 0.226), (0, sy * 0.017, 0.226)], [0.024, 0.022], n=20)
-        yy = sy * 0.0185
-        tubo(bm, [(0, yy, 0.210), (0, yy, 0.232)], [0.0022, 0.0016], n=5)
-        for dx, dz in [(-0.010, 0.012), (0.0, 0.016), (0.010, 0.012)]:
-            tubo(bm, [(0, yy, 0.229), (dx * 0.6, yy, 0.229 + dz * 0.6), (dx, yy, 0.229 + dz)], [0.0016, 0.0013, 0.0009], n=5)
-        for dx in (-0.009, 0.009):
-            tubo(bm, [(0, yy, 0.212), (dx, yy, 0.207)], [0.0015, 0.0008], n=5)
+    marcar(n0, "guarda")
+    # AUT-020: medalhão de 64 mm (antes 48 mm), fundo escurecido, nas duas faces
+    n0 = len(bm.faces)
+    for sy in (1, -1):
+        tubo(bm, [(0, sy * 0.010, 0.226), (0, sy * 0.017, 0.226)], [0.032, 0.030], n=24)
+    marcar(n0, "medalhao")
+    # Árvore em silhueta, traços de 3 a 4 mm, em bronze claro (tronco, três galhos com copa, duas raízes)
+    n0 = len(bm.faces)
+    for sy in (1, -1):
+        y0, y1 = sy * 0.0168, sy * 0.0192                                                                 # relevo de ~2 mm
+        tubo(bm, [(0, sy * 0.0185, 0.201), (0, sy * 0.0185, 0.229)], [0.0025, 0.0021], n=8)               # tronco 5 mm
+        for dx, dz, r in [(-0.0105, 0.2325, 0.0092), (0.0105, 0.2325, 0.0092), (0.0, 0.2410, 0.0098)]:      # copa: 3 lóbulos
+            tubo(bm, [(dx, y0, dz), (dx, y1, dz)], [r, r * 0.92], n=14)
+        for dx in (-0.012, 0.012):                                                                         # raízes 3 mm
+            tubo(bm, [(0, sy * 0.0185, 0.205), (dx * 0.6, sy * 0.0185, 0.2005), (dx, sy * 0.0185, 0.1985)], [0.0016, 0.0015, 0.0013], n=6)
+    marcar(n0, "arvore")
+    n0 = len(bm.faces)
     for sx in (1, -1):
         caminho = [(sx * (0.020 + 0.085 * t), 0, 0.226 + 0.034 * t ** 2.0) for t in np.linspace(0, 1, 9)]
         tubo(bm, caminho, [0.0085 - 0.0050 * t for t in np.linspace(0, 1, 9)], n=7, achata=0.75)
@@ -99,7 +108,7 @@ def construir(grau):
     if g["gema"]:
         n0 = len(bm.faces)
         for sy in (1, -1):
-            tubo(bm, [(0, sy * 0.019, 0.226), (0, sy * 0.024, 0.226)], [0.009, 0.004], n=10)
+            tubo(bm, [(0, sy * 0.0192, 0.2410), (0, sy * 0.0235, 0.2410)], [0.0040, 0.0018], n=10)   # gema: fruto no centro da copa
         marcar(n0, "pomo")
     # lâmina: seção em losango com sulco central, afinando até a ponta
     n0 = len(bm.faces)
@@ -119,6 +128,7 @@ def construir(grau):
 
     # pintura procedural por região -> uma textura 512 px (cor) + emissão das runas no grau S
     sc = bpy.context.scene; sc.render.engine = "CYCLES"; sc.cycles.device = "CPU"; sc.cycles.samples = 8
+    sc.render.threads_mode = "FIXED"; sc.render.threads = 1  # AUT-020: bake determinístico
     sc.render.bake.margin = 4; sc.render.bake.use_pass_direct = False; sc.render.bake.use_pass_indirect = False; sc.render.bake.use_pass_color = True
     img = bpy.data.images.new(f"tx_espada_longa_{grau}", 512, 512)
     for nome, m in mats.items():
@@ -146,6 +156,12 @@ def construir(grau):
             wv = nt.nodes.new("ShaderNodeTexWave"); wv.inputs["Scale"].default_value = 9.0; wv.bands_direction = "Z"; nt.links.new(co.outputs["Object"], wv.inputs["Vector"])
             cr.color_ramp.elements[0].color = (*[c * 0.7 for c in g["cabo"]], 1); cr.color_ramp.elements[1].color = (*g["cabo"], 1)
             nt.links.new(wv.outputs["Fac"], cr.inputs[0]); saida = cr.outputs[0]
+        elif nome == "medalhao":  # fundo escurecido para a Árvore se destacar a distância
+            cr.color_ramp.elements[0].color = (0.035, 0.030, 0.026, 1); cr.color_ramp.elements[1].color = (0.06, 0.05, 0.045, 1)
+            saida = cr.outputs[0]
+        elif nome == "arvore":  # bronze claro em todos os graus
+            cr.color_ramp.elements[0].color = (0.70, 0.52, 0.26, 1); cr.color_ramp.elements[1].color = (0.92, 0.72, 0.40, 1)
+            saida = cr.outputs[0]
         else:  # guarda e pomo: metal do grau, com sujeira nos vãos
             base = g["guarda"] if nome == "guarda" else (g["gema"] if (g["gema"] and False) else g["guarda"])
             cr.color_ramp.elements[0].color = (*[c * 0.6 for c in base], 1); cr.color_ramp.elements[1].color = (*[min(1, c * 1.15) for c in base], 1)
@@ -159,6 +175,20 @@ def construir(grau):
     cor = np.array(img.pixels[:]).reshape(-1, 4).copy()
     ao = bpy.data.images.new("ao", 512, 512)
     for m in mats.values(): m.node_tree.nodes.active.image = ao
+    # AUT-020: máscaras por região (cor pura por material) -> brilho da Árvore no grau S e mapa de metal/rugosidade
+    for m in mats.values():
+        b = m.node_tree.nodes["Principled BSDF"]
+        for l in list(b.inputs["Base Color"].links): m.node_tree.links.remove(l)
+    def mascara(regiao):
+        mk = bpy.data.images.new("mascara_" + regiao, 512, 512)
+        for nome, m in mats.items():
+            m.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (1, 1, 1, 1) if nome == regiao else (0, 0, 0, 1)
+            m.node_tree.nodes.active.image = mk
+        bpy.ops.object.bake(type="DIFFUSE")
+        return np.array(mk.pixels[:]).reshape(-1, 4)[:, 0] > 0.5
+    masc = {r: mascara(r) for r in ("arvore", "medalhao", "cabo")}
+    mascara_arvore = masc["arvore"] if g["runa"] else None
+    for m in mats.values(): m.node_tree.nodes.active.image = ao
     sc.cycles.samples = 24; bpy.ops.object.bake(type="AO")
     a = np.array(ao.pixels[:]).reshape(-1, 4)[:, :1]; cor[:, :3] = np.clip(cor[:, :3] * (0.55 + 0.45 * a), 0, 1)
     img.pixels = cor.reshape(-1).tolist(); img.filepath_raw = f"{SAIDA}/tx_espada_longa_{grau}.png"; img.file_format = "PNG"; img.save()
@@ -167,21 +197,36 @@ def construir(grau):
     if g["runa"]:
         px = cor[:, :3]; mask = (px[:, 2] > px[:, 0] * 1.6) & (px[:, 2] > 0.35)
         e = np.zeros_like(cor); e[:, 3] = 1; e[mask, :3] = np.array(g["runa"])
+        if mascara_arvore is not None: e[mascara_arvore, :3] = np.array((0.95, 0.70, 0.30))   # Árvore acesa em ouro
         emi = bpy.data.images.new(f"tx_espada_longa_{grau}_emissao", 512, 512); emi.pixels = e.reshape(-1).tolist()
         emi.filepath_raw = f"{SAIDA}/tx_espada_longa_{grau}_emissao.png"; emi.file_format = "PNG"; emi.save()
     # material único final
     final = bpy.data.materials.new(f"espada_longa_{grau}"); final.use_nodes = True; nt = final.node_tree; b = nt.nodes["Principled BSDF"]
     t = nt.nodes.new("ShaderNodeTexImage"); t.image = img; nt.links.new(t.outputs["Color"], b.inputs["Base Color"])
-    b.inputs["Metallic"].default_value = 0.85; b.inputs["Roughness"].default_value = 0.38
+    mr = np.zeros((512 * 512, 4), np.float32); mr[:, 3] = 1.0
+    mr[:, 1] = 0.38; mr[:, 2] = 0.85                                   # G = rugosidade, B = metal (padrão glTF)
+    mr[masc["medalhao"], 1] = 0.80; mr[masc["medalhao"], 2] = 0.05     # fundo do medalhão: esmalte escuro fosco
+    mr[masc["cabo"], 1] = 0.85; mr[masc["cabo"], 2] = 0.0              # couro do cabo
+    mr[masc["arvore"], 1] = 0.30; mr[masc["arvore"], 2] = 1.0          # Árvore: bronze polido
+    tmr = bpy.data.images.new(f"tx_espada_longa_{grau}_metal", 512, 512); tmr.colorspace_settings.name = "Non-Color"
+    tmr.pixels = mr.reshape(-1).tolist(); tmr.filepath_raw = f"{SAIDA}/tx_espada_longa_{grau}_metal.png"; tmr.file_format = "PNG"; tmr.save()
+    tm = nt.nodes.new("ShaderNodeTexImage"); tm.image = tmr; sp = nt.nodes.new("ShaderNodeSeparateColor")
+    nt.links.new(tm.outputs["Color"], sp.inputs["Color"]); nt.links.new(sp.outputs["Green"], b.inputs["Roughness"]); nt.links.new(sp.outputs["Blue"], b.inputs["Metallic"])
     if emi is not None:
         te = nt.nodes.new("ShaderNodeTexImage"); te.image = emi
         nt.links.new(te.outputs["Color"], b.inputs["Emission Color"]); b.inputs["Emission Strength"].default_value = 2.0
     me.materials.clear(); me.materials.append(final)
     bpy.ops.export_scene.gltf(filepath=f"{SAIDA}/wp_espada_longa_{grau}.glb", use_selection=True, export_yup=True, export_image_format="AUTO")
     tri = sum(len(p.vertices) - 2 for p in me.polygons); dims = ob.dimensions
-    return {"arquivo": f"wp_espada_longa_{grau}.glb", "triangulos": tri, "materiais": 1, "textura": "512x512" + (" + emissão" if emi else ""),
+    return {"arquivo": f"wp_espada_longa_{grau}.glb", "triangulos": tri, "materiais": 1, "textura": "512x512 cor + metal/rugosidade" + (" + emissão" if emi else ""),
             "comprimento_m": round(dims.z, 3), "largura_guarda_m": round(dims.x, 3)}
 
 res = [construir(gr) for gr in ("d", "b", "s")]
-json.dump(res, open(f"{SAIDA}/espada_longa.json", "w"), ensure_ascii=False, indent=1)
+# AUT-020 4.2: posição da espada guardada na cintura, só para esta arma (não altera character.gd nem a regra global).
+# Espaço do modelo do jogo: +Y para cima, +Z para a frente; a bainha segue o osso pelvis; valores do cabo em metros
+# para 1,80 m de altura (o jogo multiplica pela altura/1,80). Testado em testar_bainha.py nas 28 animações.
+BAINHA = {"osso": "pelvis", "direcao_lamina": [0.1174, -0.8829, -0.4546], "deslocamento_cabo": [0.28, 0.06, 0.10],
+          "angulo_vertical_graus": 28.0, "nota": "lâmina mais vertical e cabo à frente do quadril; antes: [0.15, -0.7, -0.7] e [0.2, 0.04, 0.05]"}
+json.dump({"graus": res, "bainha_cintura": BAINHA, "pegada": {"file": "w_sword", "len": 1.0, "at": 0.1}},
+          open(f"{SAIDA}/espada_longa.json", "w"), ensure_ascii=False, indent=1)
 print("FEITO", json.dumps(res, ensure_ascii=False))
