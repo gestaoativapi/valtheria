@@ -1,0 +1,1266 @@
+{
+ "hip": 0.8583,
+ "pares": [],
+ "poses": [
+  {
+   "anim": "Dance_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 9.666,
+     "max": 23.474
+    },
+    "outfit_male_peasant": {
+     "p99": 2.621,
+     "max": 18.101
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Dance_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 9.979,
+     "max": 21.712
+    },
+    "outfit_male_peasant": {
+     "p99": 2.838,
+     "max": 18.371
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Dance_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 9.666,
+     "max": 23.474
+    },
+    "outfit_male_peasant": {
+     "p99": 2.621,
+     "max": 18.101
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Death01",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.246,
+     "max": 27.43
+    },
+    "outfit_male_peasant": {
+     "p99": 2.589,
+     "max": 25.194
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Death01",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 27.122,
+     "max": 88.235
+    },
+    "outfit_male_peasant": {
+     "p99": 2.044,
+     "max": 33.783
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Death01",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 29.358,
+     "max": 95.539
+    },
+    "outfit_male_peasant": {
+     "p99": 1.833,
+     "max": 26.101
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Hit_Chest",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 14.361,
+     "max": 40.885
+    },
+    "outfit_male_peasant": {
+     "p99": 2.709,
+     "max": 27.915
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Hit_Chest",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 14.799,
+     "max": 43.543
+    },
+    "outfit_male_peasant": {
+     "p99": 2.683,
+     "max": 26.541
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Hit_Chest",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.021,
+     "max": 30.126
+    },
+    "outfit_male_peasant": {
+     "p99": 2.582,
+     "max": 25.288
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.581,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.834,
+     "max": 28.662
+    },
+    "outfit_male_peasant": {
+     "p99": 2.572,
+     "max": 25.16
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.917,
+     "max": 28.546
+    },
+    "outfit_male_peasant": {
+     "p99": 2.582,
+     "max": 25.306
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_Talking_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.021,
+     "max": 30.126
+    },
+    "outfit_male_peasant": {
+     "p99": 2.592,
+     "max": 25.543
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_Talking_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.899,
+     "max": 29.865
+    },
+    "outfit_male_peasant": {
+     "p99": 2.662,
+     "max": 25.543
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_Talking_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.021,
+     "max": 30.126
+    },
+    "outfit_male_peasant": {
+     "p99": 2.592,
+     "max": 25.543
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Interact",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.021,
+     "max": 30.126
+    },
+    "outfit_male_peasant": {
+     "p99": 2.583,
+     "max": 25.288
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Interact",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.965,
+     "max": 29.886
+    },
+    "outfit_male_peasant": {
+     "p99": 2.286,
+     "max": 25.29
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Interact",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.021,
+     "max": 30.126
+    },
+    "outfit_male_peasant": {
+     "p99": 2.583,
+     "max": 25.288
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Jog_Fwd_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 18.001,
+     "max": 56.069
+    },
+    "outfit_male_peasant": {
+     "p99": 2.611,
+     "max": 50.222
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Jog_Fwd_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 17.345,
+     "max": 53.863
+    },
+    "outfit_male_peasant": {
+     "p99": 2.615,
+     "max": 50.465
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Jog_Fwd_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 18.001,
+     "max": 56.069
+    },
+    "outfit_male_peasant": {
+     "p99": 2.615,
+     "max": 50.222
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "PickUp_Table",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.744,
+     "max": 30.126
+    },
+    "outfit_male_peasant": {
+     "p99": 2.582,
+     "max": 25.288
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "PickUp_Table",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 15.989,
+     "max": 32.97
+    },
+    "outfit_male_peasant": {
+     "p99": 2.247,
+     "max": 23.065
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "PickUp_Table",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.744,
+     "max": 30.126
+    },
+    "outfit_male_peasant": {
+     "p99": 2.582,
+     "max": 25.288
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Punch_Cross",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.033,
+     "max": 22.752
+    },
+    "outfit_male_peasant": {
+     "p99": 2.506,
+     "max": 32.633
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Punch_Cross",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 13.32,
+     "max": 30.092
+    },
+    "outfit_male_peasant": {
+     "p99": 2.049,
+     "max": 28.439
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Punch_Cross",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.033,
+     "max": 22.752
+    },
+    "outfit_male_peasant": {
+     "p99": 2.506,
+     "max": 32.633
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Punch_Jab",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.033,
+     "max": 22.752
+    },
+    "outfit_male_peasant": {
+     "p99": 2.506,
+     "max": 32.633
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Punch_Jab",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.632,
+     "max": 26.862
+    },
+    "outfit_male_peasant": {
+     "p99": 2.078,
+     "max": 30.268
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Punch_Jab",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.033,
+     "max": 22.752
+    },
+    "outfit_male_peasant": {
+     "p99": 2.506,
+     "max": 32.633
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sitting_Idle_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.79,
+     "max": 29.645
+    },
+    "outfit_male_peasant": {
+     "p99": 3.56,
+     "max": 10.096
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sitting_Idle_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.0,
+     "max": 31.078
+    },
+    "outfit_male_peasant": {
+     "p99": 3.552,
+     "max": 10.096
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sitting_Idle_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.79,
+     "max": 29.645
+    },
+    "outfit_male_peasant": {
+     "p99": 3.56,
+     "max": 10.096
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Spell_Simple_Idle_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 19.005,
+     "max": 37.051
+    },
+    "outfit_male_peasant": {
+     "p99": 1.863,
+     "max": 27.118
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Spell_Simple_Idle_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 18.603,
+     "max": 37.194
+    },
+    "outfit_male_peasant": {
+     "p99": 1.871,
+     "max": 27.118
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Spell_Simple_Idle_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 19.005,
+     "max": 37.051
+    },
+    "outfit_male_peasant": {
+     "p99": 1.863,
+     "max": 27.118
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Spell_Simple_Shoot",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 17.356,
+     "max": 34.616
+    },
+    "outfit_male_peasant": {
+     "p99": 1.873,
+     "max": 27.118
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Spell_Simple_Shoot",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 17.11,
+     "max": 34.708
+    },
+    "outfit_male_peasant": {
+     "p99": 1.861,
+     "max": 27.868
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Spell_Simple_Shoot",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 17.356,
+     "max": 34.616
+    },
+    "outfit_male_peasant": {
+     "p99": 1.873,
+     "max": 27.118
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sprint_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 16.465,
+     "max": 49.81
+    },
+    "outfit_male_peasant": {
+     "p99": 2.566,
+     "max": 22.802
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sprint_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 15.647,
+     "max": 47.457
+    },
+    "outfit_male_peasant": {
+     "p99": 2.673,
+     "max": 27.435
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sprint_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 16.465,
+     "max": 49.81
+    },
+    "outfit_male_peasant": {
+     "p99": 2.571,
+     "max": 22.802
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Attack",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 15.294,
+     "max": 43.815
+    },
+    "outfit_male_peasant": {
+     "p99": 2.587,
+     "max": 38.27
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Attack",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 19.062,
+     "max": 58.319
+    },
+    "outfit_male_peasant": {
+     "p99": 2.34,
+     "max": 60.153
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Attack",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 15.294,
+     "max": 43.815
+    },
+    "outfit_male_peasant": {
+     "p99": 2.587,
+     "max": 38.27
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Walk_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.074,
+     "max": 27.718
+    },
+    "outfit_male_peasant": {
+     "p99": 2.796,
+     "max": 32.863
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Walk_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.07,
+     "max": 27.921
+    },
+    "outfit_male_peasant": {
+     "p99": 2.719,
+     "max": 25.93
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Walk_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.074,
+     "max": 27.718
+    },
+    "outfit_male_peasant": {
+     "p99": 2.796,
+     "max": 32.863
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Consume",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.578,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Consume",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 15.232,
+     "max": 45.894
+    },
+    "outfit_male_peasant": {
+     "p99": 1.954,
+     "max": 26.165
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Consume",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.578,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Farm_Harvest",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.938,
+     "max": 34.934
+    },
+    "outfit_male_peasant": {
+     "p99": 2.581,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Farm_Harvest",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 13.037,
+     "max": 38.058
+    },
+    "outfit_male_peasant": {
+     "p99": 3.194,
+     "max": 29.958
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Farm_Harvest",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.938,
+     "max": 34.934
+    },
+    "outfit_male_peasant": {
+     "p99": 2.581,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_FoldArms_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.476,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.377,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_FoldArms_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.398,
+     "max": 28.662
+    },
+    "outfit_male_peasant": {
+     "p99": 2.369,
+     "max": 25.032
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_FoldArms_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.304,
+     "max": 28.546
+    },
+    "outfit_male_peasant": {
+     "p99": 2.379,
+     "max": 25.306
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_Shield_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 13.539,
+     "max": 32.252
+    },
+    "outfit_male_peasant": {
+     "p99": 2.225,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_Shield_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 13.548,
+     "max": 32.09
+    },
+    "outfit_male_peasant": {
+     "p99": 2.221,
+     "max": 25.16
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Idle_Shield_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 13.586,
+     "max": 31.864
+    },
+    "outfit_male_peasant": {
+     "p99": 2.223,
+     "max": 25.306
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "OverhandThrow",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.668,
+     "max": 30.963
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "OverhandThrow",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 25.704,
+     "max": 77.99
+    },
+    "outfit_male_peasant": {
+     "p99": 2.607,
+     "max": 62.536
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "OverhandThrow",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.668,
+     "max": 30.963
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Shield_OneShot",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.581,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Shield_OneShot",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.821,
+     "max": 30.843
+    },
+    "outfit_male_peasant": {
+     "p99": 2.168,
+     "max": 29.083
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Shield_OneShot",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.581,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Block",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.586,
+     "max": 26.641
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Block",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 13.924,
+     "max": 40.185
+    },
+    "outfit_male_peasant": {
+     "p99": 2.614,
+     "max": 30.653
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Block",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.586,
+     "max": 26.641
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Regular_A",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.586,
+     "max": 26.641
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Regular_A",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.081,
+     "max": 22.799
+    },
+    "outfit_male_peasant": {
+     "p99": 2.56,
+     "max": 54.912
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Regular_A",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 21.666,
+     "max": 61.871
+    },
+    "outfit_male_peasant": {
+     "p99": 2.906,
+     "max": 54.313
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Regular_B",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 21.226,
+     "max": 61.481
+    },
+    "outfit_male_peasant": {
+     "p99": 2.873,
+     "max": 53.311
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Regular_B",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 15.518,
+     "max": 46.579
+    },
+    "outfit_male_peasant": {
+     "p99": 2.557,
+     "max": 72.553
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Regular_B",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 15.513,
+     "max": 46.885
+    },
+    "outfit_male_peasant": {
+     "p99": 2.274,
+     "max": 73.963
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Regular_C",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 16.069,
+     "max": 48.428
+    },
+    "outfit_male_peasant": {
+     "p99": 2.374,
+     "max": 72.455
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Regular_C",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.716,
+     "max": 31.4
+    },
+    "outfit_male_peasant": {
+     "p99": 2.72,
+     "max": 73.792
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Sword_Regular_C",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.582,
+     "max": 25.418
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "TreeChopping_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 14.935,
+     "max": 34.28
+    },
+    "outfit_male_peasant": {
+     "p99": 2.149,
+     "max": 41.289
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "TreeChopping_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 14.88,
+     "max": 43.74
+    },
+    "outfit_male_peasant": {
+     "p99": 2.34,
+     "max": 35.053
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "TreeChopping_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 14.935,
+     "max": 34.28
+    },
+    "outfit_male_peasant": {
+     "p99": 2.149,
+     "max": 41.289
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Yes",
+   "quadro": "início",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.751,
+     "max": 28.779
+    },
+    "outfit_male_peasant": {
+     "p99": 2.581,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Yes",
+   "quadro": "meio",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 11.586,
+     "max": 28.667
+    },
+    "outfit_male_peasant": {
+     "p99": 2.113,
+     "max": 26.447
+    }
+   },
+   "atravessamento_pct": {}
+  },
+  {
+   "anim": "Yes",
+   "quadro": "fim",
+   "deformacao": {
+    "body_male_peasant": {
+     "p99": 10.864,
+     "max": 28.555
+    },
+    "outfit_male_peasant": {
+     "p99": 2.581,
+     "max": 25.287
+    }
+   },
+   "atravessamento_pct": {}
+  }
+ ]
+}

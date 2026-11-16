@@ -1,0 +1,32 @@
+{
+ "atual_aldeao_m": {
+  "chamadas_de_desenho": 10.0,
+  "memoria_texturas_mb": 67.0,
+  "objetos": 10.0,
+  "triangulos": 18197.0
+ },
+ "v3_humano_f": {
+  "chamadas_de_desenho": 8.0,
+  "memoria_texturas_mb": 47.9,
+  "objetos": 11.0,
+  "triangulos": 17004.0
+ },
+ "v3_humano_m": {
+  "chamadas_de_desenho": 8.0,
+  "memoria_texturas_mb": 47.9,
+  "objetos": 11.0,
+  "triangulos": 17280.0
+ },
+ "v3_humano_m_com_espada_s": {
+  "chamadas_de_desenho": 9.0,
+  "memoria_texturas_mb": 49.9,
+  "objetos": 12.0,
+  "triangulos": 19196.0
+ },
+ "vazio": {
+  "chamadas_de_desenho": 0.0,
+  "memoria_texturas_mb": 18.5,
+  "objetos": 0.0,
+  "triangulos": 0.0
+ }
+}

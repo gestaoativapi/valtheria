@@ -1,0 +1,176 @@
+{
+ "topo8": {
+  "vertices": 1060,
+  "arestas": 2671,
+  "pior_quadro": {
+   "p99": 3.29,
+   "anim": "Farm_Harvest",
+   "quadro": "meio"
+  },
+  "oito_piores": [
+   [
+    3.29,
+    "Farm_Harvest",
+    "meio"
+   ],
+   [
+    2.55,
+    "Sitting_Idle_Loop",
+    "meio"
+   ],
+   [
+    2.55,
+    "Sitting_Idle_Loop",
+    "início"
+   ],
+   [
+    2.55,
+    "Sitting_Idle_Loop",
+    "fim"
+   ],
+   [
+    2.47,
+    "Sword_Attack",
+    "meio"
+   ],
+   [
+    2.28,
+    "Sword_Block",
+    "meio"
+   ],
+   [
+    2.25,
+    "Sword_Regular_B",
+    "fim"
+   ],
+   [
+    2.22,
+    "Sword_Regular_B",
+    "meio"
+   ]
+  ],
+  "quadros_p99_acima_2": 15,
+  "quadros_p99_acima_1_8": 19,
+  "vertices_no_1pct_pior": 41,
+  "acima_da_articulacao_do_quadril": 0,
+  "na_virilha_abs_x_menor_6cm": 41,
+  "com_peso_coxa_e_bacia": 27,
+  "com_peso_nas_duas_coxas": 0,
+  "combinacoes_de_ossos": [
+   [
+    "pelvis + thigh_r",
+    16
+   ],
+   [
+    "thigh_r + pelvis",
+    8
+   ],
+   [
+    "pelvis + thigh_l",
+    8
+   ],
+   [
+    "thigh_l + pelvis",
+    5
+   ],
+   [
+    "pelvis + thigh_r + thigh_l",
+    4
+   ]
+  ],
+  "altura_m_min_max": [
+   0.872,
+   0.922
+  ],
+  "y_quadril": 0.98
+ },
+ "topo12": {
+  "vertices": 905,
+  "arestas": 2269,
+  "pior_quadro": {
+   "p99": 1.59,
+   "anim": "Farm_Harvest",
+   "quadro": "meio"
+  },
+  "oito_piores": [
+   [
+    1.59,
+    "Farm_Harvest",
+    "meio"
+   ],
+   [
+    1.59,
+    "Sword_Regular_B",
+    "meio"
+   ],
+   [
+    1.57,
+    "Sword_Regular_A",
+    "meio"
+   ],
+   [
+    1.57,
+    "Sword_Attack",
+    "meio"
+   ],
+   [
+    1.56,
+    "Sword_Regular_B",
+    "fim"
+   ],
+   [
+    1.56,
+    "Sitting_Idle_Loop",
+    "meio"
+   ],
+   [
+    1.56,
+    "Sitting_Idle_Loop",
+    "início"
+   ],
+   [
+    1.56,
+    "Sitting_Idle_Loop",
+    "fim"
+   ]
+  ],
+  "quadros_p99_acima_2": 0,
+  "quadros_p99_acima_1_8": 0,
+  "vertices_no_1pct_pior": 42,
+  "acima_da_articulacao_do_quadril": 0,
+  "na_virilha_abs_x_menor_6cm": 12,
+  "com_peso_coxa_e_bacia": 4,
+  "com_peso_nas_duas_coxas": 0,
+  "combinacoes_de_ossos": [
+   [
+    "calf_r + thigh_r",
+    10
+   ],
+   [
+    "calf_l + thigh_l",
+    10
+   ],
+   [
+    "thigh_l + pelvis",
+    8
+   ],
+   [
+    "thigh_r + pelvis",
+    4
+   ],
+   [
+    "thigh_r + calf_r",
+    4
+   ],
+   [
+    "calf_r",
+    4
+   ]
+  ],
+  "altura_m_min_max": [
+   0.455,
+   0.867
+  ],
+  "y_quadril": 0.98
+ }
+}

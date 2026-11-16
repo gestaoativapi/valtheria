@@ -1,0 +1,19 @@
+{
+ "arquivo": "rp_aldeao_calca_m_sem_entrepernas.glb",
+ "arestas": 2894,
+ "arestas_regiao_visivel": 2006,
+ "vertices_regiao_visivel": 828,
+ "vertices": 1142,
+ "bordas_abertas": 108,
+ "bordas_abertas_na_regiao_visivel": 48,
+ "integral": {
+  "pior_p99": 1.985,
+  "quadros_acima_2": 0,
+  "pior": "Farm_Harvest"
+ },
+ "visivel": {
+  "pior_p99": 1.591,
+  "quadros_acima_2": 0,
+  "pior": "Sword_Regular_B"
+ }
+}

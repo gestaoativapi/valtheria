@@ -1,0 +1,269 @@
+{
+ "suave5": {
+  "vertices": 1308,
+  "arestas": 3299,
+  "pior_quadro": {
+   "p99": 3.48,
+   "anim": "Farm_Harvest",
+   "quadro": "meio"
+  },
+  "oito_piores": [
+   [
+    3.48,
+    "Farm_Harvest",
+    "meio"
+   ],
+   [
+    3.06,
+    "Sword_Attack",
+    "meio"
+   ],
+   [
+    2.71,
+    "Sword_Regular_B",
+    "meio"
+   ],
+   [
+    2.67,
+    "Sitting_Idle_Loop",
+    "meio"
+   ],
+   [
+    2.67,
+    "Sitting_Idle_Loop",
+    "início"
+   ],
+   [
+    2.67,
+    "Sitting_Idle_Loop",
+    "fim"
+   ],
+   [
+    2.66,
+    "Sword_Regular_B",
+    "fim"
+   ],
+   [
+    2.64,
+    "Sword_Regular_A",
+    "meio"
+   ]
+  ],
+  "quadros_p99_acima_2": 20,
+  "quadros_p99_acima_1_8": 20,
+  "vertices_no_1pct_pior": 52,
+  "acima_da_articulacao_do_quadril": 0,
+  "na_virilha_abs_x_menor_6cm": 48,
+  "com_peso_coxa_e_bacia": 38,
+  "com_peso_nas_duas_coxas": 0,
+  "combinacoes_de_ossos": [
+   [
+    "pelvis + thigh_r",
+    18
+   ],
+   [
+    "pelvis + thigh_l",
+    10
+   ],
+   [
+    "thigh_l + pelvis",
+    10
+   ],
+   [
+    "thigh_r + pelvis",
+    8
+   ],
+   [
+    "pelvis + thigh_l + thigh_r",
+    2
+   ],
+   [
+    "pelvis + thigh_r + thigh_l",
+    2
+   ]
+  ],
+  "altura_m_min_max": [
+   0.874,
+   0.935
+  ],
+  "y_quadril": 0.98
+ },
+ "suave10": {
+  "vertices": 1308,
+  "arestas": 3299,
+  "pior_quadro": {
+   "p99": 3.37,
+   "anim": "Farm_Harvest",
+   "quadro": "meio"
+  },
+  "oito_piores": [
+   [
+    3.37,
+    "Farm_Harvest",
+    "meio"
+   ],
+   [
+    3.05,
+    "Sword_Attack",
+    "meio"
+   ],
+   [
+    2.7,
+    "Sword_Regular_B",
+    "fim"
+   ],
+   [
+    2.68,
+    "Sword_Regular_B",
+    "meio"
+   ],
+   [
+    2.68,
+    "Sword_Regular_C",
+    "meio"
+   ],
+   [
+    2.67,
+    "Sword_Regular_C",
+    "início"
+   ],
+   [
+    2.64,
+    "Sword_Regular_B",
+    "início"
+   ],
+   [
+    2.56,
+    "Sword_Regular_A",
+    "fim"
+   ]
+  ],
+  "quadros_p99_acima_2": 19,
+  "quadros_p99_acima_1_8": 20,
+  "vertices_no_1pct_pior": 50,
+  "acima_da_articulacao_do_quadril": 0,
+  "na_virilha_abs_x_menor_6cm": 50,
+  "com_peso_coxa_e_bacia": 39,
+  "com_peso_nas_duas_coxas": 0,
+  "combinacoes_de_ossos": [
+   [
+    "pelvis + thigh_r",
+    15
+   ],
+   [
+    "pelvis + thigh_l",
+    12
+   ],
+   [
+    "thigh_l + pelvis",
+    9
+   ],
+   [
+    "pelvis + thigh_l + thigh_r",
+    5
+   ],
+   [
+    "thigh_r + pelvis",
+    5
+   ],
+   [
+    "pelvis + thigh_r + thigh_l",
+    4
+   ]
+  ],
+  "altura_m_min_max": [
+   0.874,
+   0.934
+  ],
+  "y_quadril": 0.98
+ },
+ "topo4_suave5": {
+  "vertices": 1212,
+  "arestas": 3036,
+  "pior_quadro": {
+   "p99": 3.55,
+   "anim": "Farm_Harvest",
+   "quadro": "meio"
+  },
+  "oito_piores": [
+   [
+    3.55,
+    "Farm_Harvest",
+    "meio"
+   ],
+   [
+    3.2,
+    "Sword_Attack",
+    "meio"
+   ],
+   [
+    3.0,
+    "Sword_Regular_B",
+    "meio"
+   ],
+   [
+    2.91,
+    "Sword_Regular_C",
+    "início"
+   ],
+   [
+    2.89,
+    "Sword_Regular_B",
+    "fim"
+   ],
+   [
+    2.81,
+    "Sword_Regular_A",
+    "meio"
+   ],
+   [
+    2.72,
+    "Sword_Regular_B",
+    "início"
+   ],
+   [
+    2.72,
+    "Sitting_Idle_Loop",
+    "meio"
+   ]
+  ],
+  "quadros_p99_acima_2": 20,
+  "quadros_p99_acima_1_8": 21,
+  "vertices_no_1pct_pior": 50,
+  "acima_da_articulacao_do_quadril": 0,
+  "na_virilha_abs_x_menor_6cm": 50,
+  "com_peso_coxa_e_bacia": 33,
+  "com_peso_nas_duas_coxas": 0,
+  "combinacoes_de_ossos": [
+   [
+    "pelvis + thigh_r",
+    20
+   ],
+   [
+    "pelvis + thigh_l",
+    17
+   ],
+   [
+    "thigh_r + pelvis",
+    5
+   ],
+   [
+    "thigh_l + pelvis",
+    4
+   ],
+   [
+    "pelvis + thigh_l + thigh_r",
+    2
+   ],
+   [
+    "pelvis + thigh_r + thigh_l",
+    2
+   ]
+  ],
+  "altura_m_min_max": [
+   0.874,
+   0.935
+  ],
+  "y_quadril": 0.98
+ }
+}

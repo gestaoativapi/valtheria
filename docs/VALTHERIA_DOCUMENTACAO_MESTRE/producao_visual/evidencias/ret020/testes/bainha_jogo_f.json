@@ -1,0 +1,189 @@
+{
+ "regra": "jogo",
+ "angulo_vertical_graus": 45.6,
+ "ponta_atras_quadril_m": 0.583,
+ "cabo_a_frente_do_quadril_m": 0.047,
+ "atravessa_chao": [
+  "Death01",
+  "Sitting_Idle_Loop",
+  "Sword_Attack",
+  "Sword_Regular_A",
+  "Sword_Regular_B"
+ ],
+ "atravessa_perna": [
+  "Sword_Attack",
+  "Sword_Regular_A",
+  "Sword_Regular_B",
+  "Sword_Regular_C"
+ ],
+ "animacoes": [
+  {
+   "anim": "Dance_Loop",
+   "chao_min_m": 0.234,
+   "folga_perna_min_m": 0.019,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Death01",
+   "chao_min_m": -0.581,
+   "folga_perna_min_m": 0.001,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Hit_Chest",
+   "chao_min_m": 0.148,
+   "folga_perna_min_m": 0.018,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Idle_Loop",
+   "chao_min_m": 0.238,
+   "folga_perna_min_m": 0.022,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Idle_Talking_Loop",
+   "chao_min_m": 0.238,
+   "folga_perna_min_m": 0.023,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Interact",
+   "chao_min_m": 0.238,
+   "folga_perna_min_m": 0.022,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Jog_Fwd_Loop",
+   "chao_min_m": 0.177,
+   "folga_perna_min_m": 0.004,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "PickUp_Table",
+   "chao_min_m": 0.238,
+   "folga_perna_min_m": 0.014,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Punch_Cross",
+   "chao_min_m": 0.051,
+   "folga_perna_min_m": 0.012,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Punch_Jab",
+   "chao_min_m": 0.051,
+   "folga_perna_min_m": 0.012,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Sitting_Idle_Loop",
+   "chao_min_m": -0.046,
+   "folga_perna_min_m": 0.048,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Spell_Simple_Idle_Loop",
+   "chao_min_m": 0.235,
+   "folga_perna_min_m": 0.002,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Spell_Simple_Shoot",
+   "chao_min_m": 0.231,
+   "folga_perna_min_m": 0.002,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Sprint_Loop",
+   "chao_min_m": 0.479,
+   "folga_perna_min_m": 0.013,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Sword_Attack",
+   "chao_min_m": -0.061,
+   "folga_perna_min_m": -0.043,
+   "perna": "canela_l"
+  },
+  {
+   "anim": "Walk_Loop",
+   "chao_min_m": 0.27,
+   "folga_perna_min_m": 0.027,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Consume",
+   "chao_min_m": 0.238,
+   "folga_perna_min_m": 0.01,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Farm_Harvest",
+   "chao_min_m": 0.218,
+   "folga_perna_min_m": 0.023,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Idle_FoldArms_Loop",
+   "chao_min_m": 0.238,
+   "folga_perna_min_m": 0.022,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Idle_Shield_Loop",
+   "chao_min_m": 0.238,
+   "folga_perna_min_m": 0.022,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "OverhandThrow",
+   "chao_min_m": 0.113,
+   "folga_perna_min_m": 0.022,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Shield_OneShot",
+   "chao_min_m": 0.195,
+   "folga_perna_min_m": 0.023,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Sword_Block",
+   "chao_min_m": 0.083,
+   "folga_perna_min_m": 0.025,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Sword_Regular_A",
+   "chao_min_m": -0.12,
+   "folga_perna_min_m": -0.002,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Sword_Regular_B",
+   "chao_min_m": -0.087,
+   "folga_perna_min_m": -0.016,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Sword_Regular_C",
+   "chao_min_m": 0.051,
+   "folga_perna_min_m": -0.008,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "TreeChopping_Loop",
+   "chao_min_m": 0.078,
+   "folga_perna_min_m": 0.006,
+   "perna": "coxa_l"
+  },
+  {
+   "anim": "Yes",
+   "chao_min_m": 0.213,
+   "folga_perna_min_m": 0.015,
+   "perna": "coxa_l"
+  }
+ ]
+}

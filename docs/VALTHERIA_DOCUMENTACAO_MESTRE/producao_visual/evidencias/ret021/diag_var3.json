@@ -1,0 +1,172 @@
+{
+ "ep4": {
+  "vertices": 1142,
+  "arestas": 2894,
+  "pior_quadro": {
+   "p99": 1.98,
+   "anim": "Farm_Harvest",
+   "quadro": "meio"
+  },
+  "oito_piores": [
+   [
+    1.98,
+    "Farm_Harvest",
+    "meio"
+   ],
+   [
+    1.77,
+    "Sword_Regular_B",
+    "meio"
+   ],
+   [
+    1.76,
+    "Sword_Regular_C",
+    "início"
+   ],
+   [
+    1.76,
+    "Sword_Regular_B",
+    "fim"
+   ],
+   [
+    1.75,
+    "Sitting_Idle_Loop",
+    "meio"
+   ],
+   [
+    1.75,
+    "Sitting_Idle_Loop",
+    "início"
+   ],
+   [
+    1.75,
+    "Sitting_Idle_Loop",
+    "fim"
+   ],
+   [
+    1.68,
+    "Sword_Attack",
+    "meio"
+   ]
+  ],
+  "quadros_p99_acima_2": 0,
+  "quadros_p99_acima_1_8": 1,
+  "vertices_no_1pct_pior": 52,
+  "acima_da_articulacao_do_quadril": 0,
+  "na_virilha_abs_x_menor_6cm": 46,
+  "com_peso_coxa_e_bacia": 23,
+  "com_peso_nas_duas_coxas": 0,
+  "combinacoes_de_ossos": [
+   [
+    "thigh_l + pelvis",
+    25
+   ],
+   [
+    "thigh_r + pelvis",
+    21
+   ],
+   [
+    "calf_r + thigh_r",
+    4
+   ],
+   [
+    "thigh_l",
+    2
+   ]
+  ],
+  "altura_m_min_max": [
+   0.473,
+   0.91
+  ],
+  "y_quadril": 0.98
+ },
+ "ep6": {
+  "vertices": 1096,
+  "arestas": 2756,
+  "pior_quadro": {
+   "p99": 1.63,
+   "anim": "Farm_Harvest",
+   "quadro": "meio"
+  },
+  "oito_piores": [
+   [
+    1.63,
+    "Farm_Harvest",
+    "meio"
+   ],
+   [
+    1.57,
+    "Sword_Regular_B",
+    "meio"
+   ],
+   [
+    1.56,
+    "Sword_Regular_B",
+    "fim"
+   ],
+   [
+    1.55,
+    "Sword_Attack",
+    "meio"
+   ],
+   [
+    1.55,
+    "Sword_Regular_C",
+    "início"
+   ],
+   [
+    1.55,
+    "Sitting_Idle_Loop",
+    "meio"
+   ],
+   [
+    1.55,
+    "Sitting_Idle_Loop",
+    "início"
+   ],
+   [
+    1.55,
+    "Sitting_Idle_Loop",
+    "fim"
+   ]
+  ],
+  "quadros_p99_acima_2": 0,
+  "quadros_p99_acima_1_8": 0,
+  "vertices_no_1pct_pior": 49,
+  "acima_da_articulacao_do_quadril": 0,
+  "na_virilha_abs_x_menor_6cm": 8,
+  "com_peso_coxa_e_bacia": 8,
+  "com_peso_nas_duas_coxas": 0,
+  "combinacoes_de_ossos": [
+   [
+    "thigh_l + pelvis",
+    15
+   ],
+   [
+    "calf_r + thigh_r",
+    10
+   ],
+   [
+    "calf_l + thigh_l",
+    8
+   ],
+   [
+    "thigh_r + pelvis",
+    6
+   ],
+   [
+    "thigh_r + calf_r",
+    4
+   ],
+   [
+    "calf_r",
+    4
+   ]
+  ],
+  "altura_m_min_max": [
+   0.455,
+   0.919
+  ],
+  "y_quadril": 0.98
+ }
+}

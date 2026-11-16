@@ -1,0 +1,2046 @@
+[
+{
+"arq": "armas/arco_ng.glb",
+"kb": 39,
+"tris": 718,
+"verts": 1382,
+"malhas": 1,
+"mats": 3,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "armas/escudo_ng.glb",
+"kb": 85,
+"tris": 1945,
+"verts": 3017,
+"malhas": 1,
+"mats": 4,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "armas/espadao_ng.glb",
+"kb": 43,
+"tris": 930,
+"verts": 1462,
+"malhas": 1,
+"mats": 5,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "armas/machado_ng.glb",
+"kb": 53,
+"tris": 1096,
+"verts": 1862,
+"malhas": 1,
+"mats": 4,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "chars/anims_a.glb",
+"kb": 363,
+"tris": 0,
+"verts": 0,
+"malhas": 0,
+"mats": 0,
+"ossos": 0,
+"anims": 16,
+"anim_nomes": [
+"Dance_Loop",
+"Death01",
+"Hit_Chest",
+"Idle_Loop",
+"Idle_Talking_Loop",
+"Interact",
+"Jog_Fwd_Loop",
+"PickUp_Table",
+"Punch_Cross",
+"Punch_Jab",
+"Sitting_Idle_Loop",
+"Spell_Simple_Idle_Loop",
+"Spell_Simple_Shoot",
+"Sprint_Loop",
+"Sword_Attack",
+"Walk_Loop"
+],
+"texturas": []
+},
+{
+"arq": "chars/anims_b.glb",
+"kb": 294,
+"tris": 0,
+"verts": 0,
+"malhas": 0,
+"mats": 0,
+"ossos": 0,
+"anims": 12,
+"anim_nomes": [
+"Consume",
+"Farm_Harvest",
+"Idle_FoldArms_Loop",
+"Idle_Shield_Loop",
+"OverhandThrow",
+"Shield_OneShot",
+"Sword_Block",
+"Sword_Regular_A",
+"Sword_Regular_B",
+"Sword_Regular_C",
+"TreeChopping_Loop",
+"Yes"
+],
+"texturas": []
+},
+{
+"arq": "chars/body_anao_f.glb",
+"kb": 1965,
+"tris": 34000,
+"verts": 24133,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_anao_m.glb",
+"kb": 2096,
+"tris": 33992,
+"verts": 25935,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_dragonita.glb",
+"kb": 4137,
+"tris": 15438,
+"verts": 13103,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_female.glb",
+"kb": 985,
+"tris": 15060,
+"verts": 8844,
+"malhas": 3,
+"mats": 3,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"256x256",
+"256x256",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_female_peasant.glb",
+"kb": 946,
+"tris": 5386,
+"verts": 8844,
+"malhas": 3,
+"mats": 3,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"256x256",
+"256x256",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_female_ranger.glb",
+"kb": 946,
+"tris": 5386,
+"verts": 8844,
+"malhas": 3,
+"mats": 3,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"256x256",
+"256x256",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_male.glb",
+"kb": 926,
+"tris": 14318,
+"verts": 8483,
+"malhas": 3,
+"mats": 3,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"256x256",
+"256x256",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_male_knight.glb",
+"kb": 887,
+"tris": 4674,
+"verts": 8483,
+"malhas": 3,
+"mats": 3,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"256x256",
+"256x256",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_male_noble.glb",
+"kb": 887,
+"tris": 4674,
+"verts": 8483,
+"malhas": 3,
+"mats": 3,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"256x256",
+"256x256",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_male_peasant.glb",
+"kb": 887,
+"tris": 4674,
+"verts": 8483,
+"malhas": 3,
+"mats": 3,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"256x256",
+"256x256",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_male_ranger.glb",
+"kb": 887,
+"tris": 4674,
+"verts": 8483,
+"malhas": 3,
+"mats": 3,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"256x256",
+"256x256",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/body_male_wizard.glb",
+"kb": 887,
+"tris": 4708,
+"verts": 8483,
+"malhas": 3,
+"mats": 3,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"256x256",
+"256x256",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/hair_beard.glb",
+"kb": 100,
+"tris": 1034,
+"verts": 596,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/hair_bob.glb",
+"kb": 292,
+"tris": 3583,
+"verts": 3796,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/hair_buns.glb",
+"kb": 273,
+"tris": 3284,
+"verts": 3501,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/hair_buzzed.glb",
+"kb": 92,
+"tris": 830,
+"verts": 466,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/hair_buzzedfemale.glb",
+"kb": 93,
+"tris": 830,
+"verts": 466,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/hair_eyebrows_female.glb",
+"kb": 146,
+"tris": 1480,
+"verts": 912,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/hair_eyebrows_regular.glb",
+"kb": 102,
+"tris": 984,
+"verts": 646,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/hair_long.glb",
+"kb": 250,
+"tris": 2906,
+"verts": 3080,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/hair_moustache.glb",
+"kb": 79,
+"tris": 428,
+"verts": 243,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/hair_simpleparted.glb",
+"kb": 110,
+"tris": 1301,
+"verts": 757,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/hair_slickback.glb",
+"kb": 119,
+"tris": 872,
+"verts": 987,
+"malhas": 1,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/outfit_female_peasant.glb",
+"kb": 851,
+"tris": 13568,
+"verts": 10184,
+"malhas": 4,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/outfit_female_ranger.glb",
+"kb": 2146,
+"tris": 26966,
+"verts": 24808,
+"malhas": 9,
+"mats": 2,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"1024x1024",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/outfit_male_knight.glb",
+"kb": 1177,
+"tris": 17164,
+"verts": 14034,
+"malhas": 5,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/outfit_male_noble.glb",
+"kb": 1336,
+"tris": 20129,
+"verts": 16529,
+"malhas": 9,
+"mats": 1,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/outfit_male_peasant.glb",
+"kb": 981,
+"tris": 12894,
+"verts": 8855,
+"malhas": 4,
+"mats": 2,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"1024x1024",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/outfit_male_ranger.glb",
+"kb": 2104,
+"tris": 26982,
+"verts": 24873,
+"malhas": 9,
+"mats": 2,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"1024x1024",
+"1024x1024",
+"1024x1024",
+"1024x1024",
+"1024x1024",
+"1024x1024"
+]
+},
+{
+"arq": "chars/outfit_male_wizard.glb",
+"kb": 962,
+"tris": 14430,
+"verts": 10585,
+"malhas": 6,
+"mats": 2,
+"ossos": 65,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512",
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "chars/w_axe.glb",
+"kb": 60,
+"tris": 1096,
+"verts": 2155,
+"malhas": 1,
+"mats": 4,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "chars/w_bow_wooden.glb",
+"kb": 40,
+"tris": 718,
+"verts": 1428,
+"malhas": 1,
+"mats": 3,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "chars/w_claymore.glb",
+"kb": 50,
+"tris": 930,
+"verts": 1721,
+"malhas": 1,
+"mats": 5,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "chars/w_dagger.glb",
+"kb": 41,
+"tris": 715,
+"verts": 1388,
+"malhas": 1,
+"mats": 5,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "chars/w_hammer_double.glb",
+"kb": 102,
+"tris": 1918,
+"verts": 3724,
+"malhas": 1,
+"mats": 4,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "chars/w_shield_heater.glb",
+"kb": 94,
+"tris": 1945,
+"verts": 3383,
+"malhas": 1,
+"mats": 4,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "chars/w_spear.glb",
+"kb": 67,
+"tris": 1202,
+"verts": 2410,
+"malhas": 1,
+"mats": 4,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "chars/w_sword.glb",
+"kb": 44,
+"tris": 804,
+"verts": 1517,
+"malhas": 1,
+"mats": 5,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/a_alpaca.glb",
+"kb": 394,
+"tris": 2060,
+"verts": 4156,
+"malhas": 1,
+"mats": 7,
+"ossos": 46,
+"anims": 13,
+"anim_nomes": [
+"Attack_Headbutt",
+"Attack_Kick",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_Headlow",
+"Idle_HitReact_Left",
+"Idle_HitReact_Right",
+"Jump_toIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/a_bull.glb",
+"kb": 435,
+"tris": 2418,
+"verts": 4906,
+"malhas": 1,
+"mats": 7,
+"ossos": 42,
+"anims": 12,
+"anim_nomes": [
+"Attack_Headbutt",
+"Attack_Kick",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_Headlow",
+"Idle_HitReact_Left",
+"Jump_toIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/a_deer.glb",
+"kb": 459,
+"tris": 2096,
+"verts": 4276,
+"malhas": 1,
+"mats": 7,
+"ossos": 46,
+"anims": 13,
+"anim_nomes": [
+"Attack_Headbutt",
+"Attack_Kick",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_Headlow",
+"Idle_HitReact_Left",
+"Idle_HitReact_Right",
+"Jump_toIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/a_donkey.glb",
+"kb": 434,
+"tris": 2000,
+"verts": 4044,
+"malhas": 1,
+"mats": 7,
+"ossos": 50,
+"anims": 13,
+"anim_nomes": [
+"Attack_Headbutt",
+"Attack_Kick",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_Headlow",
+"Idle_HitReact_Left",
+"Idle_HitReact_Right",
+"Jump_toIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/a_fox.glb",
+"kb": 389,
+"tris": 1848,
+"verts": 3752,
+"malhas": 1,
+"mats": 4,
+"ossos": 51,
+"anims": 12,
+"anim_nomes": [
+"Attack",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_2_HeadLow",
+"Idle_HitReact_Left",
+"Idle_HitReact_Right",
+"Jump_ToIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/a_horse.glb",
+"kb": 445,
+"tris": 2182,
+"verts": 4400,
+"malhas": 1,
+"mats": 8,
+"ossos": 50,
+"anims": 13,
+"anim_nomes": [
+"Attack_Headbutt",
+"Attack_Kick",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_Headlow",
+"Idle_HitReact_Left",
+"Idle_HitReact_Right",
+"Jump_toIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/a_horse_white.glb",
+"kb": 444,
+"tris": 2182,
+"verts": 4400,
+"malhas": 1,
+"mats": 7,
+"ossos": 50,
+"anims": 13,
+"anim_nomes": [
+"Attack_Headbutt",
+"Attack_Kick",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_Headlow",
+"Idle_HitReact_Left",
+"Idle_HitReact_Right",
+"Jump_toIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/a_husky.glb",
+"kb": 378,
+"tris": 1920,
+"verts": 3900,
+"malhas": 1,
+"mats": 5,
+"ossos": 49,
+"anims": 12,
+"anim_nomes": [
+"Attack",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_2_HeadLow",
+"Idle_HitReact_Left",
+"Idle_HitReact_Right",
+"Jump_ToIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/a_shibainu.glb",
+"kb": 361,
+"tris": 1950,
+"verts": 3966,
+"malhas": 1,
+"mats": 6,
+"ossos": 46,
+"anims": 12,
+"anim_nomes": [
+"Attack",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_2_HeadLow",
+"Idle_HitReact_Left",
+"Idle_HitReact_Right",
+"Jump_ToIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/a_stag.glb",
+"kb": 453,
+"tris": 3667,
+"verts": 7435,
+"malhas": 2,
+"mats": 5,
+"ossos": 38,
+"anims": 13,
+"anim_nomes": [
+"Attack_Headbutt",
+"Attack_Kick",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_Headlow",
+"Idle_HitReact_Left",
+"Idle_HitReact_Right",
+"Jump_toIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/b_bags.glb",
+"kb": 16,
+"tris": 722,
+"verts": 481,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_barrel.glb",
+"kb": 49,
+"tris": 1266,
+"verts": 1661,
+"malhas": 1,
+"mats": 3,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_bell_tower.glb",
+"kb": 537,
+"tris": 11366,
+"verts": 19753,
+"malhas": 1,
+"mats": 10,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_bench_1.glb",
+"kb": 21,
+"tris": 376,
+"verts": 750,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_blacksmith.glb",
+"kb": 529,
+"tris": 7171,
+"verts": 12298,
+"malhas": 1,
+"mats": 8,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_bonfire_lit.glb",
+"kb": 47,
+"tris": 1156,
+"verts": 1548,
+"malhas": 1,
+"mats": 5,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_cart.glb",
+"kb": 96,
+"tris": 2367,
+"verts": 3353,
+"malhas": 1,
+"mats": 5,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_cauldron.glb",
+"kb": 40,
+"tris": 1110,
+"verts": 1307,
+"malhas": 1,
+"mats": 4,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_crate.glb",
+"kb": 31,
+"tris": 678,
+"verts": 1078,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_gazebo.glb",
+"kb": 38,
+"tris": 698,
+"verts": 1396,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_hay.glb",
+"kb": 26,
+"tris": 488,
+"verts": 952,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_house_1.glb",
+"kb": 306,
+"tris": 5708,
+"verts": 11322,
+"malhas": 1,
+"mats": 9,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_house_2.glb",
+"kb": 382,
+"tris": 7142,
+"verts": 14202,
+"malhas": 1,
+"mats": 9,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_house_3.glb",
+"kb": 250,
+"tris": 4667,
+"verts": 9315,
+"malhas": 1,
+"mats": 6,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_house_4.glb",
+"kb": 151,
+"tris": 2956,
+"verts": 5558,
+"malhas": 1,
+"mats": 5,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_inn.glb",
+"kb": 334,
+"tris": 7094,
+"verts": 12236,
+"malhas": 1,
+"mats": 7,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_marketstand_1.glb",
+"kb": 80,
+"tris": 1490,
+"verts": 2894,
+"malhas": 1,
+"mats": 4,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_marketstand_2.glb",
+"kb": 60,
+"tris": 1120,
+"verts": 2198,
+"malhas": 1,
+"mats": 3,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_mill.glb",
+"kb": 425,
+"tris": 7999,
+"verts": 15801,
+"malhas": 1,
+"mats": 10,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_sawmill.glb",
+"kb": 230,
+"tris": 4287,
+"verts": 8405,
+"malhas": 1,
+"mats": 10,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_stable.glb",
+"kb": 333,
+"tris": 6242,
+"verts": 12388,
+"malhas": 1,
+"mats": 8,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/b_well.glb",
+"kb": 81,
+"tris": 1818,
+"verts": 2832,
+"malhas": 1,
+"mats": 5,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_barrel.glb",
+"kb": 26,
+"tris": 476,
+"verts": 912,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_bars.glb",
+"kb": 17,
+"tris": 416,
+"verts": 576,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_bones.glb",
+"kb": 42,
+"tris": 788,
+"verts": 1560,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_bones2.glb",
+"kb": 31,
+"tris": 576,
+"verts": 1136,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_candelabrum_tall.glb",
+"kb": 54,
+"tris": 988,
+"verts": 1970,
+"malhas": 1,
+"mats": 3,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_chest_gold.glb",
+"kb": 26,
+"tris": 436,
+"verts": 858,
+"malhas": 1,
+"mats": 4,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_column.glb",
+"kb": 17,
+"tris": 332,
+"verts": 608,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_column_broken.glb",
+"kb": 8,
+"tris": 140,
+"verts": 272,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_column_broken2.glb",
+"kb": 9,
+"tris": 172,
+"verts": 318,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_entrance.glb",
+"kb": 6,
+"tris": 104,
+"verts": 208,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_rock3.glb",
+"kb": 3,
+"tris": 28,
+"verts": 76,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_torch.glb",
+"kb": 31,
+"tris": 518,
+"verts": 1086,
+"malhas": 1,
+"mats": 3,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/d_wallrocks.glb",
+"kb": 24,
+"tris": 480,
+"verts": 888,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/e_frog.glb",
+"kb": 502,
+"tris": 4920,
+"verts": 9840,
+"malhas": 1,
+"mats": 4,
+"ossos": 28,
+"anims": 4,
+"anim_nomes": [
+"Attack",
+"Death",
+"Idle",
+"Jump"
+],
+"texturas": []
+},
+{
+"arq": "world/e_rat.glb",
+"kb": 459,
+"tris": 4004,
+"verts": 8008,
+"malhas": 1,
+"mats": 2,
+"ossos": 31,
+"anims": 6,
+"anim_nomes": [
+"Attack",
+"Death",
+"Idle",
+"Jump",
+"Run",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/e_snake.glb",
+"kb": 182,
+"tris": 1618,
+"verts": 3258,
+"malhas": 1,
+"mats": 7,
+"ossos": 15,
+"anims": 4,
+"anim_nomes": [
+"Attack",
+"Idle",
+"Jump",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/e_spider.glb",
+"kb": 344,
+"tris": 2712,
+"verts": 5461,
+"malhas": 1,
+"mats": 2,
+"ossos": 39,
+"anims": 5,
+"anim_nomes": [
+"Attack",
+"Death",
+"Idle",
+"Jump",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/e_wasp.glb",
+"kb": 380,
+"tris": 3734,
+"verts": 7472,
+"malhas": 1,
+"mats": 4,
+"ossos": 29,
+"anims": 3,
+"anim_nomes": [
+"Attack",
+"Death",
+"Flying"
+],
+"texturas": []
+},
+{
+"arq": "world/m_wolf.glb",
+"kb": 1723,
+"tris": 1962,
+"verts": 3994,
+"malhas": 1,
+"mats": 4,
+"ossos": 51,
+"anims": 12,
+"anim_nomes": [
+"Attack",
+"Death",
+"Eating",
+"Gallop",
+"Gallop_Jump",
+"Idle",
+"Idle_2",
+"Idle_2_HeadLow",
+"Idle_HitReact1",
+"Idle_HitReact2",
+"Jump_ToIdle",
+"Walk"
+],
+"texturas": []
+},
+{
+"arq": "world/n_bush_common.glb",
+"kb": 112,
+"tris": 900,
+"verts": 1800,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512"
+]
+},
+{
+"arq": "world/n_bush_common_flowers.glb",
+"kb": 178,
+"tris": 1243,
+"verts": 2390,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x498"
+]
+},
+{
+"arq": "world/n_commontree_1.glb",
+"kb": 510,
+"tris": 5861,
+"verts": 9093,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "world/n_commontree_2.glb",
+"kb": 440,
+"tris": 5185,
+"verts": 7690,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "world/n_commontree_3.glb",
+"kb": 332,
+"tris": 3338,
+"verts": 5611,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "world/n_deadtree_1.glb",
+"kb": 411,
+"tris": 5566,
+"verts": 7488,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "world/n_deadtree_2.glb",
+"kb": 442,
+"tris": 5977,
+"verts": 8091,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "world/n_fern_1.glb",
+"kb": 43,
+"tris": 144,
+"verts": 132,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512"
+]
+},
+{
+"arq": "world/n_flower_3_group.glb",
+"kb": 86,
+"tris": 395,
+"verts": 377,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x498"
+]
+},
+{
+"arq": "world/n_flower_4_group.glb",
+"kb": 103,
+"tris": 844,
+"verts": 674,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x498"
+]
+},
+{
+"arq": "world/n_light_street_1.glb",
+"kb": 17,
+"tris": 502,
+"verts": 496,
+"malhas": 1,
+"mats": 3,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/n_mushroom_common.glb",
+"kb": 40,
+"tris": 439,
+"verts": 316,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512"
+]
+},
+{
+"arq": "world/n_pine_1.glb",
+"kb": 279,
+"tris": 3498,
+"verts": 4844,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "world/n_pine_2.glb",
+"kb": 263,
+"tris": 3217,
+"verts": 4534,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "world/n_pine_3.glb",
+"kb": 343,
+"tris": 4431,
+"verts": 6098,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "world/n_plant_1_big.glb",
+"kb": 46,
+"tris": 180,
+"verts": 198,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512"
+]
+},
+{
+"arq": "world/n_rock_large_1.glb",
+"kb": 12,
+"tris": 222,
+"verts": 310,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"32x32"
+]
+},
+{
+"arq": "world/n_rock_medium_1.glb",
+"kb": 31,
+"tris": 204,
+"verts": 248,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512"
+]
+},
+{
+"arq": "world/n_rock_medium_2.glb",
+"kb": 28,
+"tris": 146,
+"verts": 177,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512"
+]
+},
+{
+"arq": "world/n_rock_medium_3.glb",
+"kb": 36,
+"tris": 312,
+"verts": 376,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512"
+]
+},
+{
+"arq": "world/n_tree_light_1.glb",
+"kb": 64,
+"tris": 2064,
+"verts": 1625,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"32x32"
+]
+},
+{
+"arq": "world/n_tree_light_2.glb",
+"kb": 32,
+"tris": 992,
+"verts": 799,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"32x32"
+]
+},
+{
+"arq": "world/n_tree_spiral_1.glb",
+"kb": 29,
+"tris": 748,
+"verts": 753,
+"malhas": 1,
+"mats": 1,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"32x32"
+]
+},
+{
+"arq": "world/n_twistedtree_1.glb",
+"kb": 739,
+"tris": 8961,
+"verts": 13513,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "world/n_twistedtree_2.glb",
+"kb": 706,
+"tris": 8538,
+"verts": 12864,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": [
+"512x512",
+"512x512",
+"512x512"
+]
+},
+{
+"arq": "world/q_birchtree_1.glb",
+"kb": 94,
+"tris": 1704,
+"verts": 3464,
+"malhas": 1,
+"mats": 4,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_bush_snow_1.glb",
+"kb": 26,
+"tris": 460,
+"verts": 920,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_bushberries_1.glb",
+"kb": 49,
+"tris": 891,
+"verts": 1783,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_cactus_1.glb",
+"kb": 28,
+"tris": 434,
+"verts": 1040,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_cactusflowers_2.glb",
+"kb": 81,
+"tris": 1488,
+"verts": 3024,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_lilypad.glb",
+"kb": 22,
+"tris": 372,
+"verts": 784,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_rock_moss_2.glb",
+"kb": 6,
+"tris": 78,
+"verts": 162,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_rock_moss_5.glb",
+"kb": 6,
+"tris": 88,
+"verts": 178,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_rock_snow_1.glb",
+"kb": 7,
+"tris": 102,
+"verts": 206,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_rock_snow_3.glb",
+"kb": 7,
+"tris": 96,
+"verts": 191,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_treestump_moss.glb",
+"kb": 14,
+"tris": 232,
+"verts": 468,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_willow_1.glb",
+"kb": 105,
+"tris": 1946,
+"verts": 3944,
+"malhas": 1,
+"mats": 2,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/q_woodlog_moss.glb",
+"kb": 37,
+"tris": 614,
+"verts": 1266,
+"malhas": 1,
+"mats": 5,
+"ossos": 0,
+"anims": 0,
+"anim_nomes": [],
+"texturas": []
+},
+{
+"arq": "world/z_raptor.glb",
+"kb": 209,
+"tris": 1248,
+"verts": 2576,
+"malhas": 1,
+"mats": 3,
+"ossos": 29,
+"anims": 6,
+"anim_nomes": [
+"Attack",
+"Death",
+"Idle",
+"Jump",
+"Run",
+"Walk"
+],
+"texturas": []
+}
+]

@@ -1,0 +1,298 @@
+{
+ "folga_m": 0.015,
+ "passadas": 8,
+ "formas": {
+  "corr_coxa_l_frente45": {
+   "pose": {
+    "l": [
+     45,
+     0
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     45.0,
+     -0.0
+    ],
+    "r": [
+     0.0,
+     0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 81,
+   "vertices_afetados": 345,
+   "desloc_max_mm": 49.0
+  },
+  "corr_coxa_l_frente90": {
+   "pose": {
+    "l": [
+     90,
+     0
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     90.0,
+     -0.0
+    ],
+    "r": [
+     0.0,
+     0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 188,
+   "vertices_afetados": 488,
+   "desloc_max_mm": 78.4
+  },
+  "corr_coxa_l_frente135": {
+   "pose": {
+    "l": [
+     135,
+     0
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     135.0,
+     -0.0
+    ],
+    "r": [
+     0.0,
+     0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 240,
+   "vertices_afetados": 503,
+   "desloc_max_mm": 51.0
+  },
+  "corr_coxa_l_tras45": {
+   "pose": {
+    "l": [
+     -45,
+     0
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     -45.0,
+     0.0
+    ],
+    "r": [
+     0.0,
+     0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 66,
+   "vertices_afetados": 234,
+   "desloc_max_mm": 46.9
+  },
+  "corr_coxa_l_fora45": {
+   "pose": {
+    "l": [
+     0,
+     45
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     0.0,
+     45.0
+    ],
+    "r": [
+     0.0,
+     0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 67,
+   "vertices_afetados": 225,
+   "desloc_max_mm": 46.9
+  },
+  "corr_coxa_l_dentro25": {
+   "pose": {
+    "l": [
+     0,
+     -25
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     -0.0,
+     -25.0
+    ],
+    "r": [
+     0.0,
+     0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 66,
+   "vertices_afetados": 287,
+   "desloc_max_mm": 49.4
+  },
+  "corr_coxa_r_frente45": {
+   "pose": {
+    "r": [
+     45,
+     0
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     0.0,
+     0.0
+    ],
+    "r": [
+     45.0,
+     -0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 92,
+   "vertices_afetados": 345,
+   "desloc_max_mm": 47.6
+  },
+  "corr_coxa_r_frente90": {
+   "pose": {
+    "r": [
+     90,
+     0
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     0.0,
+     0.0
+    ],
+    "r": [
+     90.0,
+     -0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 207,
+   "vertices_afetados": 504,
+   "desloc_max_mm": 84.0
+  },
+  "corr_coxa_r_frente135": {
+   "pose": {
+    "r": [
+     135,
+     0
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     0.0,
+     0.0
+    ],
+    "r": [
+     135.0,
+     -0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 259,
+   "vertices_afetados": 532,
+   "desloc_max_mm": 52.8
+  },
+  "corr_coxa_r_tras45": {
+   "pose": {
+    "r": [
+     -45,
+     0
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     0.0,
+     0.0
+    ],
+    "r": [
+     -45.0,
+     0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 65,
+   "vertices_afetados": 216,
+   "desloc_max_mm": 47.6
+  },
+  "corr_coxa_r_fora45": {
+   "pose": {
+    "r": [
+     0,
+     45
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     0.0,
+     0.0
+    ],
+    "r": [
+     0.0,
+     45.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 78,
+   "vertices_afetados": 256,
+   "desloc_max_mm": 47.6
+  },
+  "corr_coxa_r_dentro25": {
+   "pose": {
+    "r": [
+     0,
+     -25
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     0.0,
+     0.0
+    ],
+    "r": [
+     -0.0,
+     -25.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 68,
+   "vertices_afetados": 294,
+   "desloc_max_mm": 48.5
+  },
+  "corr_coxas_ambas90": {
+   "pose": {
+    "l": [
+     90,
+     0
+    ],
+    "r": [
+     90,
+     0
+    ]
+   },
+   "angulo_medido": {
+    "l": [
+     90.0,
+     -0.0
+    ],
+    "r": [
+     90.0,
+     -0.0
+    ]
+   },
+   "peso_na_pose": 1.0,
+   "vertices_empurrados": 141,
+   "vertices_afetados": 406,
+   "desloc_max_mm": 56.7
+  }
+ },
+ "arquivo": "rp_aldeao_tunica_m_corretiva.glb",
+ "bytes": 1788264
+}

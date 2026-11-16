@@ -1,0 +1,2784 @@
+{
+ "hip": -0.4177,
+ "pares": [
+  "tunica/calca",
+  "botas/calca",
+  "tunica/corpo",
+  "cabelo/tunica",
+  "cabelo/corpo"
+ ],
+ "poses": [
+  {
+   "anim": "Dance_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.361,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.715,
+     "max": 3.943
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.147,
+     "max": 1.294
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.145,
+     "max": 1.362
+    },
+    "ca_tranca_longa": {
+     "p99": 1.252,
+     "max": 2.28
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Dance_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.366,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.672,
+     "max": 3.773
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.155,
+     "max": 1.259
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.157,
+     "max": 1.3
+    },
+    "ca_tranca_longa": {
+     "p99": 1.279,
+     "max": 2.429
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Dance_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.361,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.715,
+     "max": 3.943
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.147,
+     "max": 1.294
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.145,
+     "max": 1.362
+    },
+    "ca_tranca_longa": {
+     "p99": 1.252,
+     "max": 2.28
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Death01",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.361,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.498,
+     "max": 4.338
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.166,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.109,
+     "max": 1.225
+    },
+    "ca_tranca_longa": {
+     "p99": 1.329,
+     "max": 2.318
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Death01",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.423,
+     "max": 2.474
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.739,
+     "max": 5.89
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.182,
+     "max": 1.527
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.383,
+     "max": 1.681
+    },
+    "ca_tranca_longa": {
+     "p99": 1.36,
+     "max": 1.949
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.79,
+    "cabelo/tunica": 0.03,
+    "cabelo/corpo": 0.26
+   }
+  },
+  {
+   "anim": "Death01",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.33,
+     "max": 3.332
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.84,
+     "max": 6.474
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.548
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.307,
+     "max": 1.792
+    },
+    "ca_tranca_longa": {
+     "p99": 1.374,
+     "max": 2.193
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.79,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.17
+   }
+  },
+  {
+   "anim": "Hit_Chest",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.372,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.502,
+     "max": 4.264
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.192,
+     "max": 1.567
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.105,
+     "max": 1.229
+    },
+    "ca_tranca_longa": {
+     "p99": 1.216,
+     "max": 1.943
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Hit_Chest",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.345,
+     "max": 3.233
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.531,
+     "max": 4.311
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.182,
+     "max": 1.578
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.108,
+     "max": 1.227
+    },
+    "ca_tranca_longa": {
+     "p99": 1.33,
+     "max": 1.668
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Hit_Chest",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.369,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.49,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.361,
+     "max": 2.381
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.268
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.161,
+     "max": 1.59
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.106,
+     "max": 1.221
+    },
+    "ca_tranca_longa": {
+     "p99": 1.343,
+     "max": 2.403
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.49,
+     "max": 4.268
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.166,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.342,
+     "max": 2.417
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_Talking_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.272,
+     "max": 3.409
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.707,
+     "max": 4.452
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.168,
+     "max": 1.589
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.107,
+     "max": 1.224
+    },
+    "ca_tranca_longa": {
+     "p99": 1.36,
+     "max": 2.381
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.6,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_Talking_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.284,
+     "max": 3.314
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.746,
+     "max": 4.384
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.171,
+     "max": 1.588
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.107,
+     "max": 1.224
+    },
+    "ca_tranca_longa": {
+     "p99": 1.357,
+     "max": 2.546
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.4,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_Talking_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.272,
+     "max": 3.409
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.707,
+     "max": 4.452
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.168,
+     "max": 1.589
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.107,
+     "max": 1.224
+    },
+    "ca_tranca_longa": {
+     "p99": 1.36,
+     "max": 2.381
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.6,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Interact",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.369,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.518,
+     "max": 4.139
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.36,
+     "max": 2.381
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Interact",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.37,
+     "max": 3.699
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.59,
+     "max": 4.632
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.163,
+     "max": 1.59
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.106,
+     "max": 1.218
+    },
+    "ca_tranca_longa": {
+     "p99": 1.362,
+     "max": 2.396
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.79,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Interact",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.369,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.518,
+     "max": 4.139
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.36,
+     "max": 2.381
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Jog_Fwd_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.405,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.807,
+     "max": 5.006
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.299,
+     "max": 1.574
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.19,
+     "max": 1.623
+    },
+    "ca_tranca_longa": {
+     "p99": 1.575,
+     "max": 2.153
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 3.7,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.04
+   }
+  },
+  {
+   "anim": "Jog_Fwd_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.393,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.769,
+     "max": 4.926
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.261,
+     "max": 1.566
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.205,
+     "max": 1.447
+    },
+    "ca_tranca_longa": {
+     "p99": 1.559,
+     "max": 2.703
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 3.7,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Jog_Fwd_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.405,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.804,
+     "max": 5.006
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.299,
+     "max": 1.574
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.19,
+     "max": 1.623
+    },
+    "ca_tranca_longa": {
+     "p99": 1.575,
+     "max": 2.153
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 3.7,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.04
+   }
+  },
+  {
+   "anim": "PickUp_Table",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.369,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.361,
+     "max": 2.353
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "PickUp_Table",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.398,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.524,
+     "max": 3.825
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.179,
+     "max": 1.599
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.181,
+     "max": 1.451
+    },
+    "ca_tranca_longa": {
+     "p99": 1.4,
+     "max": 3.598
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.09
+   }
+  },
+  {
+   "anim": "PickUp_Table",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.369,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.361,
+     "max": 2.353
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Punch_Cross",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.361,
+     "max": 3.918
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.973,
+     "max": 5.766
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.248,
+     "max": 1.542
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.107,
+     "max": 1.247
+    },
+    "ca_tranca_longa": {
+     "p99": 1.408,
+     "max": 2.497
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.6,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Punch_Cross",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.376,
+     "max": 4.36
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.675,
+     "max": 5.613
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.245,
+     "max": 1.433
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.232,
+     "max": 1.512
+    },
+    "ca_tranca_longa": {
+     "p99": 1.527,
+     "max": 2.476
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 1.98,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.04
+   }
+  },
+  {
+   "anim": "Punch_Cross",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.361,
+     "max": 3.918
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.973,
+     "max": 5.766
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.248,
+     "max": 1.542
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.107,
+     "max": 1.247
+    },
+    "ca_tranca_longa": {
+     "p99": 1.408,
+     "max": 2.497
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.6,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Punch_Jab",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.361,
+     "max": 3.918
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.973,
+     "max": 5.766
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.248,
+     "max": 1.542
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.107,
+     "max": 1.247
+    },
+    "ca_tranca_longa": {
+     "p99": 1.408,
+     "max": 2.497
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.6,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Punch_Jab",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.368,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.708,
+     "max": 4.868
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.259,
+     "max": 1.491
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.258
+    },
+    "ca_tranca_longa": {
+     "p99": 1.398,
+     "max": 2.794
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.6,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Punch_Jab",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.361,
+     "max": 3.918
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.973,
+     "max": 5.766
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.248,
+     "max": 1.542
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.107,
+     "max": 1.247
+    },
+    "ca_tranca_longa": {
+     "p99": 1.408,
+     "max": 2.497
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.6,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sitting_Idle_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.248,
+     "max": 3.569
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.747,
+     "max": 4.825
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.62,
+     "max": 1.948
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.17,
+     "max": 1.412
+    },
+    "ca_tranca_longa": {
+     "p99": 1.346,
+     "max": 2.062
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sitting_Idle_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.241,
+     "max": 3.53
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.739,
+     "max": 4.764
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.62,
+     "max": 1.948
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.17,
+     "max": 1.412
+    },
+    "ca_tranca_longa": {
+     "p99": 1.346,
+     "max": 1.986
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sitting_Idle_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.248,
+     "max": 3.569
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.747,
+     "max": 4.825
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.62,
+     "max": 1.948
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.17,
+     "max": 1.412
+    },
+    "ca_tranca_longa": {
+     "p99": 1.346,
+     "max": 2.062
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Spell_Simple_Idle_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.346,
+     "max": 2.82
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.41,
+     "max": 3.641
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.226,
+     "max": 1.585
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.187,
+     "max": 1.479
+    },
+    "ca_tranca_longa": {
+     "p99": 1.381,
+     "max": 4.571
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.34
+   }
+  },
+  {
+   "anim": "Spell_Simple_Idle_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.342,
+     "max": 2.82
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.452,
+     "max": 3.641
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.235,
+     "max": 1.585
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.187,
+     "max": 1.479
+    },
+    "ca_tranca_longa": {
+     "p99": 1.378,
+     "max": 4.496
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.34
+   }
+  },
+  {
+   "anim": "Spell_Simple_Idle_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.346,
+     "max": 2.82
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.41,
+     "max": 3.641
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.226,
+     "max": 1.585
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.187,
+     "max": 1.479
+    },
+    "ca_tranca_longa": {
+     "p99": 1.381,
+     "max": 4.571
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.34
+   }
+  },
+  {
+   "anim": "Spell_Simple_Shoot",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.351,
+     "max": 2.82
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.518,
+     "max": 3.998
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.226,
+     "max": 1.585
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.187,
+     "max": 1.479
+    },
+    "ca_tranca_longa": {
+     "p99": 1.36,
+     "max": 4.424
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.34
+   }
+  },
+  {
+   "anim": "Spell_Simple_Shoot",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.339,
+     "max": 2.749
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.429,
+     "max": 3.547
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.241,
+     "max": 1.584
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.181,
+     "max": 1.469
+    },
+    "ca_tranca_longa": {
+     "p99": 1.347,
+     "max": 4.367
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.3
+   }
+  },
+  {
+   "anim": "Spell_Simple_Shoot",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.351,
+     "max": 2.82
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.518,
+     "max": 3.998
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.226,
+     "max": 1.585
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.187,
+     "max": 1.479
+    },
+    "ca_tranca_longa": {
+     "p99": 1.36,
+     "max": 4.424
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.34
+   }
+  },
+  {
+   "anim": "Sprint_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.414,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.753,
+     "max": 5.006
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.455,
+     "max": 1.83
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.206,
+     "max": 1.816
+    },
+    "ca_tranca_longa": {
+     "p99": 1.473,
+     "max": 1.779
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.17
+   }
+  },
+  {
+   "anim": "Sprint_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.405,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.698,
+     "max": 4.926
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.533,
+     "max": 2.019
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.089,
+     "max": 1.155
+    },
+    "ca_tranca_longa": {
+     "p99": 1.456,
+     "max": 2.193
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.17
+   }
+  },
+  {
+   "anim": "Sprint_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.414,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.749,
+     "max": 5.006
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.455,
+     "max": 1.83
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.206,
+     "max": 1.816
+    },
+    "ca_tranca_longa": {
+     "p99": 1.473,
+     "max": 1.779
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.17
+   }
+  },
+  {
+   "anim": "Sword_Attack",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.351,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.6,
+     "max": 3.397
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.443,
+     "max": 1.762
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.162,
+     "max": 1.309
+    },
+    "ca_tranca_longa": {
+     "p99": 1.462,
+     "max": 3.03
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sword_Attack",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.381,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.75,
+     "max": 4.447
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.631,
+     "max": 2.018
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.189,
+     "max": 1.283
+    },
+    "ca_tranca_longa": {
+     "p99": 1.702,
+     "max": 2.718
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.6,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.13
+   }
+  },
+  {
+   "anim": "Sword_Attack",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.351,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.6,
+     "max": 3.397
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.443,
+     "max": 1.762
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.162,
+     "max": 1.309
+    },
+    "ca_tranca_longa": {
+     "p99": 1.462,
+     "max": 3.03
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Walk_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.352,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.403,
+     "max": 4.21
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.046,
+     "max": 1.084
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.071,
+     "max": 1.197
+    },
+    "ca_tranca_longa": {
+     "p99": 1.312,
+     "max": 2.017
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Walk_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.353,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.406,
+     "max": 4.18
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.122,
+     "max": 1.282
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.078,
+     "max": 1.265
+    },
+    "ca_tranca_longa": {
+     "p99": 1.313,
+     "max": 1.994
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Walk_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.352,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.403,
+     "max": 4.21
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.046,
+     "max": 1.084
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.071,
+     "max": 1.197
+    },
+    "ca_tranca_longa": {
+     "p99": 1.312,
+     "max": 2.017
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Consume",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.484,
+     "max": 4.258
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Consume",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.408,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.569,
+     "max": 4.445
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.204,
+     "max": 1.585
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.147,
+     "max": 1.334
+    },
+    "ca_tranca_longa": {
+     "p99": 1.35,
+     "max": 2.811
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.04
+   }
+  },
+  {
+   "anim": "Consume",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.484,
+     "max": 4.258
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Farm_Harvest",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.343,
+     "max": 1.777
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Farm_Harvest",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.376,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.899,
+     "max": 4.978
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.63,
+     "max": 2.036
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.17,
+     "max": 1.295
+    },
+    "ca_tranca_longa": {
+     "p99": 1.534,
+     "max": 1.709
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.79,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Farm_Harvest",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.343,
+     "max": 1.777
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_FoldArms_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.369,
+     "max": 3.965
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.634,
+     "max": 5.062
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.349,
+     "max": 2.153
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 1.59,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_FoldArms_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.369,
+     "max": 3.965
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.634,
+     "max": 5.062
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.166,
+     "max": 1.59
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.079,
+     "max": 1.221
+    },
+    "ca_tranca_longa": {
+     "p99": 1.347,
+     "max": 2.16
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 1.59,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_FoldArms_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.369,
+     "max": 3.966
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.634,
+     "max": 5.063
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.166,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.346,
+     "max": 2.178
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 1.59,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_Shield_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.378,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.518,
+     "max": 4.046
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.374,
+     "max": 3.006
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.4,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_Shield_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.378,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.519,
+     "max": 4.046
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.161,
+     "max": 1.59
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.106,
+     "max": 1.221
+    },
+    "ca_tranca_longa": {
+     "p99": 1.373,
+     "max": 3.012
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.4,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Idle_Shield_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.378,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.519,
+     "max": 4.047
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.166,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.372,
+     "max": 3.024
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.4,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "OverhandThrow",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.321,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.496,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.23,
+     "max": 1.595
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.084,
+     "max": 1.228
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "OverhandThrow",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.358,
+     "max": 2.603
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.597,
+     "max": 3.779
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.61,
+     "max": 2.143
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.19,
+     "max": 1.304
+    },
+    "ca_tranca_longa": {
+     "p99": 1.707,
+     "max": 2.629
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 11.11,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.6,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.26
+   }
+  },
+  {
+   "anim": "OverhandThrow",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.496,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.23,
+     "max": 1.595
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.084,
+     "max": 1.228
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Shield_OneShot",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Shield_OneShot",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.368,
+     "max": 3.462
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.61,
+     "max": 4.002
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.251,
+     "max": 1.581
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.115,
+     "max": 1.159
+    },
+    "ca_tranca_longa": {
+     "p99": 1.394,
+     "max": 2.374
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.79,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Shield_OneShot",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sword_Block",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.492,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.185,
+     "max": 1.586
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.102,
+     "max": 1.222
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sword_Block",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.3,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.563,
+     "max": 3.789
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.594,
+     "max": 1.919
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.202,
+     "max": 1.363
+    },
+    "ca_tranca_longa": {
+     "p99": 1.502,
+     "max": 1.827
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.2,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sword_Block",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.492,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.185,
+     "max": 1.586
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.102,
+     "max": 1.222
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sword_Regular_A",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.492,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.185,
+     "max": 1.586
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.102,
+     "max": 1.222
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sword_Regular_A",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.308,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.827,
+     "max": 4.54
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.656,
+     "max": 2.106
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.33,
+     "max": 1.778
+    },
+    "ca_tranca_longa": {
+     "p99": 1.205,
+     "max": 1.791
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.4,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sword_Regular_A",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.549,
+     "max": 3.923
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.891,
+     "max": 4.69
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.577,
+     "max": 2.092
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.364,
+     "max": 1.547
+    },
+    "ca_tranca_longa": {
+     "p99": 1.359,
+     "max": 3.952
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 1.39,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.82
+   }
+  },
+  {
+   "anim": "Sword_Regular_B",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.518,
+     "max": 4.002
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.888,
+     "max": 4.807
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.586,
+     "max": 2.108
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.346,
+     "max": 1.518
+    },
+    "ca_tranca_longa": {
+     "p99": 1.368,
+     "max": 3.755
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 1.19,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.6
+   }
+  },
+  {
+   "anim": "Sword_Regular_B",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.361,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.707,
+     "max": 3.792
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.678,
+     "max": 2.13
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.224,
+     "max": 1.341
+    },
+    "ca_tranca_longa": {
+     "p99": 1.462,
+     "max": 2.071
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 11.11,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.4,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sword_Regular_B",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.436,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.626,
+     "max": 3.66
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.63,
+     "max": 2.097
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.197,
+     "max": 1.293
+    },
+    "ca_tranca_longa": {
+     "p99": 1.522,
+     "max": 2.881
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 11.11,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.4,
+    "cabelo/tunica": 0.03,
+    "cabelo/corpo": 0.26
+   }
+  },
+  {
+   "anim": "Sword_Regular_C",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.46,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.631,
+     "max": 3.517
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.626,
+     "max": 2.087
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.197,
+     "max": 1.297
+    },
+    "ca_tranca_longa": {
+     "p99": 1.54,
+     "max": 3.009
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 11.11,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.4,
+    "cabelo/tunica": 0.03,
+    "cabelo/corpo": 0.26
+   }
+  },
+  {
+   "anim": "Sword_Regular_C",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.335,
+     "max": 5.18
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.659,
+     "max": 6.807
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.506,
+     "max": 1.98
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.35,
+     "max": 2.107
+    },
+    "ca_tranca_longa": {
+     "p99": 1.468,
+     "max": 2.052
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 11.11,
+    "botas/calca": 0.0,
+    "tunica/corpo": 1.79,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Sword_Regular_C",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.168,
+     "max": 1.593
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.156,
+     "max": 1.405
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "TreeChopping_Loop",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.351,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.896,
+     "max": 6.188
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.382,
+     "max": 1.694
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.076,
+     "max": 1.164
+    },
+    "ca_tranca_longa": {
+     "p99": 1.306,
+     "max": 3.931
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.79,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.17
+   }
+  },
+  {
+   "anim": "TreeChopping_Loop",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.371,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.741,
+     "max": 5.67
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.416,
+     "max": 1.727
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.126,
+     "max": 1.186
+    },
+    "ca_tranca_longa": {
+     "p99": 1.482,
+     "max": 2.145
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.99,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "TreeChopping_Loop",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.351,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.896,
+     "max": 6.188
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.382,
+     "max": 1.694
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.076,
+     "max": 1.164
+    },
+    "ca_tranca_longa": {
+     "p99": 1.306,
+     "max": 3.931
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.79,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.17
+   }
+  },
+  {
+   "anim": "Yes",
+   "quadro": "início",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.367,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.345,
+     "max": 2.397
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Yes",
+   "quadro": "meio",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.378,
+     "max": 6.753
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.722,
+     "max": 5.292
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.163,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.108,
+     "max": 1.221
+    },
+    "ca_tranca_longa": {
+     "p99": 1.348,
+     "max": 2.61
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.99,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  },
+  {
+   "anim": "Yes",
+   "quadro": "fim",
+   "deformacao": {
+    "pc_humano_f": {
+     "p99": 1.366,
+     "max": 3.449
+    },
+    "rp_aldeao_tunica_f": {
+     "p99": 1.489,
+     "max": 4.267
+    },
+    "rp_aldeao_calca_f": {
+     "p99": 1.167,
+     "max": 1.591
+    },
+    "rp_botas_couro_f": {
+     "p99": 1.11,
+     "max": 1.226
+    },
+    "ca_tranca_longa": {
+     "p99": 1.342,
+     "max": 2.404
+    }
+   },
+   "atravessamento_pct": {
+    "tunica/calca": 0.0,
+    "botas/calca": 0.0,
+    "tunica/corpo": 0.0,
+    "cabelo/tunica": 0.0,
+    "cabelo/corpo": 0.0
+   }
+  }
+ ]
+}

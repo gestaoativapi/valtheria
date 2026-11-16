@@ -1,0 +1,4 @@
+Fonte: https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html (consultada em 14/11/2026, 23h)
+Pacote: makehuman_system_assets_cc0.zip (267 MB), mirror1: https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip
+Autor: makehuman_system | Fonte: asset repo | Licença declarada na página para TODOS os itens: CC0
+Itens usados na V2 (aparência): skins (young/middleage/old african/asian/caucasian male/female, toon01), eyes (blue, bluegreen, brown, brownlight, deepblue, green, grey, ice, lightblue; low-poly/high-poly), eyebrows (eyebrow001-012), eyelashes (01-04), hair (afro01, bob01, bob02, braid01, long01, ponytail01, short01-04), clothes (male/female casualsuit, worksuit, shoes01-06).
