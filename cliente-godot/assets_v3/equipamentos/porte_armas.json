@@ -260,6 +260,16 @@
    "exceto_com_escudo": true,
    "nota": "arma longa da cintura vai para as costas; com escudo nas costas, ou arma acima de 1,8 m (lança), fica oculta enquanto senta",
    "ocultar_acima_de_m": 1.8
+  },
+  "escudo_nas_costas": {
+   "racas": [
+    "anao",
+    "gigante"
+   ],
+   "comprimento_m": 0.85,
+   "acao": "oculta",
+   "nota": "D67 (opção B, 16/11): anão e gigante com escudo nas costas não têm lugar livre para arma longa guardada; ela fica oculta e volta ao sacar ou ao tirar o escudo. Só visibilidade; inventário e equipamento intactos.",
+   "animacoes": []
   }
  },
  "racas": {
@@ -477,6 +487,12 @@
      ],
      "osso": "pelvis",
      "origem": "varredura AUT-022 (machado): folga mínima -0.005 m"
+    }
+   },
+   "tipos": {
+    "machado": {
+     "ponto": "costas_diagonal",
+     "nota": "AUT-023: machado do anão tocava o chão na dança; vai às costas (com escudo, fica oculto pela regra D67)"
     }
    }
   },

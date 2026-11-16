@@ -102,6 +102,9 @@ func ponto_para(anim_nome: String) -> String:
 
 # o que acontece com a arma guardada nesta animação: "porte" | "mao" | "oculta" | "chao"
 func acao_para(anim_nome: String) -> String:
+	var ec: Dictionary = dados["estados"].get("escudo_nas_costas", {})
+	if tem_escudo and ec.size() > 0 and raca in ec["racas"] and comprimento > float(ec["comprimento_m"]) and _estado_de(anim_nome) != "combate":
+		return "oculta"   # D67 opção B
 	match _estado_de(anim_nome):
 		"combate": return "mao"
 		"trabalho": return "oculta" if comprimento > float(dados["estados"]["trabalho"]["comprimento_m"]) else "porte"

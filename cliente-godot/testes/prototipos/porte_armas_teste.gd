@@ -129,6 +129,7 @@ func _medidas() -> void:
 				for i in 100:
 					p.definir("mao")
 					if c.wnode.get_parent() != c.grip_node and c.wnode.get_parent() != c.guard: falhas += 1
+					if not c.wnode.visible: falhas += 1   # D67: a arma tem de reaparecer na mão
 					p.definir("guardada")
 					if c.wnode.get_parent() != p.suporte: falhas += 1
 				var lin := {"raca": raca, "item": item, "escudo": escudo, "altura_m": snappedf(c.height_m, 0.01), "ponto": p.ponto_nome, "motivo": p.motivo,
@@ -186,8 +187,8 @@ func _ajuste() -> void:
 			var cands := []
 			if str(p._cfg_ponto(nome)["osso"]) == "spine_03":
 				for ox in [0.12, 0.2]:
-					for oz in [-0.17, -0.24]:
-						for dv in [[-0.42, -0.9, 0.0], [-0.3, -0.95, 0.0], [-0.3, -0.95, -0.15], [-0.55, -0.8, -0.1]]:
+					for oz in [-0.17, -0.24, -0.30]:
+						for dv in [[-0.42, -0.9, 0.0], [-0.3, -0.95, 0.0], [-0.3, -0.95, -0.15], [-0.55, -0.8, -0.1], [-0.15, -1.0, -0.25]]:
 							cands.append({"osso": "spine_03", "direcao_lamina": dv, "fora": [0, 0, -1], "deslocamento_cabo": [ox, 0.2, oz]})
 			else:
 				for ox in [0.2, 0.26, 0.32]:

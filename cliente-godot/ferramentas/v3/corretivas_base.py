@@ -75,3 +75,15 @@ def rbf_pesos(G, G0, modelo):
     f = rbf_features(G, G0); C = np.array(modelo["centros"]); W = np.array(modelo["pesos"])
     phi = np.exp(-(np.linalg.norm(C - f, axis=1) / modelo["sigma"]) ** 2)
     return dict(zip(modelo["formas"], (phi @ W).tolist()))
+
+# ---- AUT-023: ativação condicional do RBF (mesma regra no controlador do Godot) ----
+RBF_LIMIAR = {"flexao_max": 45.0, "flexao_min": -35.0, "abducao_abs": 25.0}   # AUT-023: mesma qualidade, RBF ativo em ~30% dos quadros de teste
+if os.environ.get("V3_RBF_LIMIAR"):   # estudo: "flexao_max,flexao_min,abducao_abs"
+    _v = [float(x) for x in os.environ["V3_RBF_LIMIAR"].split(",")]
+    RBF_LIMIAR = {"flexao_max": _v[0], "flexao_min": _v[1], "abducao_abs": _v[2]}
+def rbf_ativo(G, G0):
+    """o RBF só é avaliado quando alguma coxa sai da faixa comum (andar, correr, parado)"""
+    for f, a in angulos(G, G0).values():
+        if f > RBF_LIMIAR["flexao_max"] or f < RBF_LIMIAR["flexao_min"] or abs(a) > RBF_LIMIAR["abducao_abs"]:
+            return True
+    return False

@@ -289,6 +289,16 @@ def forro(o):
     return len(nf)
 n_forro = forro(tunica)
 
+# AUT-023 (D64/D65): rosto escolhido por Robson aplicado aos protótipos (V3_ROSTO=A; desligado por padrão).
+# Reaproveita a pintura do gerador da prancha (rosto_ab.py) e assa na textura da pele; marcos antes de tirar as auxiliares.
+ROSTO = os.environ.get("V3_ROSTO", "")
+if ROSTO:
+    from mathutils import Vector
+    _src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "rosto_ab.py")).read()
+    exec(_src[_src.index("def centro"):_src.index("def montar")])     # define centro() e pintura()
+    marcos_rosto = {"boca": (centro(hum, "helper-upper-teeth") + centro(hum, "helper-lower-teeth")) / 2,
+                    "olho_l": centro(hum, "helper-l-eye"), "olho_r": centro(hum, "helper-r-eye")}
+    marcos_rosto["boca"].y = marcos_rosto["boca"].y - 0.012
 # ---------- 4. corpo: tira as auxiliares e a pele coberta (fica cabeça, pescoço e mãos) ----------
 COBERTO = TRONCO | {"thigh_l", "thigh_r"} | PE
 def some(i):
@@ -321,7 +331,23 @@ def img_de(o, chaves):
     return None
 pele = bpy.data.images.load(os.path.abspath(os.path.join(TEX, CFG["pele"])))
 hum.data.materials.clear(); hum.data.materials.append(mat_imagem("pele", pele, rug=0.6))
+if ROSTO == "A":   # pele com lábios, pálpebras, olheiras e rubor da opção A (força 0,6), assada na própria textura
+    sc0 = bpy.context.scene; sc0.render.engine = "CYCLES"; sc0.cycles.device = "CPU"; sc0.cycles.samples = 8
+    sc0.render.threads_mode = "FIXED"; sc0.render.threads = 1; sc0.render.bake.margin = 6
+    mp = bpy.data.materials.new("pele_rosto"); pintura(mp, pele, marcos_rosto, 0.6)
+    w_, h_ = pele.size; img_r = bpy.data.images.new(f"pele_rosto{ROSTO}_{SEXO}", w_, h_)
+    tn = mp.node_tree.nodes.new("ShaderNodeTexImage"); tn.image = img_r; mp.node_tree.nodes.active = tn
+    hum.data.materials.clear(); hum.data.materials.append(mp)
+    bpy.ops.object.select_all(action="DESELECT"); hum.select_set(True); bpy.context.view_layer.objects.active = hum
+    sc0.render.bake.use_pass_direct = False; sc0.render.bake.use_pass_indirect = False; sc0.render.bake.use_pass_color = True
+    bpy.ops.object.bake(type="DIFFUSE")
+    img_r.filepath_raw = os.path.join(SAIDA, f"tx_pele_rosto{ROSTO}_{SEXO}.png"); img_r.file_format = "PNG"; img_r.save()
+    hum.data.materials.clear(); hum.data.materials.append(mat_imagem("pele", img_r, rug=0.6))
 olho = bpy.data.images.load(f"{A}/eyes/materials/{CFG['olho']}_eye.png")
+if ROSTO == "A":   # íris da opção A: saturação +15% e brilho +4,8% (mesma força 0,6 da prancha)
+    px = np.array(olho.pixels[:]).reshape(-1, 4); lum = px[:, :3].mean(1, keepdims=True)
+    px[:, :3] = np.clip((lum + (px[:, :3] - lum) * 1.15) * 1.048, 0, 1)
+    olho = olho.copy(); olho.pixels = px.reshape(-1).tolist(); olho.name = f"olho_rosto{ROSTO}_{SEXO}"
 pecas["olhos"].data.materials.clear(); pecas["olhos"].data.materials.append(mat_imagem("olhos", olho, rug=0.2))
 for nome in ("sobrancelha", "cilios", "cabelo"):
     o = pecas[nome]; im = img_de(o, ("diffuse", ".png"))

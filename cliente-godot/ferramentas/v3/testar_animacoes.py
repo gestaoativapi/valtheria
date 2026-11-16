@@ -69,7 +69,12 @@ class Peca:
             if self.rbf:
                 from corretivas_base import rbf_pesos
                 if self.rbf.get("modo") == "puro": w = {}
-                w.update(rbf_pesos(self.ultimo_G, self.G0, self.rbf))
+                from corretivas_base import rbf_ativo
+                import os as _os
+                if _os.environ.get("V3_RBF_CONDICIONAL") != "1" or rbf_ativo(self.ultimo_G, self.G0):
+                    w.update(rbf_pesos(self.ultimo_G, self.G0, self.rbf))
+                    self.rbf_avaliacoes = getattr(self, "rbf_avaliacoes", 0) + 1
+                self.rbf_quadros = getattr(self, "rbf_quadros", 0) + 1
             self.ultimos_pesos = w
             P0 = self.P + np.einsum('t,tvi->vi', np.array([w.get(nm, 0.0) for nm in self.T_nomes]), self.T)
         P = np.einsum('vij,vj->vi', M[:, :3, :3], P0) + M[:, :3, 3]
@@ -195,7 +200,8 @@ for af in (AA, AB):
                 n2 = int(((dm < 0.06) & (sd < -0.003)).sum())
                 linha['saia_coxa'] = [n2, int(len(SAIA))]; linha['saia_coxa_pct'] = round(100.0 * n2 / max(len(SAIA), 1), 2)
             res.append(linha)
-json.dump({'hip': round(float(HIP), 4), 'pares': [f'{a}/{b}' for a, b in PARES], 'poses': res}, open(SAIDA, 'w'), ensure_ascii=False, indent=1)
+_rbf_ativ = {p.nome if hasattr(p, 'nome') else str(i): [getattr(p, 'rbf_avaliacoes', 0), getattr(p, 'rbf_quadros', 0)] for i, p in enumerate(pecas) if getattr(p, 'rbf_quadros', 0)}
+json.dump({'hip': round(float(HIP), 4), 'pares': [f'{a}/{b}' for a, b in PARES], 'rbf_ativacao': _rbf_ativ, 'poses': res}, open(SAIDA, 'w'), ensure_ascii=False, indent=1)
 anims = sorted(set(r['anim'] for r in res))
 pior = {}
 for r in res:
