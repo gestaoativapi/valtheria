@@ -47,9 +47,19 @@ func _ready() -> void:
 	var software := _software(adaptador)
 	for c in CENARIOS:
 		await _rodar(c[0], c[1])
+	# identificação do build (AUT-022): commit gravado no momento da exportação, hash do próprio executável, renderizador real
+	var build := {}
+	if FileAccess.file_exists("res://testes/prototipos/build_info.json"):
+		build = JSON.parse_string(FileAccess.get_file_as_string("res://testes/prototipos/build_info.json"))
+	var exe := OS.get_executable_path()
+	var hash_exe := FileAccess.get_sha256(exe) if not OS.has_feature("editor") else "editor (sem executável exportado)"
+	var renderizador_real := "%s / %s" % [RenderingServer.get_current_rendering_method(), RenderingServer.get_current_rendering_driver_name()]
 	var info := {
-		"versao_teste": "benchmark_v3 1.0", "placa_de_video": adaptador, "fabricante": RenderingServer.get_video_adapter_vendor(),
-		"driver_api": RenderingServer.get_video_adapter_api_version(), "renderizador": ProjectSettings.get_setting("rendering/renderer/rendering_method"),
+		"versao_teste": "benchmark_v3 1.1", "commit": build.get("commit", "desconhecido"), "branch": build.get("branch", ""),
+		"gerado_em": build.get("gerado_em", ""), "executavel": exe.get_file(), "sha256_executavel": hash_exe,
+		"placa_de_video": adaptador, "fabricante": RenderingServer.get_video_adapter_vendor(),
+		"driver_api": RenderingServer.get_video_adapter_api_version(), "renderizador": renderizador_real,
+		"renderizador_configurado": ProjectSettings.get_setting("rendering/renderer/rendering_method"),
 		"sistema": OS.get_name() + " " + OS.get_version(), "processador": OS.get_processor_name(), "nucleos": OS.get_processor_count(),
 		"resolucao": str(get_viewport().get_visible_rect().size), "vsync": "desligado", "segundos_por_cenario": segundos,
 		"renderizacao_por_software": software,
@@ -58,11 +68,12 @@ func _ready() -> void:
 	var f := FileAccess.open(saida.path_join("resultado_benchmark.json"), FileAccess.WRITE)
 	f.store_string(JSON.stringify(info, " ")); f.close()
 	var csv := FileAccess.open(saida.path_join("resultado_benchmark.csv"), FileAccess.WRITE)
-	csv.store_line("cenario;personagens;fps_medio;fps_1pct_baixo;tempo_quadro_medio_ms;tempo_quadro_p99_ms;chamadas_de_desenho;triangulos;memoria_video_mb;memoria_total_mb")
+	csv.store_line("cenario;personagens;fps_medio;fps_1pct_baixo;tempo_quadro_medio_ms;tempo_quadro_p99_ms;chamadas_de_desenho;triangulos;memoria_video_mb;memoria_total_mb;versao_teste;commit;sha256_executavel;placa_de_video;renderizador;renderizacao_por_software")
 	for l in linhas:
-		csv.store_line("%s;%d;%.1f;%.1f;%.2f;%.2f;%d;%d;%.1f;%.1f" % [l.cenario, l.personagens, l.fps_medio, l.fps_1pct_baixo, l.tempo_quadro_medio_ms, l.tempo_quadro_p99_ms, l.chamadas_de_desenho, l.triangulos, l.memoria_video_mb, l.memoria_total_mb])
+		csv.store_line("%s;%d;%.1f;%.1f;%.2f;%.2f;%d;%d;%.1f;%.1f;%s;%s;%s;%s;%s;%s" % [l.cenario, l.personagens, l.fps_medio, l.fps_1pct_baixo, l.tempo_quadro_medio_ms, l.tempo_quadro_p99_ms, l.chamadas_de_desenho, l.triangulos, l.memoria_video_mb, l.memoria_total_mb,
+			info.versao_teste, info.commit, info.sha256_executavel, adaptador.replace(";", ","), renderizador_real, "sim" if software else "nao"])
 	csv.close()
-	var txt := "Teste concluído. Resultados em:\n%s\n\nPlaca: %s%s\n\n" % [ProjectSettings.globalize_path(saida), adaptador, "\nAVISO: renderização por software — FPS não é real." if software else ""]
+	var txt := "Teste concluído (commit %s). Resultados em:\n%s\n\nPlaca: %s%s\n\n" % [info.commit, ProjectSettings.globalize_path(saida), adaptador, "\nAVISO: renderização por software — FPS não é real." if software else ""]
 	for l in linhas:
 		txt += "%-6s %2d personagens: %6.1f FPS (1%% baixo %6.1f)  %4d chamadas  %7d triângulos\n" % [l.cenario, l.personagens, l.fps_medio, l.fps_1pct_baixo, l.chamadas_de_desenho, l.triangulos]
 	placa.text = txt + "\nPode fechar a janela."
