@@ -46,7 +46,8 @@
   "AUT-021 D58: cd cliente-godot/ferramentas/v3 && python corretivas_v3.py ../../assets_v3/personagens/rp_aldeao_tunica_<m|f>.glb ../../assets_v3/personagens/rp_aldeao_calca_<m|f>.glb ../../assets_v3/personagens/rp_aldeao_tunica_<m|f>_corretiva.glb [relatorio.json]",
   "AUT-021 D59 (variante de estudo): V3_CALCA_ENTREPERNAS=0.04,0.10 python vestir_v3.py m <saida>/m; ligar_pecas.py como acima; copiar só <saida>/lig_m/rp_aldeao_calca_m.glb como assets_v3/personagens/rp_aldeao_calca_m_sem_entrepernas.glb",
   "AUT-021 testes: testar_animacoes.py (lê as formas corretivas da túnica), testar_calca_visivel.py; cenas testes/prototipos/corretivas_teste.tscn, porte_armas_teste.tscn (--modo=medidas|capturas|ajuste), tranca_lod.tscn",
-  "AUT-022 D58 (RBF): cd cliente-godot/ferramentas/v3 && python rbf_v3.py ../../assets_v3/personagens/rp_aldeao_tunica_<m|f>_corretiva.glb ../../assets_v3/personagens/rp_aldeao_calca_<m|f>.glb ../../assets_v3/personagens/rp_aldeao_tunica_<m|f>_rbf.glb ../../assets/chars/anims_a.glb ../../assets/chars/anims_b.glb hibrido 16  (gera também <saida>.rbf.json; opcional V3_RBF_CENTROS=48 para versão econômica)"
+  "AUT-022 D58 (RBF): cd cliente-godot/ferramentas/v3 && python rbf_v3.py ../../assets_v3/personagens/rp_aldeao_tunica_<m|f>_corretiva.glb ../../assets_v3/personagens/rp_aldeao_calca_<m|f>.glb ../../assets_v3/personagens/rp_aldeao_tunica_<m|f>_rbf.glb ../../assets/chars/anims_a.glb ../../assets/chars/anims_b.glb hibrido 16  (gera também <saida>.rbf.json; opcional V3_RBF_CENTROS=48 para versão econômica)",
+  "AUT-023 D64/D65 (rosto A): V3_ROSTO=A python vestir_v3.py <m|f> <saida>/<m|f>; ligar_pecas.py como acima; copiar só pc_humano_<m|f>.glb como assets_v3/personagens/pc_humano_<m|f>_rostoA.glb"
  ],
  "determinismo": "Duas reconstruções independentes (sementes de hash do Python diferentes) produziram os mesmos bytes em 34 de 34 arquivos (malhas, pesos, UVs, texturas e .glb). Ver o relatório RET-020.",
  "sha256_saidas": {
@@ -74,12 +75,15 @@
   "cliente-godot/assets_v3/personagens/rp_aldeao_tunica_m_corretiva.glb": "c0389de68ff2245d6e230100d89d572cc6b546c41db99623ec73636d081a3752",
   "cliente-godot/assets_v3/personagens/rp_aldeao_tunica_f_corretiva.glb": "102e47c5655cc33622f5224b3d277933a597df0abcf405187757666d7a5e3a1b",
   "cliente-godot/assets_v3/personagens/rp_aldeao_calca_m_sem_entrepernas.glb": "741a7fcc59e9e26b5f0d73f41a52eff3a0a2310daa8f95d54014c3dd63d1bb78",
-  "cliente-godot/assets_v3/equipamentos/porte_armas.json": "2fd019168eb8ec705467797b9d18abfbfc27fbcfaa4cf98bd6bfe14bc1c3fdbc",
+  "cliente-godot/assets_v3/equipamentos/porte_armas.json": "6f9aa27ba86b41efdb7ab941ea8b40fd73db822f8ab5f3a44c1cc5c5ac9b1366",
   "cliente-godot/assets_v3/personagens/rp_aldeao_tunica_m_rbf.glb": "b6eb1dcc84613db111981a1c5e42c6d744227aaa9f76ae9156540fe85087c0b0",
   "cliente-godot/assets_v3/personagens/rp_aldeao_tunica_f_rbf.glb": "4b740d56d179404bc265d1a94353da59110e3ac41d44669069c977c9784d20a0",
   "cliente-godot/assets_v3/personagens/rp_aldeao_tunica_m_rbf.rbf.json": "6ae180da2f056c2f7d529993493f1fb5241e66ff112661830e2a5b6258413cb2",
-  "cliente-godot/assets_v3/personagens/rp_aldeao_tunica_f_rbf.rbf.json": "a7067f2aba8cc6be0813ab533198e13bf5662d91f92f6ad3f3cc33cce1024ec3"
+  "cliente-godot/assets_v3/personagens/rp_aldeao_tunica_f_rbf.rbf.json": "a7067f2aba8cc6be0813ab533198e13bf5662d91f92f6ad3f3cc33cce1024ec3",
+  "cliente-godot/assets_v3/personagens/pc_humano_m_rostoA.glb": "8713872c46e953988a51a039cafe7eea554316967cb1e45aa255340dca3d585f",
+  "cliente-godot/assets_v3/personagens/pc_humano_f_rostoA.glb": "8ffb2f7c965bda925cd07af124d126cad7768832a5821a815b7184fc1e0ff57c"
  },
  "determinismo_aut021": "Túnicas corretivas P1/P2 e calça sem entrepernas: duas reconstruções com sementes de hash diferentes deram os mesmos bytes; a reconstrução padrão de P1 (sem variante) continua idêntica aos arquivos da c9a520a.",
- "determinismo_aut022": "Túnicas RBF P1/P2 (.glb e .rbf.json): duas reconstruções com sementes de hash diferentes deram os mesmos bytes."
+ "determinismo_aut022": "Túnicas RBF P1/P2 (.glb e .rbf.json): duas reconstruções com sementes de hash diferentes deram os mesmos bytes.",
+ "determinismo_aut023": "Corpos com rosto A (P1 e P2): duas reconstruções com sementes diferentes deram os mesmos bytes."
 }
