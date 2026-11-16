@@ -45,7 +45,7 @@ func criar(raca: String, item: String, escudo: bool) -> Array:
 		var s := lerpf(1.0, c.height_m / 1.8, 0.85)
 		for ch in c.wnode.get_children(): ch.queue_free()
 		c.wnode.add_child(_place(V3 + "wp_espada_longa_b.glb", 1.0 * s, 0.1 * s))
-	var p = Porte.new(c, item, escudo)
+	var p = Porte.new(c, item, escudo, raca)
 	return [c, p]
 
 # cópia de character.gd _place com caminho completo (o oficial só lê assets/)
@@ -168,54 +168,52 @@ func avaliar(c: Node3D, p, pts: PackedVector3Array, escudo_mi: MeshInstance3D, e
 # varredura dos parâmetros de um ponto de cintura (melhor folga mínima nas animações em que a arma fica guardada)
 func _ajuste() -> void:
 	var res := {}
-	for item: String in filtro_itens:
-		var escudo := item.ends_with("+escudo"); var it := item.replace("+escudo", "")
-		var cps := []
-		for raca in RACAS:
-			var cp := criar(raca, it, escudo); cps.append(cp)
+	for raca in RACAS:
+		if filtro_racas.size() > 0 and not (raca in filtro_racas): continue
+		for item: String in filtro_itens:
+			var escudo := item.ends_with("+escudo"); var it := item.replace("+escudo", "")
+			var cp := criar(raca, it, escudo); var c: Node3D = cp[0]; var p = cp[1]
 			await get_tree().process_frame
-			cp[1].definir("guardada"); await get_tree().process_frame
-		var nome: String = str(cps[0][1].ponto_nome)
-		var melhor := [-9.0, null, {}]
-		var cands := []
-		if str(cps[0][1]._cfg_ponto(nome)["osso"]) == "spine_03":
-			for ox in [0.15, 0.22]:
-				for oz in [-0.30, -0.36, -0.42]:
-					for dv in [[-0.42, -0.9, 0.0], [-0.3, -0.95, 0.0], [-0.3, -0.95, -0.15], [-0.2, -1.0, -0.1]]:
-						cands.append({"osso": "spine_03", "direcao_lamina": dv, "fora": [0, 0, -1], "deslocamento_cabo": [ox, 0.2, oz]})
-		else:
-			for ox in [0.2, 0.24, 0.28]:
-				for oz in [-0.04, 0.04]:
-					for dx in [0.05, 0.2, 0.35]:
-						for dz in [-0.25, -0.5, -0.75]:
-							cands.append({"osso": "pelvis", "direcao_lamina": [dx, -1.0, dz], "fora": [1, 0, 0], "deslocamento_cabo": [ox, 0.04, oz]})
-		for cand in cands:
-					if true:
-						var pior := 9.0; var det := {}
-						for cp in cps:
-							var c: Node3D = cp[0]; var p = cp[1]
-							p.dados["pontos"][nome] = cand
-							for sp in p.suportes.values(): sp.get_parent().queue_free()
-							p.suportes.clear(); p.definir("guardada")
-							var pts := pontos_arma(c)
-							var emi: MeshInstance3D = null; var eab := AABB()
-							if escudo and c.shield != null:
-								for m in c.shield.find_children("*", "MeshInstance3D", true, false):
-									emi = m; eab = (m as MeshInstance3D).get_aabb().grow(0.005); break
-							for an in ["Idle", "Walk", "Jog_Fwd", "Sprint", "Interact", "Consume", "PickUp_Table", "Idle_Talking", "Dance", "Hit_Chest"]:
-								if not c.anim.has_animation(an): continue
-								for q in 3:
-									pose(c, an, q / 2.0)
-									var m := avaliar(c, p, pts, emi, eab)
-									for k in ["pernas", "bracos", "tronco", "chao", "escudo"]:
-										var v: float = m[k] if k != "chao" else m[k] - 0.0
-										if v < pior: pior = v; det = {"anim": an, "parte": k}
-						if pior > melhor[0]: melhor = [pior, cand, det]
-		res[item] = {"ponto": nome, "folga_min_m": snappedf(melhor[0], 0.001), "melhor": melhor[1], "limite": melhor[2]}
-		print("AJUSTE ", item, " ", res[item])
-		for cp in cps: cp[0].queue_free()
-		await get_tree().process_frame
-	var f := FileAccess.open(saida + "/ajuste_cintura.json", FileAccess.WRITE)
+			p.definir("guardada"); await get_tree().process_frame
+			var nome: String = str(p.ponto_nome)
+			var anims := []
+			for an in c.anim.get_animation_list():
+				if an != "RESET" and p.acao_para(an) == "porte" and p.ponto_para(an) == nome: anims.append(an)
+			var emi: MeshInstance3D = null; var eab := AABB()
+			if escudo and c.shield != null:
+				for m in c.shield.find_children("*", "MeshInstance3D", true, false):
+					emi = m; eab = (m as MeshInstance3D).get_aabb().grow(0.005); break
+			var cands := []
+			if str(p._cfg_ponto(nome)["osso"]) == "spine_03":
+				for ox in [0.12, 0.2]:
+					for oz in [-0.17, -0.24]:
+						for dv in [[-0.42, -0.9, 0.0], [-0.3, -0.95, 0.0], [-0.3, -0.95, -0.15], [-0.55, -0.8, -0.1]]:
+							cands.append({"osso": "spine_03", "direcao_lamina": dv, "fora": [0, 0, -1], "deslocamento_cabo": [ox, 0.2, oz]})
+			else:
+				for ox in [0.2, 0.26, 0.32]:
+					for oz in [-0.08, -0.02, 0.04]:
+						for dx in [0.05, 0.2, 0.35]:
+							for dz in [-0.25, -0.5, -0.75]:
+								cands.append({"osso": "pelvis", "direcao_lamina": [dx, -1.0, dz], "fora": [1, 0, 0], "deslocamento_cabo": [ox, 0.04, oz]})
+			var melhor := [-9.0, null, {}]
+			for cand in cands:
+				p.dados["racas"] = {raca: {"pontos": {nome: cand}}}
+				for sp in p.suportes.values(): sp.get_parent().queue_free()
+				p.suportes.clear(); p.definir("guardada")
+				var pts := pontos_arma(c)
+				var pior := 9.0; var det := {}
+				for an in anims:
+					for q in 3:
+						pose(c, an, (q + 0.5) / 3.0)
+						var m := avaliar(c, p, pts, emi, eab)
+						for k in ["pernas", "bracos", "tronco", "chao", "escudo", "cabeca"]:
+							if m[k] < pior: pior = m[k]; det = {"anim": an, "parte": k}
+					if pior < melhor[0]: break   # já é pior que o melhor candidato
+				if pior > melhor[0]: melhor = [pior, cand, det]
+			res["%s|%s" % [raca, item]] = {"ponto": nome, "folga_min_m": snappedf(melhor[0], 0.001), "melhor": melhor[1], "limite": melhor[2]}
+			print("AJUSTE ", raca, " ", item, " ", res["%s|%s" % [raca, item]])
+			c.queue_free(); await get_tree().process_frame
+	var f := FileAccess.open(saida + "/ajuste_racas.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify(res, " "))
 
 # ---------------- capturas ----------------
@@ -245,7 +243,7 @@ func _capturas() -> void:
 		["humano", "punhal_ng", false], ["humano", "machado_ng", false], ["humano", "martelo_ng", false], ["humano", "cajado_ng", false],
 		["humano", "lanca_ng", false], ["humano", "arco_ng", false], ["humano", "espadao_ng", false], ["humano", "cetro_ng", true],
 		["anao", "espada_longa", false], ["anao", "machado_ng", true], ["gigante", "espada_longa", false], ["gigante", "lanca_ng", false]]
-	var estados := [["Idle", 0.0, "repouso"], ["Walk", 0.5, "caminhada"], ["Sprint", 0.5, "corrida"], ["Sitting_Idle_Loop", 0.5, "sentado"], ["Death", 1.0, "morte"]]
+	var estados := [["Idle", 0.0, "repouso"], ["Walk", 0.5, "caminhada"], ["Sprint", 0.5, "corrida"], ["Sitting", 0.5, "sentado"], ["Death", 1.0, "morte"]]
 	for cs in casos:
 		var cp := criar(cs[0], cs[1], cs[2]); var c: Node3D = cp[0]; var p = cp[1]
 		var h: float = c.height_m

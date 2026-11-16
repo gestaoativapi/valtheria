@@ -6,7 +6,7 @@ extends Node3D
 const V3 := "res://assets_v3/personagens/"
 const CS := preload("res://scripts/character.gd")
 const Ctrl := preload("res://testes/prototipos/corretivas_controlador.gd")
-const POSES := [["Sitting_Idle_Loop", 0.5], ["Farm_Harvest", 0.5], ["OverhandThrow", 0.5], ["Sword_Attack", 0.5], ["Sword_Regular_B", 0.5], ["Sword_Regular_C", 0.5], ["Walk_Loop", 0.25], ["Jog_Fwd_Loop", 0.25]]
+const POSES := [["Idle", 0.0], ["Sitting_Idle_Loop", 0.5], ["Sword_Regular_A", 0.5], ["Sprint_Loop", 0.25], ["Farm_Harvest", 0.5], ["OverhandThrow", 0.5], ["Sword_Attack", 0.5], ["Sword_Regular_B", 0.5], ["Sword_Regular_C", 0.5], ["Walk_Loop", 0.25], ["Jog_Fwd_Loop", 0.25]]
 var saida := "user://corretivas"
 
 func _ready() -> void:
@@ -19,8 +19,11 @@ func _ready() -> void:
 	env.environment.ambient_light_color = Color(0.55, 0.55, 0.6); add_child(env)
 	var pesos := {}
 	var versoes := [["m", "atual", "rp_aldeao_tunica_m", "rp_aldeao_calca_m"], ["m", "corretiva", "rp_aldeao_tunica_m_corretiva", "rp_aldeao_calca_m"],
-		["m", "corretiva_sem_entrepernas", "rp_aldeao_tunica_m_corretiva", "rp_aldeao_calca_m_sem_entrepernas"],
-		["f", "atual", "rp_aldeao_tunica_f", "rp_aldeao_calca_f"], ["f", "corretiva", "rp_aldeao_tunica_f_corretiva", "rp_aldeao_calca_f"]]
+		["m", "rbf", "rp_aldeao_tunica_m_rbf", "rp_aldeao_calca_m"],
+		["m", "rbf_sem_entrepernas", "rp_aldeao_tunica_m_rbf", "rp_aldeao_calca_m_sem_entrepernas"],
+		["f", "atual", "rp_aldeao_tunica_f", "rp_aldeao_calca_f"], ["f", "corretiva", "rp_aldeao_tunica_f_corretiva", "rp_aldeao_calca_f"],
+		["f", "rbf", "rp_aldeao_tunica_f_rbf", "rp_aldeao_calca_f"]]
+	var custo := {}
 	for v in versoes:
 		var m := montar(v[0], v[2], v[3])
 		for p in POSES:
@@ -35,10 +38,19 @@ func _ready() -> void:
 			var base := "%s_%s_%s" % [v[0], v[1], an]
 			await foto(base + "_lado", 80, 0.15)
 			await foto(base + "_frente", 15, 0.15)
-			if v[0] == "m": await foto(base + "_baixo", 20, -0.75)
+			if v[0] == "m" and v[1] in ["atual", "rbf_sem_entrepernas"]:
+				await foto(base + "_baixo", 20, -0.75)
+				await foto_rente(base + "_rente_frente", 15)
+				await foto_rente(base + "_rente_costas", 165)
+				await foto_rente(base + "_rente_lado", 85)
+		if m["ctrl"] != null:   # custo de CPU do controlador: 2000 avaliações seguidas na pose atual
+			var t0 := Time.get_ticks_usec()
+			for i in 2000: m["ctrl"].aplicar()
+			custo["%s_%s" % [v[0], v[1]]] = {"us_por_avaliacao": snappedf((Time.get_ticks_usec() - t0) / 2000.0, 0.1), "formas": m["ctrl"].indices.size(), "centros_rbf": m["ctrl"].rbf_n}
 		m["body"].queue_free()
 		await get_tree().process_frame
 	var f := FileAccess.open(saida + "/pesos_godot.json", FileAccess.WRITE); f.store_string(JSON.stringify(pesos, " "))
+	var f2 := FileAccess.open(saida + "/custo_cpu.json", FileAccess.WRITE); f2.store_string(JSON.stringify(custo, " "))
 	get_tree().quit()
 
 func montar(g: String, tunica: String, calca: String) -> Dictionary:
@@ -52,10 +64,22 @@ func montar(g: String, tunica: String, calca: String) -> Dictionary:
 			(mm as MeshInstance3D).skeleton = NodePath("..")
 			if p.ends_with("_corretiva"):
 				ctrl = Ctrl.new(); add_child(ctrl); ctrl.configurar(skel, mm); ctrl.set_process(false)
+			if p.ends_with("_rbf"):
+				ctrl = Ctrl.new(); add_child(ctrl); ctrl.configurar(skel, mm); ctrl.set_process(false)
+				ctrl.carregar_rbf(V3 + p + ".rbf.json")
 		src.free()
 	var anim := AnimationPlayer.new(); body.add_child(anim)
 	anim.add_animation_library("", CS._clips(skel, ""))
 	return {"body": body, "skel": skel, "anim": anim, "ctrl": ctrl}
+
+# câmera rente ao chão (5 cm), perto (1,4 m), olhando para o quadril: procura aberturas entre as pernas
+func foto_rente(nome: String, ang: float) -> void:
+	var cam := Camera3D.new(); add_child(cam); cam.fov = 50
+	var alvo := Vector3(0, 0.85, 0)
+	cam.look_at_from_position(Vector3(sin(deg_to_rad(ang)), 0, cos(deg_to_rad(ang))) * 1.4 + Vector3(0, 0.05, 0), alvo); cam.current = true
+	for i in 3: await get_tree().process_frame
+	get_viewport().get_texture().get_image().save_png(saida + "/" + nome + ".png")
+	cam.queue_free()
 
 func foto(nome: String, ang: float, alt: float) -> void:
 	var cam := Camera3D.new(); add_child(cam); cam.fov = 35

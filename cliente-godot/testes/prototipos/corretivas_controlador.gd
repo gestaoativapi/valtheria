@@ -8,6 +8,24 @@ var skel: Skeleton3D
 var malha: MeshInstance3D
 var indices := {}           # nome da forma -> índice do blend shape
 var ultimo := {}            # pesos aplicados no último quadro (para conferência)
+# AUT-022: modelo RBF opcional (arquivo <tunica>.rbf.json ao lado do .glb)
+var rbf_centros := PackedFloat32Array()   # N x 6
+var rbf_pesos := PackedFloat32Array()     # N x K
+var rbf_formas: Array = []
+var rbf_sigma := 1.0
+var rbf_puro := false
+var rbf_n := 0
+
+func carregar_rbf(caminho: String) -> bool:
+	if not FileAccess.file_exists(caminho): return false
+	var m: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(caminho))
+	rbf_sigma = float(m["sigma"]); rbf_formas = m["formas"]; rbf_puro = str(m["modo"]) == "puro"
+	var C: Array = m["centros"]; var W: Array = m["pesos"]; rbf_n = C.size()
+	for c in C:
+		for v in c: rbf_centros.append(float(v))
+	for w in W:
+		for v in w: rbf_pesos.append(float(v))
+	return true
 
 func configurar(s: Skeleton3D, m: MeshInstance3D) -> void:
 	skel = s; malha = m
@@ -52,9 +70,32 @@ func pesos() -> Dictionary:
 	w["corr_coxas_ambas90"] = clampf(minf(fl["l"], fl["r"]) / 90, 0, LIMITE)
 	return w
 
+func _dir(s: String, rest: bool) -> Vector3:
+	var d := (_pos("calf_" + s, rest) - _pos("thigh_" + s, rest)).normalized()
+	return _quadro(rest).transposed() * d
+
+func pesos_rbf() -> Dictionary:
+	var f := PackedFloat32Array()
+	for s in ["l", "r"]:
+		var v := _dir(s, false) - _dir(s, true)
+		f.append(v.x); f.append(v.y); f.append(v.z)
+	var K := rbf_formas.size(); var out := PackedFloat32Array(); out.resize(K)
+	var inv := 1.0 / (rbf_sigma * rbf_sigma)
+	for i in rbf_n:
+		var d2 := 0.0
+		for j in 6:
+			var e := f[j] - rbf_centros[i * 6 + j]; d2 += e * e
+		var phi := exp(-d2 * inv)
+		if phi < 1e-6: continue
+		for k in K: out[k] += phi * rbf_pesos[i * K + k]
+	var w := {}
+	for k in K: w[rbf_formas[k]] = out[k]
+	return w
+
 func aplicar() -> void:
 	if malha == null: return
-	ultimo = pesos()
+	ultimo = {} if (rbf_n > 0 and rbf_puro) else pesos()
+	if rbf_n > 0: ultimo.merge(pesos_rbf(), true)
 	for n in ultimo.keys():
 		if indices.has(n): malha.set_blend_shape_value(indices[n], ultimo[n])
 

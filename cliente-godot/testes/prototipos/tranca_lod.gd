@@ -25,11 +25,13 @@ func _ready() -> void:
 	var chao := MeshInstance3D.new(); var pm := PlaneMesh.new(); pm.size = Vector2(80, 80); chao.mesh = pm; add_child(chao)
 	montar()
 	cam = Camera3D.new(); cam.fov = 40; add_child(cam); cam.current = true
-	await _medir()
+	if "--auditoria" in OS.get_cmdline_user_args(): await _auditoria()
+	else: await _medir()
 	get_tree().quit()
 
-func montar() -> void:
-	corpo = (load(V3 + "pc_humano_f.glb") as PackedScene).instantiate(); add_child(corpo)
+var todos := []   # [corpo, completa, lod] de cada personagem (auditoria com vários)
+func montar(pos := Vector3.ZERO) -> void:
+	corpo = (load(V3 + "pc_humano_f.glb") as PackedScene).instantiate(); add_child(corpo); corpo.position = pos
 	var skel := corpo.find_child("Skeleton3D", true, false) as Skeleton3D
 	for p in ["rp_aldeao_tunica_f", "rp_aldeao_calca_f", "rp_botas_couro_f", "ca_tranca_longa", "ca_tranca_longa_lod1"]:
 		var src: Node3D = (load(V3 + p + ".glb") as PackedScene).instantiate()
@@ -45,6 +47,7 @@ func montar() -> void:
 	lod.visibility_range_begin = TROCA; lod.visibility_range_begin_margin = MARGEM
 	completa.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 	lod.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+	todos.append([corpo, completa, lod])
 
 func _tri(m: Mesh) -> int:
 	var n := 0
@@ -123,3 +126,45 @@ func _medir() -> void:
 		get_viewport().get_texture().get_image().save_png(saida + "/tranca_lod_%04.1fm.png" % dd)
 	var f := FileAccess.open(saida + "/tranca_lod.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify(r, " "))
+
+# AUT-022: auditoria das chamadas de desenho — cena por partes, 1 e 10 personagens, nas distâncias pedidas
+func _info() -> Dictionary:
+	await get_tree().process_frame; await get_tree().process_frame
+	var vp := get_viewport()
+	return {"draw": vp.get_render_info(Viewport.RENDER_INFO_TYPE_VISIBLE, Viewport.RENDER_INFO_DRAW_CALLS_IN_FRAME),
+		"draw_sombra": vp.get_render_info(Viewport.RENDER_INFO_TYPE_SHADOW, Viewport.RENDER_INFO_DRAW_CALLS_IN_FRAME),
+		"tri": vp.get_render_info(Viewport.RENDER_INFO_TYPE_VISIBLE, Viewport.RENDER_INFO_PRIMITIVES_IN_FRAME),
+		"tri_sombra": vp.get_render_info(Viewport.RENDER_INFO_TYPE_SHADOW, Viewport.RENDER_INFO_PRIMITIVES_IN_FRAME),
+		"objetos": vp.get_render_info(Viewport.RENDER_INFO_TYPE_VISIBLE, Viewport.RENDER_INFO_OBJECTS_IN_FRAME),
+		"mem_video_mb": snappedf(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0, 0.1)}
+
+func _estado(modo: String) -> void:
+	for t in todos:
+		var c: MeshInstance3D = t[1]; var l: MeshInstance3D = t[2]
+		match modo:
+			"sem_cabelo": c.visible = false; l.visible = false
+			"so_completa": c.visible = true; l.visible = false; c.visibility_range_end = 0.0
+			"so_lod": c.visible = false; l.visible = true; l.visibility_range_begin = 0.0
+			"troca":
+				c.visible = true; l.visible = true; c.visibility_range_end = TROCA; l.visibility_range_begin = TROCA
+
+func _auditoria() -> void:
+	get_viewport().mesh_lod_threshold = 1.0
+	var r := {"distancias": [5.0, 11.0, 12.0, 13.25, 15.0, 30.0], "um": {}, "dez": {}}
+	for grupo in ["um", "dez"]:
+		if grupo == "dez":
+			for i in range(1, 10): montar(Vector3((i % 5 - 2) * 0.9, 0, -float(i / 5) * 1.2))
+		for d in r["distancias"]:
+			var linha := {}
+			for modo in ["sem_cabelo", "so_completa", "so_lod", "troca"]:
+				_estado(modo)
+				cam.look_at_from_position(Vector3(0, 1.5, d), Vector3(0, 1.0, 0))
+				linha[modo] = await _info()
+			_estado("troca")
+			linha["cabelo_draw_completa"] = int(linha["so_completa"]["draw"]) - int(linha["sem_cabelo"]["draw"])
+			linha["cabelo_draw_lod"] = int(linha["so_lod"]["draw"]) - int(linha["sem_cabelo"]["draw"])
+			linha["cabelo_draw_sombra_completa"] = int(linha["so_completa"]["draw_sombra"]) - int(linha["sem_cabelo"]["draw_sombra"])
+			linha["cabelo_draw_sombra_lod"] = int(linha["so_lod"]["draw_sombra"]) - int(linha["sem_cabelo"]["draw_sombra"])
+			r[grupo][str(d)] = linha
+			print("AUD ", grupo, " ", d, " troca=", linha["troca"], " cabelo(draw c/l)=", linha["cabelo_draw_completa"], "/", linha["cabelo_draw_lod"])
+	var f := FileAccess.open(saida + "/auditoria_lod.json", FileAccess.WRITE); f.store_string(JSON.stringify(r, " "))

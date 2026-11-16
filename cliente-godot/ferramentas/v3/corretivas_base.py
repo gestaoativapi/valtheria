@@ -61,3 +61,17 @@ def pesos(G, G0):
         w[f"corr_coxa_{s}_dentro25"] = float(np.clip(-a / 25, 0, LIMITE))
     w["corr_coxas_ambas90"] = float(np.clip(min(ang["l"][0], ang["r"][0]) / 90, 0, LIMITE))
     return w
+
+# ---- AUT-022: deformação por exemplos (RBF) ----
+def rbf_features(G, G0):
+    """direção das duas coxas no referencial da saia, relativa ao repouso (6 valores)"""
+    out = []
+    for s, _ in LADOS:
+        out += list(direcao(G, s, G0) - direcao(G0, s, G0))
+    return np.array(out)
+
+def rbf_pesos(G, G0, modelo):
+    """pesos das formas rbf_xx para esta pose: soma de gaussianas sobre as poses de treino"""
+    f = rbf_features(G, G0); C = np.array(modelo["centros"]); W = np.array(modelo["pesos"])
+    phi = np.exp(-(np.linalg.norm(C - f, axis=1) / modelo["sigma"]) ** 2)
+    return dict(zip(modelo["formas"], (phi @ W).tolist()))

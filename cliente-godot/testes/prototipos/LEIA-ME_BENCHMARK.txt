@@ -1,25 +1,33 @@
-VALTHERIA V3 — BENCHMARK DO PRIMEIRO MARCO (D56)
-================================================
+VALTHERIA V3 — BENCHMARK DOS PROTÓTIPOS (D56, AUT-021 e AUT-022)
+=================================================================
 
 O que é
 - Executável de teste isolado. Não é o jogo, não conecta à internet e não contém chaves de servidor.
+- NÃO é o teste da Fase 1 do servidor (D44): os resultados são separados.
 - Compara os personagens atuais (aldeão masculino e feminino) com os protótipos V3 (P1 e P2),
-  todos com espada na mão e animados, em 7 cenários:
-  vazio; atual com 1, 20 e 40 personagens; V3 com 1, 20 e 40 personagens.
-- Cada cenário: 3 s de aquecimento e 15 s de medição. Tempo total: cerca de 2,5 minutos.
+  todos com espada na mão e animados, em 13 cenários:
+    vazio;
+    atual: 1, 20 e 40 personagens (personagens do jogo hoje);
+    v3:    1, 20 e 40 (V3 do commit c9a520a);
+    v3s:   1, 20 e 40 (V3 do commit c8a1f11: túnicas com formas corretivas + troca da trança a 12 m);
+    v3r:   1, 20 e 40 (V3 da AUT-022: túnicas com RBF + troca da trança a 12 m).
+- Cada cenário: 3 s de aquecimento e 15 s de medição. Tempo total: cerca de 4 minutos.
 
 Como rodar no notebook
 1. Ligue o carregador na tomada e feche outros programas pesados.
 2. Se o notebook tiver duas placas de vídeo, use a placa dedicada:
    botão direito em Valtheria-V3-benchmark.exe > "Executar com processador gráfico" > placa de alto desempenho
    (ou Configurações do Windows > Sistema > Tela > Gráficos > escolher o exe > Alto desempenho).
-3. Dê dois cliques em Valtheria-V3-benchmark.exe. Se o Windows avisar "aplicativo não reconhecido",
+3. Rode UMA instância por vez (duas ao mesmo tempo invalidam a medição).
+4. Dê dois cliques em Valtheria-V3-benchmark.exe. Se o Windows avisar "aplicativo não reconhecido",
    clique em "Mais informações" > "Executar assim mesmo" (o exe não é assinado).
-4. Não mexa no mouse até aparecer "Teste concluído". Depois feche a janela.
+5. Não mexa no mouse até aparecer "Teste concluído". Depois feche a janela.
+6. Repita mais 2 vezes (3 rodadas no total) e envie os arquivos das 3.
 
 Resultados
-- Ficam na mesma pasta do exe: resultado_benchmark.csv e resultado_benchmark.json.
-- Envie os dois arquivos (ou um print da tela final) para análise.
+- Ficam na mesma pasta do exe: resultado_benchmark.csv e resultado_benchmark.json
+  (renomeie para _1, _2, _3 entre as rodadas, para não sobrescrever).
+- Envie os arquivos (ou um print da tela final) para análise.
 
 Métricas registradas
 - FPS médio, FPS 1% baixo (média dos 1% piores quadros), tempo de quadro médio e p99 (ms),
@@ -27,6 +35,7 @@ Métricas registradas
 - Vsync desligado e FPS sem limite, janela 1600x900, sombras ligadas.
 - O arquivo registra a placa de vídeo usada. Se ela for de software (llvmpipe, Microsoft Basic Render etc.),
   o resultado vem marcado como "FPS NÃO REPRESENTA DESEMPENHO REAL" e não deve ser usado.
+- O cenário v3r inclui o custo de processador do controlador RBF de cada personagem (ponto a observar).
 
 Opções (pelo Prompt de Comando, na pasta do exe)
   Valtheria-V3-benchmark.exe -- --segundos=30      medição mais longa por cenário

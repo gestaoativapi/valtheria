@@ -130,6 +130,63 @@
     -0.04
    ],
    "origem": "varredura AUT-021 (espada longa + escudo), partindo da bainha_cintura de espada_longa.json"
+  },
+  "costas_arco": {
+   "osso": "spine_03",
+   "direcao_lamina": [
+    -0.42,
+    -0.9,
+    0.0
+   ],
+   "fora": [
+    0,
+    0,
+    -1
+   ],
+   "deslocamento_cabo": [
+    0.2,
+    0.2,
+    -0.17
+   ],
+   "origem": "cópia de costas_diagonal para ajuste próprio do tipo (AUT-022)"
+  },
+  "costas_martelo": {
+   "osso": "spine_03",
+   "direcao_lamina": [
+    -0.42,
+    -0.9,
+    0.0
+   ],
+   "fora": [
+    0,
+    0,
+    -1
+   ],
+   "deslocamento_cabo": [
+    0.2,
+    0.2,
+    -0.17
+   ],
+   "origem": "cópia de costas_diagonal para ajuste próprio do tipo (AUT-022)"
+  },
+  "cintura_longa_escudo": {
+   "osso": "pelvis",
+   "direcao_lamina": [
+    0.35,
+    -1.0,
+    -0.75
+   ],
+   "fora": [
+    1,
+    0,
+    0
+   ],
+   "deslocamento_cabo": [
+    0.28,
+    0.04,
+    -0.04
+   ],
+   "origem": "ponto da espada longa com escudo (separado do da espada comum)"
   }
  },
  "tipos": {
@@ -145,12 +202,18 @@
   "duplas": {
    "ponto": "costas_diagonal",
    "nota": "espadas gêmeas cruzadas nas costas: na cintura (0,8 m) tocavam a coxa em repouso"
+  },
+  "arco": {
+   "ponto": "costas_arco"
+  },
+  "martelo": {
+   "ponto": "costas_martelo"
   }
  },
  "itens": {
   "espada_longa": {
    "ponto": "costas_diagonal",
-   "com_escudo": "cintura_com_escudo",
+   "com_escudo": "cintura_longa_escudo",
    "alternativa_cintura": "cintura_longa",
    "nota": "D60: espada longa (P5, 1 m) nas costas; com escudo nas costas, vai para a cintura (ponto ajustado a partir da bainha de espada_longa.json)"
   }
@@ -166,7 +229,8 @@
     "Idle_Shield",
     "Spell_",
     "Hit_",
-    "Punch_"
+    "Punch_",
+    "OverhandThrow"
    ],
    "acao": "mao",
    "nota": "em combate (golpes, defesa, magia, ser atingido) a arma está na mão (regra oficial set_battle(true)); não entra no teste de arma guardada"
@@ -193,7 +257,314 @@
    ],
    "acao": "cintura_para_costas",
    "comprimento_m": 0.6,
-   "exceto_com_escudo": true
+   "exceto_com_escudo": true,
+   "nota": "arma longa da cintura vai para as costas; com escudo nas costas, ou arma acima de 1,8 m (lança), fica oculta enquanto senta",
+   "ocultar_acima_de_m": 1.8
+  }
+ },
+ "racas": {
+  "humano": {
+   "pontos": {
+    "cintura_curta": {
+     "deslocamento_cabo": [
+      0.26,
+      0.04,
+      -0.08
+     ],
+     "direcao_lamina": [
+      0.35,
+      -1.0,
+      -0.25
+     ],
+     "fora": [
+      1,
+      0,
+      0
+     ],
+     "osso": "pelvis",
+     "origem": "varredura AUT-022 (adaga_ng): folga mínima 0.029 m"
+    },
+    "cintura_esq": {
+     "deslocamento_cabo": [
+      0.26,
+      0.04,
+      -0.08
+     ],
+     "direcao_lamina": [
+      0.35,
+      -1.0,
+      -0.25
+     ],
+     "fora": [
+      1,
+      0,
+      0
+     ],
+     "osso": "pelvis",
+     "origem": "varredura AUT-022 (cetro_ng+escudo): folga mínima 0.025 m"
+    },
+    "costas_martelo": {
+     "deslocamento_cabo": [
+      0.2,
+      0.2,
+      -0.24
+     ],
+     "direcao_lamina": [
+      -0.3,
+      -0.95,
+      -0.15
+     ],
+     "fora": [
+      0,
+      0,
+      -1
+     ],
+     "osso": "spine_03",
+     "origem": "varredura AUT-022 (martelo_ng): folga mínima 0.083 m"
+    },
+    "cintura_longa_escudo": {
+     "deslocamento_cabo": [
+      0.32,
+      0.04,
+      -0.08
+     ],
+     "direcao_lamina": [
+      0.35,
+      -1.0,
+      -0.75
+     ],
+     "fora": [
+      1,
+      0,
+      0
+     ],
+     "osso": "pelvis",
+     "origem": "varredura AUT-022 (espada longa + escudo): folga mínima 0.022 m"
+    },
+    "cintura_com_escudo": {
+     "deslocamento_cabo": [
+      0.2,
+      0.04,
+      -0.08
+     ],
+     "direcao_lamina": [
+      0.35,
+      -1.0,
+      -0.25
+     ],
+     "fora": [
+      1,
+      0,
+      0
+     ],
+     "osso": "pelvis",
+     "origem": "varredura AUT-022 (espada + escudo): folga mínima 0.006 m"
+    }
+   }
+  },
+  "anao": {
+   "pontos": {
+    "cintura_curta": {
+     "deslocamento_cabo": [
+      0.32,
+      0.04,
+      -0.08
+     ],
+     "direcao_lamina": [
+      0.35,
+      -1.0,
+      -0.75
+     ],
+     "fora": [
+      1,
+      0,
+      0
+     ],
+     "osso": "pelvis",
+     "origem": "varredura AUT-022 (adaga_ng): folga mínima 0.052 m"
+    },
+    "costas_arco": {
+     "deslocamento_cabo": [
+      0.12,
+      0.2,
+      -0.24
+     ],
+     "direcao_lamina": [
+      -0.3,
+      -0.95,
+      0.0
+     ],
+     "fora": [
+      0,
+      0,
+      -1
+     ],
+     "osso": "spine_03",
+     "origem": "varredura AUT-022 (arco_ng): folga mínima 0.01 m"
+    },
+    "cintura_esq": {
+     "deslocamento_cabo": [
+      0.32,
+      0.04,
+      -0.02
+     ],
+     "direcao_lamina": [
+      0.35,
+      -1.0,
+      -0.75
+     ],
+     "fora": [
+      1,
+      0,
+      0
+     ],
+     "osso": "pelvis",
+     "origem": "varredura AUT-022 (cetro_ng+escudo): folga mínima 0.027 m"
+    },
+    "costas_diagonal": {
+     "deslocamento_cabo": [
+      0.2,
+      0.2,
+      -0.24
+     ],
+     "direcao_lamina": [
+      -0.55,
+      -0.8,
+      -0.1
+     ],
+     "fora": [
+      0,
+      0,
+      -1
+     ],
+     "osso": "spine_03",
+     "origem": "varredura AUT-022 (lanca_ng): folga mínima 0.093 m"
+    },
+    "costas_martelo": {
+     "deslocamento_cabo": [
+      0.2,
+      0.2,
+      -0.24
+     ],
+     "direcao_lamina": [
+      -0.3,
+      -0.95,
+      -0.15
+     ],
+     "fora": [
+      0,
+      0,
+      -1
+     ],
+     "osso": "spine_03",
+     "origem": "varredura AUT-022 (martelo_ng): folga mínima 0.074 m"
+    },
+    "cintura_machado": {
+     "deslocamento_cabo": [
+      0.32,
+      0.04,
+      -0.08
+     ],
+     "direcao_lamina": [
+      0.35,
+      -1.0,
+      -0.75
+     ],
+     "fora": [
+      1,
+      0,
+      0
+     ],
+     "osso": "pelvis",
+     "origem": "varredura AUT-022 (machado): folga mínima -0.005 m"
+    }
+   }
+  },
+  "gigante": {
+   "pontos": {
+    "cintura_curta": {
+     "deslocamento_cabo": [
+      0.2,
+      0.04,
+      -0.08
+     ],
+     "direcao_lamina": [
+      0.35,
+      -1.0,
+      -0.25
+     ],
+     "fora": [
+      1,
+      0,
+      0
+     ],
+     "osso": "pelvis",
+     "origem": "varredura AUT-022 (adaga_ng): folga mínima 0.045 m"
+    },
+    "costas_arco": {
+     "deslocamento_cabo": [
+      0.2,
+      0.2,
+      -0.24
+     ],
+     "direcao_lamina": [
+      -0.3,
+      -0.95,
+      0.0
+     ],
+     "fora": [
+      0,
+      0,
+      -1
+     ],
+     "osso": "spine_03",
+     "origem": "varredura AUT-022 (arco_ng): folga mínima -0.011 m"
+    },
+    "cintura_esq": {
+     "deslocamento_cabo": [
+      0.32,
+      0.04,
+      -0.02
+     ],
+     "direcao_lamina": [
+      0.35,
+      -1.0,
+      -0.75
+     ],
+     "fora": [
+      1,
+      0,
+      0
+     ],
+     "osso": "pelvis",
+     "origem": "varredura AUT-022 (cetro_ng+escudo): folga mínima 0.004 m"
+    },
+    "costas_martelo": {
+     "deslocamento_cabo": [
+      0.2,
+      0.2,
+      -0.24
+     ],
+     "direcao_lamina": [
+      -0.3,
+      -0.95,
+      -0.15
+     ],
+     "fora": [
+      0,
+      0,
+      -1
+     ],
+     "osso": "spine_03",
+     "origem": "varredura AUT-022 (martelo_ng): folga mínima 0.265 m"
+    }
+   },
+   "tipos": {
+    "machado": {
+     "ponto": "costas_diagonal",
+     "nota": "machado do gigante (1,25 m na escala da raça) toca o chão na cintura; vai às costas"
+    }
+   }
   }
  }
 }

@@ -43,6 +43,7 @@ class Peca:
         if pr0.get('targets') and len(j['meshes']) == 1 and len(j['meshes'][0]['primitives']) == 1:
             self.T = np.stack([acc(j, b, t['POSITION']).astype(float) for t in pr0['targets']])
             self.T_nomes = j['meshes'][0].get('extras', {}).get('targetNames', [])
+            self.rbf = j['meshes'][0].get('extras', {}).get('rbf')   # AUT-022: modelo RBF (pesos das formas rbf_xx)
             self.G0 = None
         E = np.concatenate([self.I[:, [0, 1]], self.I[:, [1, 2]], self.I[:, [2, 0]]]); self.E = np.unique(np.sort(E, axis=1), axis=0)
     def pose(self, over):
@@ -64,7 +65,12 @@ class Peca:
                     if n in self.G0: return self.G0[n]
                     self.G0[n] = (g0(self.pai[n]) @ loc0[n]) if self.pai[n] else loc0[n]; return self.G0[n]
                 for n in self.joints: g0(n)
-            w = pesos(self.ultimo_G, self.G0); self.ultimos_pesos = w
+            w = pesos(self.ultimo_G, self.G0)
+            if self.rbf:
+                from corretivas_base import rbf_pesos
+                if self.rbf.get("modo") == "puro": w = {}
+                w.update(rbf_pesos(self.ultimo_G, self.G0, self.rbf))
+            self.ultimos_pesos = w
             P0 = self.P + np.einsum('t,tvi->vi', np.array([w.get(nm, 0.0) for nm in self.T_nomes]), self.T)
         P = np.einsum('vij,vj->vi', M[:, :3, :3], P0) + M[:, :3, 3]
         N = np.einsum('vij,vj->vi', M[:, :3, :3], self.N); N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-9)

@@ -17,8 +17,10 @@ var motivo := ""
 var suporte: Node3D           # ponto de porte atual (filho de um BoneAttachment3D)
 var suportes := {}            # nome do ponto -> Node3D
 var estado := ""
+var raca := "humano"
 
-func _init(personagem: Node3D, item_id: String, escudo: bool) -> void:
+func _init(personagem: Node3D, item_id: String, escudo: bool, raca_id := "humano") -> void:
+	raca = raca_id
 	dados = JSON.parse_string(FileAccess.get_file_as_string(V3 + "porte_armas.json"))
 	c = personagem; item = item_id; kind = item_id.split("_")[0]; tem_escudo = escudo
 	comprimento = float(CS.GRIP[kind]["len"]) if CS.GRIP.has(kind) else 0.0
@@ -35,11 +37,15 @@ func resolver() -> String:
 		p = str(itens[chave_item]["ponto"]); motivo = "item:" + chave_item
 		if tem_escudo and itens[chave_item].has("com_escudo"):
 			return _com(str(itens[chave_item]["com_escudo"]), "item:%s+escudo" % chave_item)
+	elif _da_raca("tipos").has(kind):   # AUT-022: sobrescrita por raça (antes do tipo geral)
+		p = str(_da_raca("tipos")[kind]["ponto"]); motivo = "raca:%s/tipo:%s" % [raca, kind]
 	elif tipos.has(kind):
 		p = str(tipos[kind]["ponto"]); motivo = "tipo:" + kind
 	else:
 		p = str(rp["ponto_longo"] if comprimento > float(rp["comprimento_costas_m"]) else rp["ponto_curto"])
 		motivo = "comprimento:%.2f m" % comprimento
+	if tem_escudo and _da_raca("com_escudo").has(p):
+		return _com(str(_da_raca("com_escudo")[p]), motivo + "+escudo(raça)")
 	if tem_escudo and dados["com_escudo"].has(p):
 		return _com(str(dados["com_escudo"][p]), motivo + "+escudo")
 	return p
@@ -47,7 +53,11 @@ func resolver() -> String:
 func _com(p: String, m: String) -> String:
 	motivo = m; return p
 
+func _da_raca(chave: String) -> Dictionary:
+	return dados.get("racas", {}).get(raca, {}).get(chave, {})
+
 func _cfg_ponto(nome: String) -> Dictionary:
+	if _da_raca("pontos").has(nome): return _da_raca("pontos")[nome]   # ajuste do ponto para o corpo da raça
 	var pt: Dictionary = dados["pontos"][nome]
 	if pt.has("de_arquivo"):   # ponto definido no arquivo do item (relação com espada_longa.json)
 		var cfg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(V3 + str(pt["de_arquivo"])))
@@ -96,6 +106,11 @@ func acao_para(anim_nome: String) -> String:
 		"combate": return "mao"
 		"trabalho": return "oculta" if comprimento > float(dados["estados"]["trabalho"]["comprimento_m"]) else "porte"
 		"morte": return "chao"
+		"sentado":
+			var e: Dictionary = dados["estados"]["sentado"]
+			if comprimento > float(e.get("ocultar_acima_de_m", 99.0)): return "oculta"
+			if str(_cfg_ponto(ponto_nome)["osso"]) == "pelvis" and comprimento > float(e["comprimento_m"]) and tem_escudo and bool(e["exceto_com_escudo"]):
+				return "oculta"   # com escudo nas costas não há lugar livre: a arma longa some enquanto senta
 	return "porte"
 
 # estado: "mao" (regra oficial: set_battle(true)) ou "guardada" (ponto deste protótipo, conforme a animação)
@@ -130,7 +145,7 @@ func _no_chao() -> Node3D:
 		var b := Basis(Vector3(0, 0, -1), deg_to_rad(giro)) * Basis(Vector3(-1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, -1))
 		var h := _altura_caixa(b)
 		if h.y - h.x < melhor[0]: melhor = [h.y - h.x, b, h.x]
-	s.transform = Transform3D(melhor[1], Vector3(-0.75 * k, 0.01 - float(melhor[2]), -0.5 * k))
+	s.transform = Transform3D(melhor[1], Vector3(-1.0 * k, 0.01 - float(melhor[2]), -0.5 * k))
 	return s
 
 # menor e maior altura da malha da arma com a base dada (no espaço do personagem)

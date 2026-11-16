@@ -6,8 +6,9 @@ extends Node3D
 const CharacterScript := preload("res://scripts/character.gd")
 const V3 := "res://assets_v3/"
 const OFI := "res://assets/chars/"
+# AUT-022: "v3r" = como v3s, com as túnicas RBF (formas corretivas + 16 formas por exemplos e controlador RBF)
 # AUT-021: "v3s" = V3 da sprint (túnicas com formas corretivas + controlador por personagem; trança troca para a LOD a 12 m)
-const CENARIOS := [["vazio", 0], ["atual", 1], ["atual", 20], ["atual", 40], ["v3", 1], ["v3", 20], ["v3", 40], ["v3s", 1], ["v3s", 20], ["v3s", 40]]
+const CENARIOS := [["vazio", 0], ["atual", 1], ["atual", 20], ["atual", 40], ["v3", 1], ["v3", 20], ["v3", 40], ["v3s", 1], ["v3s", 20], ["v3s", 40], ["v3r", 1], ["v3r", 20], ["v3r", 40]]
 const Ctrl := preload("res://testes/prototipos/corretivas_controlador.gd")
 const ANIMS := ["Walk", "Idle", "Jog_Fwd", "Sword_Regular_A", "Idle_Talking"]
 var segundos := 15.0
@@ -125,8 +126,8 @@ func _montar(tipo: String, fem: bool) -> Dictionary:
 		dir = V3 + "personagens/"; arma = V3 + "equipamentos/wp_espada_longa_b.glb"
 		corpo = "pc_humano_f" if fem else "pc_humano_m"
 		pecas = ["rp_aldeao_tunica_f", "rp_aldeao_calca_f", "rp_botas_couro_f", "ca_tranca_longa"] if fem else ["rp_aldeao_tunica_m", "rp_aldeao_calca_m", "rp_botas_couro_m", "ca_curto_01"]
-		if tipo == "v3s":
-			pecas[0] = pecas[0] + "_corretiva"
+		if tipo == "v3s" or tipo == "v3r":
+			pecas[0] = pecas[0] + ("_corretiva" if tipo == "v3s" else "_rbf")
 			if fem: pecas.append("ca_tranca_longa_lod1")
 	var body: Node3D = (load(dir + corpo + ".glb") as PackedScene).instantiate()
 	grupo.add_child(body)
@@ -136,9 +137,10 @@ func _montar(tipo: String, fem: bool) -> Dictionary:
 		for m in src.find_children("*", "MeshInstance3D", true, false):
 			m.get_parent().remove_child(m); m.owner = null; skel.add_child(m)
 			(m as MeshInstance3D).skeleton = NodePath("..")
-			if p.ends_with("_corretiva"):
+			if p.ends_with("_corretiva") or p.ends_with("_rbf"):
 				var ct = Ctrl.new(); body.add_child(ct); ct.configurar(skel, m)
-			if tipo == "v3s" and p == "ca_tranca_longa":
+				if p.ends_with("_rbf"): ct.carregar_rbf(dir + p + ".rbf.json")
+			if (tipo == "v3s" or tipo == "v3r") and p == "ca_tranca_longa":
 				m.visibility_range_end = 12.0; m.visibility_range_end_margin = 1.0
 			if p == "ca_tranca_longa_lod1":
 				m.visibility_range_begin = 12.0; m.visibility_range_begin_margin = 1.0
