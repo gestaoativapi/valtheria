@@ -370,28 +370,76 @@ func church(x: float, z: float, yaw: float, big := false, title := "Igreja") -> 
 	label(title, tp.x, tp.z, 32.0 * k, Color(0.95, 0.92, 1.0), 56, 200.0)
 
 
-# chafariz: bacia de pedra, coluna, taça e jatos de água
+# chafariz: bacia redonda de pedra com borda, coluna torneada, duas taças e jatos de água
+static var _torno := {}
+
+# sólido de revolução (como peça feita no torno): perfil [raio, altura] girado em volta do eixo vertical
+func lathe(perfil: Array, lados := 32) -> ArrayMesh:
+	var chave := str(perfil) + str(lados)
+	if _torno.has(chave):
+		return _torno[chave]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(0)
+	for i in perfil.size() - 1:
+		var a: Vector2 = perfil[i]
+		var b: Vector2 = perfil[i + 1]
+		for k in lados:
+			var t0 := TAU * k / lados
+			var t1 := TAU * (k + 1) / lados
+			var p00 := Vector3(sin(t0) * a.x, a.y, cos(t0) * a.x)
+			var p01 := Vector3(sin(t1) * a.x, a.y, cos(t1) * a.x)
+			var p10 := Vector3(sin(t0) * b.x, b.y, cos(t0) * b.x)
+			var p11 := Vector3(sin(t1) * b.x, b.y, cos(t1) * b.x)
+			st.add_vertex(p00); st.add_vertex(p11); st.add_vertex(p10)
+			st.add_vertex(p00); st.add_vertex(p01); st.add_vertex(p11)
+	st.generate_normals()
+	var m := st.commit()
+	_torno[chave] = m
+	return m
+
+
+func _peca(m: Mesh, mat: Material, pos: Vector3, esc := 1.0, esc_y := 1.0) -> void:
+	var mi := MeshInstance3D.new()
+	mi.mesh = m
+	mi.material_override = mat
+	mi.position = pos
+	mi.scale = Vector3(esc, esc_y, esc)
+	mi.visibility_range_end = 260.0
+	root.add_child(mi)
+
+
 func fountain(x: float, z: float, r: float, statue := false) -> void:
 	var g := gy(x, z)
-	for i in 16:
-		var a := TAU * i / 16.0
-		box("marmore", x + sin(a) * r, g + 0.45, z + cos(a) * r, r * 0.42, 0.9, 0.5, a)
+	var base := Vector3(x, g - 0.05, z)
+	# bacia: degrau, parede curva, borda larga e chão interno (perfil na escala r = 1)
+	var bacia := [Vector2(0.0, 0.32), Vector2(0.97, 0.32), Vector2(0.97, 0.66), Vector2(1.08, 0.74), Vector2(1.13, 0.7),
+		Vector2(1.1, 0.12), Vector2(1.2, 0.08), Vector2(1.2, 0.0)]
+	_peca(lathe(bacia), mats.pedra, base, r, 1.0)
 	var wd := MeshInstance3D.new()
 	var wm := CylinderMesh.new()
-	wm.top_radius = r - 0.2
-	wm.bottom_radius = r - 0.2
-	wm.height = 0.1
-	wm.radial_segments = 24
+	wm.top_radius = r * 0.97
+	wm.bottom_radius = r * 0.97
+	wm.height = 0.06
+	wm.radial_segments = 32
 	wm.material = mats.agua
 	wd.mesh = wm
-	wd.position = Vector3(x, g + 0.62, z)
+	wd.position = Vector3(x, g + 0.58, z)
 	root.add_child(wd)
-	cyl("marmore", x, g + 1.5, z, 0.45, 3.0)
-	cyl("marmore", x, g + 3.0, z, r * 0.4, 0.35)
-	if statue:
-		hero_statue(x, z, g + 3.2, 0.0)
+	# coluna torneada com anéis e duas taças (perfil em metros)
+	var coluna := [Vector2(0.75, 0.3), Vector2(0.75, 0.45), Vector2(0.5, 0.55), Vector2(0.34, 0.75), Vector2(0.3, 1.6),
+		Vector2(0.42, 1.7), Vector2(0.28, 1.8), Vector2(0.24, 2.6), Vector2(0.32, 2.7), Vector2(0.0, 2.72)]
+	_peca(lathe(coluna), mats.marmore, base)
+	var taca := [Vector2(0.18, 0.0), Vector2(0.6, 0.12), Vector2(1.0, 0.32), Vector2(1.06, 0.42), Vector2(0.98, 0.4), Vector2(0.0, 0.26)]
+	var t1 := r * 0.42
+	_peca(lathe(taca), mats.marmore, base + Vector3(0, 1.62, 0), t1, 1.0)
+	_peca(lathe(taca), mats.marmore, base + Vector3(0, 2.62, 0), t1 * 0.55, 0.8)
+	if statue:   # chafariz grande da praça: terceira taça e pináculo dourado
+		_peca(lathe(coluna), mats.marmore, base + Vector3(0, 2.4, 0), 0.6, 0.55)
+		_peca(lathe(taca), mats.marmore, base + Vector3(0, 3.35, 0), t1 * 0.3, 0.7)
+		_peca(lathe([Vector2(0.12, 0.0), Vector2(0.1, 0.4), Vector2(0.18, 0.5), Vector2(0.0, 0.9)]), mats.ouro, base + Vector3(0, 3.45, 0))
 	else:
-		cyl("marmore", x, g + 3.8, z, 0.25, 1.4)
+		_peca(lathe([Vector2(0.14, 0.0), Vector2(0.12, 0.5), Vector2(0.2, 0.62), Vector2(0.0, 0.85)]), mats.marmore, base + Vector3(0, 2.75, 0))
 	var jet := CPUParticles3D.new()
 	jet.amount = int(70 * FX.amount) + 10
 	jet.lifetime = 1.2
@@ -414,7 +462,7 @@ func fountain(x: float, z: float, r: float, statue := false) -> void:
 	jm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	pm.material = jm
 	jet.mesh = pm
-	jet.position = Vector3(x, g + 3.3 if not statue else g + 3.1, z)
+	jet.position = Vector3(x, g + (3.4 if not statue else 4.1), z)
 	jet.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 	jet.emission_sphere_radius = r * 0.3 if statue else 0.15
 	jet.visibility_range_end = 70.0
