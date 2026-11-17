@@ -49,6 +49,16 @@ void sky() {
 		// sol (de dia) com halo
 		float day = 1.0 - night;
 		col += sun_color * day * clear * (smoothstep(0.9994, 0.9997, c) * 6.0 + pow(max(c, 0.0), 180.0) * 0.6 + pow(max(c, 0.0), 12.0) * 0.12);
+		// nuvens: camada plana bem alta, que anda com o vento; mais densas quando chove; bordas acesas pelo sol
+		if (up > 0.02) {
+			vec2 cp = d.xz / (up + 0.12) * 1.6 + vec2(TIME * 0.006, TIME * 0.0025);
+			float n = fbm(vec3(cp * 1.3, 0.0)) * 0.65 + fbm(vec3(cp * 3.1, 1.7)) * 0.35;
+			float dens = smoothstep(0.5 - cloud_cover * 0.3, 0.74 - cloud_cover * 0.25, n) * smoothstep(0.02, 0.22, up);
+			float lit = 0.75 + 0.35 * pow(max(c, 0.0), 6.0);
+			vec3 cday = mix(vec3(0.96, 0.97, 1.0) * lit, vec3(0.62, 0.65, 0.7), cloud_cover * 0.7);
+			vec3 cnight = vec3(0.10, 0.12, 0.17);
+			col = mix(col, mix(cday, cnight, night), dens * 0.85);
+		}
 		// noite: estrelas, via láctea e lua
 		if (night > 0.01) {
 			float vis = night * clear * smoothstep(-0.02, 0.18, up);
