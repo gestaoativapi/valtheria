@@ -32,10 +32,12 @@ login() {
   local c; c=$(curl -sS -o /tmp/r.json -w '%{http_code}' -X POST "$TESTE_URL/auth/v1/token?grant_type=password" -H "apikey: $TESTE_KEY" -H 'Content-Type: application/json' -d "{\"email\":\"$U@jogadores.reinosdeaurora.app\",\"password\":\"$S\"}")
   TOK=$(jq -r '.access_token // empty' /tmp/r.json); [ "$c" = 200 ] && [ -n "$TOK" ]
 }
-estado() { rpc game_state "{\"p_char\":\"$CH\"}" >/dev/null; jq -c '{lvl:.char.lvl, xp:.char.xp, gold:.char.gold, x:.char.x, z:.char.z, inv:(.inventory // .inv // [] | length)}' /tmp/r.json; }
+estado() { rpc game_state "{\"p_char\":\"$CH\"}" >/dev/null; jq -c '{lvl:(.char.level // .char.lvl), xp:.char.xp, adena:(.char.adena // .char.gold // .char.money), x:.char.x, z:.char.z, inv:(.inventory // .inv // [] | length)}' /tmp/r.json; }
 recusa() { # recusa <descrição> <nome> <json>: espera erro ou ok:false
   local c; c=$(rpc "$2" "$3")
-  if [ "$c" != 200 ] || [ "$(jq -r 'if type=="object" then (.ok // "x")|tostring else "x" end' /tmp/r.json)" = "false" ]; then ok "$1 recusado ($c $(jq -rc '.message // .motivo // empty' /tmp/r.json 2>/dev/null))"; else erro "$1 foi ACEITO: $(head -c 200 /tmp/r.json)"; fi
+  # recusa = erro HTTP, ou resposta 200 com "ok": false, ou com "recusado" (o servidor não aplica nada)
+  local rec; rec=$(jq -r 'if type=="object" then ((has("ok") and .ok==false) or has("recusado"))|tostring else "false" end' /tmp/r.json 2>/dev/null)
+  if [ "$c" != 200 ] || [ "$rec" = "true" ]; then ok "$1 recusado ($c $(jq -rc '.message // .recusado // .motivo // empty' /tmp/r.json 2>/dev/null))"; else erro "$1 foi ACEITO: $(head -c 200 /tmp/r.json)"; fi
 }
 
 # 1. Conta descartável e personagem novo sem GM
@@ -49,7 +51,7 @@ c=$(rpc game_create_char2 "{\"p_name\":\"D$rnd\",\"p_race\":\"humano\",\"p_type\
 [ "$c" = 200 ] && [ -n "$CH" ] && ok "personagem criado" || { erro "criar personagem ($c)"; exit 1; }
 rpc game_state "{\"p_char\":\"$CH\"}" >/dev/null
 [ "$(jq -r '.char.is_gm // false' /tmp/r.json)" != "true" ] && ok "personagem sem GM" || erro "personagem veio com GM"
-E0=$(estado); info "estado inicial: $E0"
+E0=$(estado); info "estado inicial: $E0"; info "campos do personagem: $(jq -c '.char|keys' /tmp/r.json)"
 
 # 2. Movimento legítimo até a pradaria e abate válido
 c=$(rpc game_save2 "{\"p_char\":\"$CH\",\"p_x\":1250,\"p_z\":2250,\"p_hp\":100,\"p_mp\":100}"); info "primeiro salvamento de posição ($c $(head -c 120 /tmp/r.json))"
@@ -78,9 +80,15 @@ c=$(rpc game_kill3 "{\"p_char\":\"$CH\",\"p_lvl\":80,\"p_boss\":true,\"p_fam\":\
 [ "$c" != 200 ] && ok "função interna de recompensa não pode ser chamada direto ($c)" || erro "função interna game_kill3 aceitou chamada direta do cliente (vulnerabilidade)"
 
 # 4. Pedidos repetidos rápidos (sem espera entre eles)
-sleep 6; aceitos=0
-for i in 1 2 3 4 5; do c=$(rpc game_kill4 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":1255,\"p_z\":2252}"); [ "$c" = 200 ] && aceitos=$((aceitos+1)); done
-[ "$aceitos" -le 1 ] && ok "5 abates seguidos: $aceitos aceito(s)" || erro "5 abates seguidos: $aceitos aceitos (limite de ritmo ausente)"
+sleep 6; aceitos=0; XA=$(estado | jq .xp)
+for i in 1 2 3 4 5; do
+  c=$(rpc game_kill4 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":1255,\"p_z\":2252}")
+  r=$(jq -rc 'if type=="object" then (.recusado // (if has("xp") or has("gain") then "ganhou" else (keys|join(",")) end)) else . end' /tmp/r.json 2>/dev/null)
+  info "abate rápido $i: $c $r ($(date +%s.%N | cut -c1-14))"
+  [ "$c" = 200 ] && [ "$(jq -r 'if type=="object" then has("recusado")|tostring else "false" end' /tmp/r.json)" = "false" ] && aceitos=$((aceitos+1))
+done
+XB=$(estado | jq .xp); info "experiência antes/depois da rajada: $XA -> $XB"
+[ "$aceitos" -le 1 ] && ok "5 abates seguidos: $aceitos aplicado(s)" || erro "5 abates seguidos: $aceitos aplicados (limite de ritmo ausente)"
 
 # 5. Chefe no ponto certo e repetição
 sleep 14
