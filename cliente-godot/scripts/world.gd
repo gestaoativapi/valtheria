@@ -371,6 +371,18 @@ func town_by_id(id: String) -> Dictionary:
 
 # ---------- blocos de terreno ----------
 func _chunk_mesh(cx: int, cz: int, lod: int) -> ArrayMesh:
+	return _mesh_de(_chunk_arrays(cx, cz, lod))
+
+
+func _mesh_de(arr: Array) -> ArrayMesh:
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	mesh.surface_set_material(0, terrain_mat)
+	return mesh
+
+
+# relevo de um bloco (só cálculo, sem nós nem recursos): pode rodar em outra linha de execução
+func _chunk_arrays(cx: int, cz: int, lod: int) -> Array:
 	var cells := 50 if lod == 0 else 10
 	var st := CH / cells
 	var w := cells + 3
@@ -399,10 +411,7 @@ func _chunk_mesh(cx: int, cz: int, lod: int) -> ArrayMesh:
 	arr[Mesh.ARRAY_VERTEX] = verts
 	arr[Mesh.ARRAY_NORMAL] = norms
 	arr[Mesh.ARRAY_INDEX] = idx
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	mesh.surface_set_material(0, terrain_mat)
-	return mesh
+	return arr
 
 
 func _make_chunk(key: Vector2i, lod: int) -> void:
@@ -425,6 +434,50 @@ func _make_chunk_medido(key: Vector2i, lod: int) -> void:
 	counts.blocos = chunks.size()
 
 
+# blocos calculados em segundo plano: o relevo é montado fora da linha principal e só entra no jogo pronto
+var async_blocos := true
+var _calc := {}            # bloco -> {lod, pronto, arr}
+var _calc_mx := Mutex.new()
+
+
+func _calcular_bloco(key: Vector2i, lod: int) -> void:
+	var arr := _chunk_arrays(key.x, key.y, lod)
+	_calc_mx.lock()
+	if _calc.has(key):
+		_calc[key].arr = arr
+		_calc[key].pronto = true
+	_calc_mx.unlock()
+
+
+# no máximo um bloco pronto entra por quadro (a vegetação dele vai junto)
+func _recolher_blocos() -> void:
+	_calc_mx.lock()
+	var achado: Vector2i = Vector2i(-1, -1)
+	for k in _calc:
+		if _calc[k].pronto:
+			achado = k
+			break
+	var e: Dictionary = _calc.get(achado, {})
+	if not e.is_empty():
+		_calc.erase(achado)
+	_calc_mx.unlock()
+	if e.is_empty():
+		return
+	var __t := Time.get_ticks_usec()
+	if chunks.has(achado):
+		(chunks[achado].node as Node).queue_free()
+	var mi := MeshInstance3D.new()
+	mi.mesh = _mesh_de(e.arr)
+	mi.position = Vector3(achado.x * CH, 0.0, achado.y * CH)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+	chunks[achado] = {"node": mi, "lod": e.lod}
+	if e.lod == 0:
+		_vegetation(achado, mi)
+	counts.blocos = chunks.size()
+	Perfil.soma("bloco", Time.get_ticks_usec() - __t)
+
+
 # carrega e descarta blocos em volta de um ponto; budget = quantos blocos novos por chamada
 func stream(center: Vector3, budget := 3) -> void:
 	var cc := Vector2i(floori(center.x / CH), floori(center.z / CH))
@@ -444,8 +497,22 @@ func stream(center: Vector3, budget := 3) -> void:
 			if cur.is_empty() or (cur.lod != lod and (lod == 0 or d > near_r + CH * 0.6)):
 				todo.append([d, key, lod])
 	todo.sort_custom(func(a, b): return a[0] < b[0])
-	for i in mini(budget, todo.size()):
-		_make_chunk(todo[i][1], todo[i][2])
+	if async_blocos and budget < 8:   # carregamento inicial e testes (budget alto) montam na hora
+		_recolher_blocos()
+		var lancados := 0
+		for e in todo:
+			if lancados >= 4 or _calc.size() >= 6:
+				break
+			var key: Vector2i = e[1]
+			if _calc.has(key):
+				continue
+			var lod: int = e[2]
+			_calc[key] = {"lod": lod, "pronto": false, "arr": []}
+			WorkerThreadPool.add_task(_calcular_bloco.bind(key, lod))
+			lancados += 1
+	else:
+		for i in mini(budget, todo.size()):
+			_make_chunk(todo[i][1], todo[i][2])
 	for key in chunks.keys():
 		var d := Vector2((key.x + 0.5) * CH - center.x, (key.y + 0.5) * CH - center.z).length()
 		if d > far_r + CH * 2.5:
