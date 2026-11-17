@@ -24,6 +24,25 @@ func ambiente_teste() -> bool:
 	return AMBIENTE == "testes"
 
 
+# D39: queda de rede simulada, SÓ no executável de teste. Fecha o tempo real e recusa todo envio
+# por N segundos, como se a internet tivesse caído (sem mexer na rede do computador).
+var queda_ate_ms := 0
+
+func simular_queda(segundos: float) -> bool:
+	if not ambiente_teste():
+		return false
+	queda_ate_ms = Time.get_ticks_msec() + int(segundos * 1000.0)
+	if ws:
+		ws.close()
+	ws = null
+	ws_joined = false
+	ws_retry = 0.5
+	return true
+
+func em_queda() -> bool:
+	return queda_ate_ms > Time.get_ticks_msec()
+
+
 var username := ""
 var refresh := ""
 var char_id := ""
@@ -42,6 +61,8 @@ signal remote_leave(id: String)
 
 
 func _post(path: String, body: Dictionary, bearer := "") -> Dictionary:
+	if em_queda():
+		return {"ok": false, "code": 0, "data": null}   # D39: rede "caída" (teste)
 	var h := HTTPRequest.new()
 	h.timeout = 20.0
 	add_child(h)
@@ -166,6 +187,9 @@ func rt_join(me: Dictionary) -> void:
 
 
 func _rt_open() -> void:
+	if em_queda():
+		ws = null   # D39: rede "caída" (teste); tenta de novo pela espera crescente
+		return
 	ws = WebSocketPeer.new()
 	ws_joined = false
 	if ws.connect_to_url(URL.replace("https://", "wss://") + "/realtime/v1/websocket?apikey=" + KEY + "&vsn=1.0.0") != OK:

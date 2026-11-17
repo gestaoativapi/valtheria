@@ -87,3 +87,24 @@ jobs:
           if [ -z "$TESTE_KEY" ]; then echo "Sem o segredo TESTE_ANON_KEY: testes nao executados."; exit 1; fi
           export TESTE_URL TESTE_REF TESTE_KEY
           bash teste/homologacao_servidor.sh
+  d39-teste-online:
+    # D39: roteiro online no PROJETO DE TESTES (nunca na produção). Só roda fora da main.
+    if: github.ref != 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Roteiro D39 (servidor de testes)
+        env:
+          TESTE_KEY: ${{ secrets.TESTE_ANON_KEY }}
+        run: |
+          cd cliente-godot
+          . teste/ambiente_teste.env
+          if [ -z "$TESTE_KEY" ]; then echo "Sem o segredo TESTE_ANON_KEY: D39 nao executado."; exit 1; fi
+          export TESTE_URL TESTE_REF TESTE_KEY
+          bash teste/d39_teste_online.sh ../d39_evidencias
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: D39-evidencias-${{ github.run_number }}
+          path: d39_evidencias/
+          retention-days: 30
