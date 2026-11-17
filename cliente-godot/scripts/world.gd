@@ -442,9 +442,11 @@ var _calc_mx := Mutex.new()
 
 func _calcular_bloco(key: Vector2i, lod: int) -> void:
 	var arr := _chunk_arrays(key.x, key.y, lod)
+	var plano := _vegetation_plano(key) if lod == 0 else {}
 	_calc_mx.lock()
 	if _calc.has(key):
 		_calc[key].arr = arr
+		_calc[key].plano = plano
 		_calc[key].pronto = true
 	_calc_mx.unlock()
 
@@ -473,7 +475,7 @@ func _recolher_blocos() -> void:
 	add_child(mi)
 	chunks[achado] = {"node": mi, "lod": e.lod}
 	if e.lod == 0:
-		_vegetation(achado, mi)
+		_vegetation_aplicar(achado, e.plano, mi)
 	counts.blocos = chunks.size()
 	Perfil.soma("bloco", Time.get_ticks_usec() - __t)
 
@@ -556,10 +558,49 @@ func _meshes(node: Node, xf: Transform3D, out: Array) -> void:
 		_meshes(c, t, out)
 
 
+# modelos do cenário (árvores, pedras, casas) carregam em segundo plano desde a tela de entrada
+var _mod_pend := []
+
+func aquecer() -> void:
+	for f in DirAccess.get_files_at("res://assets/world/"):
+		var nome := String(f).trim_suffix(".import").trim_suffix(".remap")
+		if nome.ends_with(".glb"):
+			var arq := nome.trim_suffix(".glb")
+			var c := "res://assets/world/" + nome
+			if not models.has(arq) and not _mod_pend.has(arq) and ResourceLoader.exists(c):
+				ResourceLoader.load_threaded_request(c)
+				_mod_pend.append(arq)
+
+
+# no máximo dois modelos prontos viram entrada do cache por quadro
+func recolher() -> void:
+	var feitos := 0
+	for i in range(_mod_pend.size() - 1, -1, -1):
+		if feitos >= 2:
+			return
+		var arq: String = _mod_pend[i]
+		var c := "res://assets/world/%s.glb" % arq
+		var st := ResourceLoader.load_threaded_get_status(c)
+		if st == ResourceLoader.THREAD_LOAD_LOADED:
+			_mod_pend.remove_at(i)
+			if not models.has(arq):
+				_model(arq)
+				feitos += 1
+		elif st != ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			_mod_pend.remove_at(i)
+
+
 func _model(file: String) -> Dictionary:
 	if models.has(file):
 		return models[file]
-	var sc: Node3D = (load("res://assets/world/%s.glb" % file) as PackedScene).instantiate()
+	var caminho := "res://assets/world/%s.glb" % file
+	var ps: PackedScene
+	if _mod_pend.has(file) or ResourceLoader.load_threaded_get_status(caminho) == ResourceLoader.THREAD_LOAD_LOADED:
+		_mod_pend.erase(file)
+		ps = ResourceLoader.load_threaded_get(caminho)
+	else:
+		ps = load(caminho)
+	var sc: Node3D = ps.instantiate()
 	var parts: Array = []
 	_meshes(sc, Transform3D.IDENTITY, parts)
 	var bb := AABB()
@@ -805,13 +846,18 @@ const SMALL := [
 
 
 func _vegetation(key: Vector2i, parent: Node3D) -> void:
+	_vegetation_aplicar(key, _vegetation_plano(key), parent)
+
+
+# só cálculo (pode rodar em outra linha de execução): onde vai cada árvore, arbusto e pedra do bloco
+func _vegetation_plano(key: Vector2i) -> Dictionary:
+	var grupos: Array = []
 	var r := RandomNumberGenerator.new()
 	r.seed = key.x * 7349 + key.y * 9151 + 17
 	var mid := ground((key.x + 0.5) * CH, (key.y + 0.5) * CH)
 	var band := clampi(roundi((255.0 - mid.a8) / 40.0), 0, 5)
 	var by_file := {}
 	var tk: Array = []
-	trunks[key] = tk
 	for i in DENSITY[band]:
 		var x := (key.x + r.randf()) * CH
 		var z := (key.y + r.randf()) * CH
@@ -827,35 +873,42 @@ func _vegetation(key: Vector2i, parent: Node3D) -> void:
 		by_file[pick[0]][1].append(at(x, z, yaw, s, 0.15))
 		tk.append(Vector3(x, z, 0.4 * s))
 	for f in by_file:
-		place(parent, f, by_file[f][1], by_file[f][0], tree_shadows)
-		counts.arvores += (by_file[f][1] as Array).size()
-	if detail_f <= 0.0:
-		return
-	var small: Array = SMALL[band]
-	# árvores raras de cada região (as luminosas dos elfos, por exemplo)
-	if band == 3:
-		var rare: Array = []
-		for i in 2:
-			var x := (key.x + r.randf()) * CH
-			var z := (key.y + r.randf()) * CH
-			var ntr: Dictionary = nearest_town(x, z)
-			if ground(x, z).g > 0.75 and height(x, z) > 1.6 and ntr.dist > float(ntr.wall) + 14.0 and not _built_up(x, z):
-				rare.append(at(x, z, r.randf() * TAU, r.randf_range(0.8, 1.2), 0.15))
-		if not rare.is_empty():
-			place(parent, ["n_tree_light_1", "n_tree_light_2", "n_tree_spiral_1"][r.randi() % 3], rare, 8.5, tree_shadows)
-	for sdef in small:
-		var pts: Array = []
-		for i in int(sdef[2] * detail_f):
-			var x := (key.x + r.randf()) * CH
-			var z := (key.y + r.randf()) * CH
-			var g := ground(x, z)
-			var rocky: bool = String(sdef[0]).contains("rock") or String(sdef[0]).begins_with("d_")
-			var ntv: Dictionary = nearest_town(x, z)
-			if height(x, z) < 1.4 or g.r > 0.3 or ntv.dist < float(ntv.wall) - 10.0 or (not rocky and g.g < 0.6) or _built_up(x, z, 0.7):
-				continue
-			pts.append(at(x, z, r.randf() * TAU, r.randf_range(0.6, 1.5), 0.1))
-		if not pts.is_empty():
-			place(parent, sdef[0], pts, sdef[1], sdef[4] and tree_shadows, sdef[3] * maxf(detail_f, 0.3))
+		grupos.append([f, by_file[f][1], by_file[f][0], tree_shadows, 0.0, true])
+	if detail_f > 0.0:
+		var small: Array = SMALL[band]
+		# árvores raras de cada região (as luminosas dos elfos, por exemplo)
+		if band == 3:
+			var rare: Array = []
+			for i in 2:
+				var x := (key.x + r.randf()) * CH
+				var z := (key.y + r.randf()) * CH
+				var ntr: Dictionary = nearest_town(x, z)
+				if ground(x, z).g > 0.75 and height(x, z) > 1.6 and ntr.dist > float(ntr.wall) + 14.0 and not _built_up(x, z):
+					rare.append(at(x, z, r.randf() * TAU, r.randf_range(0.8, 1.2), 0.15))
+			if not rare.is_empty():
+				grupos.append([["n_tree_light_1", "n_tree_light_2", "n_tree_spiral_1"][r.randi() % 3], rare, 8.5, tree_shadows, 0.0, false])
+		for sdef in small:
+			var pts: Array = []
+			for i in int(sdef[2] * detail_f):
+				var x := (key.x + r.randf()) * CH
+				var z := (key.y + r.randf()) * CH
+				var g := ground(x, z)
+				var rocky: bool = String(sdef[0]).contains("rock") or String(sdef[0]).begins_with("d_")
+				var ntv: Dictionary = nearest_town(x, z)
+				if height(x, z) < 1.4 or g.r > 0.3 or ntv.dist < float(ntv.wall) - 10.0 or (not rocky and g.g < 0.6) or _built_up(x, z, 0.7):
+					continue
+				pts.append(at(x, z, r.randf() * TAU, r.randf_range(0.6, 1.5), 0.1))
+			if not pts.is_empty():
+				grupos.append([sdef[0], pts, sdef[1], sdef[4] and tree_shadows, sdef[3] * maxf(detail_f, 0.3), false])
+	return {"grupos": grupos, "troncos": tk}
+
+
+func _vegetation_aplicar(key: Vector2i, plano: Dictionary, parent: Node3D) -> void:
+	trunks[key] = plano.troncos
+	for gr in plano.grupos:
+		place(parent, gr[0], gr[1], gr[2], gr[3], gr[4])
+		if gr[5]:
+			counts.arvores += (gr[1] as Array).size()
 
 
 # ---------- grama ----------

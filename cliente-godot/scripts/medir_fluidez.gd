@@ -11,6 +11,8 @@ var t_ant := 0
 var tempos: PackedFloat32Array = []
 var travadas: Array = []
 var aquecer := 90
+var volta := 1
+var volta1 := {}
 
 
 const Perfil := preload("res://scripts/perfil.gd")
@@ -44,7 +46,14 @@ func _process(_dt: float) -> void:
 	if ms > 50.0:
 		travadas.append({"ms": snappedf(ms, 0.1), "x": int(p.x), "z": int(p.z), "blocos": main.world.chunks.size(), "partes_ms": partes})
 	if seg >= ROTA.size() - 1:
-		_fim()
+		if volta == 1:   # segunda volta na mesma rota: o que se repete não é carga inicial
+			volta1 = _resumo()
+			volta = 2
+			seg = 0
+			tempos = PackedFloat32Array()
+			travadas = []
+		else:
+			_fim()
 		return
 	var alvo: Vector2 = ROTA[seg + 1]
 	var aqui := Vector2(p.x, p.z)
@@ -61,6 +70,19 @@ func _process(_dt: float) -> void:
 
 
 func _fim() -> void:
+	var r := _resumo()
+	r["volta1"] = volta1
+	r["memoria_ram_mb"] = snappedf(OS.get_static_memory_usage() / 1048576.0, 0.1)
+	r["memoria_video_mb"] = snappedf(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0, 0.1)
+	r["total_por_parte_ms"] = somas
+	var f := FileAccess.open(saida, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(r, "  "))
+	print("FLUIDEZ ", JSON.stringify(r))
+	main.get_tree().quit()
+
+
+func _resumo() -> Dictionary:
 	var s := Array(tempos)
 	s.sort()
 	var n := s.size()
@@ -74,13 +96,10 @@ func _fim() -> void:
 		"travadas_50ms": travadas.size(), "travadas_100ms": travadas.filter(func(t): return float(t.ms) > 100.0).size(),
 		"piores": travadas.slice(0, 0) + _piores(), "gpu": RenderingServer.get_video_adapter_name(),
 		"renderizador": str(ProjectSettings.get_setting("rendering/renderer/rendering_method")),
-		"total_por_parte_ms": somas,
+		"memoria_ram_mb": snappedf(OS.get_static_memory_usage() / 1048576.0, 0.1),
+		"memoria_video_mb": snappedf(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0, 0.1),
 	}
-	var f := FileAccess.open(saida, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(r, "  "))
-	print("FLUIDEZ ", JSON.stringify(r))
-	main.get_tree().quit()
+	return r
 
 
 func _piores() -> Array:

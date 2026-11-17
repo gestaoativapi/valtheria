@@ -150,6 +150,7 @@ func _ready() -> void:
 	ui.add_child(mapa_ui)
 	mapa_ui.setup(self)
 	Character.aquecer()   # modelos de personagens carregam em segundo plano desde a tela de entrada
+	world.aquecer()       # e os do cenário também
 	ui.want_window.connect(_window)
 	ui.want_do.connect(_do)
 	ui.want_self.connect(func():
@@ -840,6 +841,7 @@ func _physics_process(dt: float) -> void:
 
 func _process(dt: float) -> void:
 	Character.recolher()
+	world.recolher()
 	if interiores == null or interiores.inside.is_empty():
 		world.stream(player.position, 2)
 	log_t += dt
