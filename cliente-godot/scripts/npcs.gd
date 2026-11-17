@@ -597,9 +597,10 @@ func _process(dt: float) -> void:
 
 
 func _process_medido(dt: float) -> void:
-	# cria poucos por quadro
+	# cria poucos por quadro: no máximo ~5 ms de trabalho, para a viagem não engasgar ao chegar numa cidade
+	var t0 := Time.get_ticks_usec()
 	for k in 3:
-		if queue.is_empty():
+		if queue.is_empty() or Time.get_ticks_usec() - t0 > 5000:
 			break
 		_make(queue.pop_front())
 	check_t -= dt

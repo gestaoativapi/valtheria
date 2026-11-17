@@ -51,15 +51,22 @@ func configurar(s: Skeleton3D, m: MeshInstance3D) -> void:
 		_dir0[par[0]] = d; _ang0[par[0]] = _ang_de(d, par[1])
 	_fase = int(get_instance_id()) % A_CADA
 
+static var _rbf_cache := {}   # arquivo -> [sigma, formas, centros, pesos, n]: lido uma vez só
+
 func carregar_rbf(caminho: String) -> bool:
-	if not FileAccess.file_exists(caminho): return false
-	var m: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(caminho))
-	rbf_sigma = float(m["sigma"]); rbf_formas = m["formas"]
-	var C: Array = m["centros"]; var W: Array = m["pesos"]; rbf_n = C.size(); rbf_k = rbf_formas.size()
-	for c in C:
-		for v in c: rbf_centros.append(float(v))
-	for w in W:
-		for v in w: rbf_pesos.append(float(v))
+	if not _rbf_cache.has(caminho):
+		if not FileAccess.file_exists(caminho): return false
+		var m: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(caminho))
+		var cs := PackedFloat32Array(); var ps := PackedFloat32Array()
+		var C: Array = m["centros"]; var W: Array = m["pesos"]
+		for c in C:
+			for v in c: cs.append(float(v))
+		for w in W:
+			for v in w: ps.append(float(v))
+		_rbf_cache[caminho] = [float(m["sigma"]), m["formas"], cs, ps, C.size()]
+	var e: Array = _rbf_cache[caminho]
+	rbf_sigma = e[0]; rbf_formas = e[1]; rbf_n = e[4]; rbf_k = rbf_formas.size()
+	rbf_centros = e[2]; rbf_pesos = e[3]
 	for f in rbf_formas: rbf_idx.append(int(idx.get(str(f), -1)))
 	return true
 

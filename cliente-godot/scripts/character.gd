@@ -4,6 +4,47 @@ const Perfil := preload("res://scripts/perfil.gd")
 
 const DIR := "res://assets/chars/"
 static var _libraries := {}
+# cenas (.glb) carregadas ficam guardadas aqui: sem isso, quando os moradores de uma cidade somem,
+# o motor descarta o modelo e a próxima cidade recarrega tudo do disco (travadas de 0,5 a 2 s no notebook)
+static var _cenas := {}
+
+# aquece o cache: carrega em segundo plano (outra linha de execução) os modelos de todas as raças, roupas e cabelos
+static func aquecer() -> void:
+	var lista := []
+	for f in DirAccess.get_files_at(DIR) + DirAccess.get_files_at(DIR_V3):
+		var nome := String(f).trim_suffix(".import").trim_suffix(".remap")
+		if nome.ends_with(".glb") and not lista.has(nome):
+			lista.append(nome)
+	for nome in lista:
+		var caminho: String = (DIR_V3 if FileAccess.file_exists(DIR_V3 + nome + ".import") or ResourceLoader.exists(DIR_V3 + nome) else DIR) + nome
+		if ResourceLoader.exists(caminho) and not _cenas.has(caminho):
+			ResourceLoader.load_threaded_request(caminho)
+			_pendentes.append(caminho)
+
+static var _pendentes := []
+
+# chamado a cada quadro: guarda o que terminou de carregar
+static func recolher() -> void:
+	for i in range(_pendentes.size() - 1, -1, -1):
+		var c: String = _pendentes[i]
+		var st := ResourceLoader.load_threaded_get_status(c)
+		if st == ResourceLoader.THREAD_LOAD_LOADED:
+			_cenas[c] = ResourceLoader.load_threaded_get(c)
+			_pendentes.remove_at(i)
+		elif st == ResourceLoader.THREAD_LOAD_FAILED or st == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+			_pendentes.remove_at(i)
+
+
+static func cena(caminho: String) -> PackedScene:
+	var c: PackedScene = _cenas.get(caminho)
+	if c == null:
+		if _pendentes.has(caminho):   # já está chegando em segundo plano: espera esse mesmo carregamento
+			_pendentes.erase(caminho)
+			c = ResourceLoader.load_threaded_get(caminho)
+		else:
+			c = load(caminho)
+		_cenas[caminho] = c
+	return c
 static var world_ref: Node  # mundo, para os pés pisarem no chão (altura do terreno embaixo de cada pé)
 # V3 (base de teste): humanos com corpo e rosto A novos, roupa de aldeão com formas corretivas e RBF otimizado (v3o)
 static var V3_HUMANOS := true
@@ -120,7 +161,7 @@ func _setup_medido(o: Dictionary) -> void:
 	elif own != "":
 		file = "body_" + own
 	v3 = V3_HUMANOS and race == "humano"
-	var body: Node3D = (load(DIR_V3 + ("pc_humano_m_rostoA" if male else "pc_humano_f_rostoA") + ".glb") as PackedScene).instantiate() if v3 else (load(DIR + file + ".glb") as PackedScene).instantiate()
+	var body: Node3D = cena(DIR_V3 + ("pc_humano_m_rostoA" if male else "pc_humano_f_rostoA") + ".glb").instantiate() if v3 else cena(DIR + file + ".glb").instantiate()
 	body.name = "Corpo"
 	add_child(body)
 	body_node = body
@@ -218,7 +259,7 @@ func _vestir_v3(male: bool, outfit: String, hair_col: Color) -> void:
 
 func _attach_v3(file: String) -> Array:
 	var out := []
-	var src: Node3D = (load(DIR_V3 + file + ".glb") as PackedScene).instantiate()
+	var src: Node3D = cena(DIR_V3 + file + ".glb").instantiate()
 	for m in src.find_children("*", "MeshInstance3D", true, false):
 		m.get_parent().remove_child(m)
 		m.owner = null
@@ -239,7 +280,7 @@ func _tint(mi: MeshInstance3D, col: Color) -> void:
 
 
 func _attach(file: String, tint := Color(0, 0, 0, 0)) -> void:
-	var src: Node3D = (load(DIR + file + ".glb") as PackedScene).instantiate()
+	var src: Node3D = cena(DIR + file + ".glb").instantiate()
 	for m in src.find_children("*", "MeshInstance3D", true, false):
 		m.get_parent().remove_child(m)
 		m.owner = null
@@ -257,7 +298,7 @@ static func _clips(sk: Skeleton3D, own := "") -> AnimationLibrary:
 	var lib := AnimationLibrary.new()
 	var hip: float = OWN[own].hip if own != "" else 1.0
 	for f in ["anims_a", "anims_b"]:
-		var sc: Node = (load(DIR + f + ".glb") as PackedScene).instantiate()
+		var sc: Node = cena(DIR + f + ".glb").instantiate()
 		var ap := sc.find_child("AnimationPlayer", true, false) as AnimationPlayer
 		for n in ap.get_animation_list():
 			var a: Animation = ap.get_animation(n).duplicate(true)
@@ -306,7 +347,7 @@ func _hand_grip(side: String) -> Node3D:
 # modelo da arma com o comprimento dado; o ponto a "at" metros da ponta do cabo fica na origem e a lâmina segue +Z
 # (at < 0: segura pelo meio, como o arco)
 static func _place(file: String, length: float, at: float) -> Node3D:
-	var w: Node3D = (load(DIR + file + ".glb") as PackedScene).instantiate()
+	var w: Node3D = cena(DIR + file + ".glb").instantiate()
 	var bb := AABB()
 	var first := true
 	for m in w.find_children("*", "MeshInstance3D", true, false):
@@ -337,7 +378,7 @@ const ARMAS := "res://assets/armas/"
 static func _model(item_id: String, kind: String, file: String, length: float, at: float, s: float) -> Node3D:
 	for f in [item_id, kind + "_ng"]:
 		if ResourceLoader.exists(ARMAS + f + ".glb"):
-			var w: Node3D = (load(ARMAS + f + ".glb") as PackedScene).instantiate()
+			var w: Node3D = cena(ARMAS + f + ".glb").instantiate()
 			var holder := Node3D.new()
 			holder.add_child(w)
 			w.scale = Vector3.ONE * s
@@ -428,7 +469,7 @@ func _make_shield(s: float, shield_id := "") -> void:
 		if f != "" and ResourceLoader.exists(ARMAS + f + ".glb"):
 			sfile = ARMAS + f + ".glb"
 			break
-	shield = (load(sfile) as PackedScene).instantiate()
+	shield = cena(sfile).instantiate()
 	var bb := AABB()
 	var first := true
 	for m in shield.find_children("*", "MeshInstance3D", true, false):
