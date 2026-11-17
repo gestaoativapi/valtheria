@@ -1,0 +1,48 @@
+{
+ "graus": [
+  {
+   "arquivo": "wp_espada_longa_d.glb",
+   "triangulos": 2048,
+   "materiais": 1,
+   "textura": "512x512 cor + metal/rugosidade",
+   "comprimento_m": 1.001,
+   "largura_guarda_m": 0.273
+  },
+  {
+   "arquivo": "wp_espada_longa_b.glb",
+   "triangulos": 2080,
+   "materiais": 1,
+   "textura": "512x512 cor + metal/rugosidade",
+   "comprimento_m": 1.001,
+   "largura_guarda_m": 0.273
+  },
+  {
+   "arquivo": "wp_espada_longa_s.glb",
+   "triangulos": 2192,
+   "materiais": 1,
+   "textura": "512x512 cor + metal/rugosidade + emissão",
+   "comprimento_m": 1.001,
+   "largura_guarda_m": 0.273
+  }
+ ],
+ "bainha_cintura": {
+  "osso": "pelvis",
+  "direcao_lamina": [
+   0.1174,
+   -0.8829,
+   -0.4546
+  ],
+  "deslocamento_cabo": [
+   0.28,
+   0.06,
+   0.1
+  ],
+  "angulo_vertical_graus": 28.0,
+  "nota": "lâmina mais vertical e cabo à frente do quadril; antes: [0.15, -0.7, -0.7] e [0.2, 0.04, 0.05]"
+ },
+ "pegada": {
+  "file": "w_sword",
+  "len": 1.0,
+  "at": 0.1
+ }
+}

@@ -1,0 +1,60 @@
+{
+ "ossos": 65,
+ "rot_local_max_dif_graus": 0.0,
+ "escala_pontas": 1.0268,
+ "arquivos": [
+  {
+   "arquivo": "pc_humano_m.glb",
+   "pecas": [
+    "corpo",
+    "olhos",
+    "sobrancelha",
+    "cilios"
+   ],
+   "triangulos": 16396,
+   "vertices": 9016,
+   "materiais": 4,
+   "kb": 2114
+  },
+  {
+   "arquivo": "rp_aldeao_tunica_m.glb",
+   "pecas": [
+    "tunica"
+   ],
+   "triangulos": 6068,
+   "vertices": 4040,
+   "materiais": 1,
+   "kb": 1126
+  },
+  {
+   "arquivo": "rp_aldeao_calca_m.glb",
+   "pecas": [
+    "calca"
+   ],
+   "triangulos": 2000,
+   "vertices": 1308,
+   "materiais": 1,
+   "kb": 619
+  },
+  {
+   "arquivo": "rp_botas_couro_m.glb",
+   "pecas": [
+    "botas"
+   ],
+   "triangulos": 1088,
+   "vertices": 1210,
+   "materiais": 1,
+   "kb": 467
+  },
+  {
+   "arquivo": "ca_curto_01.glb",
+   "pecas": [
+    "cabelo"
+   ],
+   "triangulos": 3344,
+   "vertices": 1794,
+   "materiais": 1,
+   "kb": 919
+  }
+ ]
+}

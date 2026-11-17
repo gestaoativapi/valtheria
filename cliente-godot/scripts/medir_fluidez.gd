@@ -13,9 +13,15 @@ var travadas: Array = []
 var aquecer := 90
 
 
+const Perfil := preload("res://scripts/perfil.gd")
+var somas := {}
+
+
 func iniciar(m: Node, caminho: String) -> void:
 	main = m
 	saida = caminho
+	process_priority = 1000   # roda depois de todos: o perfil já tem o trabalho deste quadro
+	Perfil.ativo = true
 
 
 func _process(_dt: float) -> void:
@@ -30,8 +36,13 @@ func _process(_dt: float) -> void:
 	t_ant = agora
 	tempos.append(ms)
 	var p: Vector3 = main.player.position
+	var partes := {}
+	for k in Perfil.t:
+		partes[k] = snappedf(int(Perfil.t[k]) / 1000.0, 0.1)
+		somas[k] = float(somas.get(k, 0.0)) + int(Perfil.t[k]) / 1000.0
+	Perfil.t = {}
 	if ms > 50.0:
-		travadas.append({"ms": snappedf(ms, 0.1), "x": int(p.x), "z": int(p.z), "blocos": main.world.chunks.size()})
+		travadas.append({"ms": snappedf(ms, 0.1), "x": int(p.x), "z": int(p.z), "blocos": main.world.chunks.size(), "partes_ms": partes})
 	if seg >= ROTA.size() - 1:
 		_fim()
 		return
@@ -63,6 +74,7 @@ func _fim() -> void:
 		"travadas_50ms": travadas.size(), "travadas_100ms": travadas.filter(func(t): return float(t.ms) > 100.0).size(),
 		"piores": travadas.slice(0, 0) + _piores(), "gpu": RenderingServer.get_video_adapter_name(),
 		"renderizador": str(ProjectSettings.get_setting("rendering/renderer/rendering_method")),
+		"total_por_parte_ms": somas,
 	}
 	var f := FileAccess.open(saida, FileAccess.WRITE)
 	if f:

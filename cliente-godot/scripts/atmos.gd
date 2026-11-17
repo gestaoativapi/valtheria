@@ -1,4 +1,5 @@
 extends Node3D
+const Perfil := preload("res://scripts/perfil.gd")
 # Céu vivo: ciclo de dia e noite, chuva, neve e partículas do ambiente (folhas, cinzas, vaga-lumes) conforme a região.
 
 const FX = preload("res://scripts/fx.gd")
@@ -85,6 +86,12 @@ func hour_text() -> String:
 
 
 func _process(dt: float) -> void:
+	var __t := Time.get_ticks_usec()
+	_process_medido(dt)
+	Perfil.soma("atmos", Time.get_ticks_usec() - __t)
+
+
+func _process_medido(dt: float) -> void:
 	if world == null or world.env == null:
 		return
 	t_day = fmod(t_day + dt / DAY_LEN, 1.0)

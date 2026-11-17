@@ -1,4 +1,5 @@
 extends Node3D
+const Perfil := preload("res://scripts/perfil.gd")
 # Mundo real de Valtheria: o mesmo relevo do servidor (assado em data/height.bin), carregado por blocos em volta do jogador.
 
 const FX = preload("res://scripts/fx.gd")
@@ -405,6 +406,12 @@ func _chunk_mesh(cx: int, cz: int, lod: int) -> ArrayMesh:
 
 
 func _make_chunk(key: Vector2i, lod: int) -> void:
+	var __t := Time.get_ticks_usec()
+	_make_chunk_medido(key, lod)
+	Perfil.soma("bloco", Time.get_ticks_usec() - __t)
+
+
+func _make_chunk_medido(key: Vector2i, lod: int) -> void:
 	if chunks.has(key):
 		(chunks[key].node as Node).queue_free()
 	var mi := MeshInstance3D.new()
@@ -818,6 +825,12 @@ func _blade_mesh() -> ArrayMesh:
 
 
 func _stream_grass(center: Vector3) -> void:
+	var __t := Time.get_ticks_usec()
+	_stream_grass_medido(center)
+	Perfil.soma("grama", Time.get_ticks_usec() - __t)
+
+
+func _stream_grass_medido(center: Vector3) -> void:
 	var cell := 25.0
 	var cc := Vector2i(floori(center.x / cell), floori(center.z / cell))
 	for key in grass.keys():

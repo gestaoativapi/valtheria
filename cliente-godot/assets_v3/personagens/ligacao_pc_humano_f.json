@@ -1,0 +1,70 @@
+{
+ "ossos": 65,
+ "rot_local_max_dif_graus": 0.0,
+ "escala_pontas": 1.0485,
+ "arquivos": [
+  {
+   "arquivo": "pc_humano_f.glb",
+   "pecas": [
+    "corpo",
+    "olhos",
+    "sobrancelha",
+    "cilios"
+   ],
+   "triangulos": 16552,
+   "vertices": 9095,
+   "materiais": 4,
+   "kb": 2439
+  },
+  {
+   "arquivo": "rp_aldeao_tunica_f.glb",
+   "pecas": [
+    "tunica"
+   ],
+   "triangulos": 5904,
+   "vertices": 4025,
+   "materiais": 1,
+   "kb": 1112
+  },
+  {
+   "arquivo": "rp_aldeao_calca_f.glb",
+   "pecas": [
+    "calca"
+   ],
+   "triangulos": 1960,
+   "vertices": 1305,
+   "materiais": 1,
+   "kb": 644
+  },
+  {
+   "arquivo": "rp_botas_couro_f.glb",
+   "pecas": [
+    "botas"
+   ],
+   "triangulos": 1024,
+   "vertices": 1044,
+   "materiais": 1,
+   "kb": 454
+  },
+  {
+   "arquivo": "ca_tranca_longa.glb",
+   "pecas": [
+    "cabelo"
+   ],
+   "triangulos": 5518,
+   "vertices": 4663,
+   "materiais": 1,
+   "kb": 1057
+  },
+  {
+   "arquivo": "ca_tranca_longa_lod1.glb",
+   "pecas": [
+    "cabelo_lod"
+   ],
+   "triangulos": 799,
+   "vertices": 1000,
+   "materiais": 1,
+   "kb": 801
+  }
+ ]
+}

@@ -272,6 +272,24 @@ func _ready() -> void:
 			var mf: Node = load("res://scripts/medir_fluidez.gd").new()
 			add_child(mf)
 			mf.iniciar(self, a.trim_prefix("--medir-fluidez="))
+		elif a == "--humanos" or a == "--humanos-antigos":  # teste: humanos h/m com cada armadura, de frente
+			Character.V3_HUMANOS = a == "--humanos"
+			var arms := ["", "leve_ng", "pesada_ng", "robe_ng"]
+			for i in arms.size():
+				for gi in 2:
+					var eqp := {"arma": "espada_ng"}
+					if arms[i] != "":
+						eqp["armadura"] = arms[i]
+					else:
+						eqp["armadura"] = "nenhuma"
+					var c: Node3D = Character.create({"race": "humano", "gender": "mf"[gi], "skin": 1, "hair": 1 + gi, "hair_color": 1 + i, "equipment": eqp})
+					add_child(c)
+					var px := player.position.x - 3.5 + (i * 2 + gi) * 1.0
+					var pz := player.position.z + 3.0
+					c.position = Vector3(px, world.height(px, pz), pz)
+					c.rotation.y = 0.0
+			facing = PI
+			Character.V3_HUMANOS = true
 		elif a == "--crowd":
 			_spawn_crowd()
 		elif a.begins_with("--look="):  # teste: câmera atrás do personagem olhando para x, z

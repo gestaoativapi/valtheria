@@ -1,4 +1,5 @@
 extends Node3D
+const Perfil := preload("res://scripts/perfil.gd")
 # Outros jogadores na tela e bate-papo.
 
 const Character = preload("res://scripts/character.gd")
@@ -58,6 +59,12 @@ func _on_pos(p: Dictionary) -> void:
 
 
 func _process(dt: float) -> void:
+	var __t := Time.get_ticks_usec()
+	_process_medido(dt)
+	Perfil.soma("social", Time.get_ticks_usec() - __t)
+
+
+func _process_medido(dt: float) -> void:
 	if not main.playing:
 		return
 	var now := Time.get_ticks_msec() * 0.001

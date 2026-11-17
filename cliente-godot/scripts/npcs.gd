@@ -1,4 +1,5 @@
 extends Node3D
+const Perfil := preload("res://scripts/perfil.gd")
 # Gente das cidades e das estradas. Cada cidade perto do jogador ganha mais de 50 moradores:
 # os que têm função (loja, ofício, clã, classe), guardas, personagens da história e gente comum
 # fazendo o dia a dia (andando, conversando, sentando, trabalhando, dançando na fogueira à noite).
@@ -590,6 +591,12 @@ func _night() -> float:
 
 
 func _process(dt: float) -> void:
+	var __t := Time.get_ticks_usec()
+	_process_medido(dt)
+	Perfil.soma("npcs", Time.get_ticks_usec() - __t)
+
+
+func _process_medido(dt: float) -> void:
 	# cria poucos por quadro
 	for k in 3:
 		if queue.is_empty():

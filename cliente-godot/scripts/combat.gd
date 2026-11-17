@@ -1,4 +1,5 @@
 extends Node3D
+const Perfil := preload("res://scripts/perfil.gd")
 # Combate: atributos do personagem (mesma fórmula do jogo web), monstros, alvo, ataque automático, habilidades, XP e morte.
 
 const Character = preload("res://scripts/character.gd")
@@ -213,6 +214,12 @@ func _ruin_fam(id: String) -> Dictionary:
 
 
 func _spawn(x: float, z: float, boss := false, boss_lvl := 0, spot := "", fam_force: Dictionary = {}) -> void:
+	var __t := Time.get_ticks_usec()
+	_spawn_medido(x, z, boss, boss_lvl, spot, fam_force)
+	Perfil.soma("monstro", Time.get_ticks_usec() - __t)
+
+
+func _spawn_medido(x: float, z: float, boss := false, boss_lvl := 0, spot := "", fam_force: Dictionary = {}) -> void:
 	var li := _level_at(x, z)
 	var fams: Array = (info.mobs[clampi(li.band, 0, info.mobs.size() - 1)] as Array).filter(func(f): return bool(f.boss) == boss)
 	if not fam_force.is_empty():

@@ -1,9 +1,15 @@
 extends Node3D
+const Perfil := preload("res://scripts/perfil.gd")
 # Personagem: corpo-base + roupa + cabelo presos ao mesmo esqueleto, com as animações do jogo.
 
 const DIR := "res://assets/chars/"
 static var _libraries := {}
 static var world_ref: Node  # mundo, para os pés pisarem no chão (altura do terreno embaixo de cada pé)
+# V3 (base de teste): humanos com corpo e rosto A novos, roupa de aldeão com formas corretivas e RBF otimizado (v3o)
+static var V3_HUMANOS := true
+const DIR_V3 := "res://assets_v3/personagens/"
+const V3Ctrl := preload("res://scripts/v3_corretivas.gd")
+var v3 := false
 
 var skel: Skeleton3D
 var anim: AnimationPlayer
@@ -76,6 +82,12 @@ static func create(o: Dictionary = {}) -> Node3D:
 
 
 func _setup(o: Dictionary) -> void:
+	var __t := Time.get_ticks_usec()
+	_setup_medido(o)
+	Perfil.soma("boneco", Time.get_ticks_usec() - __t)
+
+
+func _setup_medido(o: Dictionary) -> void:
 	var race := str(o.get("race", "humano"))
 	var male := str(o.get("gender", "m")) != "f"
 	var rd: Dictionary = RACES.get(race, {})
@@ -107,7 +119,8 @@ func _setup(o: Dictionary) -> void:
 		file = "body_dragonita"
 	elif own != "":
 		file = "body_" + own
-	var body: Node3D = (load(DIR + file + ".glb") as PackedScene).instantiate()
+	v3 = V3_HUMANOS and race == "humano"
+	var body: Node3D = (load(DIR_V3 + ("pc_humano_m_rostoA" if male else "pc_humano_f_rostoA") + ".glb") as PackedScene).instantiate() if v3 else (load(DIR + file + ".glb") as PackedScene).instantiate()
 	body.name = "Corpo"
 	add_child(body)
 	body_node = body
@@ -123,6 +136,8 @@ func _setup(o: Dictionary) -> void:
 			_tint(m as MeshInstance3D, Color(skin.r / 0.69, skin.g / 0.376, skin.b / 0.172))
 	elif own != "":
 		pass
+	elif v3:
+		_vestir_v3(male, outfit, hair_col)
 	else:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
 			var nm := String(m.name).to_lower()
@@ -168,6 +183,50 @@ func _setup(o: Dictionary) -> void:
 		# a arma acompanha o tamanho de quem usa: menor no anão, maior no gigante
 		_weapon(kind, lerpf(1.0, height_m / 1.8, 0.85), str(eq.get("escudo", "")) != "", wid, str(eq.get("escudo", "")))
 	play("Idle")
+
+
+# V3: aldeão = túnica (formas corretivas + RBF), calça e botas novas; outras armaduras usam a roupa oficial no corpo novo
+func _vestir_v3(male: bool, outfit: String, hair_col: Color) -> void:
+	var g := "m" if male else "f"
+	if outfit == "peasant":
+		var tunica := _attach_v3("rp_aldeao_tunica_%s_rbf" % g)
+		for m in tunica:
+			var co = V3Ctrl.new()
+			add_child(co)
+			co.configurar(skel, m)
+			co.carregar_rbf(DIR_V3 + "rp_aldeao_tunica_%s_rbf.rbf.json" % g)
+		_attach_v3("rp_aldeao_calca_m_sem_entrepernas" if male else "rp_aldeao_calca_f")
+		_attach_v3("rp_botas_couro_" + g)
+	else:
+		_attach("outfit_%s_%s" % ["male" if male else "female", outfit])
+	# a textura do cabelo V3 é quase preta (fios escuros): a cor escolhida é multiplicada para aparecer
+	var hc := Color(hair_col.r, hair_col.g, hair_col.b) * (7.0 if male else 14.0)
+	hc.a = 1.0
+	if male:
+		for m in _attach_v3("ca_curto_01"):
+			_tint(m, hc)
+	else:
+		for m in _attach_v3("ca_tranca_longa"):
+			_tint(m, hc)
+			m.visibility_range_end = 12.0
+			m.visibility_range_end_margin = 1.0
+		for m in _attach_v3("ca_tranca_longa_lod1"):
+			_tint(m, hc)
+			m.visibility_range_begin = 12.0
+			m.visibility_range_begin_margin = 1.0
+
+
+func _attach_v3(file: String) -> Array:
+	var out := []
+	var src: Node3D = (load(DIR_V3 + file + ".glb") as PackedScene).instantiate()
+	for m in src.find_children("*", "MeshInstance3D", true, false):
+		m.get_parent().remove_child(m)
+		m.owner = null
+		skel.add_child(m)
+		(m as MeshInstance3D).skeleton = NodePath("..")
+		out.append(m)
+	src.free()
+	return out
 
 
 func _tint(mi: MeshInstance3D, col: Color) -> void:
