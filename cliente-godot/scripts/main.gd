@@ -34,6 +34,7 @@ var orbiting := false
 var target := Vector3.ZERO
 var has_target := false
 var facing := 0.0
+var mapa_ui: Control
 var sel := {}  # alvo que não é monstro: {"kind": "self"|"player"|"npc", ...}
 var emote := ""
 var jumping := false
@@ -145,6 +146,9 @@ func _ready() -> void:
 	interiores = load("res://scripts/interiores.gd").new()
 	add_child(interiores)
 	interiores.setup(self)
+	mapa_ui = load("res://scripts/mapa_ui.gd").new()
+	ui.add_child(mapa_ui)
+	mapa_ui.setup(self)
 	ui.want_window.connect(_window)
 	ui.want_do.connect(_do)
 	ui.want_self.connect(func():
@@ -585,6 +589,12 @@ func _unhandled_input(ev: InputEvent) -> void:
 		if ev.keycode == KEY_F11:
 			ui.toggle_fullscreen()
 		if not playing:
+			return
+		if ev.keycode == KEY_M and mapa_ui != null:
+			mapa_ui.alternar()
+			return
+		if ev.keycode == KEY_ESCAPE and mapa_ui != null and mapa_ui.aberto:
+			mapa_ui.alternar()
 			return
 		match ev.keycode:
 			KEY_ESCAPE:

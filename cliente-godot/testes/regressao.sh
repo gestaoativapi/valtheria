@@ -28,5 +28,7 @@ echo "== 3. Reconexão do tempo real"
 if timeout 120 "$G" --headless --path . --script testes/test_reconexao.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: reconexão"; else echo "FALHOU: reconexão"; falhas=$((falhas+1)); fi
 echo "== 4. Física do mundo aberto (colisão, encosta, portas, nascimento)"
 if timeout 500 "$G" --headless --path . --script testes/test_fisica_mundo.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: física do mundo"; else echo "FALHOU: física do mundo"; falhas=$((falhas+1)); fi
+echo "== 5. Pés no chão (todas as raças, plano, encosta e cidade)"
+if timeout 400 "$G" --headless --path . --script testes/test_pes.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: pés no chão"; else echo "FALHOU: pés no chão"; falhas=$((falhas+1)); fi
 echo "== Resultado: $falhas falha(s)"
 [ "$falhas" -eq 0 ]

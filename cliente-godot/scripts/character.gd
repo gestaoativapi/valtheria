@@ -519,14 +519,18 @@ func _process(dt: float) -> void:
 	var xf := skel.global_transform
 	if ankle < 0.0:
 		ankle = maxf(((xf * skel.get_bone_global_rest(feet[0]).origin).y - root_y) - foot_off, 0.0)
+	# pés apoiados = os que estão perto do mais baixo na animação (parado: os dois; andando: o de apoio).
+	# Em encosta o corpo sobe até o pé apoiado mais "enterrado" encostar no chão.
+	var locs := []
 	var best := 1e9
-	var gap := 0.0
 	for b in feet:
 		var p: Vector3 = xf * skel.get_bone_global_pose(b).origin
-		var local := p.y - root_y  # altura do pé na animação
-		if local < best:
-			best = local
-			gap = (p.y - ankle) - float(world_ref.height(p.x, p.z))
+		locs.append(p)
+		best = minf(best, p.y - root_y)
+	var gap := 1e9
+	for p in locs:
+		if (p as Vector3).y - root_y <= best + 0.06:
+			gap = minf(gap, ((p as Vector3).y - ankle) - float(world_ref.floor_y(p.x, p.z, root_y + 0.5)))
 	var want := clampf(foot_off - gap, -0.35, 0.25)
 	foot_off = lerpf(foot_off, want, clampf(dt * 10.0, 0.0, 1.0))
 	body_node.position.y = body_base_y + foot_off / maxf(scale.y, 0.01)
