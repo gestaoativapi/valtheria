@@ -268,6 +268,10 @@ func _ready() -> void:
 					if gi == 0:
 						c.set_tag(world.info.races[ids[i]].name, Color(0.8, 0.92, 1.0))
 			facing = PI
+		elif a.begins_with("--medir-fluidez="):  # teste: percorre uma rota fixa e grava o tempo dos quadros
+			var mf: Node = load("res://scripts/medir_fluidez.gd").new()
+			add_child(mf)
+			mf.iniciar(self, a.trim_prefix("--medir-fluidez="))
 		elif a == "--crowd":
 			_spawn_crowd()
 		elif a.begins_with("--look="):  # teste: câmera atrás do personagem olhando para x, z
