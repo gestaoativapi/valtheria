@@ -105,6 +105,10 @@ func acao_para(anim_nome: String) -> String:
 	var ec: Dictionary = dados["estados"].get("escudo_nas_costas", {})
 	if tem_escudo and ec.size() > 0 and raca in ec["racas"] and comprimento > float(ec["comprimento_m"]) and _estado_de(anim_nome) != "combate":
 		return "oculta"   # D67 opção B
+	var ga: Dictionary = dados["estados"].get("gestos_arco", {})
+	if ga.size() > 0 and raca in ga["racas"] and kind in ga["tipos"] and _estado_de(anim_nome) != "combate":
+		for g in ga["gestos"]:
+			if anim_nome.begins_with(str(g)): return "oculta"   # arco do humano nos gestos (decisão 16/11)
 	match _estado_de(anim_nome):
 		"combate": return "mao"
 		"trabalho": return "oculta" if comprimento > float(dados["estados"]["trabalho"]["comprimento_m"]) else "porte"

@@ -270,6 +270,22 @@
    "acao": "oculta",
    "nota": "D67 (opção B, 16/11): anão e gigante com escudo nas costas não têm lugar livre para arma longa guardada; ela fica oculta e volta ao sacar ou ao tirar o escudo. Só visibilidade; inventário e equipamento intactos.",
    "animacoes": []
+  },
+  "gestos_arco": {
+   "racas": [
+    "humano"
+   ],
+   "tipos": [
+    "arco"
+   ],
+   "gestos": [
+    "Consume",
+    "Interact",
+    "Yes"
+   ],
+   "acao": "oculta",
+   "animacoes": [],
+   "nota": "Decisão de Robson (16/11, após MESA-004): no humano o arco guardado encosta 3–4 cm nos braços nesses gestos; fica oculto só durante eles e volta depois. Só visibilidade; inventário intacto."
   }
  },
  "racas": {
