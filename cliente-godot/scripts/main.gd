@@ -590,6 +590,13 @@ func _unhandled_input(ev: InputEvent) -> void:
 			ui.toggle_fullscreen()
 		if not playing:
 			return
+		# D39 (só no executável de teste): Ctrl+Shift+1 derruba a rede por 10 s, Ctrl+Shift+6 por 60 s
+		if net.ambiente_teste() and ev.ctrl_pressed and ev.shift_pressed and (ev.keycode == KEY_1 or ev.keycode == KEY_6):
+			var seg := 10.0 if ev.keycode == KEY_1 else 60.0
+			if net.simular_queda(seg):
+				print("D39 queda simulada: %d s" % int(seg))
+				ui.say("TESTE: rede derrubada por %d s" % int(seg))
+			return
 		if ev.keycode == KEY_M and mapa_ui != null:
 			mapa_ui.alternar()
 			return
