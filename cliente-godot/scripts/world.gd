@@ -26,6 +26,8 @@ var chunks := {}  # Vector2i -> {"node", "lod"}
 var grass := {}  # Vector2i -> MultiMeshInstance3D
 var models := {}  # arquivo -> {"parts", "bb"}
 var blockers := {}
+var boxes := {}  # bloco de 8 m -> [[x, z, cos, sen, meia_x, meia_z]] colisão retangular orientada (prédios, bancas, caixotes)
+const INCLINACAO_MAX := 0.84  # tangente de ~40°: acima disso não se sobe a pé
 var trunks := {}  # bloco -> [Vector3(x, z, raio)] dos troncos e pedras grandes
 var near_r := 300.0
 var far_r := 1200.0
@@ -196,6 +198,36 @@ func build() -> void:
 		_build_castle(c)
 	for v in mapa.get("villages", []):
 		_build_village(v)
+	liberar_portas()
+
+
+# a caixa de colisão de um prédio não pode cobrir a própria porta: recua a face onde a porta está
+func liberar_portas() -> void:
+	for d in doors:
+		var dp: Vector3 = d.pos
+		var folga := 1.0 if str(d.kind) == "portal" else 1.4
+		var key := Vector2i(floori(dp.x / 8.0), floori(dp.z / 8.0))
+		for dz in range(-2, 3):
+			for dx in range(-2, 3):
+				var cl: Array = blockers.get(key + Vector2i(dx, dz), [])
+				for i in cl.size():   # círculos antigos (ex.: torre da catedral) que cobriam a porta
+					var c: Vector3 = cl[i]
+					var dd := Vector2(dp.x - c.x, dp.z - c.y).length()
+					if dd < c.z + folga:
+						cl[i] = Vector3(c.x, c.y, maxf(0.3, dd - folga))
+				for b in boxes.get(key + Vector2i(dx, dz), []):
+					var ox := dp.x - float(b[0])
+					var oz := dp.z - float(b[1])
+					var lx := ox * float(b[2]) - oz * float(b[3])
+					var lz := ox * float(b[3]) + oz * float(b[2])
+					var hx: float = b[4]
+					var hz: float = b[5]
+					if absf(lx) >= hx + folga or absf(lz) >= hz + folga:
+						continue
+					if (hx - absf(lx)) / hx < (hz - absf(lz)) / hz:
+						b[4] = maxf(0.2, absf(lx) - folga)
+					else:
+						b[5] = maxf(0.2, absf(lz) - folga)
 
 
 # ---------- relevo ----------
@@ -490,6 +522,7 @@ func place(parent: Node3D, file: String, pts: Array, target_h: float, shadows :=
 			mi.visibility_range_end = vis_end
 			mi.visibility_range_end_margin = 10.0
 		parent.add_child(mi)
+	_solidify(file, pts, bb.size * k)
 	return bb.size * k
 
 
@@ -533,6 +566,73 @@ func block(x: float, z: float, r: float) -> void:
 	blockers[key].append(Vector3(x, z, r))
 
 
+# colisão retangular orientada (centro, meias medidas, giro); entra em todos os blocos de 8 m que a caixa cobre
+func block_box(x: float, z: float, hx: float, hz: float, yaw: float) -> void:
+	if hx < 0.15 or hz < 0.15:
+		return
+	var c := cos(yaw)
+	var sn := sin(yaw)
+	var ext := absf(c) * hx + absf(sn) * hz
+	var ezt := absf(sn) * hx + absf(c) * hz
+	var e := [x, z, c, sn, hx, hz]
+	for kz in range(floori((z - ezt) / 8.0), floori((z + ezt) / 8.0) + 1):
+		for kx in range(floori((x - ext) / 8.0), floori((x + ext) / 8.0) + 1):
+			var key := Vector2i(kx, kz)
+			if not boxes.has(key):
+				boxes[key] = []
+			boxes[key].append(e)
+
+
+# física automática de cada modelo colocado, pela categoria do arquivo (tudo que é sólido colide)
+func _solid_of(file: String) -> String:
+	if file.begins_with("n_flower") or file.begins_with("n_bush") or file.begins_with("n_plant") or file.begins_with("n_grass"):
+		return ""  # vegetação baixa: atravessa
+	if "tree" in file:
+		return "tronco"
+	if file.begins_with("n_light") or file.contains("lamp") or file.contains("post"):
+		return "poste"
+	if file.begins_with("b_") or file.begins_with("w_") or file.begins_with("c_"):
+		return "caixa"
+	if file.contains("rock") or file.contains("stone"):
+		return "tronco"
+	return ""
+
+
+func _solidify(file: String, pts: Array, sz: Vector3) -> void:
+	var kind := _solid_of(file)
+	if kind == "":
+		return
+	for t in pts:
+		var xf := t as Transform3D
+		var o := xf.origin
+		var sc := xf.basis.get_scale().x
+		match kind:
+			"tronco":
+				block(o.x, o.z, clampf(minf(sz.x, sz.z) * sc * 0.06, 0.25, 0.7))
+			"poste":
+				block(o.x, o.z, 0.25)
+			"caixa":
+				if sz.y * sc < 0.35:
+					continue  # tapetes e pisos baixos: pisa por cima
+				var fx := xf.basis.x.normalized()
+				block_box(o.x, o.z, sz.x * sc * 0.46, sz.z * sc * 0.46, atan2(-fx.z, fx.x))
+
+
+# ponto livre mais próximo (nascimento, retorno, entrada no mundo): fora de prédios, fogueiras e água funda
+func safe_spot(x: float, z: float) -> Vector2:
+	for ring in range(0, 40):
+		var r := ring * 0.75
+		var steps := maxi(1, ring * 6)
+		for k in steps:
+			var a := TAU * float(k) / float(steps)
+			var px := x + sin(a) * r
+			var pz := z + cos(a) * r
+			var q := resolve(Vector3(px, 0, pz), Vector3(px, 0, pz))
+			if Vector2(q.x - px, q.z - pz).length() < 0.01 and height(px, pz) > WATER_Y - 1.0:
+				return Vector2(px, pz)
+	return Vector2(x, z)
+
+
 # empurra um ponto para fora dos obstáculos e não deixa entrar em água funda nem sair do mapa
 func resolve(p: Vector3, from: Vector3) -> Vector3:
 	var cx := floori(p.x / 8.0)
@@ -560,11 +660,49 @@ func resolve(p: Vector3, from: Vector3) -> Vector3:
 					v = v / d * r
 					p.x = b.x + v.x
 					p.z = b.y + v.y
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			for b in boxes.get(Vector2i(cx + dx, cz + dz), []):
+				p = _push_box(p, b)
 	p.x = clampf(p.x, 8.0, size - 8.0)
 	p.z = clampf(p.z, 8.0, size - 8.0)
 	if height(p.x, p.z) < WATER_Y - 1.1 and height(from.x, from.z) >= height(p.x, p.z):
 		return from
+	# inclinação: não sobe encosta íngreme a pé; tenta deslizar pelo eixo que sobe menos
+	var run := Vector2(p.x - from.x, p.z - from.z).length()
+	if run > 0.001 and floor_y(p.x, p.z, from.y) <= height(p.x, p.z) + 0.05:
+		var rise := height(p.x, p.z) - height(from.x, from.z)
+		if rise > run * INCLINACAO_MAX + 0.04:
+			var px := Vector3(p.x, p.y, from.z)
+			var pz := Vector3(from.x, p.y, p.z)
+			var rx := height(px.x, px.z) - height(from.x, from.z)
+			var rz := height(pz.x, pz.z) - height(from.x, from.z)
+			var lx := absf(p.x - from.x)
+			var lz := absf(p.z - from.z)
+			if lx > 0.001 and rx <= lx * INCLINACAO_MAX + 0.04:
+				return px
+			if lz > 0.001 and rz <= lz * INCLINACAO_MAX + 0.04:
+				return pz
+			return from
 	return p
+
+
+func _push_box(p: Vector3, b: Array) -> Vector3:
+	var dx := p.x - float(b[0])
+	var dz := p.z - float(b[1])
+	var c: float = b[2]
+	var sn: float = b[3]
+	var lx := dx * c - dz * sn
+	var lz := dx * sn + dz * c
+	var hx: float = float(b[4]) + 0.35
+	var hz: float = float(b[5]) + 0.35
+	if absf(lx) >= hx or absf(lz) >= hz:
+		return p
+	if hx - absf(lx) < hz - absf(lz):
+		lx = hx * signf(lx if lx != 0.0 else 1.0)
+	else:
+		lz = hz * signf(lz if lz != 0.0 else 1.0)
+	return Vector3(float(b[0]) + lx * c + lz * sn, p.y, float(b[1]) - lx * sn + lz * c)
 
 
 # ---------- vegetação por bloco ----------

@@ -26,5 +26,7 @@ for p in "1500,1985" "1500,2550" "1500,1450" "2150,1300" "2290,2800" "1250,2250"
 done
 echo "== 3. Reconexão do tempo real"
 if timeout 120 "$G" --headless --path . --script testes/test_reconexao.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: reconexão"; else echo "FALHOU: reconexão"; falhas=$((falhas+1)); fi
+echo "== 4. Física do mundo aberto (colisão, encosta, portas, nascimento)"
+if timeout 500 "$G" --headless --path . --script testes/test_fisica_mundo.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: física do mundo"; else echo "FALHOU: física do mundo"; falhas=$((falhas+1)); fi
 echo "== Resultado: $falhas falha(s)"
 [ "$falhas" -eq 0 ]

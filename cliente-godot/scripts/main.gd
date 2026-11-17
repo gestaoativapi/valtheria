@@ -299,6 +299,9 @@ func _ready() -> void:
 
 
 func _place_player(p: Vector3) -> void:
+	if interiores == null or interiores.inside.is_empty():
+		var q: Vector2 = world.safe_spot(p.x, p.z)  # nunca nasce dentro de prédio, fogueira ou água funda
+		p = Vector3(q.x, p.y, q.y)
 	player.position = Vector3(p.x, world.height(p.x, p.z), p.z)
 	player.position.y = _ground_at(p.x, p.z)
 
