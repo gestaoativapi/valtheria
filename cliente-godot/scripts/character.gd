@@ -49,7 +49,7 @@ static var world_ref: Node  # mundo, para os pés pisarem no chão (altura do te
 # V3 (base de teste): humanos com corpo e rosto A novos, roupa de aldeão com formas corretivas e RBF otimizado (v3o)
 static var V3_HUMANOS := true
 # raças que já usam o corpo V3 (as demais seguem no modelo antigo até ganharem corpo próprio)
-const V3_RACAS := ["humano", "elfo", "sombrio", "orc", "gigante", "anao"]
+const V3_RACAS := ["humano", "elfo", "sombrio", "orc", "gigante", "anao", "beastman"]
 const DIR_V3 := "res://assets_v3/personagens/"
 const V3Ctrl := preload("res://scripts/v3_corretivas.gd")
 var v3 := false
@@ -98,9 +98,13 @@ const PROPORCOES := {
 	"sombrio:m": {"altura": 1.88, "pelve": 1.0, "coluna": 1.03, "peito": 1.02, "pescoco": 1.0, "cabeca": 0.98, "ombros": 1.02, "braco": 1.03, "antebraco": 1.03, "mao": 1.0, "coxa": 1.04, "canela": 1.04, "pe": 1.02},
 	"sombrio:f": {"altura": 1.76, "pelve": 1.02, "coluna": 1.0, "peito": 0.96, "pescoco": 0.98, "cabeca": 0.98, "ombros": 0.9, "braco": 1.0, "antebraco": 1.0, "mao": 0.98, "coxa": 1.03, "canela": 1.03, "pe": 1.01},
 	"orc:m": {"altura": 2.0, "pelve": 1.08, "coluna": 1.08, "peito": 1.24, "pescoco": 1.15, "cabeca": 1.08, "ombros": 1.24, "braco": 1.15, "antebraco": 1.15, "mao": 1.15, "coxa": 1.08, "canela": 1.08, "pe": 1.08},
+	"goblin:m": {"altura": 1.15, "pelve": 0.95, "coluna": 0.86, "peito": 0.9, "pescoco": 0.9, "cabeca": 1.3, "ombros": 0.95, "braco": 1.18, "antebraco": 1.18, "mao": 1.2, "coxa": 0.78, "canela": 0.8, "pe": 1.15},
+	"goblin:f": {"altura": 1.08, "pelve": 0.98, "coluna": 0.86, "peito": 0.88, "pescoco": 0.9, "cabeca": 1.28, "ombros": 0.9, "braco": 1.15, "antebraco": 1.15, "mao": 1.15, "coxa": 0.8, "canela": 0.8, "pe": 1.1},
 	"orc:f": {"altura": 1.87, "pelve": 1.08, "coluna": 1.05, "peito": 1.12, "pescoco": 1.08, "cabeca": 1.05, "ombros": 1.12, "braco": 1.10, "antebraco": 1.10, "mao": 1.08, "coxa": 1.07, "canela": 1.07, "pe": 1.06},
 	"anao:m": {"altura": 1.42, "pelve": 1.08, "coluna": 0.88, "peito": 1.18, "pescoco": 0.9, "cabeca": 1.08, "ombros": 1.18, "braco": 1.1, "antebraco": 1.1, "mao": 1.1, "coxa": 0.78, "canela": 0.78, "pe": 0.9},
 	"anao:f": {"altura": 1.35, "pelve": 1.08, "coluna": 0.86, "peito": 1.08, "pescoco": 0.9, "cabeca": 1.06, "ombros": 1.08, "braco": 1.08, "antebraco": 1.08, "mao": 1.06, "coxa": 0.78, "canela": 0.78, "pe": 0.9},
+	"beastman:m": {"altura": 1.90, "pelve": 1.04, "coluna": 1.04, "peito": 1.12, "pescoco": 1.08, "cabeca": 0.92, "ombros": 1.12, "braco": 1.08, "antebraco": 1.08, "mao": 1.06, "coxa": 1.06, "canela": 1.06, "pe": 1.04},
+	"beastman:f": {"altura": 1.78, "pelve": 1.06, "coluna": 1.02, "peito": 1.04, "pescoco": 1.02, "cabeca": 0.92, "ombros": 1.04, "braco": 1.04, "antebraco": 1.04, "mao": 1.02, "coxa": 1.04, "canela": 1.04, "pe": 1.02},
 	"gigante:m": {"altura": 2.15, "pelve": 1.12, "coluna": 1.12, "peito": 1.30, "pescoco": 1.12, "cabeca": 1.04, "ombros": 1.30, "braco": 1.18, "antebraco": 1.18, "mao": 1.15, "coxa": 1.15, "canela": 1.15, "pe": 1.12},
 	"gigante:f": {"altura": 2.02, "pelve": 1.12, "coluna": 1.10, "peito": 1.17, "pescoco": 1.08, "cabeca": 1.03, "ombros": 1.17, "braco": 1.14, "antebraco": 1.14, "mao": 1.12, "coxa": 1.12, "canela": 1.12, "pe": 1.10},
 }
@@ -115,6 +119,32 @@ const REGIAO_OSSO := {
 	"thigh_l": ["coxa", "pelvis"], "thigh_r": ["coxa", "pelvis"], "calf_l": ["canela", "thigh_l"], "calf_r": ["canela", "thigh_r"],
 	"foot_l": ["pe", "calf_l"], "foot_r": ["pe", "calf_r"],
 }
+
+
+# Postura e caminhada por raça (parecer MESA-013 do ChatGPT): graus extras por osso sobre as animações,
+# perfil de combate, ritmo da caminhada (ciclo) e inclinação ao andar. Ver scripts/postura_raca.gd.
+const POSTURAS := {
+	"elfo": {"pose": {"pelvis": -2, "spine_02": -2, "spine_03": -3, "Head": 1, "clavicle": -2, "upperarm": -3, "lowerarm": 2, "calf": 2},
+		"combate": {"spine_01": -2, "spine_02": -2, "upperarm": -5, "lowerarm": 4}, "ciclo": 0.95, "inclina": -2},
+	"sombrio": {"pose": {"pelvis": 4, "spine_01": 5, "spine_02": 3, "neck_01": -2, "Head": -3, "clavicle": 4, "upperarm": 5, "lowerarm": -2, "hand": 3, "thigh": 2, "calf": 3, "foot": -2},
+		"combate": {"spine_01": 7, "spine_02": 3, "upperarm": 8, "lowerarm": -4}, "ciclo": 1.05, "inclina": 4},
+	"orc": {"pose": {"pelvis": -4, "spine_01": 7, "spine_02": 4, "spine_03": 2, "neck_01": -3, "Head": -4, "clavicle": 8, "upperarm": 9, "lowerarm": -4, "hand": 5, "thigh": 4, "calf": 3, "foot": -3},
+		"combate": {"spine_01": 10, "spine_02": 5, "upperarm": 12, "lowerarm": -7}, "ciclo": 0.85, "inclina": 5},
+	"goblin": {"pose": {"pelvis": 7, "spine_01": 10, "spine_02": 4, "spine_03": -3, "neck_01": -4, "Head": -5, "clavicle": 5, "upperarm": 8, "lowerarm": -5, "hand": 6, "thigh": 6, "calf": 4, "foot": -4},
+		"combate": {"spine_01": 12, "spine_02": 5, "upperarm": 10, "lowerarm": -8}, "ciclo": 1.25, "inclina": 9},
+	"beastman": {"pose": {"pelvis": 3, "spine_01": 7, "spine_02": 3, "spine_03": -2, "neck_01": -2, "Head": -3, "clavicle": 5, "upperarm": 7, "lowerarm": -3, "hand": 4, "thigh": 5, "calf": 3, "foot": -3},
+		"combate": {"spine_01": 9, "spine_02": 4, "upperarm": 10, "lowerarm": -6}, "ciclo": 1.08, "inclina": 6},
+	"draconato": {"pose": {"pelvis": 2, "spine_01": 5, "spine_02": 2, "spine_03": -2, "neck_01": -2, "Head": -2, "clavicle": 4, "upperarm": 6, "lowerarm": -3, "hand": 3, "thigh": 3, "calf": 2, "foot": -2},
+		"combate": {"spine_01": 7, "spine_02": 4, "upperarm": 8, "lowerarm": -4}, "ciclo": 0.95, "inclina": 3},
+	"gigante": {"pose": {"pelvis": -5, "spine_01": 8, "spine_02": 5, "spine_03": 2, "neck_01": -4, "Head": -5, "clavicle": 8, "upperarm": 9, "lowerarm": -5, "hand": 5, "thigh": 5, "calf": 3, "foot": -3},
+		"combate": {"spine_01": 10, "spine_02": 6, "upperarm": 12, "lowerarm": -6}, "ciclo": 0.72, "inclina": 6},
+	"anao": {"pose": {"pelvis": -2, "spine_01": 5, "spine_02": 2, "Head": -2, "clavicle": 4, "upperarm": 5, "lowerarm": -2, "hand": 3, "thigh": 5, "calf": 3, "foot": -2},
+		"combate": {"spine_01": 6, "upperarm": 6, "lowerarm": -3}, "ciclo": 0.9, "inclina": 3},
+}
+const PosturaRaca = preload("res://scripts/postura_raca.gd")
+var postura: Node
+var ciclo_raca := 1.0
+var subtipo := ""
 
 
 const SHAPE := {
@@ -169,10 +199,16 @@ func _setup_medido(o: Dictionary) -> void:
 	var eq: Dictionary = o.get("equipment") if o.get("equipment") is Dictionary else {}
 	var skins: Array = rd.get("skins", ["#e8b993"])
 	var skin := Color(str(skins[clampi(int(o.get("skin", look.get("skin", 0))), 0, skins.size() - 1)]))
+	if race == "beastman" and V3_HUMANOS:
+		var pel: Array = FERAS.get(str(o.get("subtipo", "leao")), FERAS.leao).pelo
+		skin = Color(str(pel[clampi(int(o.get("skin", look.get("skin", 0))), 0, pel.size() - 1)]))
 	if race in ["elfo", "sombrio", "orc", "gigante", "draconato", "anao"] and V3_HUMANOS:
 		var pl: Array = (TRACOS[race] as Dictionary).get("peles", [])
 		if not pl.is_empty():
 			skin = Color(str(pl[clampi(int(o.get("skin", look.get("skin", 0))), 0, pl.size() - 1)]))
+	if race == "orc" and str(o.get("subtipo", "")) == "goblin":
+		var gp := ["#789a53", "#91a85d", "#627f48", "#a0a85e"]
+		skin = Color(str(gp[clampi(int(o.get("skin", look.get("skin", 0))), 0, gp.size() - 1)]))
 	if o.has("skin_color"):
 		skin = Color(str(o.skin_color))
 	var hair_i := clampi(int(o.get("hair", look.get("hair", 1))), 0, 5)
@@ -213,14 +249,16 @@ func _setup_medido(o: Dictionary) -> void:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
 			# a textura da dragonita é avermelhada: limita cada canal para a cor da escama não estourar
 			_tint(m as MeshInstance3D, Color(minf(skin.r / 0.69, 1.35) * 0.68, minf(skin.g / 0.376, 1.35) * 0.68, minf(skin.b / 0.172, 1.35) * 0.68))
+		_armadura_dragonita(armor)
 	elif own != "":
 		pass
 	elif v3:
 		if TRACOS.has(race) and TRACOS[race].has("cabelos"):
 			var cab: Array = TRACOS[race].cabelos
 			hair_col = Color(str(cab[posmod(hc_i, cab.size())]))
-		_vestir_v3(male, outfit, hair_col)
+		_vestir_v3(male, outfit, hair_col, race != "beastman")
 		if race != "humano":
+			subtipo = str(o.get("subtipo", "leao"))
 			_tracos_raca(race, male, skin, hair_col)
 	else:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
@@ -241,7 +279,8 @@ func _setup_medido(o: Dictionary) -> void:
 	var w: float = rd.get("w", 1.0)
 	var h: float = rd.get("h", 1.0) * (1.0 if male else 0.97)
 	var shape: Dictionary = SHAPE.get("%s:%s" % [race, "m" if male else "f"], {})
-	var prop: Dictionary = PROPORCOES.get("%s:%s" % [race, "m" if male else "f"], {}) if v3 else {}
+	var chave_prop := "goblin" if (race == "orc" and str(o.get("subtipo", "")) == "goblin") else race
+	var prop: Dictionary = PROPORCOES.get("%s:%s" % [chave_prop, "m" if male else "f"], {}) if v3 else {}
 	if not prop.is_empty():
 		var glob := {}
 		for bn in REGIAO_OSSO:
@@ -275,6 +314,16 @@ func _setup_medido(o: Dictionary) -> void:
 			if bi >= 0:
 				skel.set_bone_pose_scale(bi, Vector3.ONE * float(shape.bones[bn]))
 		height_m = (1.8 + (0.12 if race == "anao" else 0.0)) * k - float(shape.drop) * k
+	var chave_postura: String = "goblin" if str(o.get("subtipo", "")) == "goblin" else race
+	if POSTURAS.has(chave_postura):
+		var pr: Dictionary = POSTURAS[chave_postura]
+		postura = PosturaRaca.new()
+		postura.name = "PosturaRaca"
+		postura.pose = pr.pose
+		postura.combate = pr.combate
+		postura.inclina = float(pr.inclina)
+		ciclo_raca = float(pr.ciclo)
+		skel.add_child(postura)
 	if dragon:  # o modelo da dragonita é mais alto que o humano de referência (medido: 1,96 m e 1,84 m)
 		height_m = 1.96 if male else 1.84
 	anim = AnimationPlayer.new()
@@ -743,6 +792,7 @@ const TRACOS := {
 	"sombrio": {"orelha": [0.1, 0.022, 0.6, -0.45], "marca": Color(0.85, 0.85, 1.0), "cabelos": ["#b8b4c2", "#191820", "#51405a", "#7d5269"], "peles": ["#74515a", "#593c4c", "#8b626a", "#a17d79", "#4a3946"]},
 	"orc": {"orelha": [0.045, 0.024, 0.25, -0.2], "presas": true, "cabelos": ["#2b211c", "#57402e", "#8a6844", "#c0a47a"], "peles": ["#71834c", "#596b3b", "#89985c", "#a0a36b", "#485b39"]},
 	"anao": {"barba": true, "cabelos": ["#e7e0d2", "#a94b2d", "#4b3025", "#b58b52"], "peles": ["#e5b995", "#c9916c", "#a66e4f", "#f0d0b0", "#8d604a"]},
+	"beastman": {"fera": true},
 	"draconato": {"peles": ["#537b58", "#78975f", "#3c5f4b", "#9b6a46", "#b48b58"]},
 	"gigante": {"marca": Color(0.6, 0.85, 1.0), "cabelos": ["#dce7e8", "#afc8d0", "#718b9c", "#e8e2d6"], "peles": ["#b8d6db", "#8db7c2", "#d8e8e8", "#709aa8", "#a8c8cf"]},
 }
@@ -799,8 +849,8 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 			var mi := MeshInstance3D.new()
 			var c := CylinderMesh.new()
 			c.top_radius = 0.0
-			c.bottom_radius = 0.0055
-			c.height = 0.026 if male else 0.016
+			c.bottom_radius = 0.007 if subtipo != "goblin" else 0.004
+			c.height = (0.04 if male else 0.022) if subtipo != "goblin" else 0.012
 			c.radial_segments = 8
 			c.rings = 1
 			mi.mesh = c
@@ -833,6 +883,9 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 		anel.material_override = cobre
 		anel.transform = rest.affine_inverse() * Transform3D(Basis.from_euler(Vector3(0.35, 0, 0)), Vector3(0, 1.415, 0.1))
 		att.add_child(anel)
+	if tr.get("fera", false):
+		_cabeca_fera(subtipo, male, att, rest, olho_y, olho_z, pele_raca)
+	_tracos_extras(race, male, olho_y, olho_z)
 	if tr.has("marca"):
 		# marca rúnica leve na testa (elfo negro: prata; gigante: gelo), brilho bem suave
 		var mi := MeshInstance3D.new()
@@ -848,6 +901,396 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 		mi.mesh.material = mm
 		mi.transform = rest.affine_inverse() * Transform3D(Basis(), Vector3(0, olho_y + 0.045, olho_z + 0.012))
 		att.add_child(mi)
+
+
+# Homens-fera (parecer MESA-013): quatro linhagens escolhidas na criação. A cabeça humana fica menor
+# e é coberta por um crânio de fera feito de peças (crânio, focinho, mandíbula, nariz, orelhas, olhos),
+# com juba, listras ou placas conforme a linhagem e uma cauda em segmentos presa à pelve.
+const FERAS := {
+	"leao": {"pelo": ["#c78a3c", "#e6b85c", "#a6672c", "#d9a35a"], "escuro": "#754321", "focinho": [0.11, 0.062, 0.85], "orelha": "redonda", "juba": "#8a4e22", "cauda": [0.8, 0.035, "tufo"]},
+	"tigre": {"pelo": ["#d28b42", "#e09a4c", "#c27a34", "#f0c27a"], "escuro": "#392b22", "focinho": [0.12, 0.058, 0.85], "orelha": "redonda", "listras": true, "cauda": [0.9, 0.032, "listrada"]},
+	"lobo": {"pelo": ["#92969b", "#b5b7b4", "#746b65", "#5e6670"], "escuro": "#3c4654", "focinho": [0.19, 0.047, 0.8], "orelha": "pontuda", "cauda": [0.85, 0.06, "peluda"]},
+	"crocodilo": {"pelo": ["#567e54", "#6b8b55", "#4a6b47", "#7d8f5c"], "escuro": "#354e3c", "focinho": [0.26, 0.05, 0.55], "orelha": "", "placas": true, "cauda": [1.0, 0.075, "placas"]},
+}
+
+
+func _cabeca_fera(sub: String, male: bool, att: Node3D, rest: Transform3D, olho_y: float, olho_z: float, pelo: Color) -> void:
+	var f: Dictionary = FERAS.get(sub, FERAS.leao)
+	var escuro := Color(str(f.escuro))
+	var mp := StandardMaterial3D.new()
+	mp.albedo_color = pelo
+	mp.roughness = 1.0
+	var me := StandardMaterial3D.new()
+	me.albedo_color = escuro
+	me.roughness = 1.0
+	var inv := rest.affine_inverse()
+	var c0 := Vector3(0, olho_y + 0.005, olho_z - 0.075)   # centro do crânio
+	var poe := func(mesh: Mesh, mat: Material, pos: Vector3, rot := Vector3.ZERO, esc := Vector3.ONE) -> MeshInstance3D:
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		mi.material_override = mat
+		mi.transform = inv * Transform3D(Basis.from_euler(rot) * Basis.from_scale(esc), pos)
+		att.add_child(mi)
+		return mi
+	# crânio que cobre a cabeça humana
+	var cr := SphereMesh.new()
+	cr.radius = 0.118 if male else 0.108
+	cr.height = cr.radius * 2.0
+	var lado_esc := 0.98 if sub != "crocodilo" else 0.9
+	poe.call(cr, mp, c0, Vector3.ZERO, Vector3(lado_esc, 1.0, 1.12))
+	# focinho e mandíbula
+	var fl: float = float(f.focinho[0]) * (1.0 if male else 0.9)
+	var fr: float = float(f.focinho[1])
+	var fy: float = float(f.focinho[2])
+	var fo := CapsuleMesh.new()
+	fo.radius = fr
+	fo.height = fl + fr * 2.0
+	var base := Vector3(0, olho_y - 0.035, olho_z - 0.01)
+	poe.call(fo, mp, base + Vector3(0, 0, fl * 0.5), Vector3(deg_to_rad(90), 0, 0), Vector3(1.0, 1.0, fy))
+	var mand := CapsuleMesh.new()
+	mand.radius = fr * 0.75
+	mand.height = fl * 0.85 + fr * 1.5
+	poe.call(mand, mp, base + Vector3(0, -fr * 0.75, fl * 0.38), Vector3(deg_to_rad(90), 0, 0), Vector3(0.95, 1.0, 0.7))
+	var na := SphereMesh.new()
+	na.radius = fr * 0.55
+	na.height = na.radius * 1.4
+	poe.call(na, me, base + Vector3(0, fr * 0.35, fl + fr * 0.55))
+	# olhos âmbar levemente acesos
+	var olho := StandardMaterial3D.new()
+	olho.albedo_color = Color(0.95, 0.7, 0.2) if sub != "lobo" else Color(0.75, 0.85, 0.95)
+	olho.emission_enabled = true
+	olho.emission = olho.albedo_color
+	olho.emission_energy_multiplier = 0.6
+	var ol := SphereMesh.new()
+	ol.radius = 0.014
+	ol.height = 0.022
+	var abre := 0.05 if sub != "crocodilo" else 0.062
+	for lado in [-1.0, 1.0]:
+		poe.call(ol, olho, Vector3(lado * abre, olho_y + 0.012 + (0.025 if sub == "crocodilo" else 0.0), olho_z + 0.012))
+	# orelhas
+	match str(f.orelha):
+		"redonda":
+			var o := SphereMesh.new()
+			o.radius = 0.04
+			o.height = 0.08
+			for lado in [-1.0, 1.0]:
+				poe.call(o, mp, c0 + Vector3(lado * 0.085, 0.1, -0.01), Vector3(0, 0, -lado * 0.4), Vector3(1.0, 1.0, 0.4))
+		"pontuda":
+			var o2 := CylinderMesh.new()
+			o2.top_radius = 0.0
+			o2.bottom_radius = 0.042
+			o2.height = 0.12
+			o2.radial_segments = 4
+			for lado in [-1.0, 1.0]:
+				poe.call(o2, mp, c0 + Vector3(lado * 0.07, 0.15, -0.01), Vector3(-0.15, 0, -lado * 0.3), Vector3(1.0, 1.0, 0.45))
+	# juba do leão (homem) ou gola de pelo (mulher e lobo)
+	if f.has("juba") or sub == "lobo":
+		var cj := Color(str(f.get("juba", f.escuro))) if sub != "lobo" else pelo.lightened(0.15)
+		var mj := StandardMaterial3D.new()
+		mj.albedo_color = cj
+		mj.roughness = 1.0
+		var tufos := 26 if (male and sub == "leao") else 14
+		var tam := 0.17 if (male and sub == "leao") else 0.09
+		for k in tufos:
+			var ang := TAU * float(k) / tufos
+			var anel := float(k % 2)
+			var tufo := CylinderMesh.new()
+			tufo.top_radius = 0.0
+			tufo.bottom_radius = 0.06 if (male and sub == "leao") else 0.04
+			tufo.height = tam * (0.85 + 0.3 * anel)
+			tufo.radial_segments = 5
+			var dir := Vector3(sin(ang), cos(ang) * 0.9, -0.35).normalized()
+			var pos := c0 + Vector3(sin(ang) * 0.1, cos(ang) * 0.11 - 0.03, -0.04 - anel * 0.03)
+			var b := Basis(Quaternion(Vector3.UP, dir))
+			var mi := MeshInstance3D.new()
+			mi.mesh = tufo
+			mi.material_override = mj
+			mi.transform = inv * Transform3D(b, pos + dir * tufo.height * 0.4)
+			att.add_child(mi)
+	# listras do tigre na cabeça
+	if f.get("listras", false):
+		var li := CapsuleMesh.new()
+		li.radius = 0.008
+		li.height = 0.1
+		for k in 5:
+			var a := -0.5 + k * 0.25
+			poe.call(li, me, c0 + Vector3(sin(a) * 0.11, 0.04 + absf(a) * 0.03, cos(a) * 0.1 - 0.02), Vector3(0.3, a, 0.0), Vector3(1.0, 1.0, 0.5))
+	# placas do crocodilo no alto da cabeça e no dorso
+	if f.get("placas", false):
+		var pl := CylinderMesh.new()
+		pl.top_radius = 0.0
+		pl.bottom_radius = 0.022
+		pl.height = 0.045
+		pl.radial_segments = 4
+		for k in 4:
+			poe.call(pl, me, c0 + Vector3(0, 0.11, 0.06 - k * 0.05), Vector3(-0.3, 0, 0))
+	_cauda_fera(sub, f, male, pelo, escuro)
+
+
+# cauda em segmentos presos à pelve, balançando devagar
+func _cauda_fera(sub: String, f: Dictionary, male: bool, pelo: Color, escuro: Color) -> void:
+	var pi := skel.find_bone("pelvis")
+	if pi < 0:
+		return
+	var att := BoneAttachment3D.new()
+	att.bone_name = "pelvis"
+	att.name = "CaudaFera"
+	skel.add_child(att)
+	var rest := skel.get_bone_global_rest(pi)
+	var raiz := Node3D.new()
+	raiz.transform = rest.affine_inverse() * Transform3D(Basis.from_euler(Vector3(deg_to_rad(-70), 0, 0)), rest.origin + Vector3(0, -0.02, -0.12))
+	att.add_child(raiz)
+	var comp: float = float(f.cauda[0]) * (1.0 if male else 0.9)
+	var raio: float = float(f.cauda[1])
+	var tipo: String = str(f.cauda[2])
+	var n := 7
+	var mp := StandardMaterial3D.new()
+	mp.albedo_color = pelo
+	mp.roughness = 1.0
+	var me := StandardMaterial3D.new()
+	me.albedo_color = escuro
+	me.roughness = 1.0
+	var pai: Node3D = raiz
+	for k in n:
+		var t := float(k) / n
+		var seg := Node3D.new()
+		seg.position = Vector3(0, comp / n if k > 0 else 0.0, 0)
+		seg.rotation = Vector3(deg_to_rad(8.0 + t * 6.0), 0, 0)
+		pai.add_child(seg)
+		var r := raio * (1.0 - t * 0.6)
+		if tipo == "peluda":
+			r = raio * (0.55 + sin(t * PI) * 0.6)
+		var c := CapsuleMesh.new()
+		c.radius = r
+		c.height = maxf(comp / n + r * 2.0, r * 2.0)
+		var mi := MeshInstance3D.new()
+		mi.mesh = c
+		mi.material_override = me if (tipo == "listrada" and k % 2 == 1) else mp
+		mi.position = Vector3(0, comp / n * 0.5, 0)
+		if tipo == "placas":
+			mi.scale = Vector3(0.75, 1.0, 1.15)
+		seg.add_child(mi)
+		if tipo == "placas" and k < n - 1:
+			var pl := CylinderMesh.new()
+			pl.top_radius = 0.0
+			pl.bottom_radius = r * 0.5
+			pl.height = r * 1.1
+			pl.radial_segments = 4
+			var pm := MeshInstance3D.new()
+			pm.mesh = pl
+			pm.material_override = me
+			pm.position = Vector3(0, comp / n * 0.5, -r * 0.9)
+			pm.rotation = Vector3(deg_to_rad(-90), 0, 0)
+			seg.add_child(pm)
+		if k > 0:
+			var tw := seg.create_tween().set_loops()
+			var amp := deg_to_rad(4.0 + t * 6.0)
+			tw.tween_property(seg, "rotation:z", amp, 0.9 + k * 0.05).from(-amp).set_trans(Tween.TRANS_SINE)
+			tw.tween_property(seg, "rotation:z", -amp, 0.9 + k * 0.05).set_trans(Tween.TRANS_SINE)
+		pai = seg
+	if tipo == "tufo":
+		var tf := SphereMesh.new()
+		tf.radius = raio * 1.6
+		tf.height = raio * 4.0
+		var mi2 := MeshInstance3D.new()
+		mi2.mesh = tf
+		mi2.material_override = me
+		mi2.position = Vector3(0, comp / n * 1.1, 0)
+		pai.add_child(mi2)
+
+
+# ---------- peças presas a ossos, em coordenadas do corpo de repouso (metros) ----------
+var _anexos := {}
+
+
+func _anexo(osso: String) -> BoneAttachment3D:
+	if _anexos.has(osso) and is_instance_valid(_anexos[osso]):
+		return _anexos[osso]
+	var a := BoneAttachment3D.new()
+	a.bone_name = osso
+	a.name = "Peca_" + osso
+	skel.add_child(a)
+	_anexos[osso] = a
+	return a
+
+
+func _peca_osso(osso: String, mesh: Mesh, mat: Material, pos: Vector3, b := Basis()) -> MeshInstance3D:
+	var bi := skel.find_bone(osso)
+	if bi < 0:
+		return null
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.transform = skel.get_bone_global_rest(bi).affine_inverse() * Transform3D(b, pos)
+	_anexo(osso).add_child(mi)
+	return mi
+
+
+func _mat_simples(cor: Color, metal := 0.0, rug := 0.8, brilho := 0.0) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = cor
+	m.metallic = metal
+	m.roughness = rug
+	if brilho > 0.0:
+		m.emission_enabled = true
+		m.emission = cor
+		m.emission_energy_multiplier = brilho
+	return m
+
+
+static func _prisma(r: float, h: float, lados := 6) -> CylinderMesh:
+	var c := CylinderMesh.new()
+	c.top_radius = 0.0
+	c.bottom_radius = r
+	c.height = h
+	c.radial_segments = lados
+	c.rings = 1
+	return c
+
+
+# traços extras do parecer MESA-013: cristal da têmpora (elfo branco), sobrancelha óssea (elfo negro e
+# gigante), ombreiras de osso (orc), cristais nos ombros (gigante), orelhas largas e nariz (goblin)
+func _tracos_extras(race: String, male: bool, olho_y: float, olho_z: float) -> void:
+	var goblin := race == "orc" and subtipo == "goblin"
+	var ombro_l := skel.get_bone_global_rest(skel.find_bone("upperarm_l")).origin
+	var ombro_r := skel.get_bone_global_rest(skel.find_bone("upperarm_r")).origin
+	match race:
+		"elfo":
+			var cr := _mat_simples(Color("#c8f1f5"), 0.2, 0.15, 0.35)
+			for lado in [-1.0, 1.0]:
+				_peca_osso("Head", _prisma(0.012, 0.04, 4), cr, Vector3(lado * 0.07, olho_y + 0.045, olho_z - 0.03), Basis.from_euler(Vector3(0.3, 0, -lado * 0.5)))
+		"sombrio":
+			var bm := _mat_simples(pele_raca.darkened(0.25), 0.0, 0.7)
+			var cap := CapsuleMesh.new()
+			cap.radius = 0.014
+			cap.height = 0.11
+			_peca_osso("Head", cap, bm, Vector3(0, olho_y + 0.028, olho_z + 0.012), Basis.from_euler(Vector3(0, 0, PI * 0.5)) * Basis.from_scale(Vector3(1.0, 1.0, 0.7)))
+		"gigante":
+			var bm2 := _mat_simples(pele_raca.darkened(0.12), 0.0, 0.7)
+			var cap2 := CapsuleMesh.new()
+			cap2.radius = 0.02
+			cap2.height = 0.15
+			_peca_osso("Head", cap2, bm2, Vector3(0, olho_y + 0.03, olho_z + 0.01), Basis.from_euler(Vector3(0, 0, PI * 0.5)))
+			var gelo := _mat_simples(Color("#9be5f4"), 0.1, 0.1, 0.25)
+			gelo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			gelo.albedo_color.a = 0.85
+			for par in [["clavicle_l", ombro_l, 1.0], ["clavicle_r", ombro_r, -1.0]]:
+				for k in 4:
+					var p: Vector3 = par[1] + Vector3(-float(par[2]) * 0.02 + (k - 1.5) * 0.03 * float(par[2]), 0.06 + (k % 2) * 0.02, -0.04 + k * 0.025)
+					_peca_osso(par[0], _prisma(0.025 + (k % 2) * 0.01, 0.1 + (k % 3) * 0.04, 5), gelo, p, Basis.from_euler(Vector3(-0.3 + k * 0.15, 0, float(par[2]) * (0.2 - k * 0.15))))
+		"orc":
+			if goblin:
+				var pele := _mat_simples(pele_raca, 0.0, 0.75)
+				for lado in [-1.0, 1.0]:
+					var o := _prisma(0.045, 0.15, 6)
+					var mi := _peca_osso("Head", o, pele, Vector3(lado * 0.1, olho_y + 0.005, olho_z - 0.07), Basis(Quaternion(Vector3.UP, Vector3(lado, 0.25, -0.25).normalized())) * Basis.from_scale(Vector3(1.0, 1.0, 0.35)))
+				var na := SphereMesh.new()
+				na.radius = 0.022
+				na.height = 0.05
+				_peca_osso("Head", na, pele, Vector3(0, olho_y - 0.03, olho_z + 0.04), Basis.from_euler(Vector3(PI * 0.5, 0, 0)) * Basis.from_scale(Vector3(1.0, 1.6, 1.0)))
+			else:
+				var osso := _mat_simples(Color("#d9cdb2"), 0.0, 0.6)
+				var couro := _mat_simples(Color("#74604b"), 0.0, 0.9)
+				for par in [["clavicle_l", ombro_l, 1.0], ["clavicle_r", ombro_r, -1.0]]:
+					var pad := SphereMesh.new()
+					pad.radius = 0.1
+					pad.height = 0.12
+					_peca_osso(par[0], pad, couro, par[1] + Vector3(float(par[2]) * 0.02, 0.06, 0), Basis.from_euler(Vector3(0, 0, -float(par[2]) * 0.4)))
+					for k in 3:
+						_peca_osso(par[0], _prisma(0.02, 0.1, 6), osso, par[1] + Vector3(float(par[2]) * (0.0 + k * 0.035), 0.11, -0.03 + k * 0.03), Basis.from_euler(Vector3(-0.2, 0, -float(par[2]) * (0.3 + k * 0.25))))
+
+
+# Armadura própria da dragonita (as armaduras humanas não vestem o corpo dela): placas de peito,
+# ombreiras, braçadeiras, grevas e cinto montados nos ossos dela, deixando focinho, chifres, placas
+# das costas e cauda livres. A cor do metal segue o grau da peça.
+const METAL_GRAU := {"ng": "#8a8f96", "d": "#9a6a3c", "c": "#b0b4ba", "b": "#6a6f78", "a": "#c9a24a", "s": "#d8dde4", "ss": "#e8d9a8"}
+
+
+func _armadura_dragonita(armor: String) -> void:
+	if armor == "" or armor == "nenhuma":
+		return
+	var grau := armor.get_slice("_", 1) if armor.contains("_") else "ng"
+	var pesada := armor.begins_with("pesada")
+	var robe := armor.begins_with("robe")
+	var metal := _mat_simples(Color(str(METAL_GRAU.get(grau, "#8a8f96"))), 0.85, 0.35)
+	var couro := _mat_simples(Color("#5a3e2b"), 0.0, 0.85)
+	var tecido := _mat_simples(Color("#3d3552"), 0.0, 0.95)
+	var base: StandardMaterial3D = metal if pesada else (tecido if robe else couro)
+	var R := func(b: String) -> Vector3: return skel.get_bone_global_rest(skel.find_bone(b)).origin
+	if skel.find_bone("spine_03") < 0:
+		return
+	var sp2: Vector3 = R.call("spine_02")
+	var sp3: Vector3 = R.call("spine_03")
+	var pel: Vector3 = R.call("pelvis")
+	var larg: float = (R.call("upperarm_l") - R.call("upperarm_r")).length() * 0.42
+	# peitoral: casca achatada que cobre o tronco (frente mais funda que as costas, para as placas dorsais)
+	var pes: Vector3 = R.call("neck_01")
+	var peito := CylinderMesh.new()
+	peito.top_radius = larg * 1.2
+	peito.bottom_radius = larg * 0.95
+	var sp1: Vector3 = R.call("spine_01")
+	peito.height = (pes.y - sp1.y) * 0.85
+	peito.radial_segments = 16
+	_peca_osso("spine_02", peito, base, Vector3(0, (sp1.y + pes.y) * 0.5 - 0.06, sp3.z + 0.05), Basis.from_scale(Vector3(1.0, 1.0, 0.9)))
+	# gola alta que protege o pescoço sem cobrir o focinho
+	var gola := CylinderMesh.new()
+	gola.top_radius = larg * 0.5
+	gola.bottom_radius = larg * 0.8
+	gola.height = 0.07
+	gola.radial_segments = 16
+	_peca_osso("spine_03", gola, base, Vector3(0, pes.y - 0.03, sp3.z + 0.02), Basis.from_scale(Vector3(1.0, 1.0, 0.85)))
+	# cinto com fivela
+	var cinto := CylinderMesh.new()
+	cinto.top_radius = larg * 0.8
+	cinto.bottom_radius = larg * 0.85
+	cinto.height = 0.07
+	cinto.radial_segments = 14
+	_peca_osso("pelvis", cinto, couro, pel + Vector3(0, 0.05, 0.01), Basis.from_scale(Vector3(1.0, 1.0, 0.75)))
+	_peca_osso("pelvis", BoxMesh.new(), metal, pel + Vector3(0, 0.05, larg * 0.62), Basis.from_scale(Vector3(0.07, 0.06, 0.02)))
+	# saiote de placas (frente e lados), aberto atrás para a cauda
+	for k in 5:
+		var ang := -1.1 + k * 0.55
+		var pl := BoxMesh.new()
+		pl.size = Vector3(larg * 0.42, 0.2, 0.015)
+		_peca_osso("pelvis", pl, base, pel + Vector3(sin(ang) * larg * 0.82, -0.07, cos(ang) * larg * 0.62), Basis.from_euler(Vector3(0.12, ang, 0)))
+	for lado in ["l", "r"]:
+		var sg := 1.0 if lado == "l" else -1.0
+		var ua: Vector3 = R.call("upperarm_" + lado)
+		var la: Vector3 = R.call("lowerarm_" + lado)
+		var ha: Vector3 = R.call("hand_" + lado)
+		var th: Vector3 = R.call("thigh_" + lado)
+		var ca: Vector3 = R.call("calf_" + lado)
+		var ft: Vector3 = R.call("foot_" + lado)
+		if pesada or robe:
+			var omb := SphereMesh.new()
+			omb.radius = larg * 0.42
+			omb.height = larg * 0.5
+			_peca_osso("upperarm_" + lado, omb, base, ua + Vector3(sg * 0.03, 0.03, 0.02), Basis.from_euler(Vector3(0, 0, -sg * 0.35)))
+			if pesada:   # aba de placa sobre a ombreira
+				_peca_osso("upperarm_" + lado, _prisma(0.03, 0.12, 4), metal, ua + Vector3(sg * 0.03, 0.12, -0.02), Basis.from_euler(Vector3(-0.4, 0, -sg * 0.5)))
+		# braçadeira no antebraço e grevas na canela, alinhadas ao osso
+		var dir_b: Vector3 = (ha - la).normalized()
+		var br := CylinderMesh.new()
+		br.top_radius = 0.055
+		br.bottom_radius = 0.065
+		br.height = (ha - la).length() * 0.6
+		br.radial_segments = 10
+		_peca_osso("lowerarm_" + lado, br, metal if pesada else couro, la.lerp(ha, 0.55), Basis(Quaternion(Vector3.UP, dir_b)))
+		var dir_p: Vector3 = (ft - ca).normalized()
+		var gr := CylinderMesh.new()
+		gr.top_radius = 0.075
+		gr.bottom_radius = 0.06
+		gr.height = (ft - ca).length() * 0.65
+		gr.radial_segments = 10
+		_peca_osso("calf_" + lado, gr, base, ca.lerp(ft, 0.45), Basis(Quaternion(Vector3.UP, -dir_p)))
+		if pesada:   # coxote
+			var dir_c: Vector3 = (ca - th).normalized()
+			var cx := CylinderMesh.new()
+			cx.top_radius = 0.1
+			cx.bottom_radius = 0.085
+			cx.height = (ca - th).length() * 0.5
+			cx.radial_segments = 10
+			_peca_osso("thigh_" + lado, cx, metal, th.lerp(ca, 0.35), Basis(Quaternion(Vector3.UP, -dir_c)) * Basis.from_scale(Vector3(1.0, 1.0, 0.9)))
 
 
 static var _barba: ArrayMesh
@@ -905,7 +1348,7 @@ static func _malha_barba() -> ArrayMesh:
 
 
 # V3: aldeão = túnica (formas corretivas + RBF), calça e botas novas; outras armaduras usam a roupa oficial no corpo novo
-func _vestir_v3(male: bool, outfit: String, hair_col: Color) -> void:
+func _vestir_v3(male: bool, outfit: String, hair_col: Color, com_cabelo := true) -> void:
 	var g := "m" if male else "f"
 	if outfit == "peasant":
 		var tunica := _attach_v3("rp_aldeao_tunica_%s_rbf" % g)
@@ -921,6 +1364,8 @@ func _vestir_v3(male: bool, outfit: String, hair_col: Color) -> void:
 	# a textura do cabelo V3 é quase preta (fios escuros): a cor escolhida é multiplicada para aparecer
 	var hc := Color(hair_col.r, hair_col.g, hair_col.b) * (7.0 if male else 14.0)
 	hc.a = 1.0
+	if not com_cabelo:
+		return
 	if male:
 		for m in _attach_v3("ca_curto_01"):
 			_tint(m, hc)
@@ -1135,6 +1580,8 @@ func _set_guard(on: bool) -> void:
 	(guard if on else grip_node).add_child(wnode)
 	ik.active = on
 	ik_r.active = on
+	if postura != null:
+		postura.bracos_livres = not on
 
 
 # escudo no antebraço esquerdo em combate; nas costas fora dele
@@ -1205,6 +1652,8 @@ func _make_sheath(back: bool, small: bool) -> void:
 
 # em combate a arma vai para a mão; fora dele, para as costas ou a cintura
 func set_battle(on: bool) -> void:
+	if postura != null:
+		postura.em_combate = on
 	if on == armed or wnode == null or sheath == null:
 		armed = on
 		return
@@ -1221,6 +1670,8 @@ func set_battle(on: bool) -> void:
 		else:
 			ik.active = false
 			ik_r.active = false
+			if postura != null:
+				postura.bracos_livres = true
 	if offhand != null:
 		offhand.visible = on
 	if shield != null and shield_arm != null and shield_back != null:
@@ -1237,6 +1688,11 @@ func play(n: String, speed := 1.0) -> void:
 		n = "Spell_Simple_Idle"
 	if not anim.has_animation(n):
 		return
+	var anda := n.contains("Walk") or n.contains("Run") or n.contains("Jog")
+	if postura != null:
+		postura.andando = 1.0 if anda else 0.0
+	if anda:
+		speed *= ciclo_raca
 	if current == n:
 		anim.speed_scale = speed
 		return

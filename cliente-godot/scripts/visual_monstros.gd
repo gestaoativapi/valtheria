@@ -156,3 +156,77 @@ static func aplicar(id: String, modelo: String, c: Node3D, boss: bool, cor_famil
 				olhos(skel, Color(1.0, 0.8, 0.3)) if boss else null
 	if boss:
 		aura_chefe(c, cor_familia.lightened(0.2), 0.9)
+
+
+static func _cil(r: float, h: float) -> CylinderMesh:
+	var c := CylinderMesh.new()
+	c.top_radius = r * 0.8
+	c.bottom_radius = r
+	c.height = h
+	c.radial_segments = 8
+	return c
+
+
+# ---------- javali: corpo de lobo transformado (baixo, robusto, cabeção, presas e crina de cerdas) ----------
+# Usa o mesmo esqueleto de quadrúpede do lobo, então anda, corre e ataca com as animações dele.
+const JAVALI_OSSOS := {
+	"Torso": 1.42, "Neck1": 0.72, "Head": 1.2,
+	"FrontUpperLeg.L": 0.72, "FrontUpperLeg.R": 0.72, "FrontLowerLeg.L": 0.7, "FrontLowerLeg.R": 0.7,
+	"BackLeg.L": 0.75, "BackLeg.R": 0.75, "BackUpperLeg.L": 0.75, "BackUpperLeg.R": 0.75, "BackLowerLeg.L": 0.7, "BackLowerLeg.R": 0.7,
+	"Ear1.L": 0.55, "Ear1.R": 0.55, "Tail1": 0.4,
+}
+
+
+static func javali(raiz: Node3D, boss := false) -> void:
+	var sk := raiz.find_child("Skeleton3D", true, false) as Skeleton3D
+	if sk == null:
+		return
+	# pernas curtas e corpo largo: as pernas do lobo seguem os alvos de IK, então o achatamento vai na raiz
+	raiz.scale *= Vector3(1.4, 0.74, 1.0)
+	for b in JAVALI_OSSOS:
+		var i := sk.find_bone(b)
+		if i >= 0:
+			sk.set_bone_pose_scale(i, Vector3.ONE * float(JAVALI_OSSOS[b]))
+	# pelagem marrom-escura sobre a textura cinza do lobo
+	for m in raiz.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		for s in mi.mesh.get_surface_count():
+			var orig := mi.get_active_material(s)
+			if orig is StandardMaterial3D:
+				var nm: StandardMaterial3D = (orig as StandardMaterial3D).duplicate()
+				nm.albedo_color = Color(0.62, 0.42, 0.3) if not boss else Color(0.42, 0.3, 0.26)
+				nm.roughness = 1.0
+				mi.set_surface_override_material(s, nm)
+	var marfim := _mat(Color(0.92, 0.88, 0.76), 0.0, 0.45)
+	var focinho := _mat(Color(0.32, 0.2, 0.18), 0.0, 0.7)
+	var cerda := _mat(Color(0.18, 0.12, 0.09), 0.0, 1.0)
+	var hi := sk.find_bone("Head")
+	var cab := _osso(sk, "Head")
+	var inv := sk.get_bone_global_rest(hi).affine_inverse()
+	# focinho em disco achatado na ponta da cabeça
+	var disco := CylinderMesh.new()
+	disco.top_radius = 0.16
+	disco.bottom_radius = 0.19
+	disco.height = 0.16
+	var fm := _peca(cab, disco, focinho, Vector3.ZERO)
+	fm.transform = inv * Transform3D(Basis.from_euler(Vector3(deg_to_rad(80), 0, 0)), Vector3(0, 1.98, 2.62))
+	# presas curvas para cima, saindo dos lados da boca
+	for lado in [-1.0, 1.0]:
+		for k in 3:
+			var seg := _cone(0.045 - k * 0.012, 0.16) if k == 2 else _cil(0.045 - k * 0.012, 0.15)
+			var p := Vector3(lado * (0.17 + k * 0.03), 1.86 + k * 0.1, 2.48 + k * 0.03)
+			var r := Vector3(deg_to_rad(-20 + k * 25), 0, deg_to_rad(-lado * (25 + k * 12)))
+			var pm := _peca(cab, seg, marfim, Vector3.ZERO)
+			pm.transform = inv * Transform3D(Basis.from_euler(r), p)
+	# crina de cerdas escuras ao longo do dorso (presa aos ossos do tronco)
+	for par in [["Torso3", 1.0], ["Torso2", 0.9], ["Torso", 0.8], ["Back", 0.6]]:
+		var bi := sk.find_bone(par[0])
+		if bi < 0:
+			continue
+		var at := _osso(sk, par[0])
+		var inv2 := sk.get_bone_global_rest(bi).affine_inverse()
+		var o := sk.get_bone_global_rest(bi).origin
+		for k in 4:
+			var h: float = 0.22 * float(par[1])
+			var c := _peca(at, _cone(0.05, h), cerda, Vector3.ZERO)
+			c.transform = inv2 * Transform3D(Basis.from_euler(Vector3(deg_to_rad(-25), 0, 0)), o + Vector3(0, 0.36 + h * 0.4, -0.15 + k * 0.1))

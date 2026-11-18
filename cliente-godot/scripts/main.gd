@@ -280,6 +280,51 @@ func _ready() -> void:
 				c.set_tag(world.info.races[rs[i]].name, Color(0.95, 0.9, 0.75))
 			player.visible = false
 			facing = PI
+		elif a.begins_with("--feras"):  # teste: as 4 linhagens de homem-fera (homem e mulher), de perto
+			var subs := ["leao", "tigre", "lobo", "crocodilo"]
+			var k := 0
+			for sb in subs:
+				for gi in 2:
+					var c: Node3D = Character.create({"race": "beastman", "subtipo": sb, "gender": "mf"[gi], "skin": 0, "equipment": {"armadura": "nenhuma", "arma": "espada_ng"}})
+					add_child(c)
+					var px := player.position.x + 4.2 - k * 1.2
+					var pz := player.position.z + 3.0
+					c.position = Vector3(px, world.height(px, pz), pz)
+					c.rotation.y = PI
+					k += 1
+			player.visible = false
+			facing = PI
+		elif a == "--postura-teste":  # teste: um osso por vez na camada de postura (orc, 20 graus)
+			var cheia: Dictionary = Character.POSTURAS.orc.pose
+			var vs := [{}, cheia, {"pelvis": -4, "spine_01": 7, "spine_02": 4, "spine_03": 2, "neck_01": -3, "Head": -4}, {"clavicle": 8, "upperarm": 9, "lowerarm": -4, "hand": 5}, {"thigh": 4, "calf": 3, "foot": -3}, {"clavicle": 8}]
+			for k in vs.size():
+				var c: Node3D = Character.create({"race": "orc", "gender": "m", "equipment": {"armadura": "nenhuma", "arma": "espada_ng"}})
+				add_child(c)
+				var px := player.position.x + 3.0 - k * 1.2
+				var pz := player.position.z + 3.0
+				c.position = Vector3(px, world.height(px, pz), pz)
+				c.rotation.y = PI
+				c.postura.pose = vs[k]
+				c.postura.intensidade = 1.8
+			player.visible = false
+			facing = PI
+		elif a.begins_with("--vitrine-racas"):  # teste: as raças redesenhadas (MESA-013) lado a lado
+			var vs := [
+				{"race": "elfo", "gender": "m"}, {"race": "sombrio", "gender": "f"}, {"race": "orc", "gender": "m"},
+				{"race": "orc", "subtipo": "goblin", "gender": "m"}, {"race": "gigante", "gender": "m"},
+				{"race": "beastman", "subtipo": "lobo", "gender": "m"}, {"race": "draconato", "gender": "m", "armadura": "pesada_a"},
+				{"race": "draconato", "gender": "f", "armadura": "leve_ng"},
+			]
+			for k in vs.size():
+				var d: Dictionary = vs[k]
+				var c: Node3D = Character.create({"race": d.race, "subtipo": d.get("subtipo", ""), "gender": d.gender, "skin": 0, "hair_color": 0, "equipment": {"armadura": d.get("armadura", "nenhuma"), "arma": "espada_ng"}})
+				add_child(c)
+				var px := player.position.x + 5.6 - k * 1.6
+				var pz := player.position.z + 3.0
+				c.position = Vector3(px, world.height(px, pz), pz)
+				c.rotation.y = PI
+			player.visible = false
+			facing = PI
 		elif a == "--racas-v3":  # teste: raças no corpo V3, homem e mulher, com brilho de encanto crescente e um herói
 			var rs := ["humano", "elfo", "sombrio", "orc", "gigante"]
 			var nv := [4, 7, 10, 13, 15, 16]
@@ -337,6 +382,25 @@ func _ready() -> void:
 				var px := player.position.x - 4.5 + i * 1.8
 				var pz := player.position.z + 3.0
 				c.position = Vector3(px, world.height(px, pz), pz)
+			facing = PI
+		elif a.begins_with("--monstro="):  # teste: uma família de monstro de perto, de lado (ids separados por vírgula)
+			var ids := Array(a.trim_prefix("--monstro=").split(","))
+			var k := 0
+			for idm in ids:
+				for band in world.info.mobs:
+					for f in band:
+						if str(f.id) == idm:
+							var n: Node3D = combat._mob_model(f).node
+							add_child(n)
+							var px := player.position.x + 2.6 * (ids.size() - 1) * 0.5 - k * 2.6
+							var pz := player.position.z + 3.5
+							n.position = Vector3(px, world.height(px, pz), pz)
+							n.rotation.y = PI * 0.5
+							k += 1
+							break
+					if k > ids.find(idm):
+						break
+			player.visible = false
 			facing = PI
 		elif a == "--monstros":  # teste: um de cada família de monstro (chefes por último)
 			var fams := []

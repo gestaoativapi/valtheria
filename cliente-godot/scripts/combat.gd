@@ -176,8 +176,8 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 			var file := "m_wolf"
 			var target_h := 0.95
 			if id.contains("javali"):
-				file = "a_bull"
-				target_h = 1.15
+				file = "m_wolf"   # o javali usa o esqueleto do lobo transformado (antes era o touro e parecia um boi)
+				target_h = 0.85
 			elif str(fam.model) == "spider":
 				file = "e_spider"
 				target_h = 0.8
@@ -197,6 +197,8 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 			if bb.size.y > 50.0 or bb.size.y < 0.05:
 				k = sc  # caixa em unidade estranha: usa a escala do modelo
 			sc_node.scale = Vector3.ONE * k
+			if id.contains("javali"):
+				VisualMonstros.javali(sc_node, bool(fam.boss))
 			holder.add_child(sc_node)
 			node = holder
 			height = target_h * sc
