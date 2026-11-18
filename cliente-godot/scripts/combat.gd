@@ -1,4 +1,5 @@
 extends Node3D
+const VisualMonstros := preload("res://scripts/visual_monstros.gd")
 const Perfil := preload("res://scripts/perfil.gd")
 # Combate: atributos do personagem (mesma fórmula do jogo web), monstros, alvo, ataque automático, habilidades, XP e morte.
 
@@ -169,6 +170,7 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 				o = {"race": "draconato", "gender": "m", "skin": 4}
 			node = Character.create(o)
 			node.scale = Vector3.ONE * sc
+			VisualMonstros.aplicar(id, str(fam.model), node, bool(fam.boss), Color(str(fam.get("color", "#888888"))))
 			height = node.height_m * sc
 		_:
 			var file := "m_wolf"

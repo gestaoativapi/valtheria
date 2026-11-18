@@ -309,6 +309,22 @@ func _ready() -> void:
 				var pz := player.position.z + 3.0
 				c.position = Vector3(px, world.height(px, pz), pz)
 			facing = PI
+		elif a == "--monstros":  # teste: um de cada família de monstro (chefes por último)
+			var fams := []
+			for band in world.info.mobs:
+				for f in band:
+					if not fams.any(func(x): return x.id == f.id):
+						fams.append(f)
+			fams.sort_custom(func(x, y): return int(x.boss) < int(y.boss))
+			for i in fams.size():
+				var md: Dictionary = combat._mob_model(fams[i])
+				var n: Node3D = md.node
+				add_child(n)
+				var px := player.position.x - 13.5 + float(i % 10) * 3.0
+				var pz := player.position.z - 12.0 - float(i / 10) * 7.0
+				n.position = Vector3(px, world.height(px, pz), pz)
+				n.rotation.y = 0.0
+			facing = PI
 		elif a == "--crowd":
 			_spawn_crowd()
 		elif a.begins_with("--look="):  # teste: câmera atrás do personagem olhando para x, z
