@@ -281,11 +281,11 @@ func _ready() -> void:
 			player.visible = false
 			facing = PI
 		elif a.begins_with("--feras"):  # teste: as 4 linhagens de homem-fera (homem e mulher), de perto
-			var subs := ["leao", "tigre", "lobo", "crocodilo"]
+			var subs := [["leao", "m"], ["lobo", "m"], ["tigre", "f"], ["onca", "f"], ["ursa", "f"]]
 			var k := 0
-			for sb in subs:
-				for gi in 2:
-					var c: Node3D = Character.create({"race": "beastman", "subtipo": sb, "gender": "mf"[gi], "skin": 0, "equipment": {"armadura": "nenhuma", "arma": "espada_ng"}})
+			for par in subs:
+				for gi in 1:
+					var c: Node3D = Character.create({"race": "beastman", "subtipo": par[0], "gender": par[1], "skin": 0, "equipment": {"armadura": "nenhuma", "arma": "espada_ng"}})
 					add_child(c)
 					var px := player.position.x + 4.2 - k * 1.2
 					var pz := player.position.z + 3.0
@@ -392,15 +392,16 @@ func _ready() -> void:
 						if str(f.id) == idm:
 							var n: Node3D = combat._mob_model(f).node
 							add_child(n)
-							var px := player.position.x + 2.6 * (ids.size() - 1) * 0.5 - k * 2.6
+							var px := player.position.x + 4.5 * (ids.size() - 1) * 0.5 - k * 4.5
 							var pz := player.position.z + 3.5
 							n.position = Vector3(px, world.height(px, pz), pz)
-							n.rotation.y = PI * 0.5
+							n.rotation.y = PI if n.get("skel") != null else PI * 0.5
 							k += 1
 							break
 					if k > ids.find(idm):
 						break
 			player.visible = false
+			facing = PI
 			facing = PI
 		elif a == "--monstros":  # teste: um de cada família de monstro (chefes por último)
 			var fams := []

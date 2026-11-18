@@ -148,7 +148,20 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 	var node: Node3D
 	var kind := "glb"
 	var height := 1.0
-	match str(fam.model):
+	var modelo := str(fam.model)
+	if bool(fam.get("boss", false)) and modelo == "quad":
+		modelo = "fera_chefe"   # chefe de 4 patas: mutante que anda em 2 patas, com armadura e arma
+	match modelo:
+		"fera_chefe":
+			kind = "char"
+			var sub := "javali" if id.contains("javali") else "lobo"
+			var o := {"race": "beastman", "subtipo": sub, "gender": "m", "skin": 0, "sem_roupa": true, "armadura_mutante": "pesada_d",
+				"equipment": {"armadura": "nenhuma", "arma": "martelo_ng" if str(fam.get("role", "")) != "mago" else "cajado_ng", "escudo": "egide_ng" if str(fam.get("role", "")) != "mago" else ""}}
+			node = Character.create(o)
+			node.scale = Vector3.ONE * sc * 0.9
+			VisualMonstros.aplicar(id, "fera_chefe", node, true, Color(str(fam.get("color", "#888888"))))
+			VisualMonstros.chefe(node, fam)
+			height = node.height_m * sc * 0.9
 		"humanoid", "golem", "ent", "dragon":
 			kind = "char"
 			var o := {"race": "humano", "gender": "m", "hair": 0, "equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}}
@@ -168,9 +181,17 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 				o = {"race": "gigante", "gender": "m", "hair": 0, "skin_color": "#4f6233", "equipment": {"armadura": "leve_ng"}}
 			elif str(fam.model) == "dragon":
 				o = {"race": "draconato", "gender": "m", "skin": 4}
+			if bool(fam.boss):
+				# chefe: sem roupa humana; corpo na cor da criatura e armadura mutante por cima
+				o.sem_roupa = true
+				o.armadura_mutante = {"senhor_dem": "pesada_b", "golem_anc": "pesada_ng", "ent_mil": "leve_ng", "dragao": "pesada_a"}.get(id, "pesada_d")
+				if not o.has("skin_color") and id != "dragao":
+					o.skin_color = str(fam.get("color", "#888888"))
 			node = Character.create(o)
 			node.scale = Vector3.ONE * sc
 			VisualMonstros.aplicar(id, str(fam.model), node, bool(fam.boss), Color(str(fam.get("color", "#888888"))))
+			if bool(fam.boss):
+				VisualMonstros.chefe(node, fam)
 			height = node.height_m * sc
 		_:
 			var file := "m_wolf"

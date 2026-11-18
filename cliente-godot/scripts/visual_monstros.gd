@@ -113,12 +113,8 @@ static func aura_chefe(no: Node3D, cor: Color, raio: float) -> void:
 	p.scale_amount_max = 1.6
 	var q := QuadMesh.new()
 	q.size = Vector2(0.12, 0.12)
-	var qm := StandardMaterial3D.new()
-	qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	qm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	qm.albedo_color = cor
-	q.material = qm
+	p.color = cor
+	q.material = _mat_brilho()
 	p.mesh = q
 	p.visibility_range_end = 80.0
 	no.add_child(p)
@@ -230,3 +226,177 @@ static func javali(raiz: Node3D, boss := false) -> void:
 			var h: float = 0.22 * float(par[1])
 			var c := _peca(at, _cone(0.05, h), cerda, Vector3.ZERO)
 			c.transform = inv2 * Transform3D(Basis.from_euler(Vector3(deg_to_rad(-25), 0, 0)), o + Vector3(0, 0.36 + h * 0.4, -0.15 + k * 0.1))
+
+
+
+# ---------- chefes: mutação, armamento rústico, elemento e habilidade ----------
+# Cada chefe ganha: ombreiras com espinhos e placas mutantes, espinhos na arma, olhos acesos,
+# aura do elemento (terra, fogo, natureza, gelo, trevas, luz) e um golpe de habilidade periódico
+# (onda no chão + explosão do elemento). O dano e os efeitos negativos ficam no servidor.
+const ELEMENTOS := {
+	"terra": [Color(0.75, 0.55, 0.3), Color(0.45, 0.35, 0.25)],
+	"fogo": [Color(1.0, 0.45, 0.12), Color(1.0, 0.8, 0.3)],
+	"natureza": [Color(0.45, 0.95, 0.3), Color(0.75, 0.35, 0.9)],
+	"gelo": [Color(0.55, 0.85, 1.0), Color(0.9, 0.97, 1.0)],
+	"trevas": [Color(0.45, 0.2, 0.7), Color(0.15, 0.05, 0.25)],
+	"luz": [Color(1.0, 0.95, 0.7), Color(0.7, 0.9, 1.0)],
+}
+
+
+static func chefe(c: Node3D, fam: Dictionary) -> void:
+	var skel: Skeleton3D = c.get("skel")
+	if skel == null:
+		return
+	var el: Array = ELEMENTOS.get(str(fam.get("elem", "terra")), ELEMENTOS.terra)
+	var cor: Color = el[0]
+	var ferro := _mat(Color(0.22, 0.2, 0.19), 0.0, 0.5)
+	ferro.metallic = 0.7
+	var osso := _mat(Color(0.88, 0.83, 0.7), 0.0, 0.55)
+	# ombreiras mutantes com espinhos de osso
+	for lado in ["l", "r"]:
+		var bi := skel.find_bone("upperarm_" + lado)
+		if bi < 0:
+			continue
+		var sg := 1.0 if lado == "l" else -1.0
+		var at := _osso(skel, "upperarm_" + lado)
+		var inv := skel.get_bone_global_rest(bi).affine_inverse()
+		var o := skel.get_bone_global_rest(bi).origin
+		var esf := SphereMesh.new()
+		esf.radius = 0.13
+		esf.height = 0.16
+		var pm := _peca(at, esf, ferro, Vector3.ZERO)
+		pm.transform = inv * Transform3D(Basis.from_euler(Vector3(0, 0, -sg * 0.4)), o + Vector3(sg * 0.03, 0.06, 0))
+		for k in 4:
+			var e := _peca(at, _cone(0.025, 0.16 + (k % 2) * 0.06), osso, Vector3.ZERO)
+			e.transform = inv * Transform3D(Basis.from_euler(Vector3(-0.5 + k * 0.33, 0, -sg * (0.25 + 0.2 * (k % 2)))), o + Vector3(sg * (0.04 + k * 0.012), 0.16, -0.08 + k * 0.05))
+	# placas de mutação nas costas
+	var sp := skel.find_bone("spine_03")
+	if sp >= 0:
+		var at2 := _osso(skel, "spine_03")
+		var inv2 := skel.get_bone_global_rest(sp).affine_inverse()
+		var o2 := skel.get_bone_global_rest(sp).origin
+		for k in 5:
+			var e2 := _peca(at2, _cone(0.04, 0.18 + 0.05 * sin(k * 1.3)), osso, Vector3.ZERO)
+			e2.transform = inv2 * Transform3D(Basis.from_euler(Vector3(-0.9, 0, (k - 2) * 0.25)), o2 + Vector3((k - 2) * 0.06, 0.05 - absf(k - 2) * 0.04, -0.14))
+	# espinhos na cabeça da arma
+	var arma: Node3D = c.get("wnode")
+	if arma != null:
+		for k in 6:
+			var ang := TAU * k / 6.0
+			var e3 := _peca(arma, _cone(0.03, 0.14), ferro, Vector3.ZERO)
+			e3.transform = Transform3D(Basis(Quaternion(Vector3.UP, Vector3(cos(ang), 0.3, sin(ang)).normalized())), Vector3(cos(ang) * 0.06, 0.62, sin(ang) * 0.06))
+	olhos(skel, cor.lightened(0.3))
+	_aura_elemento(c, el)
+	_habilidade(c, el)
+
+
+# partículas do elemento subindo do corpo (fogo, cinza, folhas, cristais de gelo, fumaça escura, luz)
+static func _aura_elemento(c: Node3D, el: Array) -> void:
+	var p := CPUParticles3D.new()
+	p.name = "AuraElemento"
+	p.amount = 40
+	p.lifetime = 1.8
+	p.local_coords = false
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.6
+	p.position = Vector3(0, 1.1, 0)
+	p.direction = Vector3.UP
+	p.spread = 35.0
+	p.gravity = Vector3(0, 0.6, 0)
+	p.initial_velocity_min = 0.2
+	p.initial_velocity_max = 0.6
+	var cv := Curve.new()
+	cv.add_point(Vector2(0, 0.0))
+	cv.add_point(Vector2(0.2, 1.0))
+	cv.add_point(Vector2(1, 0.0))
+	p.scale_amount_curve = cv
+	p.color_ramp = _rampa(el[0], el[1])
+	var q := QuadMesh.new()
+	q.size = Vector2(0.16, 0.16)
+	q.material = _mat_brilho()
+	p.mesh = q
+	p.visibility_range_end = 90.0
+	c.add_child(p)
+
+
+static func _rampa(a: Color, b: Color) -> Gradient:
+	var g := Gradient.new()
+	g.set_color(0, Color(a.r, a.g, a.b, 0.9))
+	g.set_color(1, Color(b.r, b.g, b.b, 0.0))
+	return g
+
+
+static var _brilho: StandardMaterial3D
+
+
+static func _mat_brilho() -> StandardMaterial3D:
+	if _brilho != null:
+		return _brilho
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.set_color(1, Color(1, 1, 1, 0))
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(0.5, 0.0)
+	_brilho = StandardMaterial3D.new()
+	_brilho.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_brilho.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_brilho.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_brilho.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	_brilho.vertex_color_use_as_albedo = true
+	_brilho.albedo_texture = t
+	return _brilho
+
+
+# golpe de habilidade a cada ~6 s: onda no chão que se abre e explosão do elemento
+static func _habilidade(c: Node3D, el: Array) -> void:
+	var anel := MeshInstance3D.new()
+	anel.name = "OndaHabilidade"
+	var tor := TorusMesh.new()
+	tor.inner_radius = 0.9
+	tor.outer_radius = 1.0
+	tor.rings = 32
+	anel.mesh = tor
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(el[0].r, el[0].g, el[0].b, 0.0)
+	anel.material_override = m
+	anel.position = Vector3(0, 0.05, 0)
+	anel.scale = Vector3(0.2, 0.3, 0.2)
+	c.add_child(anel)
+	var est := CPUParticles3D.new()
+	est.name = "ExplosaoHabilidade"
+	est.amount = 60
+	est.lifetime = 1.0
+	est.one_shot = true
+	est.emitting = false
+	est.explosiveness = 0.9
+	est.local_coords = false
+	est.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
+	est.emission_ring_axis = Vector3.UP
+	est.emission_ring_radius = 0.8
+	est.emission_ring_inner_radius = 0.3
+	est.emission_ring_height = 0.1
+	est.direction = Vector3.UP
+	est.spread = 40.0
+	est.gravity = Vector3(0, -3.0, 0)
+	est.initial_velocity_min = 2.0
+	est.initial_velocity_max = 4.5
+	est.color_ramp = _rampa(el[0], el[1])
+	var q := QuadMesh.new()
+	q.size = Vector2(0.25, 0.25)
+	q.material = _mat_brilho()
+	est.mesh = q
+	c.add_child(est)
+	var tw := c.create_tween().set_loops()
+	tw.tween_interval(4.5)
+	tw.tween_callback(func() -> void:
+		est.restart()
+		anel.scale = Vector3(0.2, 0.3, 0.2)
+		m.albedo_color.a = 0.9)
+	tw.tween_property(anel, "scale", Vector3(4.0, 0.3, 4.0), 0.9).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(m, "albedo_color:a", 0.0, 0.9)

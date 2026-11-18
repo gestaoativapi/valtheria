@@ -1,5 +1,6 @@
 extends Node3D
 const Perfil := preload("res://scripts/perfil.gd")
+const FeraHibrida := preload("res://scripts/fera_hibrida.gd")
 # Personagem: corpo-base + roupa + cabelo presos ao mesmo esqueleto, com as animações do jogo.
 
 const DIR := "res://assets/chars/"
@@ -200,7 +201,7 @@ func _setup_medido(o: Dictionary) -> void:
 	var skins: Array = rd.get("skins", ["#e8b993"])
 	var skin := Color(str(skins[clampi(int(o.get("skin", look.get("skin", 0))), 0, skins.size() - 1)]))
 	if race == "beastman" and V3_HUMANOS:
-		var pel: Array = FERAS.get(str(o.get("subtipo", "leao")), FERAS.leao).pelo
+		var pel: Array = FERAS.get(str(o.get("subtipo", "leao" if male else "tigre")), FERAS.leao).pelo
 		skin = Color(str(pel[clampi(int(o.get("skin", look.get("skin", 0))), 0, pel.size() - 1)]))
 	if race in ["elfo", "sombrio", "orc", "gigante", "draconato", "anao"] and V3_HUMANOS:
 		var pl: Array = (TRACOS[race] as Dictionary).get("peles", [])
@@ -256,10 +257,23 @@ func _setup_medido(o: Dictionary) -> void:
 		if TRACOS.has(race) and TRACOS[race].has("cabelos"):
 			var cab: Array = TRACOS[race].cabelos
 			hair_col = Color(str(cab[posmod(hc_i, cab.size())]))
-		_vestir_v3(male, outfit, hair_col, race != "beastman")
+		if o.get("sem_roupa", false):
+			# chefes mutantes: o corpo V3 só tem as partes à mostra (rosto e mãos); a roupa base vira
+			# pelagem, pintada da cor do pelo, e a armadura mutante vai por cima
+			var antes := skel.find_children("*", "MeshInstance3D", false, false)
+			_vestir_v3(male, "peasant", hair_col, false)
+			for m in skel.find_children("*", "MeshInstance3D", false, false):
+				if not m in antes:
+					_tint(m as MeshInstance3D, skin.darkened(0.15))
+		else:
+			_vestir_v3(male, outfit, hair_col, race != "beastman")
 		if race != "humano":
-			subtipo = str(o.get("subtipo", "leao"))
+			subtipo = str(o.get("subtipo", ""))
+			if subtipo == "" and race == "beastman":
+				subtipo = "leao" if male else "tigre"
 			_tracos_raca(race, male, skin, hair_col)
+		if o.has("armadura_mutante"):
+			_armadura_dragonita(str(o.armadura_mutante))
 	else:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
 			var nm := String(m.name).to_lower()
@@ -884,7 +898,14 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 		anel.transform = rest.affine_inverse() * Transform3D(Basis.from_euler(Vector3(0.35, 0, 0)), Vector3(0, 1.415, 0.1))
 		att.add_child(anel)
 	if tr.get("fera", false):
-		_cabeca_fera(subtipo, male, att, rest, olho_y, olho_z, pele_raca)
+		if FeraHibrida.ESPECIES.has(subtipo):
+			# rosto híbrido (fera + humano) com olhos humanos; garras nos dedos e cauda
+			FeraHibrida.montar(skel, att, rest, male, subtipo, skin)
+			FeraHibrida.garras(skel, subtipo, male)
+			var fh: Dictionary = FERAS[subtipo]
+			_cauda_fera(subtipo, fh, male, pele_raca, Color(str(fh.escuro)))
+		else:
+			_cabeca_fera(subtipo, male, att, rest, olho_y, olho_z, pele_raca)
 	_tracos_extras(race, male, olho_y, olho_z)
 	if tr.has("marca"):
 		# marca rúnica leve na testa (elfo negro: prata; gigante: gelo), brilho bem suave
@@ -907,9 +928,12 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 # e é coberta por um crânio de fera feito de peças (crânio, focinho, mandíbula, nariz, orelhas, olhos),
 # com juba, listras ou placas conforme a linhagem e uma cauda em segmentos presa à pelve.
 const FERAS := {
-	"leao": {"pelo": ["#c78a3c", "#e6b85c", "#a6672c", "#d9a35a"], "escuro": "#754321", "focinho": [0.11, 0.062, 0.85], "orelha": "redonda", "juba": "#8a4e22", "cauda": [0.8, 0.035, "tufo"]},
-	"tigre": {"pelo": ["#d28b42", "#e09a4c", "#c27a34", "#f0c27a"], "escuro": "#392b22", "focinho": [0.12, 0.058, 0.85], "orelha": "redonda", "listras": true, "cauda": [0.9, 0.032, "listrada"]},
+	"leao": {"pelo": ["#c19462", "#d4a970", "#a87e4c", "#b98a55"], "escuro": "#754321", "focinho": [0.11, 0.062, 0.85], "orelha": "redonda", "juba": "#8a4e22", "cauda": [0.8, 0.035, "tufo"]},
+	"tigre": {"pelo": ["#cf8644", "#d99552", "#bd7638", "#e3aa6a"], "escuro": "#392b22", "focinho": [0.12, 0.058, 0.85], "orelha": "redonda", "listras": true, "cauda": [0.9, 0.032, "listrada"]},
 	"lobo": {"pelo": ["#92969b", "#b5b7b4", "#746b65", "#5e6670"], "escuro": "#3c4654", "focinho": [0.19, 0.047, 0.8], "orelha": "pontuda", "cauda": [0.85, 0.06, "peluda"]},
+	"javali": {"pelo": ["#4a3428", "#5a4030", "#3a2a20", "#6a4a36"], "escuro": "#1e1410", "focinho": [0.15, 0.078, 0.9], "orelha": "pontuda", "presas": true, "cerdas": true, "cauda": [0.35, 0.03, "tufo"]},
+	"onca": {"pelo": ["#d9a24e", "#e3b062", "#c48a3c", "#eabf78"], "escuro": "#2a1e16", "focinho": [0.1, 0.058, 0.85], "orelha": "redonda", "cauda": [0.85, 0.032, "listrada"]},
+	"ursa": {"pelo": ["#6b4a32", "#7d5a3c", "#5a3e2a", "#8c6a48"], "escuro": "#3a281c", "focinho": [0.1, 0.06, 0.85], "orelha": "redonda", "cauda": [0.12, 0.05, "tufo"]},
 	"crocodilo": {"pelo": ["#567e54", "#6b8b55", "#4a6b47", "#7d8f5c"], "escuro": "#354e3c", "focinho": [0.26, 0.05, 0.55], "orelha": "", "placas": true, "cauda": [1.0, 0.075, "placas"]},
 }
 
@@ -1024,6 +1048,27 @@ func _cabeca_fera(sub: String, male: bool, att: Node3D, rest: Transform3D, olho_
 		pl.radial_segments = 4
 		for k in 4:
 			poe.call(pl, me, c0 + Vector3(0, 0.11, 0.06 - k * 0.05), Vector3(-0.3, 0, 0))
+	if f.get("presas", false):
+		# presas do javali: curvas para cima, saindo dos cantos da boca
+		var marfim := StandardMaterial3D.new()
+		marfim.albedo_color = Color(0.93, 0.88, 0.74)
+		marfim.roughness = 0.45
+		for lado in [-1.0, 1.0]:
+			for k in 3:
+				var seg := CylinderMesh.new()
+				seg.top_radius = 0.0 if k == 2 else 0.011 - k * 0.003
+				seg.bottom_radius = 0.014 - k * 0.003
+				seg.height = 0.05
+				poe.call(seg, marfim, base + Vector3(lado * (0.055 + k * 0.012), -0.01 + k * 0.035, fl * 0.75 - k * 0.008), Vector3(-0.3 + k * 0.3, 0, -lado * (0.35 + k * 0.25)))
+	if f.get("cerdas", false):
+		# crina de cerdas do alto da cabeça até a nuca
+		for k in 7:
+			var ce := CylinderMesh.new()
+			ce.top_radius = 0.0
+			ce.bottom_radius = 0.018
+			ce.height = 0.09 + 0.02 * sin(k * 0.9)
+			ce.radial_segments = 4
+			poe.call(ce, me, c0 + Vector3(0, 0.1 - k * 0.012, 0.03 - k * 0.035), Vector3(-0.5 - k * 0.12, 0, 0))
 	_cauda_fera(sub, f, male, pelo, escuro)
 
 
@@ -1038,7 +1083,7 @@ func _cauda_fera(sub: String, f: Dictionary, male: bool, pelo: Color, escuro: Co
 	skel.add_child(att)
 	var rest := skel.get_bone_global_rest(pi)
 	var raiz := Node3D.new()
-	raiz.transform = rest.affine_inverse() * Transform3D(Basis.from_euler(Vector3(deg_to_rad(-70), 0, 0)), rest.origin + Vector3(0, -0.02, -0.12))
+	raiz.transform = rest.affine_inverse() * Transform3D(Basis.from_euler(Vector3(deg_to_rad(-145), 0, 0)), rest.origin + Vector3(0, -0.02, -0.12))
 	att.add_child(raiz)
 	var comp: float = float(f.cauda[0]) * (1.0 if male else 0.9)
 	var raio: float = float(f.cauda[1])
@@ -1055,7 +1100,7 @@ func _cauda_fera(sub: String, f: Dictionary, male: bool, pelo: Color, escuro: Co
 		var t := float(k) / n
 		var seg := Node3D.new()
 		seg.position = Vector3(0, comp / n if k > 0 else 0.0, 0)
-		seg.rotation = Vector3(deg_to_rad(8.0 + t * 6.0), 0, 0)
+		seg.rotation = Vector3(deg_to_rad(-6.0 - t * 4.0), 0, 0)
 		pai.add_child(seg)
 		var r := raio * (1.0 - t * 0.6)
 		if tipo == "peluda":
