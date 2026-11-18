@@ -37,6 +37,7 @@ var facing := 0.0
 var mapa_ui: Control
 var folego: Control
 var dialogo: Control
+var orbita := 0.0   # vídeo de apresentação: a câmera gira em volta do personagem
 var sel := {}  # alvo que não é monstro: {"kind": "self"|"player"|"npc", ...}
 var emote := ""
 var jumping := false
@@ -325,6 +326,8 @@ func _ready() -> void:
 				n.position = Vector3(px, world.height(px, pz), pz)
 				n.rotation.y = 0.0
 			facing = PI
+		elif a.begins_with("--orbita="):
+			orbita = float(a.trim_prefix("--orbita="))
 		elif a == "--crowd":
 			_spawn_crowd()
 		elif a.begins_with("--look="):  # teste: câmera atrás do personagem olhando para x, z
@@ -897,6 +900,7 @@ func _process(dt: float) -> void:
 			combat.engage(combat.target)
 			combat.use_skill(0)
 	if playing:
+		yaw += orbita * dt
 		var focus := player.position + Vector3(0, player.height_m * 0.82, 0)
 		var dir := Vector3(sin(yaw) * cos(pitch), -sin(pitch), cos(yaw) * cos(pitch))
 		var want := focus + dir * (dist if interiores.inside.is_empty() else minf(dist, 5.0))
