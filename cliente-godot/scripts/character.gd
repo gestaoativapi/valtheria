@@ -263,6 +263,7 @@ func brilho_encanto(nivel: int) -> void:
 	for m in wnode.find_children("*", "MeshInstance3D", true, false):
 		(m as MeshInstance3D).material_overlay = null
 	if faixa < 0:
+		_rastros_encanto(-1, Color())
 		return
 	if _brilho_shader == null:
 		_brilho_shader = Shader.new()
@@ -271,12 +272,12 @@ func brilho_encanto(nivel: int) -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = _brilho_shader
 	mat.set_shader_parameter("cor", cor)
-	mat.set_shader_parameter("forca", 0.45 + 0.18 * faixa + 0.04 * float(nivel - int(FAIXAS_ENCANTO[faixa][0])))
+	mat.set_shader_parameter("forca", 0.5 + 0.3 * faixa + 0.05 * float(nivel - int(FAIXAS_ENCANTO[faixa][0])))
 	var bb := AABB()
 	var first := true
 	for m in wnode.find_children("*", "MeshInstance3D", true, false):
 		(m as MeshInstance3D).material_overlay = mat
-		var a: AABB = wnode.global_transform.affine_inverse() * (m as MeshInstance3D).global_transform * (m as MeshInstance3D).get_aabb()
+		var a: AABB = _rel_wnode(m) * (m as MeshInstance3D).get_aabb()
 		bb = a if first else bb.merge(a)
 		first = false
 	if faixa >= 1:   # a partir do +7: faíscas subindo da lâmina
@@ -306,6 +307,130 @@ func brilho_encanto(nivel: int) -> void:
 		p.mesh = q
 		p.visibility_range_end = 30.0
 		wnode.add_child(p)
+		# estrela de luz na ponta da lâmina (ponta mais distante da empunhadura)
+		var ponta := bb.get_center()
+		var eixo := 0
+		if bb.size.y > bb.size[eixo]: eixo = 1
+		if bb.size.z > bb.size[eixo]: eixo = 2
+		var fim := bb.position[eixo] + bb.size[eixo]
+		ponta[eixo] = fim if absf(fim) > absf(bb.position[eixo]) else bb.position[eixo]
+		var est := MeshInstance3D.new()
+		est.name = "BrilhoEncanto"
+		var eq := QuadMesh.new()
+		var tam := 0.4 + 0.18 * faixa
+		eq.size = Vector2(tam, tam)
+		est.mesh = eq
+		est.material_override = _estrela_mat(cor, faixa)
+		est.position = ponta
+		est.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		est.visibility_range_end = 40.0
+		wnode.add_child(est)
+	_rastros_encanto(faixa, cor)
+
+
+const ESTRELA_SHADER := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never;
+uniform vec3 cor : source_color = vec3(1.0);
+uniform float forca = 1.0;
+void vertex() {
+	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
+}
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	float r = length(p);
+	float a = TIME * 0.5;
+	vec2 q = vec2(p.x * cos(a) - p.y * sin(a), p.x * sin(a) + p.y * cos(a));
+	float raios = 0.004 / (abs(q.x) + 0.012) * smoothstep(1.0, 0.0, abs(q.y)) + 0.004 / (abs(q.y) + 0.012) * smoothstep(1.0, 0.0, abs(q.x));
+	vec2 d = vec2(q.x + q.y, q.x - q.y) * 0.7071;
+	raios += 0.5 * (0.003 / (abs(d.x) + 0.015) * smoothstep(0.7, 0.0, abs(d.y)) + 0.003 / (abs(d.y) + 0.015) * smoothstep(0.7, 0.0, abs(d.x)));
+	float nucleo = exp(-r * r * 18.0) * 2.5;
+	float halo = exp(-r * r * 3.0) * 0.35;
+	float pulso = 0.8 + 0.2 * sin(TIME * 4.0);
+	float v = (nucleo + halo + raios * 0.6) * smoothstep(1.0, 0.55, r) * pulso;
+	ALBEDO = mix(cor, vec3(1.0), clamp(nucleo * 0.4, 0.0, 0.8)) * v * forca;
+}
+"""
+static var _estrela_shader: Shader
+static var _arco_mesh: ArrayMesh
+
+
+# transformação de um nó relativa à arma, sem depender de estar na árvore
+func _rel_wnode(n: Node) -> Transform3D:
+	var t := Transform3D()
+	while n != null and n != wnode:
+		if n is Node3D:
+			t = (n as Node3D).transform * t
+		n = n.get_parent()
+	return t
+var _rastros: Node3D
+
+
+static func _estrela_mat(cor: Color, faixa: int) -> ShaderMaterial:
+	if _estrela_shader == null:
+		_estrela_shader = Shader.new()
+		_estrela_shader.code = ESTRELA_SHADER
+	var m := ShaderMaterial.new()
+	m.shader = _estrela_shader
+	m.set_shader_parameter("cor", cor)
+	m.set_shader_parameter("forca", 0.7 + 0.15 * faixa)
+	return m
+
+
+# fita em arco (~220 graus), mais larga no meio e sumindo nas pontas
+static func _arco() -> ArrayMesh:
+	if _arco_mesh != null:
+		return _arco_mesh
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+	var n := 40
+	for i in n + 1:
+		var t := float(i) / n
+		var ang := t * deg_to_rad(220.0)
+		var alfa := sin(t * PI)
+		var lar := 0.006 + 0.02 * alfa
+		var dd := Vector3(cos(ang), 0, sin(ang))
+		st.set_color(Color(alfa * alfa, alfa * alfa, alfa * alfa))
+		st.add_vertex(dd + Vector3(0, lar, 0))
+		st.set_color(Color(alfa * alfa, alfa * alfa, alfa * alfa))
+		st.add_vertex(dd - Vector3(0, lar, 0))
+	_arco_mesh = st.commit()
+	return _arco_mesh
+
+
+# a partir do +10: 2 rastros de luz girando em volta do corpo (3 no +16)
+func _rastros_encanto(faixa: int, cor: Color) -> void:
+	if _rastros != null:
+		_rastros.queue_free()
+		_rastros = null
+	if faixa < 2:
+		return
+	_rastros = Node3D.new()
+	_rastros.name = "RastrosEncanto"
+	_rastros.position = Vector3(0, 1.0, 0)
+	add_child(_rastros)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.vertex_color_use_as_albedo = true
+	mat.albedo_color = Color(minf(cor.r * 1.6, 1.0), minf(cor.g * 1.6, 1.0), minf(cor.b * 1.6, 1.0))
+	var qtd := 2 if faixa < 4 else 3
+	for i in qtd:
+		var piv := Node3D.new()
+		piv.rotation = Vector3(deg_to_rad(-25.0 + 30.0 * i), deg_to_rad(120.0 * i), deg_to_rad(18.0 - 22.0 * i))
+		_rastros.add_child(piv)
+		var giro := Node3D.new()
+		piv.add_child(giro)
+		var mi := MeshInstance3D.new()
+		mi.mesh = _arco()
+		mi.material_override = mat
+		mi.scale = Vector3.ONE * (0.62 + 0.08 * i)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 45.0
+		giro.add_child(mi)
+		var tw := giro.create_tween().set_loops()
+		tw.tween_property(giro, "rotation:y", TAU * (1.0 if i % 2 == 0 else -1.0), 1.6 + 0.5 * i).from(0.0)
 
 
 # aura de herói: anel de luz dourada aos pés e brilho subindo pelo corpo
@@ -352,6 +477,22 @@ func aura_heroi(on: bool) -> void:
 	luz.distance_fade_enabled = true
 	luz.distance_fade_begin = 25.0
 	_aura.add_child(luz)
+	# duas esferas de luz orbitando (azul e âmbar): marca própria do herói
+	var orb := Node3D.new()
+	orb.position = Vector3(0, 1.35, 0)
+	_aura.add_child(orb)
+	var cores := [Color(0.45, 0.7, 1.0), Color(1.0, 0.6, 0.25)]
+	for i in 2:
+		var e := MeshInstance3D.new()
+		var q2 := QuadMesh.new()
+		q2.size = Vector2(0.3, 0.3)
+		e.mesh = q2
+		e.material_override = _estrela_mat(cores[i], 1)
+		e.position = Vector3(0.75 if i == 0 else -0.75, 0.15 * i, 0)
+		e.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		orb.add_child(e)
+	var tw := orb.create_tween().set_loops()
+	tw.tween_property(orb, "rotation:y", TAU, 3.2).from(0.0)
 
 
 # V3: aldeão = túnica (formas corretivas + RBF), calça e botas novas; outras armaduras usam a roupa oficial no corpo novo

@@ -306,7 +306,7 @@ func _ready() -> void:
 			for i in niveis.size():
 				var c: Node3D = Character.create({"race": "humano", "gender": "m", "skin": 1, "hair": 1, "hair_color": 2, "heroi": i == niveis.size() - 1, "equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}, "enchant": {"espada_ng": niveis[i]}})
 				add_child(c)
-				var px := player.position.x - 3.0 + i * 1.2
+				var px := player.position.x - 4.5 + i * 1.8
 				var pz := player.position.z + 3.0
 				c.position = Vector3(px, world.height(px, pz), pz)
 			facing = PI
