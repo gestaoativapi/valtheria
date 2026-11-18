@@ -70,6 +70,52 @@ static func montar(skel: Skeleton3D, att: Node3D, rest: Transform3D, male: bool,
 	_juba(att, inv, tab, f, sub, male, pelo)
 	if sub in ["leao", "tigre", "onca"]:
 		_bigodes(att, inv, tab, f, male)
+	_olhos_ambar(skel, sub)
+
+
+# olhos humanos com íris âmbar (decisão D4 de Robson, 18/11): mesma textura do olho humano,
+# só a íris muda de cor; o branco fica um pouco mais limpo para o olhar ficar firme
+const OLHO_SHADER := """
+shader_type spatial;
+uniform sampler2D tex : source_color, filter_linear_mipmap;
+uniform vec3 iris : source_color = vec3(0.86, 0.56, 0.14);
+uniform vec3 borda : source_color = vec3(0.32, 0.17, 0.04);
+void fragment() {
+	vec4 t = texture(tex, UV);
+	vec3 c = t.rgb;
+	float d = min(distance(UV, vec2(0.705, 0.29)), distance(UV, vec2(0.29, 0.71)));
+	float l = dot(t.rgb, vec3(0.3, 0.59, 0.11));
+	float m_iris = 1.0 - smoothstep(0.105, 0.118, d);
+	float m_pupila = 1.0 - smoothstep(0.03, 0.04, d);
+	vec3 ambar = mix(borda, iris, smoothstep(0.05, 0.1, d) * 0.0 + smoothstep(0.118, 0.06, d)) * (0.55 + l * 1.6);
+	c = mix(c, ambar, m_iris * (1.0 - m_pupila));
+	c = mix(c, vec3(0.02), m_pupila);
+	c = mix(c, vec3(0.93, 0.91, 0.88), (1.0 - m_iris) * 0.35);
+	ALBEDO = c;
+	ROUGHNESS = 0.15;
+	SPECULAR = 0.6;
+}
+"""
+static var _olho_mat: ShaderMaterial
+
+
+static func _olhos_ambar(skel: Skeleton3D, sub: String) -> void:
+	for m in skel.find_children("olhos", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		var base := mi.mesh.surface_get_material(0)
+		if not (base is StandardMaterial3D):
+			continue
+		if _olho_mat == null:
+			var sh := Shader.new()
+			sh.code = OLHO_SHADER
+			_olho_mat = ShaderMaterial.new()
+			_olho_mat.shader = sh
+			_olho_mat.set_shader_parameter("tex", (base as StandardMaterial3D).albedo_texture)
+		var mat: ShaderMaterial = _olho_mat
+		if sub == "lobo":
+			mat = _olho_mat.duplicate()
+			mat.set_shader_parameter("iris", Color(0.92, 0.72, 0.24))
+		mi.material_override = mat
 
 
 # ---------------------------------------------------------------- medida da cabeça humana
@@ -226,7 +272,7 @@ static func _forma(t: Dictionary, f: Dictionary, male: bool, az: float, el: floa
 		var dq := Vector2((az - lado * 0.16) / 0.13, (el - (el_m - 0.04)) / 0.11).length()
 		add += alm * exp(-dq * dq)
 	# sobrancelha firme: faixa sobre os olhos, levemente mais baixa no centro
-	var el_b := 0.2 + 0.07 * minf(absf(az), 0.6)
+	var el_b := 0.24 + 0.06 * minf(absf(az), 0.6)
 	var wb := exp(-pow((el - el_b) / 0.075, 2.0)) * (1.0 - smoothstep(0.55, 0.9, absf(az)))
 	add += float(f.testa) * wb
 	# maçãs largas: rosto redondo, silhueta cheia
@@ -372,7 +418,7 @@ static func _cor(f: Dictionary, sub: String, pelo: Color, claro: Color, escuro: 
 				m = maxf(m, exp(-pow((dd - 0.28) / 0.08, 2.0)) if el > -0.2 or absf(az) > 0.6 else 0.0)
 		k = k.lerp(escuro, m * (1.0 - clr) * 0.9)
 	# contorno escuro dos olhos (delineado natural) e boca
-	k = k.lerp(contorno_c, cont * 0.6)
+	k = k.lerp(contorno_c, cont * 0.45)
 	k = k.lerp(contorno_c, boca)
 	# alfa = densidade das cascas de pelo (zero perto dos olhos, nariz e boca)
 	var a := 1.0 - maxf(maxf(dentro, cont * 0.8), boca)
