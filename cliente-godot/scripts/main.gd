@@ -302,7 +302,7 @@ func _ready() -> void:
 			facing = PI
 			Character.V3_HUMANOS = true
 		elif a == "--encantos":  # teste: mesma espada em +0, +4, +7, +10, +13, +16 e um herói
-			var niveis := [0, 4, 7, 10, 13, 16]
+			var niveis := [4, 7, 10, 13, 15, 16]
 			for i in niveis.size():
 				var c: Node3D = Character.create({"race": "humano", "gender": "m", "skin": 1, "hair": 1, "hair_color": 2, "heroi": i == niveis.size() - 1, "equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}, "enchant": {"espada_ng": niveis[i]}})
 				add_child(c)

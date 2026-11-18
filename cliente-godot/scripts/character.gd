@@ -234,7 +234,23 @@ func _setup_medido(o: Dictionary) -> void:
 # Faixas próprias de Valtheria: aço azul (+4), turquesa (+7), âmbar (+10), violeta (+13) e ouro branco (+16).
 # Camadas da arma: (1) a arma inteira acesa, mais forte nas bordas; (2) contorno de luz em volta de toda a
 # silhueta; (3) a partir do +7, aura de energia em ondas subindo pela lâmina; (4) a partir do +10, rastros em arco.
-const FAIXAS_ENCANTO := [[4, Color(0.35, 0.55, 1.0)], [7, Color(0.2, 0.95, 0.85)], [10, Color(1.0, 0.55, 0.15)], [13, Color(0.7, 0.3, 1.0)], [16, Color(1.0, 0.92, 0.6)]]
+# +4 começa num azul bem claro e vai ganhando cor, fluxo, brilho e tamanho até o +15; o +16 vira dourado-bronze.
+const AZUL_INICIO := Color(0.80, 0.90, 1.0)
+const AZUL_FIM := Color(0.38, 0.62, 1.0)
+const OURO_16 := Color(1.0, 0.76, 0.42)
+
+
+static func cor_encanto(nivel: int) -> Color:
+	if nivel >= 16:
+		return OURO_16
+	return AZUL_INICIO.lerp(AZUL_FIM, clampf((nivel - 4) / 11.0, 0.0, 1.0))
+
+
+# 0 no +4, 1 no +15, 1.15 no +16
+static func peso_encanto(nivel: int) -> float:
+	if nivel >= 16:
+		return 1.15
+	return clampf((nivel - 4) / 11.0, 0.0, 1.0)
 
 # (1) superfície: toda a arma brilha, com as bordas (onde a face vira de lado) bem mais fortes
 const BRILHO_SHADER := """
@@ -243,9 +259,9 @@ render_mode blend_add, unshaded, cull_back, depth_draw_never;
 uniform vec3 cor : source_color = vec3(0.4, 0.6, 1.0);
 uniform float forca = 1.0;
 void fragment() {
-	float fr = pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 1.6);
-	float pulso = 0.85 + 0.15 * sin(TIME * 3.0);
-	ALBEDO = cor * (0.45 + fr * 2.4) * forca * pulso;
+	float fr = pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 1.8);
+	float pulso = 0.9 + 0.1 * sin(TIME * 2.2);
+	ALBEDO = cor * (0.12 + fr * 1.3) * forca * pulso;
 }
 """
 
@@ -265,8 +281,8 @@ void vertex() {
 }
 void fragment() {
 	float d = clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0);
-	float borda = smoothstep(0.0, 0.55, 1.0 - d);
-	ALBEDO = mix(cor, vec3(1.0), 0.35) * (0.6 + borda) * forca;
+	float borda = smoothstep(0.0, 0.7, 1.0 - d);
+	ALBEDO = mix(cor, vec3(1.0), 0.2) * (0.25 + borda * 0.75) * forca;
 }
 """
 
@@ -279,7 +295,10 @@ uniform float forca = 1.0;
 uniform float largura = 0.05;
 uniform vec3 eixo = vec3(0.0, 1.0, 0.0);
 uniform float comprimento = 1.0;
+uniform float velocidade = 1.0;
+uniform float fase = 0.0;
 varying vec3 lp;
+varying float ph;
 float h(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
 float ruido(vec3 p) {
 	vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -289,21 +308,19 @@ float ruido(vec3 p) {
 void vertex() {
 	lp = VERTEX;
 	float s = dot(VERTEX, eixo) / comprimento;
-	float onda = 0.65 + 0.35 * sin(s * 18.0 - TIME * 5.0) + 0.25 * sin(s * 7.0 + TIME * 2.3);
+	ph = fract(TIME * 0.45 * velocidade + fase - s * 0.6 + ruido(VERTEX / comprimento * 3.0) * 0.5);
 	vec3 w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec3 n = normalize(mat3(MODEL_MATRIX) * NORMAL);
-	w += n * largura * onda;
+	w += n * largura * (0.15 + 0.85 * ph);
 	VERTEX = (VIEW_MATRIX * vec4(w, 1.0)).xyz;
 	NORMAL = normalize(mat3(VIEW_MATRIX) * n);
 }
 void fragment() {
-	float s = dot(lp, eixo) / comprimento;
-	float fluxo = ruido(lp / comprimento * 9.0 - eixo * TIME * 2.2);
-	float faixas = smoothstep(0.35, 1.0, 0.5 + 0.5 * sin(s * 26.0 - TIME * 6.0 + fluxo * 4.0));
+	float fluxo = ruido(lp / comprimento * 8.0 - eixo * TIME * 1.5 * velocidade);
+	float sumir = (1.0 - ph) * smoothstep(0.0, 0.2, ph);
 	float d = clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0);
-	float vela = 0.55 + (1.0 - d) * 0.45;
-	float a = (0.35 + faixas * 1.5) * (0.4 + fluxo) * vela;
-	ALBEDO = mix(cor, vec3(1.0), faixas * 0.25) * a * forca;
+	float a = sumir * (0.35 + fluxo * 0.65) * (0.45 + (1.0 - d) * 0.55);
+	ALBEDO = mix(cor, vec3(1.0), 0.15) * a * forca;
 }
 """
 
@@ -311,10 +328,12 @@ void fragment() {
 const AURA_HEROI_SHADER := """
 shader_type spatial;
 render_mode blend_add, unshaded, cull_back, depth_draw_never, skip_vertex_transform;
-uniform vec3 cor : source_color = vec3(1.0, 0.8, 0.4);
-uniform float forca = 0.5;
-uniform float espessura = 0.06;
+uniform vec3 cor : source_color = vec3(0.95, 0.68, 0.36);
+uniform float forca = 0.35;
+uniform float espessura = 0.1;
+uniform float fase = 0.0;
 varying vec3 wp;
+varying float ph;
 float h(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
 float ruido(vec3 p) {
 	vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -324,19 +343,20 @@ float ruido(vec3 p) {
 void vertex() {
 	vec3 w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec3 n = normalize(mat3(MODEL_MATRIX) * NORMAL);
-	float sopro = 0.8 + 0.2 * sin(w.y * 6.0 - TIME * 2.5);
-	w += n * espessura * sopro;
+	vec3 base = w - MODEL_MATRIX[3].xyz;
+	ph = fract(TIME * 0.3 + fase + ruido(base * 1.6) * 0.7);
+	w += n * (0.008 + espessura * ph) + vec3(0.0, espessura * 0.35 * ph * ph, 0.0);
 	wp = w;
 	VERTEX = (VIEW_MATRIX * vec4(w, 1.0)).xyz;
 	NORMAL = normalize(mat3(VIEW_MATRIX) * n);
 }
 void fragment() {
 	float d = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
-	float borda = pow(1.0 - d, 2.6);
-	float fluxo = ruido(wp * 4.0 - vec3(0.0, TIME * 0.9, 0.0)) * 0.6 + ruido(wp * 9.0 - vec3(0.0, TIME * 1.7, 0.0)) * 0.4;
-	float veios = smoothstep(0.45, 0.85, fluxo);
-	float a = borda * (0.55 + veios * 0.9) + veios * 0.06;
-	ALBEDO = mix(cor, vec3(1.0, 0.97, 0.88), borda * 0.4) * a * forca;
+	float borda = pow(1.0 - d, 1.7);
+	float fluxo = ruido(wp * 5.0 - vec3(0.0, TIME * 0.7, 0.0));
+	float sumir = (1.0 - ph) * smoothstep(0.0, 0.15, ph);
+	float a = (borda * 0.85 + 0.08) * sumir * (0.45 + fluxo * 0.75);
+	ALBEDO = cor * a * forca;
 }
 """
 static var _shaders := {}
@@ -371,19 +391,15 @@ func brilho_encanto(nivel: int) -> void:
 	for c in wnode.get_children():
 		if c.name == "BrilhoEncanto":
 			c.queue_free()
-	var faixa := -1
-	for i in FAIXAS_ENCANTO.size():
-		if nivel >= int(FAIXAS_ENCANTO[i][0]):
-			faixa = i
 	var malhas := wnode.find_children("*", "MeshInstance3D", true, false)
 	for m in malhas:
 		(m as MeshInstance3D).material_overlay = null
-	if faixa < 0:
+	if nivel < 4:
 		_rastros_encanto(-1, Color())
 		return
-	var cor: Color = FAIXAS_ENCANTO[faixa][1]
-	var extra := float(nivel - int(FAIXAS_ENCANTO[faixa][0]))
-	# medidas da arma para orientar a onda ao longo da lâmina
+	var cor := cor_encanto(nivel)
+	var t := peso_encanto(nivel)
+	# medidas da arma para orientar o fluxo ao longo da lâmina
 	var bb := AABB()
 	var first := true
 	for m in malhas:
@@ -397,55 +413,62 @@ func brilho_encanto(nivel: int) -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = _shader("brilho", BRILHO_SHADER)
 	mat.set_shader_parameter("cor", cor)
-	mat.set_shader_parameter("forca", 0.55 + 0.28 * faixa + 0.05 * extra)
+	mat.set_shader_parameter("forca", 0.25 + 0.6 * t)
 	var cont := ShaderMaterial.new()
 	cont.shader = _shader("contorno", CONTORNO_SHADER)
 	cont.set_shader_parameter("cor", cor)
-	cont.set_shader_parameter("forca", 0.5 + 0.2 * faixa)
-	cont.set_shader_parameter("espessura", 0.006 + 0.002 * faixa)
+	cont.set_shader_parameter("forca", 0.2 + 0.55 * t)
+	cont.set_shader_parameter("espessura", 0.004 + 0.007 * t)
 	mat.next_pass = cont
-	if faixa >= 1:
-		var onda := ShaderMaterial.new()
-		onda.shader = _shader("onda", ONDA_SHADER)
-		onda.set_shader_parameter("cor", cor)
-		onda.set_shader_parameter("forca", 0.55 + 0.2 * faixa + 0.04 * extra)
-		onda.set_shader_parameter("largura", 0.06 + 0.02 * faixa)
-		onda.set_shader_parameter("eixo", eixo)
-		onda.set_shader_parameter("comprimento", maxf(comp, 0.2))
-		onda.render_priority = 1
-		cont.next_pass = onda
+	var ultimo: ShaderMaterial = cont
+	if nivel >= 7:   # aura fluida: duas camadas desencontradas que nascem na lâmina e escorrem para fora
+		for k in 2:
+			var onda := ShaderMaterial.new()
+			onda.shader = _shader("onda", ONDA_SHADER)
+			onda.set_shader_parameter("cor", cor)
+			onda.set_shader_parameter("forca", 0.18 + 0.5 * t)
+			onda.set_shader_parameter("largura", 0.025 + 0.075 * t)
+			onda.set_shader_parameter("eixo", eixo)
+			onda.set_shader_parameter("comprimento", maxf(comp, 0.2))
+			onda.set_shader_parameter("velocidade", 0.6 + 1.0 * t)
+			onda.set_shader_parameter("fase", 0.5 * k)
+			onda.render_priority = 1
+			ultimo.next_pass = onda
+			ultimo = onda
 	for m in malhas:
 		(m as MeshInstance3D).material_overlay = mat
-	if faixa >= 1:   # faíscas de energia desprendendo da aura
+	if nivel >= 10:   # gotas de luz desprendendo da aura
 		var p := CPUParticles3D.new()
 		p.name = "BrilhoEncanto"
-		p.amount = 8 + faixa * 6
-		p.lifetime = 1.1
+		p.amount = int(4 + 12 * t)
+		p.lifetime = 1.4
 		p.local_coords = false
 		p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
 		p.emission_box_extents = bb.size * 0.45
 		p.position = bb.get_center()
 		p.direction = Vector3.UP
-		p.spread = 20.0
-		p.gravity = Vector3(0, 0.5, 0)
-		p.initial_velocity_min = 0.05
-		p.initial_velocity_max = 0.2
-		p.scale_amount_min = 0.4
+		p.spread = 30.0
+		p.gravity = Vector3(0, 0.3, 0)
+		p.initial_velocity_min = 0.03
+		p.initial_velocity_max = 0.15
+		p.scale_amount_min = 0.5
 		p.scale_amount_max = 1.0
 		var curva := Curve.new()
-		curva.add_point(Vector2(0, 0.2))
+		curva.add_point(Vector2(0, 0.0))
 		curva.add_point(Vector2(0.3, 1.0))
 		curva.add_point(Vector2(1, 0))
 		p.scale_amount_curve = curva
 		var q := QuadMesh.new()
-		q.size = Vector2(0.06, 0.06)
+		q.size = Vector2(0.05, 0.05)
 		var qm: StandardMaterial3D = _mat_fiapo().duplicate()
-		qm.albedo_color = Color(cor.r, cor.g, cor.b, 0.9).lerp(Color.WHITE, 0.25)
+		qm.albedo_color = Color(cor.r, cor.g, cor.b, 0.35 + 0.35 * t)
 		q.material = qm
 		p.mesh = q
 		p.visibility_range_end = 30.0
 		wnode.add_child(p)
-	_rastros_encanto(faixa, cor)
+	_rastros_encanto((4 if nivel >= 16 else 2) if nivel >= 13 else -1, cor * (0.55 if nivel < 16 else 0.8))
+	if _rastros != null:
+		_rastros.set_meta("forca", t)
 
 
 # fita em arco (~220 graus), mais larga no meio e sumindo nas pontas
@@ -482,7 +505,7 @@ void vertex() {
 }
 void fragment() {
 	float face = smoothstep(0.1, 0.4, abre);
-	ALBEDO = cor * COLOR.rgb * face * 1.3;
+	ALBEDO = cor * COLOR.rgb * face * 0.8;
 }
 """
 
@@ -540,10 +563,10 @@ func aura_heroi(on: bool) -> void:
 	var mat := ShaderMaterial.new()
 	mat.resource_name = "AuraHeroi"
 	mat.shader = _shader("aura_heroi", AURA_HEROI_SHADER)
-	var veu := ShaderMaterial.new()   # segunda camada, mais larga e tênue: o fluxo da aura além do contorno
+	var veu := ShaderMaterial.new()   # segunda onda, desencontrada: a aura nunca para de transbordar
 	veu.shader = mat.shader
-	veu.set_shader_parameter("espessura", 0.13)
-	veu.set_shader_parameter("forca", 0.22)
+	veu.set_shader_parameter("fase", 0.5)
+	veu.set_shader_parameter("espessura", 0.12)
 	mat.next_pass = veu
 	for m in malhas:
 		if (m as MeshInstance3D).material_overlay == null:
@@ -576,8 +599,8 @@ func aura_heroi(on: bool) -> void:
 		f.scale = Vector3.ONE / maxf(esc, 0.0001)
 		att.add_child(f)
 	var luz := OmniLight3D.new()
-	luz.light_color = Color(1.0, 0.85, 0.5)
-	luz.light_energy = 0.45
+	luz.light_color = Color(1.0, 0.75, 0.45)
+	luz.light_energy = 0.3
 	luz.omni_range = 2.6
 	luz.position = Vector3(0, 1.1, 0)
 	luz.shadow_enabled = false
@@ -589,29 +612,29 @@ func aura_heroi(on: bool) -> void:
 # fiapos de luz dourada que nascem num ponto de força e sobem ondulando
 func _fluxo_aura(peso: float) -> CPUParticles3D:
 	var p := CPUParticles3D.new()
-	p.amount = int(10 * peso) + 4
-	p.lifetime = 1.8
+	p.amount = int(16 * peso) + 6
+	p.lifetime = 2.2
 	p.local_coords = false
 	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	p.emission_sphere_radius = 0.06 + 0.08 * peso
+	p.emission_sphere_radius = 0.05 + 0.06 * peso
 	p.direction = Vector3.UP
-	p.spread = 15.0
-	p.gravity = Vector3(0, 0.25, 0)
-	p.initial_velocity_min = 0.15
-	p.initial_velocity_max = 0.35
-	p.tangential_accel_min = -0.3
-	p.tangential_accel_max = 0.3
-	p.damping_min = 0.1
-	p.damping_max = 0.3
+	p.spread = 70.0
+	p.gravity = Vector3(0, 0.12, 0)
+	p.initial_velocity_min = 0.08
+	p.initial_velocity_max = 0.22
+	p.radial_accel_min = 0.05
+	p.radial_accel_max = 0.15
+	p.damping_min = 0.15
+	p.damping_max = 0.35
 	var curva := Curve.new()
 	curva.add_point(Vector2(0, 0.0))
-	curva.add_point(Vector2(0.25, 1.0))
+	curva.add_point(Vector2(0.2, 1.0))
 	curva.add_point(Vector2(1, 0.0))
 	p.scale_amount_curve = curva
-	p.scale_amount_min = 0.7
-	p.scale_amount_max = 1.2
+	p.scale_amount_min = 0.8
+	p.scale_amount_max = 1.4
 	var q := QuadMesh.new()
-	q.size = Vector2(0.05, 0.16)
+	q.size = Vector2(0.07, 0.07)
 	q.material = _mat_fiapo()
 	p.mesh = q
 	p.visibility_range_end = 50.0
@@ -641,7 +664,7 @@ static func _mat_fiapo() -> StandardMaterial3D:
 	_fiapo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_fiapo.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	_fiapo.albedo_texture = t
-	_fiapo.albedo_color = Color(1.0, 0.8, 0.4, 0.7)
+	_fiapo.albedo_color = Color(0.95, 0.7, 0.4, 0.5)
 	_fiapo.vertex_color_use_as_albedo = true
 	return _fiapo
 
