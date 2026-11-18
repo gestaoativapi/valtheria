@@ -24,8 +24,8 @@ var pose := {}       # nome curto do osso -> graus (postura normal)
 var combate := {}    # nome curto do osso -> graus extras em combate
 var inclina := 0.0   # inclinação extra da caminhada (graus), aplicada só andando
 var em_combate := false
-# os ângulos do parecer são conservadores; o Robson quer raças que não pareçam humanas: reforço de 1,5x (o perfil de combate entra a 60%)
-var intensidade := 1.5
+# os ângulos do parecer são conservadores; o Robson quer raças que não pareçam humanas: reforço de 2,1x a pedido do Robson (o perfil de combate entra a 80%)
+var intensidade := 2.1
 var bracos_livres := true  # com a guarda armada (IK nos braços) a postura não mexe nos braços
 var andando := 0.0   # 0 parado .. 1 andando (o personagem atualiza)
 var _mix := 0.0
@@ -46,7 +46,7 @@ func _ready() -> void:
 
 func _graus(nome: String) -> float:
 	var curto: String = OSSOS[nome][1] if OSSOS[nome][1] != "" else nome
-	var g := float(pose.get(curto, 0.0)) * intensidade + _mix * float(combate.get(curto, 0.0)) * 0.6
+	var g := float(pose.get(curto, 0.0)) * intensidade + _mix * float(combate.get(curto, 0.0)) * 0.8
 	if nome == "spine_01":
 		g += inclina * andando
 	return g
