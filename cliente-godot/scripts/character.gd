@@ -88,12 +88,41 @@ const HAIR_M := ["hair_buzzed", "hair_simpleparted", "hair_long", "hair_slickbac
 const HAIR_F := ["hair_buzzedfemale", "hair_bob", "hair_long", "hair_buns", "hair_long", "hair_buns"]
 # forma própria de cada raça: escala geral, ossos (encolhe pernas, alarga tronco, aumenta cabeça) e quanto o corpo desce
 # para os pés tocarem o chão depois de encurtar as pernas
+# Proporções por raça e sexo do parecer MESA-011 (gerência, 18/11): altura alvo em metros e fator por região
+# do corpo em relação ao humano (1.0). Vale só para as raças no corpo V3; os fatores viram escala local de
+# cada osso dividindo pelo fator do osso pai, para não somar a escala em cascata.
+const PROPORCOES := {
+	"humano:f": {"altura": 1.68, "pelve": 1.0, "coluna": 0.97, "peito": 0.94, "pescoco": 0.95, "cabeca": 0.98, "ombros": 0.91, "braco": 0.95, "antebraco": 0.95, "mao": 0.95, "coxa": 0.98, "canela": 0.97, "pe": 0.97},
+	"elfo:m": {"altura": 1.90, "pelve": 0.98, "coluna": 1.04, "peito": 0.96, "pescoco": 1.0, "cabeca": 0.96, "ombros": 0.96, "braco": 1.04, "antebraco": 1.04, "mao": 1.0, "coxa": 1.08, "canela": 1.08, "pe": 1.02},
+	"elfo:f": {"altura": 1.78, "pelve": 1.02, "coluna": 1.02, "peito": 0.94, "pescoco": 1.0, "cabeca": 0.97, "ombros": 0.88, "braco": 1.0, "antebraco": 1.0, "mao": 0.98, "coxa": 1.06, "canela": 1.06, "pe": 1.02},
+	"sombrio:m": {"altura": 1.88, "pelve": 1.0, "coluna": 1.03, "peito": 1.02, "pescoco": 1.0, "cabeca": 0.98, "ombros": 1.02, "braco": 1.03, "antebraco": 1.03, "mao": 1.0, "coxa": 1.04, "canela": 1.04, "pe": 1.02},
+	"sombrio:f": {"altura": 1.76, "pelve": 1.02, "coluna": 1.0, "peito": 0.96, "pescoco": 0.98, "cabeca": 0.98, "ombros": 0.9, "braco": 1.0, "antebraco": 1.0, "mao": 0.98, "coxa": 1.03, "canela": 1.03, "pe": 1.01},
+	"orc:m": {"altura": 2.0, "pelve": 1.08, "coluna": 1.08, "peito": 1.24, "pescoco": 1.15, "cabeca": 1.08, "ombros": 1.24, "braco": 1.15, "antebraco": 1.15, "mao": 1.15, "coxa": 1.08, "canela": 1.08, "pe": 1.08},
+	"orc:f": {"altura": 1.87, "pelve": 1.08, "coluna": 1.05, "peito": 1.12, "pescoco": 1.08, "cabeca": 1.05, "ombros": 1.12, "braco": 1.10, "antebraco": 1.10, "mao": 1.08, "coxa": 1.07, "canela": 1.07, "pe": 1.06},
+	"gigante:m": {"altura": 2.15, "pelve": 1.12, "coluna": 1.12, "peito": 1.30, "pescoco": 1.12, "cabeca": 1.04, "ombros": 1.30, "braco": 1.18, "antebraco": 1.18, "mao": 1.15, "coxa": 1.15, "canela": 1.15, "pe": 1.12},
+	"gigante:f": {"altura": 2.02, "pelve": 1.12, "coluna": 1.10, "peito": 1.17, "pescoco": 1.08, "cabeca": 1.03, "ombros": 1.17, "braco": 1.14, "antebraco": 1.14, "mao": 1.12, "coxa": 1.12, "canela": 1.12, "pe": 1.10},
+}
+# osso -> [região, osso pai]
+const REGIAO_OSSO := {
+	"pelvis": ["pelve", ""], "spine_01": ["coluna", "pelvis"], "spine_02": ["coluna", "spine_01"], "spine_03": ["peito", "spine_02"],
+	"neck_01": ["pescoco", "spine_03"], "Head": ["cabeca", "neck_01"],
+	"clavicle_l": ["ombros", "spine_03"], "clavicle_r": ["ombros", "spine_03"],
+	"upperarm_l": ["braco", "clavicle_l"], "upperarm_r": ["braco", "clavicle_r"],
+	"lowerarm_l": ["antebraco", "upperarm_l"], "lowerarm_r": ["antebraco", "upperarm_r"],
+	"hand_l": ["mao", "lowerarm_l"], "hand_r": ["mao", "lowerarm_r"],
+	"thigh_l": ["coxa", "pelvis"], "thigh_r": ["coxa", "pelvis"], "calf_l": ["canela", "thigh_l"], "calf_r": ["canela", "thigh_r"],
+	"foot_l": ["pe", "calf_l"], "foot_r": ["pe", "calf_r"],
+}
+
+
 const SHAPE := {
 	"anao:m": {"all": 0.92, "drop": 0.3, "bones": {"thigh_l": 0.68, "thigh_r": 0.68, "foot_l": 1.4, "foot_r": 1.4, "spine_01": 1.36, "spine_02": 0.93, "spine_03": 0.92, "neck_01": 0.88, "Head": 1.22, "hand_l": 1.2, "hand_r": 1.2}},
 	"anao:f": {"all": 0.88, "drop": 0.24, "bones": {"thigh_l": 0.75, "thigh_r": 0.75, "foot_l": 1.28, "foot_r": 1.28, "spine_01": 1.1, "spine_03": 0.96, "neck_01": 0.92, "Head": 1.34, "hand_l": 1.1, "hand_r": 1.1}},
 	"orc:m": {"all": 1.1, "drop": 0.0, "bones": {"spine_02": 1.1, "spine_03": 1.1, "neck_01": 0.92, "Head": 0.86, "hand_l": 1.15, "hand_r": 1.15}},
 	"gigante:m": {"all": 1.38, "drop": 0.0, "bones": {"spine_03": 1.08, "Head": 0.88}},
 	"gigante:f": {"all": 1.3, "drop": 0.0, "bones": {"Head": 0.9}},
+	# dragonita mulher: mais baixa e esguia que o homem (antes era o mesmo corpo, só 3% menor)
+	"draconato:f": {"all": 0.9, "drop": 0.0, "bones": {"spine_03": 0.93, "neck_01": 1.04, "Head": 0.92, "upperarm_l": 0.95, "upperarm_r": 0.95, "thigh_l": 1.02, "thigh_r": 1.02}},
 }
 # modelos próprios: altura e quanto o quadril fica mais baixo que o do humano (as animações movem o quadril)
 # bones: ajuste fino de proporção (braço mais curto, mão menor, perna um pouco mais longa, cabeça)
@@ -138,6 +167,10 @@ func _setup_medido(o: Dictionary) -> void:
 	var eq: Dictionary = o.get("equipment") if o.get("equipment") is Dictionary else {}
 	var skins: Array = rd.get("skins", ["#e8b993"])
 	var skin := Color(str(skins[clampi(int(o.get("skin", look.get("skin", 0))), 0, skins.size() - 1)]))
+	if race in ["elfo", "sombrio", "orc", "gigante", "draconato"] and V3_HUMANOS:
+		var pl: Array = (TRACOS[race] as Dictionary).get("peles", [])
+		if not pl.is_empty():
+			skin = Color(str(pl[clampi(int(o.get("skin", look.get("skin", 0))), 0, pl.size() - 1)]))
 	if o.has("skin_color"):
 		skin = Color(str(o.skin_color))
 	var hair_i := clampi(int(o.get("hair", look.get("hair", 1))), 0, 5)
@@ -176,7 +209,8 @@ func _setup_medido(o: Dictionary) -> void:
 		arm.add_child(skel)
 	if dragon:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
-			_tint(m as MeshInstance3D, Color(skin.r / 0.69, skin.g / 0.376, skin.b / 0.172))
+			# a textura da dragonita é avermelhada: limita cada canal para a cor da escama não estourar
+			_tint(m as MeshInstance3D, Color(minf(skin.r / 0.69, 1.35) * 0.68, minf(skin.g / 0.376, 1.35) * 0.68, minf(skin.b / 0.172, 1.35) * 0.68))
 	elif own != "":
 		pass
 	elif v3:
@@ -205,7 +239,25 @@ func _setup_medido(o: Dictionary) -> void:
 	var w: float = rd.get("w", 1.0)
 	var h: float = rd.get("h", 1.0) * (1.0 if male else 0.97)
 	var shape: Dictionary = SHAPE.get("%s:%s" % [race, "m" if male else "f"], {})
-	if own != "":
+	var prop: Dictionary = PROPORCOES.get("%s:%s" % [race, "m" if male else "f"], {}) if v3 else {}
+	if not prop.is_empty():
+		var glob := {}
+		for bn in REGIAO_OSSO:
+			glob[bn] = float(prop.get(REGIAO_OSSO[bn][0], 1.0))
+		for bn in REGIAO_OSSO:
+			var bi := skel.find_bone(bn)
+			if bi < 0:
+				continue
+			var pai: String = REGIAO_OSSO[bn][1]
+			var local: float = glob[bn] / (float(glob[pai]) if pai != "" else 1.0)
+			skel.set_bone_pose_scale(bi, Vector3.ONE * local)
+		# altura estimada pelos segmentos que somam na vertical (pernas, tronco, pescoço e cabeça)
+		var est: float = 0.245 * glob["thigh_l"] + 0.235 * glob["calf_l"] + 0.04 * glob["foot_l"] + 0.06 * glob["pelvis"] + 0.24 * glob["spine_02"] + 0.06 * glob["spine_03"] + 0.03 * glob["neck_01"] + 0.09 * glob["Head"]
+		var base_h := 1.8 if male else 1.68
+		var k2: float = float(prop.altura) / base_h / est
+		body.scale = Vector3.ONE * k2
+		height_m = float(prop.altura)
+	elif own != "":
 		height_m = float(OWN[own].height)
 		for bn in OWN[own].bones:
 			skel.set_bone_pose_scale(skel.find_bone(bn), Vector3.ONE * float(OWN[own].bones[bn]))
@@ -683,17 +735,18 @@ static func _mat_fiapo() -> StandardMaterial3D:
 const TOM_BASE_V3 := Color(0.91, 0.74, 0.6)
 var pele_raca := Color.WHITE
 const TRACOS := {
-	"elfo": {"orelha": [0.085, 0.022, 0.55, -0.35], "cabelos": ["#e8d8a8", "#f0ead8", "#c9a86a", "#b07a48"]},
-	"sombrio": {"orelha": [0.1, 0.022, 0.6, -0.45], "marca": Color(0.85, 0.85, 1.0), "cabelos": ["#e6e6f0", "#b8b8c8", "#2a2830", "#7a6a9a"]},
-	"orc": {"orelha": [0.045, 0.024, 0.25, -0.2], "presas": true, "cabelos": ["#1e1a16", "#3a2a1e", "#5a4a3a", "#7a2a1e"]},
-	"gigante": {"marca": Color(0.6, 0.85, 1.0), "cabelos": ["#e8eef4", "#c8d4e0", "#a8b8c8", "#8a9aa8"]},
+	"elfo": {"orelha": [0.085, 0.022, 0.55, -0.35], "cabelos": ["#c9c2a1", "#e8d8a8", "#b58a55", "#5d493d", "#a7b9b2"], "peles": ["#f0d6bc", "#d9b99d", "#b99a80", "#e8dccb"]},
+	"sombrio": {"orelha": [0.1, 0.022, 0.6, -0.45], "marca": Color(0.85, 0.85, 1.0), "cabelos": ["#b8b4c2", "#191820", "#51405a", "#7d5269"], "peles": ["#74515a", "#593c4c", "#8b626a", "#a17d79", "#4a3946"]},
+	"orc": {"orelha": [0.045, 0.024, 0.25, -0.2], "presas": true, "cabelos": ["#2b211c", "#57402e", "#8a6844", "#c0a47a"], "peles": ["#71834c", "#596b3b", "#89985c", "#a0a36b", "#485b39"]},
+	"draconato": {"peles": ["#537b58", "#78975f", "#3c5f4b", "#9b6a46", "#b48b58"]},
+	"gigante": {"marca": Color(0.6, 0.85, 1.0), "cabelos": ["#dce7e8", "#afc8d0", "#718b9c", "#e8e2d6"], "peles": ["#b8d6db", "#8db7c2", "#d8e8e8", "#709aa8", "#a8c8cf"]},
 }
 
 
 func _tracos_raca(race: String, male: bool, skin: Color) -> void:
 	var tinta := Color(minf(skin.r / TOM_BASE_V3.r, 1.4), minf(skin.g / TOM_BASE_V3.g, 1.4), minf(skin.b / TOM_BASE_V3.b, 1.4))
 	# cor de pele natural: a tinta da raça entra só em parte, sem saturar
-	tinta = Color.WHITE.lerp(tinta, 0.62)
+	tinta = Color.WHITE.lerp(tinta, 0.9)
 	pele_raca = Color(TOM_BASE_V3.r * tinta.r, TOM_BASE_V3.g * tinta.g, TOM_BASE_V3.b * tinta.b)
 	for m in skel.find_children("*", "MeshInstance3D", true, false):
 		if String(m.name) == "corpo":

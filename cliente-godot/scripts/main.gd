@@ -267,6 +267,19 @@ func _ready() -> void:
 			test_fight = true
 		elif a == "--armed":  # teste: postura de combate parado, sem monstro
 			combat.combat_until = 1e9
+		elif a.begins_with("--racas-todas="):  # teste: as 8 raças lado a lado, só um sexo (m ou f), roupa simples
+			var sx := a.trim_prefix("--racas-todas=")
+			var rs := ["humano", "elfo", "sombrio", "orc", "anao", "beastman", "draconato", "gigante"]
+			for i in rs.size():
+				var c: Node3D = Character.create({"race": rs[i], "gender": sx, "skin": 1, "hair": 1, "hair_color": 1, "equipment": {"armadura": "nenhuma", "arma": "espada_ng"}})
+				add_child(c)
+				var px := player.position.x + 5.6 - i * 1.6
+				var pz := player.position.z + 3.0
+				c.position = Vector3(px, world.height(px, pz), pz)
+				c.rotation.y = PI
+				c.set_tag(world.info.races[rs[i]].name, Color(0.95, 0.9, 0.75))
+			player.visible = false
+			facing = PI
 		elif a == "--racas-v3":  # teste: raças no corpo V3, homem e mulher, com brilho de encanto crescente e um herói
 			var rs := ["humano", "elfo", "sombrio", "orc", "gigante"]
 			var nv := [4, 7, 10, 13, 15, 16]
