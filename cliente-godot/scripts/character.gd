@@ -232,21 +232,136 @@ func _setup_medido(o: Dictionary) -> void:
 
 # ---------- brilho de encantamento (+4 a +16) e aura de herói ----------
 # Faixas próprias de Valtheria: aço azul (+4), turquesa (+7), âmbar (+10), violeta (+13) e ouro branco (+16).
+# Camadas da arma: (1) a arma inteira acesa, mais forte nas bordas; (2) contorno de luz em volta de toda a
+# silhueta; (3) a partir do +7, aura de energia em ondas subindo pela lâmina; (4) a partir do +10, rastros em arco.
 const FAIXAS_ENCANTO := [[4, Color(0.35, 0.55, 1.0)], [7, Color(0.2, 0.95, 0.85)], [10, Color(1.0, 0.55, 0.15)], [13, Color(0.7, 0.3, 1.0)], [16, Color(1.0, 0.92, 0.6)]]
+
+# (1) superfície: toda a arma brilha, com as bordas (onde a face vira de lado) bem mais fortes
 const BRILHO_SHADER := """
 shader_type spatial;
 render_mode blend_add, unshaded, cull_back, depth_draw_never;
 uniform vec3 cor : source_color = vec3(0.4, 0.6, 1.0);
 uniform float forca = 1.0;
 void fragment() {
-	float fr = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.0);
-	float pulso = 0.75 + 0.25 * sin(TIME * 3.0);
-	ALBEDO = cor * (0.25 + fr * 1.6) * forca * pulso;
+	float fr = pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 1.6);
+	float pulso = 0.85 + 0.15 * sin(TIME * 3.0);
+	ALBEDO = cor * (0.45 + fr * 2.4) * forca * pulso;
 }
 """
-static var _brilho_shader: Shader
+
+# (2) contorno: casca um pouco maior que a arma, vista só por trás dela, que vira uma linha de luz em todas as bordas
+const CONTORNO_SHADER := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_front, depth_draw_never, skip_vertex_transform;
+uniform vec3 cor : source_color = vec3(0.4, 0.6, 1.0);
+uniform float forca = 1.0;
+uniform float espessura = 0.012;
+void vertex() {
+	vec3 w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 n = normalize(mat3(MODEL_MATRIX) * NORMAL);
+	w += n * espessura;
+	VERTEX = (VIEW_MATRIX * vec4(w, 1.0)).xyz;
+	NORMAL = normalize(mat3(VIEW_MATRIX) * n);
+}
+void fragment() {
+	float d = clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0);
+	float borda = smoothstep(0.0, 0.55, 1.0 - d);
+	ALBEDO = mix(cor, vec3(1.0), 0.35) * (0.6 + borda) * forca;
+}
+"""
+
+# (3) aura em onda: casca larga que ondula e deixa subir faixas de energia ao longo da lâmina
+const ONDA_SHADER := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, skip_vertex_transform;
+uniform vec3 cor : source_color = vec3(0.4, 0.6, 1.0);
+uniform float forca = 1.0;
+uniform float largura = 0.05;
+uniform vec3 eixo = vec3(0.0, 1.0, 0.0);
+uniform float comprimento = 1.0;
+varying vec3 lp;
+float h(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+float ruido(vec3 p) {
+	vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(mix(h(i), h(i + vec3(1,0,0)), f.x), mix(h(i + vec3(0,1,0)), h(i + vec3(1,1,0)), f.x), f.y),
+		mix(mix(h(i + vec3(0,0,1)), h(i + vec3(1,0,1)), f.x), mix(h(i + vec3(0,1,1)), h(i + vec3(1,1,1)), f.x), f.y), f.z);
+}
+void vertex() {
+	lp = VERTEX;
+	float s = dot(VERTEX, eixo) / comprimento;
+	float onda = 0.65 + 0.35 * sin(s * 18.0 - TIME * 5.0) + 0.25 * sin(s * 7.0 + TIME * 2.3);
+	vec3 w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 n = normalize(mat3(MODEL_MATRIX) * NORMAL);
+	w += n * largura * onda;
+	VERTEX = (VIEW_MATRIX * vec4(w, 1.0)).xyz;
+	NORMAL = normalize(mat3(VIEW_MATRIX) * n);
+}
+void fragment() {
+	float s = dot(lp, eixo) / comprimento;
+	float fluxo = ruido(lp / comprimento * 9.0 - eixo * TIME * 2.2);
+	float faixas = smoothstep(0.35, 1.0, 0.5 + 0.5 * sin(s * 26.0 - TIME * 6.0 + fluxo * 4.0));
+	float d = clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0);
+	float vela = 0.55 + (1.0 - d) * 0.45;
+	float a = (0.35 + faixas * 1.5) * (0.4 + fluxo) * vela;
+	ALBEDO = mix(cor, vec3(1.0), faixas * 0.25) * a * forca;
+}
+"""
+
+# aura do herói: casca dourada suave sobre o corpo inteiro, com energia subindo devagar
+const AURA_HEROI_SHADER := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_back, depth_draw_never, skip_vertex_transform;
+uniform vec3 cor : source_color = vec3(1.0, 0.8, 0.4);
+uniform float forca = 0.5;
+uniform float espessura = 0.06;
+varying vec3 wp;
+float h(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+float ruido(vec3 p) {
+	vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(mix(h(i), h(i + vec3(1,0,0)), f.x), mix(h(i + vec3(0,1,0)), h(i + vec3(1,1,0)), f.x), f.y),
+		mix(mix(h(i + vec3(0,0,1)), h(i + vec3(1,0,1)), f.x), mix(h(i + vec3(0,1,1)), h(i + vec3(1,1,1)), f.x), f.y), f.z);
+}
+void vertex() {
+	vec3 w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 n = normalize(mat3(MODEL_MATRIX) * NORMAL);
+	float sopro = 0.8 + 0.2 * sin(w.y * 6.0 - TIME * 2.5);
+	w += n * espessura * sopro;
+	wp = w;
+	VERTEX = (VIEW_MATRIX * vec4(w, 1.0)).xyz;
+	NORMAL = normalize(mat3(VIEW_MATRIX) * n);
+}
+void fragment() {
+	float d = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+	float borda = pow(1.0 - d, 2.6);
+	float fluxo = ruido(wp * 4.0 - vec3(0.0, TIME * 0.9, 0.0)) * 0.6 + ruido(wp * 9.0 - vec3(0.0, TIME * 1.7, 0.0)) * 0.4;
+	float veios = smoothstep(0.45, 0.85, fluxo);
+	float a = borda * (0.55 + veios * 0.9) + veios * 0.06;
+	ALBEDO = mix(cor, vec3(1.0, 0.97, 0.88), borda * 0.4) * a * forca;
+}
+"""
+static var _shaders := {}
 var encanto := 0
 var _aura: Node3D
+var _rastros: Node3D
+static var _arco_mesh: ArrayMesh
+
+
+static func _shader(nome: String, codigo: String) -> Shader:
+	if not _shaders.has(nome):
+		var sh := Shader.new()
+		sh.code = codigo
+		_shaders[nome] = sh
+	return _shaders[nome]
+
+
+# transformação de um nó relativa à arma, sem depender de estar na árvore
+func _rel_wnode(n: Node) -> Transform3D:
+	var t := Transform3D()
+	while n != null and n != wnode:
+		if n is Node3D:
+			t = (n as Node3D).transform * t
+		n = n.get_parent()
+	return t
 
 
 func brilho_encanto(nivel: int) -> void:
@@ -260,121 +375,77 @@ func brilho_encanto(nivel: int) -> void:
 	for i in FAIXAS_ENCANTO.size():
 		if nivel >= int(FAIXAS_ENCANTO[i][0]):
 			faixa = i
-	for m in wnode.find_children("*", "MeshInstance3D", true, false):
+	var malhas := wnode.find_children("*", "MeshInstance3D", true, false)
+	for m in malhas:
 		(m as MeshInstance3D).material_overlay = null
 	if faixa < 0:
 		_rastros_encanto(-1, Color())
 		return
-	if _brilho_shader == null:
-		_brilho_shader = Shader.new()
-		_brilho_shader.code = BRILHO_SHADER
 	var cor: Color = FAIXAS_ENCANTO[faixa][1]
-	var mat := ShaderMaterial.new()
-	mat.shader = _brilho_shader
-	mat.set_shader_parameter("cor", cor)
-	mat.set_shader_parameter("forca", 0.5 + 0.3 * faixa + 0.05 * float(nivel - int(FAIXAS_ENCANTO[faixa][0])))
+	var extra := float(nivel - int(FAIXAS_ENCANTO[faixa][0]))
+	# medidas da arma para orientar a onda ao longo da lâmina
 	var bb := AABB()
 	var first := true
-	for m in wnode.find_children("*", "MeshInstance3D", true, false):
-		(m as MeshInstance3D).material_overlay = mat
+	for m in malhas:
 		var a: AABB = _rel_wnode(m) * (m as MeshInstance3D).get_aabb()
 		bb = a if first else bb.merge(a)
 		first = false
-	if faixa >= 1:   # a partir do +7: faíscas subindo da lâmina
+	var eixo := Vector3.UP
+	var comp := bb.size.y
+	if bb.size.x > comp: eixo = Vector3.RIGHT; comp = bb.size.x
+	if bb.size.z > comp: eixo = Vector3.BACK; comp = bb.size.z
+	var mat := ShaderMaterial.new()
+	mat.shader = _shader("brilho", BRILHO_SHADER)
+	mat.set_shader_parameter("cor", cor)
+	mat.set_shader_parameter("forca", 0.55 + 0.28 * faixa + 0.05 * extra)
+	var cont := ShaderMaterial.new()
+	cont.shader = _shader("contorno", CONTORNO_SHADER)
+	cont.set_shader_parameter("cor", cor)
+	cont.set_shader_parameter("forca", 0.5 + 0.2 * faixa)
+	cont.set_shader_parameter("espessura", 0.006 + 0.002 * faixa)
+	mat.next_pass = cont
+	if faixa >= 1:
+		var onda := ShaderMaterial.new()
+		onda.shader = _shader("onda", ONDA_SHADER)
+		onda.set_shader_parameter("cor", cor)
+		onda.set_shader_parameter("forca", 0.55 + 0.2 * faixa + 0.04 * extra)
+		onda.set_shader_parameter("largura", 0.06 + 0.02 * faixa)
+		onda.set_shader_parameter("eixo", eixo)
+		onda.set_shader_parameter("comprimento", maxf(comp, 0.2))
+		onda.render_priority = 1
+		cont.next_pass = onda
+	for m in malhas:
+		(m as MeshInstance3D).material_overlay = mat
+	if faixa >= 1:   # faíscas de energia desprendendo da aura
 		var p := CPUParticles3D.new()
 		p.name = "BrilhoEncanto"
-		p.amount = 6 + faixa * 6
-		p.lifetime = 0.9
+		p.amount = 8 + faixa * 6
+		p.lifetime = 1.1
 		p.local_coords = false
 		p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
 		p.emission_box_extents = bb.size * 0.45
 		p.position = bb.get_center()
 		p.direction = Vector3.UP
-		p.spread = 25.0
-		p.gravity = Vector3(0, 0.6, 0)
+		p.spread = 20.0
+		p.gravity = Vector3(0, 0.5, 0)
 		p.initial_velocity_min = 0.05
-		p.initial_velocity_max = 0.25
-		p.scale_amount_min = 0.5
+		p.initial_velocity_max = 0.2
+		p.scale_amount_min = 0.4
 		p.scale_amount_max = 1.0
+		var curva := Curve.new()
+		curva.add_point(Vector2(0, 0.2))
+		curva.add_point(Vector2(0.3, 1.0))
+		curva.add_point(Vector2(1, 0))
+		p.scale_amount_curve = curva
 		var q := QuadMesh.new()
-		q.size = Vector2(0.025, 0.025)
-		var qm := StandardMaterial3D.new()
-		qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		qm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-		qm.albedo_color = cor * 1.5
+		q.size = Vector2(0.06, 0.06)
+		var qm: StandardMaterial3D = _mat_fiapo().duplicate()
+		qm.albedo_color = Color(cor.r, cor.g, cor.b, 0.9).lerp(Color.WHITE, 0.25)
 		q.material = qm
 		p.mesh = q
 		p.visibility_range_end = 30.0
 		wnode.add_child(p)
-		# estrela de luz na ponta da lâmina (ponta mais distante da empunhadura)
-		var ponta := bb.get_center()
-		var eixo := 0
-		if bb.size.y > bb.size[eixo]: eixo = 1
-		if bb.size.z > bb.size[eixo]: eixo = 2
-		var fim := bb.position[eixo] + bb.size[eixo]
-		ponta[eixo] = fim if absf(fim) > absf(bb.position[eixo]) else bb.position[eixo]
-		var est := MeshInstance3D.new()
-		est.name = "BrilhoEncanto"
-		var eq := QuadMesh.new()
-		var tam := 0.4 + 0.18 * faixa
-		eq.size = Vector2(tam, tam)
-		est.mesh = eq
-		est.material_override = _estrela_mat(cor, faixa)
-		est.position = ponta
-		est.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		est.visibility_range_end = 40.0
-		wnode.add_child(est)
 	_rastros_encanto(faixa, cor)
-
-
-const ESTRELA_SHADER := """
-shader_type spatial;
-render_mode blend_add, unshaded, cull_disabled, depth_draw_never;
-uniform vec3 cor : source_color = vec3(1.0);
-uniform float forca = 1.0;
-void vertex() {
-	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
-}
-void fragment() {
-	vec2 p = UV * 2.0 - 1.0;
-	float r = length(p);
-	float a = TIME * 0.5;
-	vec2 q = vec2(p.x * cos(a) - p.y * sin(a), p.x * sin(a) + p.y * cos(a));
-	float raios = 0.004 / (abs(q.x) + 0.012) * smoothstep(1.0, 0.0, abs(q.y)) + 0.004 / (abs(q.y) + 0.012) * smoothstep(1.0, 0.0, abs(q.x));
-	vec2 d = vec2(q.x + q.y, q.x - q.y) * 0.7071;
-	raios += 0.5 * (0.003 / (abs(d.x) + 0.015) * smoothstep(0.7, 0.0, abs(d.y)) + 0.003 / (abs(d.y) + 0.015) * smoothstep(0.7, 0.0, abs(d.x)));
-	float nucleo = exp(-r * r * 18.0) * 2.5;
-	float halo = exp(-r * r * 3.0) * 0.35;
-	float pulso = 0.8 + 0.2 * sin(TIME * 4.0);
-	float v = (nucleo + halo + raios * 0.6) * smoothstep(1.0, 0.55, r) * pulso;
-	ALBEDO = mix(cor, vec3(1.0), clamp(nucleo * 0.4, 0.0, 0.8)) * v * forca;
-}
-"""
-static var _estrela_shader: Shader
-static var _arco_mesh: ArrayMesh
-
-
-# transformação de um nó relativa à arma, sem depender de estar na árvore
-func _rel_wnode(n: Node) -> Transform3D:
-	var t := Transform3D()
-	while n != null and n != wnode:
-		if n is Node3D:
-			t = (n as Node3D).transform * t
-		n = n.get_parent()
-	return t
-var _rastros: Node3D
-
-
-static func _estrela_mat(cor: Color, faixa: int) -> ShaderMaterial:
-	if _estrela_shader == null:
-		_estrela_shader = Shader.new()
-		_estrela_shader.code = ESTRELA_SHADER
-	var m := ShaderMaterial.new()
-	m.shader = _estrela_shader
-	m.set_shader_parameter("cor", cor)
-	m.set_shader_parameter("forca", 0.7 + 0.15 * faixa)
-	return m
 
 
 # fita em arco (~220 graus), mais larga no meio e sumindo nas pontas
@@ -383,12 +454,12 @@ static func _arco() -> ArrayMesh:
 		return _arco_mesh
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
-	var n := 40
+	var n := 48
 	for i in n + 1:
 		var t := float(i) / n
 		var ang := t * deg_to_rad(220.0)
 		var alfa := sin(t * PI)
-		var lar := 0.006 + 0.02 * alfa
+		var lar := 0.004 + 0.016 * alfa
 		var dd := Vector3(cos(ang), 0, sin(ang))
 		st.set_color(Color(alfa * alfa, alfa * alfa, alfa * alfa))
 		st.add_vertex(dd + Vector3(0, lar, 0))
@@ -396,6 +467,24 @@ static func _arco() -> ArrayMesh:
 		st.add_vertex(dd - Vector3(0, lar, 0))
 	_arco_mesh = st.commit()
 	return _arco_mesh
+
+
+# rastro: some quando visto de lado, para não virar uma barra reta na tela
+const ARCO_SHADER := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never;
+uniform vec3 cor : source_color = vec3(1.0);
+varying float abre;
+void vertex() {
+	vec3 eixo = normalize(MODEL_MATRIX[1].xyz);
+	vec3 olho = normalize(MODEL_MATRIX[3].xyz - INV_VIEW_MATRIX[3].xyz);
+	abre = abs(dot(eixo, olho));
+}
+void fragment() {
+	float face = smoothstep(0.1, 0.4, abre);
+	ALBEDO = cor * COLOR.rgb * face * 1.3;
+}
+"""
 
 
 # a partir do +10: 2 rastros de luz girando em volta do corpo (3 no +16)
@@ -409,12 +498,9 @@ func _rastros_encanto(faixa: int, cor: Color) -> void:
 	_rastros.name = "RastrosEncanto"
 	_rastros.position = Vector3(0, 1.0, 0)
 	add_child(_rastros)
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.vertex_color_use_as_albedo = true
-	mat.albedo_color = Color(minf(cor.r * 1.6, 1.0), minf(cor.g * 1.6, 1.0), minf(cor.b * 1.6, 1.0))
+	var mat := ShaderMaterial.new()
+	mat.shader = _shader("arco", ARCO_SHADER)
+	mat.set_shader_parameter("cor", cor.lerp(Color.WHITE, 0.2))
 	var qtd := 2 if faixa < 4 else 3
 	for i in qtd:
 		var piv := Node3D.new()
@@ -433,66 +519,131 @@ func _rastros_encanto(faixa: int, cor: Color) -> void:
 		tw.tween_property(giro, "rotation:y", TAU * (1.0 if i % 2 == 0 else -1.0), 1.6 + 0.5 * i).from(0.0)
 
 
-# aura de herói: anel de luz dourada aos pés e brilho subindo pelo corpo
+# aura de herói: casca dourada leve sobre o corpo todo e energia fluindo dos pontos de força
+# (peito, mãos e testa), subindo devagar como uma chama celeste.
 func aura_heroi(on: bool) -> void:
 	if _aura != null:
 		_aura.queue_free()
 		_aura = null
+	var malhas: Array = []
+	for m in find_children("*", "MeshInstance3D", true, false):
+		if wnode != null and wnode.is_ancestor_of(m):
+			continue
+		if (m as MeshInstance3D).mesh == null or (m as MeshInstance3D).mesh is QuadMesh:
+			continue
+		malhas.append(m)
+	for m in malhas:
+		if (m as MeshInstance3D).material_overlay != null and (m as MeshInstance3D).material_overlay.resource_name == "AuraHeroi":
+			(m as MeshInstance3D).material_overlay = null
 	if not on:
 		return
+	var mat := ShaderMaterial.new()
+	mat.resource_name = "AuraHeroi"
+	mat.shader = _shader("aura_heroi", AURA_HEROI_SHADER)
+	var veu := ShaderMaterial.new()   # segunda camada, mais larga e tênue: o fluxo da aura além do contorno
+	veu.shader = mat.shader
+	veu.set_shader_parameter("espessura", 0.13)
+	veu.set_shader_parameter("forca", 0.22)
+	mat.next_pass = veu
+	for m in malhas:
+		if (m as MeshInstance3D).material_overlay == null:
+			(m as MeshInstance3D).material_overlay = mat
 	_aura = Node3D.new()
+	_aura.name = "AuraHeroi"
 	add_child(_aura)
-	var p := CPUParticles3D.new()
-	p.amount = 40
-	p.lifetime = 1.6
-	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
-	p.emission_ring_axis = Vector3.UP
-	p.emission_ring_radius = 0.55
-	p.emission_ring_inner_radius = 0.4
-	p.emission_ring_height = 0.05
-	p.direction = Vector3.UP
-	p.spread = 8.0
-	p.gravity = Vector3.ZERO
-	p.initial_velocity_min = 0.6
-	p.initial_velocity_max = 1.1
-	p.scale_amount_min = 0.6
-	p.scale_amount_max = 1.2
-	var q := QuadMesh.new()
-	q.size = Vector2(0.05, 0.12)
-	var qm := StandardMaterial3D.new()
-	qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	qm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	qm.albedo_color = Color(1.0, 0.8, 0.35)
-	q.material = qm
-	p.mesh = q
-	p.visibility_range_end = 60.0
-	_aura.add_child(p)
+	var cabeca := "head"
+	if skel != null:
+		for b in skel.get_bone_count():
+			if skel.get_bone_name(b).to_lower().begins_with("head"):
+				cabeca = skel.get_bone_name(b)
+				break
+	# o esqueleto pode vir em escala de centímetros: compensa para os fiapos terem tamanho real
+	var esc := 1.0
+	var n: Node = skel
+	while n != null and n != self:
+		if n is Node3D:
+			esc *= (n as Node3D).scale.x
+		n = n.get_parent()
+	var pontos := [["spine_03", 1.0], ["hand_l", 0.55], ["hand_r", 0.55], [cabeca, 0.45]]
+	for pt in pontos:
+		if skel == null or skel.find_bone(pt[0]) < 0:
+			continue
+		var att := BoneAttachment3D.new()
+		att.bone_name = pt[0]
+		skel.add_child(att)
+		_aura.tree_exiting.connect(att.queue_free)
+		var f := _fluxo_aura(float(pt[1]))
+		f.scale = Vector3.ONE / maxf(esc, 0.0001)
+		att.add_child(f)
 	var luz := OmniLight3D.new()
-	luz.light_color = Color(1.0, 0.82, 0.45)
-	luz.light_energy = 0.6
-	luz.omni_range = 3.0
-	luz.position = Vector3(0, 1.0, 0)
+	luz.light_color = Color(1.0, 0.85, 0.5)
+	luz.light_energy = 0.45
+	luz.omni_range = 2.6
+	luz.position = Vector3(0, 1.1, 0)
 	luz.shadow_enabled = false
 	luz.distance_fade_enabled = true
 	luz.distance_fade_begin = 25.0
 	_aura.add_child(luz)
-	# duas esferas de luz orbitando (azul e âmbar): marca própria do herói
-	var orb := Node3D.new()
-	orb.position = Vector3(0, 1.35, 0)
-	_aura.add_child(orb)
-	var cores := [Color(0.45, 0.7, 1.0), Color(1.0, 0.6, 0.25)]
-	for i in 2:
-		var e := MeshInstance3D.new()
-		var q2 := QuadMesh.new()
-		q2.size = Vector2(0.3, 0.3)
-		e.mesh = q2
-		e.material_override = _estrela_mat(cores[i], 1)
-		e.position = Vector3(0.75 if i == 0 else -0.75, 0.15 * i, 0)
-		e.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		orb.add_child(e)
-	var tw := orb.create_tween().set_loops()
-	tw.tween_property(orb, "rotation:y", TAU, 3.2).from(0.0)
+
+
+# fiapos de luz dourada que nascem num ponto de força e sobem ondulando
+func _fluxo_aura(peso: float) -> CPUParticles3D:
+	var p := CPUParticles3D.new()
+	p.amount = int(10 * peso) + 4
+	p.lifetime = 1.8
+	p.local_coords = false
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.06 + 0.08 * peso
+	p.direction = Vector3.UP
+	p.spread = 15.0
+	p.gravity = Vector3(0, 0.25, 0)
+	p.initial_velocity_min = 0.15
+	p.initial_velocity_max = 0.35
+	p.tangential_accel_min = -0.3
+	p.tangential_accel_max = 0.3
+	p.damping_min = 0.1
+	p.damping_max = 0.3
+	var curva := Curve.new()
+	curva.add_point(Vector2(0, 0.0))
+	curva.add_point(Vector2(0.25, 1.0))
+	curva.add_point(Vector2(1, 0.0))
+	p.scale_amount_curve = curva
+	p.scale_amount_min = 0.7
+	p.scale_amount_max = 1.2
+	var q := QuadMesh.new()
+	q.size = Vector2(0.05, 0.16)
+	q.material = _mat_fiapo()
+	p.mesh = q
+	p.visibility_range_end = 50.0
+	return p
+
+
+# fiapo: gota de luz suave (textura radial), sempre virada para a câmera
+static var _fiapo: StandardMaterial3D
+
+
+static func _mat_fiapo() -> StandardMaterial3D:
+	if _fiapo != null:
+		return _fiapo
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.set_color(1, Color(1, 1, 1, 0))
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(0.5, 0.0)
+	t.width = 64
+	t.height = 64
+	_fiapo = StandardMaterial3D.new()
+	_fiapo.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_fiapo.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_fiapo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_fiapo.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	_fiapo.albedo_texture = t
+	_fiapo.albedo_color = Color(1.0, 0.8, 0.4, 0.7)
+	_fiapo.vertex_color_use_as_albedo = true
+	return _fiapo
 
 
 # V3: aldeão = túnica (formas corretivas + RBF), calça e botas novas; outras armaduras usam a roupa oficial no corpo novo

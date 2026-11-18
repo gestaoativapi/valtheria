@@ -326,6 +326,13 @@ func _ready() -> void:
 				n.position = Vector3(px, world.height(px, pz), pz)
 				n.rotation.y = 0.0
 			facing = PI
+		elif a.begins_with("--qualidade="):  # teste: força a qualidade gráfica (0 mínimo ... 4 ultra)
+			_sem_salvar = true
+			_set_quality(clampi(int(a.trim_prefix("--qualidade=")), 0, 4))
+		elif a.begins_with("--encanto-jogador="):  # teste: brilho de encanto na arma do próprio jogador
+			player.brilho_encanto(int(a.trim_prefix("--encanto-jogador=")))
+		elif a == "--heroi-jogador":  # teste: aura de herói no próprio jogador
+			player.aura_heroi(true)
 		elif a.begins_with("--orbita="):
 			orbita = float(a.trim_prefix("--orbita="))
 		elif a == "--crowd":
@@ -553,7 +560,12 @@ func _load_prefs() -> void:
 	ui.btn_vsync.text = "VSync: " + ("ligado" if vsync else "desligado (FPS livre)")
 
 
+var _sem_salvar := false
+
+
 func _save_prefs() -> void:
+	if _sem_salvar:  # qualidade forçada por teste não vira preferência
+		return
 	var cf := ConfigFile.new()
 	cf.set_value("conta", "usuario", ui.user_edit.text.strip_edges())  # a senha nunca é gravada
 	cf.set_value("video", nkey(), quality)
