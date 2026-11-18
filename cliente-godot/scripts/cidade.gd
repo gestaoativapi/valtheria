@@ -31,7 +31,10 @@ void fragment() {
 	float edge = smoothstep(0.015, 0.09, d2 - d1);
 	float v = 0.8 + 0.32 * h2(id).x;
 	float far = smoothstep(40.0, 120.0, length(wp - CAMERA_POSITION_WORLD));
-	ALBEDO = base * mix(v * mix(0.42, 1.0, edge), 0.9, far);
+	// pedra arredondada: o centro de cada pedra é um pouco mais claro que a borda; rejunte fino
+	float bomb = smoothstep(0.0, 0.35, d2 - d1);
+	ALBEDO = base * 0.62 * mix(v * mix(0.5, 1.0, edge) * mix(0.88, 1.04, bomb), 0.9, far);
+	if (!FRONT_FACING) { NORMAL = -NORMAL; }
 	ROUGHNESS = 0.92;
 	SPECULAR = 0.2;
 }

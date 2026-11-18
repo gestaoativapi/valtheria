@@ -75,6 +75,7 @@ void fragment() {
 	float detail = mix(1.0, clamp(mix(lg, lr, sp.b), 0.7, 1.25), near);
 	float big = mix(0.9, 1.1, texture(grass, uv * 0.03).g * 1.6);
 	vec3 col = tn * 0.62 * detail * big;
+	col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 0.72) * vec3(1.03, 0.97, 0.88);
 	vec3 d = texture(dirt, uv * 0.9).rgb * vec3(0.72, 0.78, 0.8);
 	col = mix(col, mix(vec3(0.45, 0.38, 0.3), d, near), sp.r);
 	ALBEDO = col;
@@ -641,14 +642,97 @@ func place(parent: Node3D, file: String, pts: Array, target_h: float, shadows :=
 	return bb.size * k
 
 
-# superfícies chamadas "Fire" nos modelos passam a brilhar como fogo
+# folhagem com cor de natureza real (lapidação 18/11): as folhas dos modelos vinham em verde-limão
+# e as árvores retorcidas em vermelho vivo. Um material de folha único por modelo refaz a cor a partir
+# do brilho da textura (sombra -> luz), varia o tom por árvore e balança de leve com o vento.
+const FOLHA_SHADER := """
+shader_type spatial;
+render_mode cull_disabled;
+uniform sampler2D tex : source_color, filter_linear_mipmap;
+uniform float corte = 0.5;
+uniform vec3 escuro : source_color = vec3(0.1, 0.18, 0.06);
+uniform vec3 claro : source_color = vec3(0.42, 0.52, 0.22);
+uniform vec3 outono : source_color = vec3(0.55, 0.4, 0.14);
+uniform float mistura = 1.0;
+uniform float chance_outono = 0.0;
+varying float var_arvore;
+void vertex() {
+	vec3 org = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	var_arvore = fract(sin(dot(floor(org.xz * 0.5), vec2(12.9898, 78.233))) * 43758.5453);
+	float alto = clamp((wp.y - org.y) / 9.0, 0.0, 1.0);
+	float s = sin(TIME * 1.1 + org.x * 0.21 + org.z * 0.17) * 0.6 + sin(TIME * 2.6 + wp.x * 0.8 + wp.z * 0.6) * 0.18;
+	VERTEX += inverse(mat3(MODEL_MATRIX)) * vec3(s, 0.0, s * 0.6) * 0.09 * alto * alto;
+}
+void fragment() {
+	vec4 t = texture(tex, UV);
+	float l = dot(t.rgb, vec3(0.299, 0.587, 0.114));
+	vec3 alvo = mix(escuro, claro, smoothstep(0.04, 0.55, l));
+	if (var_arvore < chance_outono) { alvo = mix(alvo, outono * (0.6 + l), 0.75); }
+	alvo *= mix(0.86, 1.08, fract(var_arvore * 7.13));
+	ALBEDO = mix(t.rgb, alvo, mistura);
+	ALPHA = t.a;
+	ALPHA_SCISSOR_THRESHOLD = corte;
+	ROUGHNESS = 0.82;
+	SPECULAR = 0.3;
+}
+"""
+var _folha_mats := {}
+var _lit_cache := {}
+
+
+func _folha(m: Material) -> Material:
+	if not (m is StandardMaterial3D):
+		return m
+	var nome := String(m.resource_name)
+	var cfg := {}
+	if nome.contains("TwistedTree"):
+		cfg = {"escuro": Color(0.09, 0.15, 0.06), "claro": Color(0.36, 0.44, 0.2), "mistura": 1.0, "chance_outono": 0.22}
+	elif nome.contains("Pine"):
+		cfg = {"escuro": Color(0.05, 0.11, 0.06), "claro": Color(0.22, 0.32, 0.16), "mistura": 0.75}
+	elif nome.contains("NormalTree"):
+		cfg = {"escuro": Color(0.1, 0.18, 0.06), "claro": Color(0.4, 0.5, 0.21), "mistura": 0.8, "chance_outono": 0.08}
+	elif nome.begins_with("Leaves"):
+		cfg = {"escuro": Color(0.12, 0.2, 0.07), "claro": Color(0.42, 0.5, 0.24), "mistura": 0.45}
+	else:
+		return m
+	if _folha_mats.has(m):
+		return _folha_mats[m]
+	var sm := m as StandardMaterial3D
+	var sh := Shader.new()
+	sh.code = FOLHA_SHADER
+	var f := ShaderMaterial.new()
+	f.shader = sh
+	f.set_shader_parameter("tex", sm.albedo_texture)
+	f.set_shader_parameter("corte", sm.alpha_scissor_threshold if sm.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR else 0.0)
+	for k in cfg:
+		f.set_shader_parameter(k, cfg[k])
+	_folha_mats[m] = f
+	return f
+
+
+# superfícies chamadas "Fire" nos modelos passam a brilhar como fogo; folhas ganham cor natural
 func _lit(mesh: Mesh) -> Mesh:
+	if _lit_cache.has(mesh):
+		return _lit_cache[mesh]
+	var orig := mesh
 	var hit := false
+	var folhas := false
 	for i in mesh.get_surface_count():
 		var m := mesh.surface_get_material(i)
 		if m and m.resource_name in ["Fire", "Light"]:
 			hit = true
+		if m and _folha(m) != m:
+			folhas = true
+	if folhas:
+		var dm: Mesh = mesh.duplicate()
+		for i in dm.get_surface_count():
+			var m := dm.surface_get_material(i)
+			if m:
+				dm.surface_set_material(i, _folha(m))
+		mesh = dm
 	if not hit:
+		_lit_cache[orig] = mesh
 		return mesh
 	if lamp_mat == null:
 		lamp_mat = StandardMaterial3D.new()
@@ -667,6 +751,7 @@ func _lit(mesh: Mesh) -> Mesh:
 			d.surface_set_material(i, fire_mat)
 		elif m and m.resource_name == "Light":
 			d.surface_set_material(i, lamp_mat)
+	_lit_cache[orig] = d
 	return d
 
 
@@ -1653,7 +1738,7 @@ func _build_sky() -> void:
 	env.volumetric_fog_albedo = Color(0.9, 0.93, 1.0)
 	env.volumetric_fog_length = 160.0
 	env.adjustment_enabled = true
-	env.adjustment_saturation = 1.08
+	env.adjustment_saturation = 1.0
 	env.adjustment_contrast = 1.04
 	var we := WorldEnvironment.new()
 	we.environment = env

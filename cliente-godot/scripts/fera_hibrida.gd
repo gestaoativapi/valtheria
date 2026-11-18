@@ -10,7 +10,7 @@ extends RefCounted
 
 const ESPECIES := {
 	# focinho: [comprimento m, largura (rad), altura acima, altura abaixo]
-	"leao": {"claro": "#efd7a6", "escuro": "#6b3e1e", "nariz": "#7a4a3c", "olho_contorno": "#3a2416",
+	"leao": {"claro": "#efd7a6", "escuro": "#6b3e1e", "nariz": "#5a3a32", "olho_contorno": "#3a2416",
 		"focinho": [0.047, 0.45, 0.38, 0.30], "almofada": 0.013, "bochecha": 0.016, "testa": 0.008,
 		"orelha": ["redonda", 0.058, 0.034], "orelha_dir": [0.95, 0.72], "pelo_juba": ["#4a2a16", "#6e4222", "#94612f", "#2e1a0e"]},
 	"lobo": {"claro": "#e3e1dc", "escuro": "#3f4650", "nariz": "#1c1a1a", "olho_contorno": "#1d2026",
@@ -50,12 +50,21 @@ static func montar(skel: Skeleton3D, att: Node3D, rest: Transform3D, male: bool,
 	mi.mesh = _mascaras[chave]
 	mi.transform = inv
 	mi.material_override = _mat_pelo(0.0, 0.0)
-	# duas cascas de pelo curto por cima: dão a borda macia de pelagem em vez de plástico
-	var m1 := _mat_pelo(0.0022, 0.45)
-	var m2 := _mat_pelo(0.0042, 0.7)
-	(mi.material_override as ShaderMaterial).next_pass = m1
-	m1.next_pass = m2
 	att.add_child(mi)
+	# duas cascas de pelo curto por cima: dão a borda macia de pelagem em vez de plástico.
+	# Só perto da câmera (até 14 m): de longe a diferença não aparece e o custo some.
+	var casca := MeshInstance3D.new()
+	casca.name = "PeloCurto"
+	casca.mesh = mi.mesh
+	casca.transform = inv
+	var m1 := _mat_pelo(0.0022, 0.45)
+	m1.next_pass = _mat_pelo(0.0042, 0.7)
+	casca.material_override = m1
+	casca.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	casca.visibility_range_end = 14.0
+	casca.visibility_range_end_margin = 2.0
+	casca.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+	att.add_child(casca)
 	_nariz(att, inv, tab, f, sub, male)
 	_orelhas(att, inv, tab, f, sub, male, pelo)
 	_juba(att, inv, tab, f, sub, male, pelo)
@@ -430,7 +439,7 @@ static func _nariz(att: Node3D, inv: Transform3D, t: Dictionary, f: Dictionary, 
 	var mi := MeshInstance3D.new()
 	mi.mesh = s
 	mi.material_override = m
-	mi.transform = inv * Transform3D(Basis.from_euler(Vector3(-0.35, 0, 0)) * Basis.from_scale(Vector3(0.03, 0.017, 0.02) * esc), p + Vector3(0, 0.002, 0.002))
+	mi.transform = inv * Transform3D(Basis.from_euler(Vector3(-0.35, 0, 0)) * Basis.from_scale(Vector3(0.026, 0.014, 0.018) * esc), p + Vector3(0, 0.002, 0.002))
 	att.add_child(mi)
 	for lado in [-1.0, 1.0]:
 		var n2 := MeshInstance3D.new()
@@ -567,6 +576,8 @@ static func _bigodes(att: Node3D, inv: Transform3D, t: Dictionary, f: Dictionary
 			mi.mesh = cil
 			mi.material_override = m
 			mi.transform = inv * Transform3D(b, raiz + dir * comp * 0.5)
+			mi.visibility_range_end = 10.0
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			att.add_child(mi)
 
 
@@ -587,7 +598,7 @@ static func _malha_fio() -> ArrayMesh:
 		var anel := []
 		for k in lados:
 			var a := TAU * k / lados
-			anel.append(c + Vector3(cos(a) * r, 0, sin(a) * r * 0.6))
+			anel.append(c + Vector3(cos(a) * r, 0, sin(a) * r * 0.85))
 		aneis.append(anel)
 	for i in n:
 		var t0 := float(i) / n
@@ -682,23 +693,41 @@ static func _juba(att: Node3D, inv: Transform3D, t: Dictionary, f: Dictionary, s
 			var b := Basis(x * w, g2 * comp * rng.randf_range(0.88, 1.08), fora * comp * 0.6)
 			xf.append(Transform3D(b, raiz - d * 0.006 + desvio))
 			cs.append(k.lerp(k.lightened(0.15), rng.randf()))
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = true
-	mm.mesh = _malha_fio()
-	mm.instance_count = xf.size()
-	for i in xf.size():
-		mm.set_instance_transform(i, inv * (xf[i] as Transform3D))
-		mm.set_instance_color(i, cs[i])
-	var mi := MultiMeshInstance3D.new()
-	mi.name = "Juba"
-	mi.multimesh = mm
 	var mat := StandardMaterial3D.new()
 	mat.vertex_color_use_as_albedo = true
 	mat.roughness = 0.95
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mi.material_override = mat
-	att.add_child(mi)
+	# dois níveis de detalhe: todos os fios até 22 m; depois, 1 a cada 3 fios mais grossos (mesma silhueta, 1/3 do custo)
+	for nivel in 2:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.mesh = _malha_fio()
+		var idx := []
+		for i in xf.size():
+			if nivel == 0 or i % 3 == 0:
+				idx.append(i)
+		mm.instance_count = idx.size()
+		for n in idx.size():
+			var tr: Transform3D = xf[idx[n]]
+			if nivel == 1:
+				tr.basis.x *= 1.7
+				tr.basis.z *= 1.25
+			mm.set_instance_transform(n, inv * tr)
+			mm.set_instance_color(n, cs[idx[n]])
+		var mi := MultiMeshInstance3D.new()
+		mi.name = "Juba" if nivel == 0 else "JubaLonge"
+		mi.multimesh = mm
+		mi.material_override = mat
+		if nivel == 0:
+			mi.visibility_range_end = 22.0
+			mi.visibility_range_end_margin = 2.0
+		else:
+			mi.visibility_range_begin = 22.0
+			mi.visibility_range_begin_margin = 2.0
+			mi.visibility_range_end = 160.0
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		att.add_child(mi)
 
 
 # ---------------------------------------------------------------- sinais de fera no corpo
