@@ -36,6 +36,7 @@ var has_target := false
 var facing := 0.0
 var mapa_ui: Control
 var folego: Control
+var dialogo: Control
 var sel := {}  # alvo que não é monstro: {"kind": "self"|"player"|"npc", ...}
 var emote := ""
 var jumping := false
@@ -153,6 +154,9 @@ func _ready() -> void:
 	folego = load("res://scripts/folego.gd").new()
 	ui.add_child(folego)
 	folego.setup(self)
+	dialogo = load("res://scripts/dialogo.gd").new()
+	ui.add_child(dialogo)
+	dialogo.setup(self)
 	Character.aquecer()   # modelos de personagens carregam em segundo plano desde a tela de entrada
 	world.aquecer()       # e os do cenário também
 	ui.want_window.connect(_window)
@@ -636,6 +640,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 			return
 		if ev.keycode == KEY_M and mapa_ui != null:
 			mapa_ui.alternar()
+			return
+		if ev.keycode == KEY_ESCAPE and dialogo != null and dialogo.visible:
+			dialogo.fechar()
 			return
 		if ev.keycode == KEY_ESCAPE and mapa_ui != null and mapa_ui.aberto:
 			mapa_ui.alternar()

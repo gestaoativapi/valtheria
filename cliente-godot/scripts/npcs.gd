@@ -698,6 +698,8 @@ func talk(e: Dictionary) -> void:
 	var line := _line(e, _night())
 	say(e, line)
 	main.ui.chat_line(str(e.name), line, "npc")
+	if main.get("dialogo") != null:
+		main.dialogo.abrir(e, line)
 	var c: Node3D = e.node
 	if e.get("walks", false) and e.state != "conversa" and e.kind in ["citizen", "patrol"]:
 		e.paused = e.state == "andando"
