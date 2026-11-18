@@ -49,7 +49,7 @@ static var world_ref: Node  # mundo, para os pés pisarem no chão (altura do te
 # V3 (base de teste): humanos com corpo e rosto A novos, roupa de aldeão com formas corretivas e RBF otimizado (v3o)
 static var V3_HUMANOS := true
 # raças que já usam o corpo V3 (as demais seguem no modelo antigo até ganharem corpo próprio)
-const V3_RACAS := ["humano", "elfo", "sombrio", "orc", "gigante"]
+const V3_RACAS := ["humano", "elfo", "sombrio", "orc", "gigante", "anao"]
 const DIR_V3 := "res://assets_v3/personagens/"
 const V3Ctrl := preload("res://scripts/v3_corretivas.gd")
 var v3 := false
@@ -99,6 +99,8 @@ const PROPORCOES := {
 	"sombrio:f": {"altura": 1.76, "pelve": 1.02, "coluna": 1.0, "peito": 0.96, "pescoco": 0.98, "cabeca": 0.98, "ombros": 0.9, "braco": 1.0, "antebraco": 1.0, "mao": 0.98, "coxa": 1.03, "canela": 1.03, "pe": 1.01},
 	"orc:m": {"altura": 2.0, "pelve": 1.08, "coluna": 1.08, "peito": 1.24, "pescoco": 1.15, "cabeca": 1.08, "ombros": 1.24, "braco": 1.15, "antebraco": 1.15, "mao": 1.15, "coxa": 1.08, "canela": 1.08, "pe": 1.08},
 	"orc:f": {"altura": 1.87, "pelve": 1.08, "coluna": 1.05, "peito": 1.12, "pescoco": 1.08, "cabeca": 1.05, "ombros": 1.12, "braco": 1.10, "antebraco": 1.10, "mao": 1.08, "coxa": 1.07, "canela": 1.07, "pe": 1.06},
+	"anao:m": {"altura": 1.42, "pelve": 1.08, "coluna": 0.88, "peito": 1.18, "pescoco": 0.9, "cabeca": 1.08, "ombros": 1.18, "braco": 1.1, "antebraco": 1.1, "mao": 1.1, "coxa": 0.78, "canela": 0.78, "pe": 0.9},
+	"anao:f": {"altura": 1.35, "pelve": 1.08, "coluna": 0.86, "peito": 1.08, "pescoco": 0.9, "cabeca": 1.06, "ombros": 1.08, "braco": 1.08, "antebraco": 1.08, "mao": 1.06, "coxa": 0.78, "canela": 0.78, "pe": 0.9},
 	"gigante:m": {"altura": 2.15, "pelve": 1.12, "coluna": 1.12, "peito": 1.30, "pescoco": 1.12, "cabeca": 1.04, "ombros": 1.30, "braco": 1.18, "antebraco": 1.18, "mao": 1.15, "coxa": 1.15, "canela": 1.15, "pe": 1.12},
 	"gigante:f": {"altura": 2.02, "pelve": 1.12, "coluna": 1.10, "peito": 1.17, "pescoco": 1.08, "cabeca": 1.03, "ombros": 1.17, "braco": 1.14, "antebraco": 1.14, "mao": 1.12, "coxa": 1.12, "canela": 1.12, "pe": 1.10},
 }
@@ -167,7 +169,7 @@ func _setup_medido(o: Dictionary) -> void:
 	var eq: Dictionary = o.get("equipment") if o.get("equipment") is Dictionary else {}
 	var skins: Array = rd.get("skins", ["#e8b993"])
 	var skin := Color(str(skins[clampi(int(o.get("skin", look.get("skin", 0))), 0, skins.size() - 1)]))
-	if race in ["elfo", "sombrio", "orc", "gigante", "draconato"] and V3_HUMANOS:
+	if race in ["elfo", "sombrio", "orc", "gigante", "draconato", "anao"] and V3_HUMANOS:
 		var pl: Array = (TRACOS[race] as Dictionary).get("peles", [])
 		if not pl.is_empty():
 			skin = Color(str(pl[clampi(int(o.get("skin", look.get("skin", 0))), 0, pl.size() - 1)]))
@@ -188,7 +190,7 @@ func _setup_medido(o: Dictionary) -> void:
 	var dragon := race == "draconato"
 	# raças com modelo próprio (corpo, roupa e cabelo numa peça só)
 	var own := ""
-	if race == "anao":
+	if race == "anao" and not (V3_HUMANOS and race in V3_RACAS):  # modelos M1/M5 antigos só fora do V3
 		own = "anao_m" if male else "anao_f"
 	var file := "body_%s_%s" % [g, outfit]
 	if dragon:
@@ -219,7 +221,7 @@ func _setup_medido(o: Dictionary) -> void:
 			hair_col = Color(str(cab[posmod(hc_i, cab.size())]))
 		_vestir_v3(male, outfit, hair_col)
 		if race != "humano":
-			_tracos_raca(race, male, skin)
+			_tracos_raca(race, male, skin, hair_col)
 	else:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
 			var nm := String(m.name).to_lower()
@@ -273,6 +275,8 @@ func _setup_medido(o: Dictionary) -> void:
 			if bi >= 0:
 				skel.set_bone_pose_scale(bi, Vector3.ONE * float(shape.bones[bn]))
 		height_m = (1.8 + (0.12 if race == "anao" else 0.0)) * k - float(shape.drop) * k
+	if dragon:  # o modelo da dragonita é mais alto que o humano de referência (medido: 1,96 m e 1,84 m)
+		height_m = 1.96 if male else 1.84
 	anim = AnimationPlayer.new()
 	body.add_child(anim)
 	anim.add_animation_library("", _clips(skel, own))
@@ -738,12 +742,13 @@ const TRACOS := {
 	"elfo": {"orelha": [0.085, 0.022, 0.55, -0.35], "cabelos": ["#c9c2a1", "#e8d8a8", "#b58a55", "#5d493d", "#a7b9b2"], "peles": ["#f0d6bc", "#d9b99d", "#b99a80", "#e8dccb"]},
 	"sombrio": {"orelha": [0.1, 0.022, 0.6, -0.45], "marca": Color(0.85, 0.85, 1.0), "cabelos": ["#b8b4c2", "#191820", "#51405a", "#7d5269"], "peles": ["#74515a", "#593c4c", "#8b626a", "#a17d79", "#4a3946"]},
 	"orc": {"orelha": [0.045, 0.024, 0.25, -0.2], "presas": true, "cabelos": ["#2b211c", "#57402e", "#8a6844", "#c0a47a"], "peles": ["#71834c", "#596b3b", "#89985c", "#a0a36b", "#485b39"]},
+	"anao": {"barba": true, "cabelos": ["#e7e0d2", "#a94b2d", "#4b3025", "#b58b52"], "peles": ["#e5b995", "#c9916c", "#a66e4f", "#f0d0b0", "#8d604a"]},
 	"draconato": {"peles": ["#537b58", "#78975f", "#3c5f4b", "#9b6a46", "#b48b58"]},
 	"gigante": {"marca": Color(0.6, 0.85, 1.0), "cabelos": ["#dce7e8", "#afc8d0", "#718b9c", "#e8e2d6"], "peles": ["#b8d6db", "#8db7c2", "#d8e8e8", "#709aa8", "#a8c8cf"]},
 }
 
 
-func _tracos_raca(race: String, male: bool, skin: Color) -> void:
+func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3, 0.2, 0.15)) -> void:
 	var tinta := Color(minf(skin.r / TOM_BASE_V3.r, 1.4), minf(skin.g / TOM_BASE_V3.g, 1.4), minf(skin.b / TOM_BASE_V3.b, 1.4))
 	# cor de pele natural: a tinta da raça entra só em parte, sem saturar
 	tinta = Color.WHITE.lerp(tinta, 0.9)
@@ -803,6 +808,31 @@ func _tracos_raca(race: String, male: bool, skin: Color) -> void:
 			var b := Basis(Quaternion(Vector3.UP, Vector3(lado * 0.25, 1.0, 0.25).normalized()))
 			mi.transform = rest.affine_inverse() * Transform3D(b, Vector3(lado * 0.02, olho_y - 0.072, olho_z + 0.012))
 			att.add_child(mi)
+	if tr.get("barba", false) and male:
+		# barba cheia de anão: uma casca que nasce na linha do queixo, desce até o peito e afina na ponta
+		var pelo := StandardMaterial3D.new()
+		pelo.albedo_color = cor_cabelo
+		pelo.roughness = 1.0
+		pelo.vertex_color_use_as_albedo = true
+		pelo.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var mi := MeshInstance3D.new()
+		mi.mesh = _malha_barba()
+		mi.material_override = pelo
+		mi.transform = rest.affine_inverse()
+		att.add_child(mi)
+		var cobre := StandardMaterial3D.new()
+		cobre.albedo_color = Color(0.72, 0.42, 0.22)
+		cobre.metallic = 0.8
+		cobre.roughness = 0.35
+		var anel := MeshInstance3D.new()
+		var cil := CylinderMesh.new()
+		cil.top_radius = 0.018
+		cil.bottom_radius = 0.02
+		cil.height = 0.03
+		anel.mesh = cil
+		anel.material_override = cobre
+		anel.transform = rest.affine_inverse() * Transform3D(Basis.from_euler(Vector3(0.35, 0, 0)), Vector3(0, 1.415, 0.1))
+		att.add_child(anel)
 	if tr.has("marca"):
 		# marca rúnica leve na testa (elfo negro: prata; gigante: gelo), brilho bem suave
 		var mi := MeshInstance3D.new()
@@ -818,6 +848,60 @@ func _tracos_raca(race: String, male: bool, skin: Color) -> void:
 		mi.mesh.material = mm
 		mi.transform = rest.affine_inverse() * Transform3D(Basis(), Vector3(0, olho_y + 0.045, olho_z + 0.012))
 		att.add_child(mi)
+
+
+static var _barba: ArrayMesh
+
+
+# barba em coordenadas do corpo masculino de repouso (metros, rosto para +Z); mechas em tons alternados
+static func _malha_barba() -> ArrayMesh:
+	if _barba != null:
+		return _barba
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var nu := 22
+	var nv := 14
+	var pts := []
+	for vi in nv + 1:
+		var v := float(vi) / nv
+		var linha := []
+		for ui in nu + 1:
+			var u := float(ui) / nu * 2.0 - 1.0
+			var ang := u * deg_to_rad(105.0)
+			var afina := 1.0 - 0.75 * pow(v, 1.6)
+			var rx := 0.074 * afina
+			var rz := 0.088 * (1.0 - 0.35 * v) + 0.02 * sin(v * PI)
+			var y := 1.648 - v * 0.235 - 0.03 * (1.0 - cos(u * PI * 0.5)) * (1.0 - v)
+			var mecha := 0.004 * sin(u * 31.0 + v * 7.0)
+			linha.append(Vector3(sin(ang) * (rx + mecha), y, -0.004 + cos(ang) * (rz + mecha)))
+		pts.append(linha)
+	for vi in nv:
+		for ui in nu:
+			var tom := 0.85 + 0.15 * float((ui * 7 + vi * 3) % 5) / 4.0
+			var c := Color(tom, tom, tom)
+			var a: Vector3 = pts[vi][ui]
+			var b: Vector3 = pts[vi][ui + 1]
+			var d: Vector3 = pts[vi + 1][ui]
+			var e: Vector3 = pts[vi + 1][ui + 1]
+			for q in [a, d, b, b, d, e]:
+				st.set_color(c)
+				st.add_vertex(q)
+	# bigode: duas mechas curvas sobre a boca
+	for lado in [-1.0, 1.0]:
+		for k in 6:
+			var t0 := float(k) / 6.0
+			var t1 := float(k + 1) / 6.0
+			var p0 := Vector3(lado * (0.006 + t0 * 0.045), 1.652 - t0 * t0 * 0.035, 0.093 - t0 * 0.02)
+			var p1 := Vector3(lado * (0.006 + t1 * 0.045), 1.652 - t1 * t1 * 0.035, 0.093 - t1 * 0.02)
+			var w0 := 0.008 * (1.0 - t0 * 0.7)
+			var w1 := 0.008 * (1.0 - t1 * 0.7)
+			var c2 := Color(0.95, 0.95, 0.95)
+			for q in [p0 + Vector3(0, w0, 0), p0 - Vector3(0, w0, 0), p1 + Vector3(0, w1, 0), p1 + Vector3(0, w1, 0), p0 - Vector3(0, w0, 0), p1 - Vector3(0, w1, 0)]:
+				st.set_color(c2)
+				st.add_vertex(q)
+	st.generate_normals()
+	_barba = st.commit()
+	return _barba
 
 
 # V3: aldeão = túnica (formas corretivas + RBF), calça e botas novas; outras armaduras usam a roupa oficial no corpo novo
