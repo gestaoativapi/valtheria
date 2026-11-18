@@ -267,6 +267,21 @@ func _ready() -> void:
 			test_fight = true
 		elif a == "--armed":  # teste: postura de combate parado, sem monstro
 			combat.combat_until = 1e9
+		elif a == "--racas-v3":  # teste: raças no corpo V3, homem e mulher, com brilho de encanto crescente e um herói
+			var rs := ["humano", "elfo", "sombrio", "orc", "gigante"]
+			var nv := [4, 7, 10, 13, 15, 16]
+			var k := 0
+			for i in rs.size():
+				for gi in 2:
+					var arm: String = ["nenhuma", "pesada_ng"][(i + gi) % 2]
+					var c: Node3D = Character.create({"race": rs[i], "gender": "mf"[gi], "skin": 1, "hair": 1, "hair_color": i + gi, "heroi": k == 9, "equipment": {"armadura": arm, "arma": "espada_ng"}, "enchant": {"espada_ng": nv[k % nv.size()] if k < 9 else 16}})
+					add_child(c)
+					var px := player.position.x + 5.4 - k * 1.2
+					var pz := player.position.z + 3.0
+					c.position = Vector3(px, world.height(px, pz), pz)
+					c.rotation.y = PI
+					k += 1
+			facing = PI
 		elif a == "--lineup":  # teste: uma fileira com todas as raças
 			var ids: Array = world.info.races.keys()
 			for i in ids.size():

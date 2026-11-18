@@ -48,6 +48,8 @@ static func cena(caminho: String) -> PackedScene:
 static var world_ref: Node  # mundo, para os pés pisarem no chão (altura do terreno embaixo de cada pé)
 # V3 (base de teste): humanos com corpo e rosto A novos, roupa de aldeão com formas corretivas e RBF otimizado (v3o)
 static var V3_HUMANOS := true
+# raças que já usam o corpo V3 (as demais seguem no modelo antigo até ganharem corpo próprio)
+const V3_RACAS := ["humano", "elfo", "sombrio", "orc", "gigante"]
 const DIR_V3 := "res://assets_v3/personagens/"
 const V3Ctrl := preload("res://scripts/v3_corretivas.gd")
 var v3 := false
@@ -160,7 +162,7 @@ func _setup_medido(o: Dictionary) -> void:
 		file = "body_dragonita"
 	elif own != "":
 		file = "body_" + own
-	v3 = V3_HUMANOS and race == "humano"
+	v3 = V3_HUMANOS and race in V3_RACAS
 	var body: Node3D = cena(DIR_V3 + ("pc_humano_m_rostoA" if male else "pc_humano_f_rostoA") + ".glb").instantiate() if v3 else cena(DIR + file + ".glb").instantiate()
 	body.name = "Corpo"
 	add_child(body)
@@ -178,7 +180,12 @@ func _setup_medido(o: Dictionary) -> void:
 	elif own != "":
 		pass
 	elif v3:
+		if TRACOS.has(race) and TRACOS[race].has("cabelos"):
+			var cab: Array = TRACOS[race].cabelos
+			hair_col = Color(str(cab[posmod(hc_i, cab.size())]))
 		_vestir_v3(male, outfit, hair_col)
+		if race != "humano":
+			_tracos_raca(race, male, skin)
 	else:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
 			var nm := String(m.name).to_lower()
@@ -667,6 +674,97 @@ static func _mat_fiapo() -> StandardMaterial3D:
 	_fiapo.albedo_color = Color(0.95, 0.7, 0.4, 0.5)
 	_fiapo.vertex_color_use_as_albedo = true
 	return _fiapo
+
+
+# ---------- traços de raça no corpo V3 ----------
+# A pele do corpo V3 é pintada; para as outras raças a cor é multiplicada pela tinta da raça.
+# Orelhas, presas e marcas são peças pequenas presas ao osso da cabeça, medidas em metros
+# a partir do corpo de repouso (rosto para +Z).
+const TOM_BASE_V3 := Color(0.91, 0.74, 0.6)
+var pele_raca := Color.WHITE
+const TRACOS := {
+	"elfo": {"orelha": [0.085, 0.022, 0.55, -0.35], "cabelos": ["#e8d8a8", "#f0ead8", "#c9a86a", "#b07a48"]},
+	"sombrio": {"orelha": [0.1, 0.022, 0.6, -0.45], "marca": Color(0.85, 0.85, 1.0), "cabelos": ["#e6e6f0", "#b8b8c8", "#2a2830", "#7a6a9a"]},
+	"orc": {"orelha": [0.045, 0.024, 0.25, -0.2], "presas": true, "cabelos": ["#1e1a16", "#3a2a1e", "#5a4a3a", "#7a2a1e"]},
+	"gigante": {"marca": Color(0.6, 0.85, 1.0), "cabelos": ["#e8eef4", "#c8d4e0", "#a8b8c8", "#8a9aa8"]},
+}
+
+
+func _tracos_raca(race: String, male: bool, skin: Color) -> void:
+	var tinta := Color(minf(skin.r / TOM_BASE_V3.r, 1.4), minf(skin.g / TOM_BASE_V3.g, 1.4), minf(skin.b / TOM_BASE_V3.b, 1.4))
+	# cor de pele natural: a tinta da raça entra só em parte, sem saturar
+	tinta = Color.WHITE.lerp(tinta, 0.62)
+	pele_raca = Color(TOM_BASE_V3.r * tinta.r, TOM_BASE_V3.g * tinta.g, TOM_BASE_V3.b * tinta.b)
+	for m in skel.find_children("*", "MeshInstance3D", true, false):
+		if String(m.name) == "corpo":
+			_tint(m as MeshInstance3D, tinta)
+	var tr: Dictionary = TRACOS.get(race, {})
+	var hb := skel.find_bone("Head")
+	if tr.is_empty() or hb < 0:
+		return
+	var rest := skel.get_bone_global_rest(hb)
+	var att := BoneAttachment3D.new()
+	att.bone_name = "Head"
+	att.name = "TracosRaca"
+	skel.add_child(att)
+	# pontos do rosto no corpo de repouso (homem e mulher têm cabeça em alturas diferentes)
+	var olho_y := 1.69 if male else 1.572
+	var olho_z := 0.075 if male else 0.115
+	var largura := 0.074 if male else 0.068
+	var pele := StandardMaterial3D.new()
+	pele.albedo_color = pele_raca
+	pele.roughness = 0.75
+	if tr.has("orelha"):
+		var o: Array = tr.orelha
+		for lado in [-1.0, 1.0]:
+			var mi := MeshInstance3D.new()
+			var c := CylinderMesh.new()
+			c.top_radius = 0.0015
+			c.bottom_radius = float(o[1])
+			c.height = float(o[0])
+			c.radial_segments = 10
+			c.rings = 1
+			mi.mesh = c
+			mi.material_override = pele
+			# ponta para fora, subindo e indo para trás; achatada como uma folha
+			var dir := Vector3(lado, float(o[2]), float(o[3])).normalized()
+			var b := Basis(Quaternion(Vector3.UP, dir))
+			b = b * Basis.from_scale(Vector3(1.0, 1.0, 0.38))
+			var base := Vector3(lado * largura, olho_y - 0.01, olho_z - 0.085)
+			mi.transform = rest.affine_inverse() * Transform3D(b, base + dir * float(o[0]) * 0.5)
+			att.add_child(mi)
+	if tr.get("presas", false):
+		var marfim := StandardMaterial3D.new()
+		marfim.albedo_color = Color(0.93, 0.88, 0.74)
+		marfim.roughness = 0.5
+		for lado in [-1.0, 1.0]:
+			var mi := MeshInstance3D.new()
+			var c := CylinderMesh.new()
+			c.top_radius = 0.0
+			c.bottom_radius = 0.0055
+			c.height = 0.026 if male else 0.016
+			c.radial_segments = 8
+			c.rings = 1
+			mi.mesh = c
+			mi.material_override = marfim
+			var b := Basis(Quaternion(Vector3.UP, Vector3(lado * 0.25, 1.0, 0.25).normalized()))
+			mi.transform = rest.affine_inverse() * Transform3D(b, Vector3(lado * 0.02, olho_y - 0.072, olho_z + 0.012))
+			att.add_child(mi)
+	if tr.has("marca"):
+		# marca rúnica leve na testa (elfo negro: prata; gigante: gelo), brilho bem suave
+		var mi := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(0.026, 0.034)
+		mi.mesh = q
+		var mm := StandardMaterial3D.new()
+		mm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mm.albedo_texture = _mat_fiapo().albedo_texture
+		var cm: Color = tr.marca
+		mm.albedo_color = Color(cm.r, cm.g, cm.b, 0.55)
+		mi.mesh.material = mm
+		mi.transform = rest.affine_inverse() * Transform3D(Basis(), Vector3(0, olho_y + 0.045, olho_z + 0.012))
+		att.add_child(mi)
 
 
 # V3: aldeão = túnica (formas corretivas + RBF), calça e botas novas; outras armaduras usam a roupa oficial no corpo novo
