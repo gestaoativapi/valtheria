@@ -223,7 +223,135 @@ func _setup_medido(o: Dictionary) -> void:
 	if GRIP.has(kind):
 		# a arma acompanha o tamanho de quem usa: menor no anão, maior no gigante
 		_weapon(kind, lerpf(1.0, height_m / 1.8, 0.85), str(eq.get("escudo", "")) != "", wid, str(eq.get("escudo", "")))
+		var en: Dictionary = o.get("enchant") if o.get("enchant") is Dictionary else {}
+		brilho_encanto(int(en.get(wid, 0)))
+	if bool(o.get("heroi", false)):
+		aura_heroi(true)
 	play("Idle")
+
+
+# ---------- brilho de encantamento (+4 a +16) e aura de herói ----------
+# Faixas próprias de Valtheria: aço azul (+4), turquesa (+7), âmbar (+10), violeta (+13) e ouro branco (+16).
+const FAIXAS_ENCANTO := [[4, Color(0.35, 0.55, 1.0)], [7, Color(0.2, 0.95, 0.85)], [10, Color(1.0, 0.55, 0.15)], [13, Color(0.7, 0.3, 1.0)], [16, Color(1.0, 0.92, 0.6)]]
+const BRILHO_SHADER := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_back, depth_draw_never;
+uniform vec3 cor : source_color = vec3(0.4, 0.6, 1.0);
+uniform float forca = 1.0;
+void fragment() {
+	float fr = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.0);
+	float pulso = 0.75 + 0.25 * sin(TIME * 3.0);
+	ALBEDO = cor * (0.25 + fr * 1.6) * forca * pulso;
+}
+"""
+static var _brilho_shader: Shader
+var encanto := 0
+var _aura: Node3D
+
+
+func brilho_encanto(nivel: int) -> void:
+	encanto = nivel
+	if wnode == null:
+		return
+	for c in wnode.get_children():
+		if c.name == "BrilhoEncanto":
+			c.queue_free()
+	var faixa := -1
+	for i in FAIXAS_ENCANTO.size():
+		if nivel >= int(FAIXAS_ENCANTO[i][0]):
+			faixa = i
+	for m in wnode.find_children("*", "MeshInstance3D", true, false):
+		(m as MeshInstance3D).material_overlay = null
+	if faixa < 0:
+		return
+	if _brilho_shader == null:
+		_brilho_shader = Shader.new()
+		_brilho_shader.code = BRILHO_SHADER
+	var cor: Color = FAIXAS_ENCANTO[faixa][1]
+	var mat := ShaderMaterial.new()
+	mat.shader = _brilho_shader
+	mat.set_shader_parameter("cor", cor)
+	mat.set_shader_parameter("forca", 0.45 + 0.18 * faixa + 0.04 * float(nivel - int(FAIXAS_ENCANTO[faixa][0])))
+	var bb := AABB()
+	var first := true
+	for m in wnode.find_children("*", "MeshInstance3D", true, false):
+		(m as MeshInstance3D).material_overlay = mat
+		var a: AABB = wnode.global_transform.affine_inverse() * (m as MeshInstance3D).global_transform * (m as MeshInstance3D).get_aabb()
+		bb = a if first else bb.merge(a)
+		first = false
+	if faixa >= 1:   # a partir do +7: faíscas subindo da lâmina
+		var p := CPUParticles3D.new()
+		p.name = "BrilhoEncanto"
+		p.amount = 6 + faixa * 6
+		p.lifetime = 0.9
+		p.local_coords = false
+		p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+		p.emission_box_extents = bb.size * 0.45
+		p.position = bb.get_center()
+		p.direction = Vector3.UP
+		p.spread = 25.0
+		p.gravity = Vector3(0, 0.6, 0)
+		p.initial_velocity_min = 0.05
+		p.initial_velocity_max = 0.25
+		p.scale_amount_min = 0.5
+		p.scale_amount_max = 1.0
+		var q := QuadMesh.new()
+		q.size = Vector2(0.025, 0.025)
+		var qm := StandardMaterial3D.new()
+		qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		qm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		qm.albedo_color = cor * 1.5
+		q.material = qm
+		p.mesh = q
+		p.visibility_range_end = 30.0
+		wnode.add_child(p)
+
+
+# aura de herói: anel de luz dourada aos pés e brilho subindo pelo corpo
+func aura_heroi(on: bool) -> void:
+	if _aura != null:
+		_aura.queue_free()
+		_aura = null
+	if not on:
+		return
+	_aura = Node3D.new()
+	add_child(_aura)
+	var p := CPUParticles3D.new()
+	p.amount = 40
+	p.lifetime = 1.6
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
+	p.emission_ring_axis = Vector3.UP
+	p.emission_ring_radius = 0.55
+	p.emission_ring_inner_radius = 0.4
+	p.emission_ring_height = 0.05
+	p.direction = Vector3.UP
+	p.spread = 8.0
+	p.gravity = Vector3.ZERO
+	p.initial_velocity_min = 0.6
+	p.initial_velocity_max = 1.1
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.2
+	var q := QuadMesh.new()
+	q.size = Vector2(0.05, 0.12)
+	var qm := StandardMaterial3D.new()
+	qm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	qm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	qm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	qm.albedo_color = Color(1.0, 0.8, 0.35)
+	q.material = qm
+	p.mesh = q
+	p.visibility_range_end = 60.0
+	_aura.add_child(p)
+	var luz := OmniLight3D.new()
+	luz.light_color = Color(1.0, 0.82, 0.45)
+	luz.light_energy = 0.6
+	luz.omni_range = 3.0
+	luz.position = Vector3(0, 1.0, 0)
+	luz.shadow_enabled = false
+	luz.distance_fade_enabled = true
+	luz.distance_fade_begin = 25.0
+	_aura.add_child(luz)
 
 
 # V3: aldeão = túnica (formas corretivas + RBF), calça e botas novas; outras armaduras usam a roupa oficial no corpo novo

@@ -292,6 +292,15 @@ func _ready() -> void:
 					c.rotation.y = 0.0
 			facing = PI
 			Character.V3_HUMANOS = true
+		elif a == "--encantos":  # teste: mesma espada em +0, +4, +7, +10, +13, +16 e um herói
+			var niveis := [0, 4, 7, 10, 13, 16]
+			for i in niveis.size():
+				var c: Node3D = Character.create({"race": "humano", "gender": "m", "skin": 1, "hair": 1, "hair_color": 2, "heroi": i == niveis.size() - 1, "equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}, "enchant": {"espada_ng": niveis[i]}})
+				add_child(c)
+				var px := player.position.x - 3.0 + i * 1.2
+				var pz := player.position.z + 3.0
+				c.position = Vector3(px, world.height(px, pz), pz)
+			facing = PI
 		elif a == "--crowd":
 			_spawn_crowd()
 		elif a.begins_with("--look="):  # teste: câmera atrás do personagem olhando para x, z
