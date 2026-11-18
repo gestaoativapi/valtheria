@@ -35,6 +35,7 @@ var target := Vector3.ZERO
 var has_target := false
 var facing := 0.0
 var mapa_ui: Control
+var folego: Control
 var sel := {}  # alvo que não é monstro: {"kind": "self"|"player"|"npc", ...}
 var emote := ""
 var jumping := false
@@ -149,6 +150,9 @@ func _ready() -> void:
 	mapa_ui = load("res://scripts/mapa_ui.gd").new()
 	ui.add_child(mapa_ui)
 	mapa_ui.setup(self)
+	folego = load("res://scripts/folego.gd").new()
+	ui.add_child(folego)
+	folego.setup(self)
 	Character.aquecer()   # modelos de personagens carregam em segundo plano desde a tela de entrada
 	world.aquecer()       # e os do cenário também
 	ui.want_window.connect(_window)
@@ -804,7 +808,7 @@ func _physics_process(dt: float) -> void:
 	if move != Vector3.ZERO:
 		var sprint := Input.is_physical_key_pressed(KEY_SHIFT)
 		var walk := Input.is_physical_key_pressed(KEY_CTRL)
-		var speed: float = WALK if walk else float(combat.st.get("speed", RUN)) * (1.0 if not sprint else 1.0)
+		var speed: float = WALK if walk else float(combat.st.get("speed", RUN)) * folego.passo(dt, sprint, true, swimming)
 		if gm_speed:
 			speed *= 3.0
 		var step := speed * dt
@@ -820,7 +824,7 @@ func _physics_process(dt: float) -> void:
 			var zo: Dictionary = world.zone_at(player.position.x, player.position.z)
 			if str(zo.get("kind", "")) == "submarina" and world.zone_at(p.x, p.z).is_empty():
 				p = player.position  # a bolha de ar de Abissália: não dá para sair a pé
-			player.position = Vector3(p.x, _ground_at(p.x, p.z), p.z)
+			player.position = Vector3(p.x, player.position.y if (jumping or gm_fly) else folego.altura(dt, _ground_at(p.x, p.z)), p.z)
 		facing = lerp_angle(facing, atan2(move.x, move.z), minf(1.0, dt * 12.0))
 		player.rotation.y = facing
 		player.play("Walk" if walk or swimming else "Jog_Fwd", 0.7 if swimming else (1.1 if walk else speed / 5.2))
@@ -829,6 +833,10 @@ func _physics_process(dt: float) -> void:
 		if combat.auto:
 			emote = ""
 		player.play(emote if emote != "" else "Idle")
+	if move == Vector3.ZERO:
+		folego.passo(dt, false, false, swimming)
+		if not jumping and not gm_fly and interiores.inside.is_empty() and folego.no_ar:
+			player.position.y = folego.altura(dt, _ground_at(player.position.x, player.position.z))
 	if gm_fly:
 		if not typing and Input.is_physical_key_pressed(KEY_SPACE):
 			fly_y += 9.0 * dt
@@ -858,6 +866,7 @@ func _process(dt: float) -> void:
 		log_t = 0.0
 		note("fps %d | RAM %d MB | vídeo %d MB | blocos %d | grama %d | nós %d" % [int(Engine.get_frames_per_second()), int(OS.get_static_memory_usage() / 1048576.0), int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED) / 1048576.0), world.chunks.size(), world.grass.size(), int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))])
 	if playing and log_t == 0.0:
+		folego.atualizar_maximo(int(me.get("level", 1)))
 		note("combate: nv %d xp %d | vida %d/%d | monstros %d | alvo %s" % [int(me.get("level", 1)), int(me.get("xp", 0)), int(combat.hp), int(combat.st.get("maxHp", 0)), combat.mobs.size(), str(combat.target.fam.name) if combat.target else "-"])
 		if test_fight:
 			if combat.target == null:
@@ -1031,6 +1040,8 @@ func _do(id: String) -> void:
 			emote = ""
 			player.action("Yes")
 		"pular":
+			if folego.tentar_planar():   # no ar depois de um barranco: abre ou fecha o planador
+				return
 			if not jumping:
 				jumping = true
 				jump_t = 0.0
