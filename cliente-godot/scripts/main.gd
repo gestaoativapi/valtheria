@@ -403,6 +403,17 @@ func _ready() -> void:
 			player.visible = false
 			facing = PI
 			facing = PI
+		elif a.begins_with("--chefe-luta="):  # teste: chefe em combate a 7 m, usando as habilidades (MESA-015.1)
+			var idc := a.trim_prefix("--chefe-luta=")
+			var pz2: float = player.position.z + 7.0
+			if combat.gm_spawn(idc, player.position.x, pz2):
+				var mb: Dictionary = combat.mobs[combat.mobs.size() - 1]
+				mb.aggro = true
+				mb.next_atk = 1e9
+				for hc in mb.get("hab", {}).get("cd", {}).keys():
+					mb.hab.cd[hc] = 0.0
+			gm_god = true
+			facing = 0.0
 		elif a == "--monstros":  # teste: um de cada família de monstro (chefes por último)
 			var fams := []
 			for band in world.info.mobs:
@@ -812,7 +823,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_R:
 				# dragonita: sopro elemental (visual; dano depende do servidor)
 				if player != null and player.get("asas") != null:
-					player.asas.sopro("fogo")
+					combat.sopro_racial()
 			KEY_F:
 				combat.engage(combat.target)
 	if not playing:
@@ -943,7 +954,7 @@ func _physics_process(dt: float) -> void:
 	if move != Vector3.ZERO:
 		var sprint := Input.is_physical_key_pressed(KEY_SHIFT)
 		var walk := Input.is_physical_key_pressed(KEY_CTRL)
-		var speed: float = WALK if walk else float(combat.st.get("speed", RUN)) * folego.passo(dt, sprint, true, swimming)
+		var speed: float = (WALK if walk else float(combat.st.get("speed", RUN)) * folego.passo(dt, sprint, true, swimming)) * combat.mult_movimento()
 		if gm_speed:
 			speed *= 3.0
 		var step := speed * dt

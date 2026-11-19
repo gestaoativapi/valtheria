@@ -1,0 +1,340 @@
+{
+ "versao": "MESA-015.1 (ChatGPT, 18/11 23h)",
+ "nota": "dano_pct sobre o ataque-base do chefe; aviso = tempo de telegrafia no chão; fases acumulam (na fase 60-30 o chefe ainda usa a de 100-60).",
+ "chefes": {
+  "rei_javali": [
+   {
+    "id": "javali_carga_ancestral",
+    "nome": "Investida Ancestral",
+    "tipo": "cone",
+    "dano_pct": 125,
+    "alcance": 12,
+    "raio": 4,
+    "recarga": 12,
+    "aviso": 1.8,
+    "elem": "terra",
+    "debuff": [
+     "lentidao",
+     25,
+     3
+    ],
+    "fase": "100-60"
+   },
+   {
+    "id": "javali_raizes",
+    "nome": "Rompimento das Raízes",
+    "tipo": "area",
+    "dano_pct": 90,
+    "alcance": 10,
+    "raio": 6,
+    "recarga": 16,
+    "aviso": 2.2,
+    "elem": "natureza",
+    "debuff": [
+     "enraizamento",
+     1,
+     2
+    ],
+    "fase": "60-30"
+   },
+   {
+    "id": "javali_evolucao",
+    "nome": "Fúria da Mutação",
+    "tipo": "buff",
+    "dano_pct": 0,
+    "alcance": 0,
+    "raio": 0,
+    "recarga": 30,
+    "aviso": 1.5,
+    "elem": "terra",
+    "debuff": [
+     "nenhum",
+     0,
+     0
+    ],
+    "fase": "30-0"
+   }
+  ],
+  "rainha": [
+   {
+    "id": "rainha_teia",
+    "nome": "Círculo de Teias",
+    "tipo": "area",
+    "dano_pct": 75,
+    "alcance": 14,
+    "raio": 5,
+    "recarga": 14,
+    "aviso": 2.0,
+    "elem": "veneno",
+    "debuff": [
+     "lentidao",
+     30,
+     4
+    ],
+    "fase": "100-60"
+   },
+   {
+    "id": "rainha_projeteis",
+    "nome": "Agulhas da Ninhada",
+    "tipo": "projetil",
+    "dano_pct": 55,
+    "alcance": 18,
+    "raio": 2,
+    "recarga": 9,
+    "aviso": 1.2,
+    "elem": "veneno",
+    "debuff": [
+     "veneno",
+     5,
+     5
+    ],
+    "fase": "60-30"
+   },
+   {
+    "id": "rainha_ninhada",
+    "nome": "Chamado da Ninhada",
+    "tipo": "invocacao",
+    "dano_pct": 0,
+    "alcance": 16,
+    "raio": 5,
+    "recarga": 28,
+    "aviso": 2.5,
+    "elem": "natureza",
+    "debuff": [
+     "nenhum",
+     0,
+     0
+    ],
+    "fase": "30-0"
+   }
+  ],
+  "golem_anc": [
+   {
+    "id": "golem_punho",
+    "nome": "Punho das Profundezas",
+    "tipo": "area",
+    "dano_pct": 115,
+    "alcance": 8,
+    "raio": 5,
+    "recarga": 13,
+    "aviso": 2.2,
+    "elem": "terra",
+    "debuff": [
+     "atordoamento",
+     1,
+     1.5
+    ],
+    "fase": "100-60"
+   },
+   {
+    "id": "golem_estilhacos",
+    "nome": "Chuva de Estilhaços",
+    "tipo": "projetil",
+    "dano_pct": 65,
+    "alcance": 20,
+    "raio": 3,
+    "recarga": 11,
+    "aviso": 1.8,
+    "elem": "terra",
+    "debuff": [
+     "lentidao",
+     20,
+     3
+    ],
+    "fase": "60-30"
+   },
+   {
+    "id": "golem_runa",
+    "nome": "Runa do Guardião",
+    "tipo": "buff",
+    "dano_pct": 0,
+    "alcance": 0,
+    "raio": 8,
+    "recarga": 26,
+    "aviso": 1.5,
+    "elem": "arcano",
+    "debuff": [
+     "nenhum",
+     0,
+     0
+    ],
+    "fase": "30-0"
+   }
+  ],
+  "ent_mil": [
+   {
+    "id": "ent_raizes",
+    "nome": "Prisão das Raízes",
+    "tipo": "area",
+    "dano_pct": 70,
+    "alcance": 14,
+    "raio": 6,
+    "recarga": 15,
+    "aviso": 2.4,
+    "elem": "natureza",
+    "debuff": [
+     "enraizamento",
+     1,
+     2.5
+    ],
+    "fase": "100-60"
+   },
+   {
+    "id": "ent_sementes",
+    "nome": "Sementes Despertas",
+    "tipo": "projetil",
+    "dano_pct": 60,
+    "alcance": 20,
+    "raio": 2,
+    "recarga": 10,
+    "aviso": 1.4,
+    "elem": "natureza",
+    "debuff": [
+     "veneno",
+     4,
+     5
+    ],
+    "fase": "60-30"
+   },
+   {
+    "id": "ent_copa",
+    "nome": "Despertar da Copa",
+    "tipo": "buff",
+    "dano_pct": 0,
+    "alcance": 0,
+    "raio": 9,
+    "recarga": 30,
+    "aviso": 2.0,
+    "elem": "natureza",
+    "debuff": [
+     "nenhum",
+     0,
+     0
+    ],
+    "fase": "30-0"
+   }
+  ],
+  "senhor_dem": [
+   {
+    "id": "dem_chamas",
+    "nome": "Arco de Chamas",
+    "tipo": "cone",
+    "dano_pct": 105,
+    "alcance": 11,
+    "raio": 5,
+    "recarga": 12,
+    "aviso": 1.8,
+    "elem": "fogo",
+    "debuff": [
+     "queimadura",
+     5,
+     4
+    ],
+    "fase": "100-60"
+   },
+   {
+    "id": "dem_fissura",
+    "nome": "Fissura Carmesim",
+    "tipo": "area",
+    "dano_pct": 95,
+    "alcance": 14,
+    "raio": 5,
+    "recarga": 16,
+    "aviso": 2.2,
+    "elem": "fogo",
+    "debuff": [
+     "lentidao",
+     25,
+     3
+    ],
+    "fase": "60-30"
+   },
+   {
+    "id": "dem_asa",
+    "nome": "Ascensão Infernal",
+    "tipo": "buff",
+    "dano_pct": 0,
+    "alcance": 0,
+    "raio": 7,
+    "recarga": 28,
+    "aviso": 1.5,
+    "elem": "fogo",
+    "debuff": [
+     "nenhum",
+     0,
+     0
+    ],
+    "fase": "30-0"
+   }
+  ],
+  "dragao": [
+   {
+    "id": "dragao_sopro",
+    "nome": "Sopro Primordial",
+    "tipo": "cone",
+    "dano_pct": 120,
+    "alcance": 18,
+    "raio": 7,
+    "recarga": 18,
+    "aviso": 2.5,
+    "elem": "fogo",
+    "debuff": [
+     "afinidade_reduzida",
+     15,
+     4
+    ],
+    "fase": "100-60"
+   },
+   {
+    "id": "dragao_impacto",
+    "nome": "Impacto das Asas",
+    "tipo": "area",
+    "dano_pct": 85,
+    "alcance": 10,
+    "raio": 6,
+    "recarga": 14,
+    "aviso": 2.0,
+    "elem": "vento",
+    "debuff": [
+     "recuo",
+     3,
+     1
+    ],
+    "fase": "60-30"
+   },
+   {
+    "id": "dragao_despertar",
+    "nome": "Despertar Elemental",
+    "tipo": "buff",
+    "dano_pct": 0,
+    "alcance": 0,
+    "raio": 8,
+    "recarga": 30,
+    "aviso": 2.0,
+    "elem": "fogo",
+    "debuff": [
+     "nenhum",
+     0,
+     0
+    ],
+    "fase": "30-0"
+   }
+  ]
+ },
+ "sopro_dragonita": {
+  "dano_pct": 85,
+  "alcance": 12,
+  "angulo": 55,
+  "recarga": 12,
+  "custo_folego_pct": 25,
+  "aviso": 1.2,
+  "elementos": {
+   "rubi": "fogo",
+   "azul": "gelo",
+   "verde": "natureza",
+   "negra": "sombra",
+   "dourada": "luz",
+   "violeta": "arcano"
+  }
+ }
+}

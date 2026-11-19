@@ -1,4 +1,5 @@
 extends Node3D
+const VilaElfica := preload("res://scripts/vila_elfica.gd")
 const Perfil := preload("res://scripts/perfil.gd")
 # Mundo real de Valtheria: o mesmo relevo do servidor (assado em data/height.bin), carregado por blocos em volta do jogador.
 
@@ -1346,9 +1347,17 @@ func _town_marks(t: Dictionary, root: Node3D, ring_on := true) -> void:
 func _plaza_core(root: Node3D, t: Dictionary, svc: Dictionary, fire := true) -> void:
 	var cx: float = t.x
 	var cz: float = t.z
-	_building(root, "b_inn", cx + svc.pousada.x, cz + svc.pousada.y, 10.5, cx, cz)
-	_building(root, "b_blacksmith", cx + svc.forja.x, cz + svc.forja.y, 6.8, cx, cz)
-	_building(root, "b_stable", cx + svc.estabulo.x, cz + svc.estabulo.y, 6.2, cx, cz)
+	if str(t.get("race", "")) == "elfo":
+		# praça élfica (MESA-015.1): Repouso das Copas (estalagem), Forja da Seiva e Cofre das Raízes no estilo das casas élficas
+		for par in [[svc.pousada, 12.5], [svc.forja, 9.0], [svc.estabulo, 7.0]]:
+			var sv0: Vector2 = par[0]
+			var px := cx + sv0.x
+			var pz := cz + sv0.y
+			VilaElfica.casas(self, root, [at(px, pz, atan2(cx - px, cz - pz))], float(par[1]), 900.0)
+	else:
+		_building(root, "b_inn", cx + svc.pousada.x, cz + svc.pousada.y, 10.5, cx, cz)
+		_building(root, "b_blacksmith", cx + svc.forja.x, cz + svc.forja.y, 6.8, cx, cz)
+		_building(root, "b_stable", cx + svc.estabulo.x, cz + svc.estabulo.y, 6.2, cx, cz)
 	_building(root, "b_marketstand_1", cx - 28.0, cz + 18.0, 3.1, cx, cz)
 	_building(root, "b_marketstand_2", cx - 30.0, cz - 8.0, 3.1, cx, cz)
 	place(root, "b_bench_1", [at(cx + 26.0, cz - 14.0, 0.0), at(cx - 20.0, cz - 26.0, 0.3)], 0.95, true, 150.0)

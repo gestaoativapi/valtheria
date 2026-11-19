@@ -6,16 +6,23 @@ extends RefCounted
 # só a forma da malha em repouso. Cada raça e sexo é montado uma vez e reaproveitado.
 
 const PERFIS := {
-	# mand = largura da mandíbula (+ larga / - fina); queixo = [frente, baixo]; maca = maçã do rosto;
-	# testa = arcada da sobrancelha; nariz = [largura, comprimento]; boca = largura; canto = canto do olho sobe;
-	# palpebra = abre o olho (sobe a pálpebra de cima); fronte = testa inclina para trás
-	"elfo": {"mand": -0.17, "queixo": [0.005, 0.008], "maca": 0.006, "testa": 0.0, "nariz": [-0.2, 0.003], "boca": -0.08, "canto": 0.004, "palpebra": 0.0012, "fronte": 0.0},
-	"sombrio": {"mand": -0.2, "queixo": [0.006, 0.009], "maca": 0.008, "testa": 0.004, "nariz": [-0.18, 0.004], "boca": -0.06, "canto": 0.005, "palpebra": 0.001, "fronte": 0.0},
-	"orc": {"mand": 0.34, "queixo": [0.016, 0.004], "maca": 0.004, "testa": 0.014, "nariz": [0.6, -0.004], "boca": 0.2, "canto": -0.0015, "palpebra": 0.0, "fronte": 0.012},
-	"goblin": {"mand": -0.06, "queixo": [-0.008, 0.0], "maca": 0.005, "testa": 0.008, "nariz": [0.25, 0.026], "boca": 0.32, "canto": 0.004, "palpebra": 0.0015, "fronte": 0.006},
-	"gigante": {"mand": 0.24, "queixo": [0.012, 0.006], "maca": 0.006, "testa": 0.015, "nariz": [0.35, 0.004], "boca": 0.08, "canto": -0.001, "palpebra": 0.0, "fronte": 0.006},
-	"anao": {"mand": 0.14, "queixo": [0.004, 0.0], "maca": 0.006, "testa": 0.009, "nariz": [0.38, 0.008], "boca": 0.05, "canto": 0.0, "palpebra": 0.0, "fronte": 0.0},
-	"beastman": {"mand": 0.0, "queixo": [0.0, 0.0], "maca": 0.0, "testa": 0.0, "nariz": [0.0, 0.0], "boca": 0.0, "canto": 0.0, "palpebra": 0.0055, "fronte": 0.0, "palpebra_baixo": 0.002},
+	# MESA-015.1 (ChatGPT, 18/11 23h): valores por raça e sexo. mand = largura da mandíbula; queixo = [frente, baixo];
+	# maca = maçã do rosto; testa = arcada; nariz = [largura, comprimento]; boca = largura; canto = canto do olho sobe;
+	# palpebra = abre o olho; fronte = testa inclina para trás. Homem-fera: só pálpebras (o rosto é a máscara híbrida).
+	"elfo": {"m": {"mand": -0.17, "queixo": [0.005, 0.008], "maca": 0.006, "testa": 0.0, "nariz": [-0.2, 0.003], "boca": -0.08, "canto": 0.004, "palpebra": 0.002, "fronte": 0.006},
+		"f": {"mand": -0.13, "queixo": [0.004, 0.007], "maca": 0.009, "testa": 0.002, "nariz": [-0.15, 0.002], "boca": -0.06, "canto": 0.006, "palpebra": 0.004, "fronte": 0.008}},
+	"sombrio": {"m": {"mand": -0.2, "queixo": [0.006, 0.004], "maca": 0.008, "testa": 0.004, "nariz": [-0.12, 0.002], "boca": -0.04, "canto": 0.005, "palpebra": 0.003, "fronte": 0.009},
+		"f": {"mand": -0.15, "queixo": [0.004, 0.006], "maca": 0.011, "testa": 0.006, "nariz": [-0.1, 0.001], "boca": -0.03, "canto": 0.007, "palpebra": 0.005, "fronte": 0.011}},
+	"orc": {"m": {"mand": 0.34, "queixo": [0.016, 0.004], "maca": 0.012, "testa": 0.014, "nariz": [0.6, -0.004], "boca": 0.2, "canto": 0.002, "palpebra": 0.004, "fronte": 0.012},
+		"f": {"mand": 0.24, "queixo": [0.012, 0.003], "maca": 0.014, "testa": 0.011, "nariz": [0.42, -0.002], "boca": 0.14, "canto": 0.004, "palpebra": 0.006, "fronte": 0.01}},
+	"goblin": {"m": {"mand": 0.08, "queixo": [0.008, 0.012], "maca": 0.006, "testa": 0.01, "nariz": [0.25, 0.026], "boca": 0.32, "canto": 0.003, "palpebra": 0.006, "fronte": 0.008},
+		"f": {"mand": 0.06, "queixo": [0.006, 0.01], "maca": 0.008, "testa": 0.008, "nariz": [0.2, 0.02], "boca": 0.23, "canto": 0.005, "palpebra": 0.008, "fronte": 0.007}},
+	"gigante": {"m": {"mand": 0.24, "queixo": [0.012, 0.005], "maca": 0.01, "testa": 0.015, "nariz": [0.18, 0.002], "boca": 0.08, "canto": 0.002, "palpebra": 0.004, "fronte": 0.014},
+		"f": {"mand": 0.18, "queixo": [0.009, 0.004], "maca": 0.012, "testa": 0.012, "nariz": [0.14, 0.002], "boca": 0.06, "canto": 0.004, "palpebra": 0.006, "fronte": 0.012}},
+	"anao": {"m": {"mand": 0.14, "queixo": [0.012, 0.008], "maca": 0.012, "testa": 0.008, "nariz": [0.38, 0.008], "boca": 0.08, "canto": 0.002, "palpebra": 0.004, "fronte": 0.008},
+		"f": {"mand": 0.1, "queixo": [0.009, 0.007], "maca": 0.014, "testa": 0.009, "nariz": [0.28, 0.006], "boca": 0.06, "canto": 0.004, "palpebra": 0.006, "fronte": 0.009}},
+	"beastman": {"m": {"mand": 0, "queixo": [0, 0], "maca": 0, "testa": 0, "nariz": [0, 0], "boca": 0, "canto": 0, "palpebra": 0.0055, "fronte": 0, "palpebra_baixo": 0.002},
+		"f": {"mand": 0, "queixo": [0, 0], "maca": 0, "testa": 0, "nariz": [0, 0], "boca": 0, "canto": 0, "palpebra": 0.0055, "fronte": 0, "palpebra_baixo": 0.002}},
 }
 
 static var _cache := {}
@@ -24,8 +31,8 @@ static var _cache := {}
 static func aplicar(skel: Skeleton3D, chave: String, male: bool) -> void:
 	if not PERFIS.has(chave):
 		return
-	var p: Dictionary = PERFIS[chave]
-	var esc := 1.0 if male else 0.72  # traços pesados mais suaves no rosto feminino
+	var p: Dictionary = PERFIS[chave]["m" if male else "f"]
+	var esc := 1.0  # os valores femininos já vêm próprios da tabela (MESA-015.1)
 	var hb := skel.find_bone("Head")
 	if hb < 0:
 		return

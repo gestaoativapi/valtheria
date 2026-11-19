@@ -1,5 +1,6 @@
 extends Node3D
 const CorpoChefe := preload("res://scripts/corpo_chefe.gd")
+const HabChefe := preload("res://scripts/habilidades_chefe.gd")
 const VisualMonstros := preload("res://scripts/visual_monstros.gd")
 const Perfil := preload("res://scripts/perfil.gd")
 # Combate: atributos do personagem (mesma fórmula do jogo web), monstros, alvo, ataque automático, habilidades, XP e morte.
@@ -35,6 +36,7 @@ var spawn_t := 0.0
 var sync_t := 0.0
 var swing := 0
 var my_elem := ""
+var debuffs := {}  # efeitos dos chefes no jogador: tipo -> [valor, até]
 var boss_next := {}  # ponto de caça -> hora em que o chefe pode voltar
 
 
@@ -416,6 +418,29 @@ func _mob_tick(m: Dictionary, dt: float) -> void:
 	if m.aggro and (dead or (node.position as Vector3).distance_to(m.home) > 55.0):
 		m.aggro = false
 		m.hp = m.maxHp
+	if m.aggro and m.boss and not dead and HabChefe.tick(self, m, dt):
+		return
+	# comportamentos próprios (MESA-015.1): o cervo foge quando atacado; o espectro se teleporta perto
+	var comp := str(m.fam.get("comportamento", ""))
+	if comp == "foge" and m.aggro:
+		var fuga := Vector3(node.position.x - pp.x, 0, node.position.z - pp.z)
+		if fuga.length() > 0.05 and d < 25.0:
+			var zig := sin(t * 3.0) * 0.6
+			fuga = (fuga.normalized() + Vector3(-fuga.z, 0, fuga.x).normalized() * zig).normalized()
+			var np2: Vector3 = node.position + fuga * 5.2 * dt
+			node.position = Vector3(np2.x, world.height(np2.x, np2.z), np2.z)
+			node.rotation.y = lerp_angle(node.rotation.y, atan2(fuga.x, fuga.z), minf(1.0, dt * 8.0))
+			_mob_anim(m, "run")
+		else:
+			m.aggro = false
+		return
+	if comp == "teleporta" and m.aggro and t > float(m.get("tele_t", 0.0)) and d < 14.0:
+		m.tele_t = t + 6.0
+		var a2 := randf() * TAU
+		var alvo := pp + Vector3(sin(a2), 0, cos(a2)) * 6.0
+		FX.burst(self, node.position + Vector3(0, 1.0, 0), "sombra", 1.0)
+		node.position = Vector3(alvo.x, world.height(alvo.x, alvo.z), alvo.z)
+		FX.burst(self, node.position + Vector3(0, 1.0, 0), "sombra", 1.0)
 	var goal: Vector3 = node.position
 	var speed := 0.0
 	if m.aggro:
@@ -456,6 +481,82 @@ func _mob_tick(m: Dictionary, dt: float) -> void:
 			_mob_anim(m, "run" if speed > 2.0 else "walk")
 	elif m.anim in ["walk", "run"] or (m.anim == "attack" and t > float(m.next_atk) - 1.2):
 		_mob_anim(m, "idle")
+
+
+# ---------- sopro racial da dragonita (MESA-015.1): cone de 12 m e 55°, 85% do dano, recarga 12 s, 25% do fôlego ----------
+var sopro_pronto := 0.0
+
+
+func sopro_racial() -> void:
+	var dv = main.player.get("asas")
+	if dv == null or dead:
+		return
+	var sp: Dictionary = HabChefe.dados().get("sopro_dragonita", {})
+	var t := now()
+	if t < sopro_pronto:
+		_float_text(main.player.position + Vector3(0, main.player.height_m + 0.3, 0), "sopro em %ds" % ceili(sopro_pronto - t), Color(0.8, 0.8, 0.8))
+		return
+	if main.folego.planando:
+		return   # sem sopro planando (MESA-015.1)
+	var custo: float = main.folego.maximo * float(sp.get("custo_folego_pct", 25)) / 100.0
+	if main.folego.atual < custo:
+		_float_text(main.player.position + Vector3(0, main.player.height_m + 0.3, 0), "sem fôlego", Color(0.8, 0.8, 0.8))
+		return
+	main.folego.atual -= custo
+	sopro_pronto = t + float(sp.get("recarga", 12))
+	dv.sopro("fogo")
+	var frente := Vector2(sin(main.player.rotation.y), cos(main.player.rotation.y))
+	var meio := deg_to_rad(float(sp.get("angulo", 55)) * 0.5)
+	for m in mobs:
+		if m.dead:
+			continue
+		var v := Vector2((m.node as Node3D).position.x - main.player.position.x, (m.node as Node3D).position.z - main.player.position.z)
+		if v.length() > float(sp.get("alcance", 12)) or (v.length() > 0.8 and absf(frente.angle_to(v.normalized())) > meio):
+			continue
+		var r := _damage(float(sp.get("dano_pct", 85)) / 100.0)
+		pending.append({"t": t + 0.5, "mob": m, "dmg": r.dmg, "crit": r.crit, "fx": "fogo", "size": 0.8})
+
+
+# ---------- efeitos dos chefes no jogador (MESA-015.1) ----------
+const NOME_DEBUFF := {"lentidao": "LENTIDÃO", "enraizamento": "ENRAIZADO", "atordoamento": "ATORDOADO", "veneno": "VENENO",
+	"queimadura": "QUEIMADURA", "recuo": "EMPURRADO", "afinidade_reduzida": "AFINIDADE REDUZIDA"}
+
+
+func aplicar_debuff(tipo: String, valor: float, dur: float, origem: Vector3) -> void:
+	var t := now()
+	if tipo == "recuo":
+		var pp: Vector3 = main.player.position
+		var dir := Vector3(pp.x - origem.x, 0, pp.z - origem.z)
+		if dir.length() > 0.01:
+			var np: Vector3 = world.resolve(pp + dir.normalized() * valor, pp)
+			main.player.position = Vector3(np.x, world.height(np.x, np.z), np.z)
+	else:
+		debuffs[tipo] = [valor, t + dur]
+	_float_text(main.player.position + Vector3(0, main.player.height_m + 0.4, 0), str(NOME_DEBUFF.get(tipo, tipo.to_upper())), Color(0.95, 0.6, 1.0))
+
+
+func _debuff_ativo(tipo: String) -> bool:
+	return debuffs.has(tipo) and now() < float(debuffs[tipo][1])
+
+
+# multiplicador do passo do jogador (lentidão, enraizado, atordoado)
+func mult_movimento() -> float:
+	if _debuff_ativo("enraizamento") or _debuff_ativo("atordoamento"):
+		return 0.0
+	if _debuff_ativo("lentidao"):
+		return clampf(1.0 - float(debuffs.lentidao[0]) / 100.0, 0.2, 1.0)
+	return 1.0
+
+
+func _debuffs_tick(dt: float) -> void:
+	for k in ["veneno", "queimadura"]:
+		if _debuff_ativo(k):
+			# valor = intensidade: 0,4% da vida máxima por segundo por ponto
+			hp -= st.maxHp * float(debuffs[k][0]) * 0.004 * dt
+			combat_until = now() + 6.0
+			if hp <= 0.0 and not dead:
+				hp = 0.0
+				_die()
 
 
 # ---------- dano ----------
@@ -654,7 +755,7 @@ func stop_auto() -> void:
 
 
 func use_skill(i: int) -> void:
-	if dead or i < 0 or i >= skills.size():
+	if dead or i < 0 or i >= skills.size() or _debuff_ativo("atordoamento"):
 		return
 	var s: Dictionary = skills[i]
 	var t := now()
@@ -754,7 +855,9 @@ func _physics_process(dt: float) -> void:
 			if is_instance_valid(pending[i].mob.node):
 				FX.burst(self, _center(pending[i].mob), str(pending[i].get("fx", "")), float(pending[i].get("size", 0.6)))
 			pending.remove_at(i)
+	_debuffs_tick(dt)
 	if dead:
+		debuffs.clear()
 		if t - dead_t > 4.0 and dead_t > 0.0:
 			dead_t = 0.0
 			_revive()
