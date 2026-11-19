@@ -2,6 +2,7 @@ extends Node3D
 const VilaElfica := preload("res://scripts/vila_elfica.gd")
 const VilaAna := preload("res://scripts/vila_ana.gd")
 const VilaOrc := preload("res://scripts/vila_orc.gd")
+const VilasRacas := preload("res://scripts/vilas_racas.gd")
 const Perfil := preload("res://scripts/perfil.gd")
 # Mundo real de Valtheria: o mesmo relevo do servidor (assado em data/height.bin), carregado por blocos em volta do jogador.
 
@@ -1151,7 +1152,10 @@ func _build_town(t: Dictionary) -> void:
 	var casas_anas: Array = []
 	var casas_orc: Array = []
 	var casas_gob: Array = []
-	if anao:
+	var raca_v := str(t.get("race", ""))
+	var outra := VilasRacas.PALETAS.has(raca_v)   # Umbraval e as próximas vilas de raça (vilas_racas.gd)
+	var casas_r: Array = []
+	if anao or outra:
 		# Pedra Alta (MESA-016.1): casas, forja, estalagem, cofre e salão anões no lugar dos modelos humanos
 		lay.props = lay.props.filter(func(pd): return str(pd[0]) != "b_blacksmith")
 		lay.boxes = []
@@ -1161,10 +1165,12 @@ func _build_town(t: Dictionary) -> void:
 		if not _clear_of_gates(t, hx, hz, 7.5):
 			continue
 		var yaw: float = hdef[4] if hdef.size() > 4 else atan2(-hx, -hz)
-		if anao or orc:
+		if anao or orc or outra:
 			var xf := at(cx + hx, cz + hz, yaw, 1.0, 0.3)
 			xf.origin -= Vector3(cx, 0, cz)
-			if anao:
+			if outra:
+				casas_r.append(xf)
+			elif anao:
 				casas_anas.append(xf)
 			elif hx < 0.0 and hz < 0.0:
 				# bairro goblin (MESA-017.1): canto da cidadela perto da forja, casas menores lado a lado
@@ -1176,6 +1182,11 @@ func _build_town(t: Dictionary) -> void:
 			continue
 		var sz := place(root, hdef[0], [at(cx + hx, cz + hz, yaw, 1.0, 0.15)], hdef[3], true, 900.0)
 		block(cx + hx, cz + hz, maxf(sz.x, sz.z) * 0.42)
+	if outra:
+		VilasRacas.construir(self, root, raca_v, "casa", casas_r, VilasRacas.escala(raca_v, "casa"))
+		var sr := at(cx, cz - 24.0, 0.0, 1.0, 0.4)
+		sr.origin -= Vector3(cx, 0, cz)
+		VilasRacas.construir(self, root, raca_v, "santuario", [sr], VilasRacas.escala(raca_v, "santuario"))
 	if orc:
 		VilaOrc.construir(self, root, "casa", casas_orc, 0.78)
 		VilaOrc.construir(self, root, "goblin", casas_gob, 0.9)
@@ -1221,6 +1232,12 @@ func _build_town(t: Dictionary) -> void:
 			var xf3 := at(cx + sv3.x, cz + sv3.y, atan2(-sv3.x, -sv3.y), 1.0, 0.4)
 			xf3.origin -= Vector3(cx, 0, cz)
 			VilaOrc.construir(self, root, str(par[0]), [xf3], float(par[2]))
+	elif outra:
+		for par in [["estalagem", lay.svc.pousada, 0.75], ["forja", lay.svc.forja, 0.75], ["armazem", lay.svc.estabulo, 0.72]]:
+			var sv4: Vector2 = par[1]
+			var xf4 := at(cx + sv4.x, cz + sv4.y, atan2(-sv4.x, -sv4.y), 1.0, 0.4)
+			xf4.origin -= Vector3(cx, 0, cz)
+			VilasRacas.construir(self, root, raca_v, str(par[0]), [xf4], VilasRacas.escala(raca_v, str(par[0])))
 	elif anao:
 		for par in [["estalagem", lay.svc.pousada, 0.8], ["forja", lay.svc.forja, 0.75], ["cofre", lay.svc.estabulo, 0.75]]:
 			var sv1: Vector2 = par[1]

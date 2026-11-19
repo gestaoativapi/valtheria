@@ -160,6 +160,13 @@ func door(kind: String, name: String, x: float, z: float, yaw: float) -> void:
 	doors.append({"kind": kind, "name": name, "pos": Vector3(cx + x, gy(x, z), cz + z), "yaw": yaw})
 
 
+# prédio orc (VilaOrc) num lote da cidade grande, de frente para +Z
+func _orc_predio(tipo: String, mx: float, mz: float, esc: float) -> void:
+	var xf: Transform3D = w.at(cx + mx, cz + mz, 0.0, 1.0, 0.4)
+	xf.origin -= Vector3(cx, 0, cz)
+	load("res://scripts/vila_orc.gd").construir(w, root, tipo, [xf], esc)
+
+
 func finish() -> void:
 	if not orc_casas.is_empty() or not gob_casas.is_empty():
 		var VO = load("res://scripts/vila_orc.gd")
@@ -854,7 +861,17 @@ func build_big(t: Dictionary, size: String, theme: String) -> Dictionary:
 					if not svc.has("jardim"):
 						svc.jardim = Vector2(mx, mz)
 				"arena":
-					arena(mx, mz, minf(hx, hz) - 2.0, "Arena dos Heróis" if cap else "Arena de Guerra")
+					arena(mx, mz, minf(hx, hz) - 2.0, "Arena dos Heróis" if cap else ("Arena dos Grandes Clãs" if tema == "rubra" else "Arena de Guerra"))
+					if tema == "rubra":
+						# totens de guerreiros e estandartes dos clãs em volta da arena (MESA-017.1)
+						var ra := minf(hx, hz) + 1.5
+						for i in 10:
+							var a := TAU * i / 10.0
+							var tx := mx + sin(a) * ra
+							var tz := mz + cos(a) * ra
+							cyl("madeira", tx, gy(tx, tz) + 3.0, tz, 0.35, 6.0)
+							box("pano", tx + sin(a) * 0.45, gy(tx, tz) + 4.2, tz + cos(a) * 0.45, 1.2, 2.6, 0.08)
+							w.block(cx + tx, cz + tz, 0.5)
 					svc.arena = Vector2(mx, mz + minf(hx, hz) + 2.0)
 				"catedral", "igreja":
 					church(mx, mz, 0.0, role == "catedral" or theme == "noctis", "Catedral da Aurora" if role == "catedral" else ("Catedral Sombria" if theme == "noctis" else "Igreja"))
@@ -891,6 +908,17 @@ func build_big(t: Dictionary, size: String, theme: String) -> Dictionary:
 						box("pano", px, gy(px, pz) + 1.5, pz, 0.6, 0.8, 0.3)
 						w.block(cx + px, cz + pz, 0.4)
 					svc.treino = Vector2(mx, mz)
+				"taverna" when tema == "rubra":
+					_orc_predio("estalagem", mx, mz, 0.85)
+					door("taverna", "Caneca do Guerreiro", mx, mz + 9.5, 0.0)
+					svc.pousada = Vector2(mx, mz)
+				"ferraria" when tema == "rubra":
+					_orc_predio("forja", mx, mz, 0.8)
+					door("forja", "Forja do Sangue de Pedra", mx, mz + 9.0, 0.0)
+					svc.forja = Vector2(mx, mz)
+				"estabulo" when tema == "rubra":
+					_orc_predio("armazem", mx, mz, 0.75)
+					svc.estabulo = Vector2(mx, mz)
 				"taverna":
 					w._building(root, "b_inn", cx + mx, cz + mz, 11.5, cx + mx, cz + mz + 50.0)
 					door("taverna", "Taverna", mx, mz + 9.5, 0.0)
