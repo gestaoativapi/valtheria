@@ -15,7 +15,7 @@ const PERFIS := {
 	"goblin": {"mand": -0.06, "queixo": [-0.008, 0.0], "maca": 0.005, "testa": 0.008, "nariz": [0.25, 0.026], "boca": 0.32, "canto": 0.004, "palpebra": 0.0015, "fronte": 0.006},
 	"gigante": {"mand": 0.24, "queixo": [0.012, 0.006], "maca": 0.006, "testa": 0.015, "nariz": [0.35, 0.004], "boca": 0.08, "canto": -0.001, "palpebra": 0.0, "fronte": 0.006},
 	"anao": {"mand": 0.14, "queixo": [0.004, 0.0], "maca": 0.006, "testa": 0.009, "nariz": [0.38, 0.008], "boca": 0.05, "canto": 0.0, "palpebra": 0.0, "fronte": 0.0},
-	"beastman": {"mand": 0.0, "queixo": [0.0, 0.0], "maca": 0.0, "testa": 0.0, "nariz": [0.0, 0.0], "boca": 0.0, "canto": 0.0, "palpebra": 0.0032, "fronte": 0.0},
+	"beastman": {"mand": 0.0, "queixo": [0.0, 0.0], "maca": 0.0, "testa": 0.0, "nariz": [0.0, 0.0], "boca": 0.0, "canto": 0.0, "palpebra": 0.0055, "fronte": 0.0, "palpebra_baixo": 0.002},
 }
 
 static var _cache := {}
@@ -128,6 +128,9 @@ static func _deformar(mesh: Mesh, hb: int, c: Vector3, oe: Vector3, od: Vector3,
 				d.y += float(p.canto) * canto
 				var pal := _g(r.x, 0.012) * smoothstep(-0.001, 0.004, r.y) * _g(r.y - 0.006, 0.007) * smoothstep(-0.004, 0.006, r.z)
 				d.y += float(p.palpebra) * pal
+				# pálpebra de baixo desce um pouco (olhar mais aberto e firme)
+				var pb := _g(r.x, 0.012) * smoothstep(0.001, -0.004, r.y) * _g(r.y + 0.006, 0.006) * smoothstep(-0.004, 0.006, r.z)
+				d.y -= float(p.get("palpebra_baixo", 0.0)) * pb
 			v[i] += d * hw
 		a[Mesh.ARRAY_VERTEX] = v
 		# normais recalculadas só onde a forma mudou muito não compensa: as mudanças são de milímetros
