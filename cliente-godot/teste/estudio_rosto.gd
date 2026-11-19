@@ -16,6 +16,7 @@ func _init() -> void:
 		elif a.begins_with("--ang="): ang = deg_to_rad(float(a.trim_prefix("--ang=")))
 		elif a.begins_with("--dist="): dist = float(a.trim_prefix("--dist="))
 		elif a == "--corpo": corpo = true; corpo_modo = true
+		elif a == "--sopro": sopro = true
 	var Character = load("res://scripts/character.gd")
 	var raiz := Node3D.new()
 	root.add_child(raiz)
@@ -45,7 +46,7 @@ func _init() -> void:
 	var alt := 0.0
 	for i in itens.size():
 		var p := itens[i].split(":")
-		var o := {"race": p[0], "gender": p[2] if p.size() > 2 else "m", "skin": 0, "hair": 1, "hair_color": 1, "equipment": {"armadura": "nenhuma", "arma": p[3] if p.size() > 3 else ""}}
+		var o := {"armadura_teste": p[4] if p.size() > 4 else "", "race": p[0], "gender": p[2] if p.size() > 2 else "m", "skin": 0, "hair": 1, "hair_color": 1, "equipment": {"armadura": p[4] if p.size() > 4 else "nenhuma", "arma": p[3] if p.size() > 3 else ""}}
 		if p.size() > 1 and p[1] != "":
 			o["subtipo"] = p[1]
 		var c: Node3D = Character.create(o)
@@ -67,8 +68,14 @@ func _init() -> void:
 var y_ajustado := false
 var corpo_modo := false
 
+var sopro := false
+
 func _process(_dt: float) -> bool:
 	quadros += 1
+	if sopro and quadros == 18:
+		for c in root.find_children("*", "Node3D", true, false):
+			if c.get("asas") != null:
+				c.asas.sopro("fogo")
 	if quadros == 22 and not corpo_modo:
 		# mira a câmera na altura média das cabeças
 		var soma := 0.0

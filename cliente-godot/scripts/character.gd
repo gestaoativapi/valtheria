@@ -2,6 +2,8 @@ extends Node3D
 const Perfil := preload("res://scripts/perfil.gd")
 const FeraHibrida := preload("res://scripts/fera_hibrida.gd")
 const RostoRaca := preload("res://scripts/rosto_raca.gd")
+const DragonitaVivo := preload("res://scripts/dragonita_vivo.gd")
+var asas: Node3D  # dragonita: asas, cauda viva e sopro
 # Personagem: corpo-base + roupa + cabelo presos ao mesmo esqueleto, com as animações do jogo.
 
 const DIR := "res://assets/chars/"
@@ -255,6 +257,10 @@ func _setup_medido(o: Dictionary) -> void:
 			# a textura da dragonita é avermelhada: limita cada canal para a cor da escama não estourar
 			_tint(m as MeshInstance3D, Color(minf(skin.r / 0.69, 1.35) * 0.68, minf(skin.g / 0.376, 1.35) * 0.68, minf(skin.b / 0.172, 1.35) * 0.68))
 		_armadura_dragonita(armor)
+		asas = DragonitaVivo.new()
+		asas.name = "DragonitaViva"
+		add_child(asas)
+		asas.montar(self, skel, skin)
 	elif own != "":
 		pass
 	elif v3:
@@ -1262,13 +1268,11 @@ func _armadura_dragonita(armor: String) -> void:
 	var larg: float = (R.call("upperarm_l") - R.call("upperarm_r")).length() * 0.42
 	# peitoral: casca achatada que cobre o tronco (frente mais funda que as costas, para as placas dorsais)
 	var pes: Vector3 = R.call("neck_01")
-	var peito := CylinderMesh.new()
-	peito.top_radius = larg * 1.2
-	peito.bottom_radius = larg * 0.95
 	var sp1: Vector3 = R.call("spine_01")
-	peito.height = (pes.y - sp1.y) * 0.85
-	peito.radial_segments = 16
-	_peca_osso("spine_02", peito, base, Vector3(0, (sp1.y + pes.y) * 0.5 - 0.06, sp3.z + 0.05), Basis.from_scale(Vector3(1.0, 1.0, 0.9)))
+	# peitoral ajustado (D5): uma casca tirada do próprio corpo da dragonita, 9 mm para fora da pele,
+	# com o mesmo esqueleto e pesos: veste certinho e acompanha cada movimento. Costas com as placas
+	# dorsais e cauda ficam livres.
+	_casca_ajustada(base, 0.009, sp1.y - 0.04, pes.y - 0.04, sp3.z - 0.07, larg * 1.6, pesada)
 	# gola alta que protege o pescoço sem cobrir o focinho
 	var gola := CylinderMesh.new()
 	gola.top_radius = larg * 0.5
@@ -1328,6 +1332,52 @@ func _armadura_dragonita(armor: String) -> void:
 			cx.height = (ca - th).length() * 0.5
 			cx.radial_segments = 10
 			_peca_osso("thigh_" + lado, cx, metal, th.lerp(ca, 0.35), Basis(Quaternion(Vector3.UP, -dir_c)) * Basis.from_scale(Vector3(1.0, 1.0, 0.9)))
+
+
+# casca de armadura moldada no corpo: triângulos do tronco entre duas alturas, empurrados pela normal
+func _casca_ajustada(mat: Material, folga: float, y0: float, y1: float, z_costas: float, meia_larg: float, placas: bool) -> void:
+	var corpo: MeshInstance3D = null
+	for m in skel.find_children("*", "MeshInstance3D", false, false):
+		corpo = m
+		break
+	if corpo == null:
+		return
+	var a := corpo.mesh.surface_get_arrays(0)
+	var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+	var n: PackedVector3Array = a[Mesh.ARRAY_NORMAL]
+	var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+	var dentro := func(p: Vector3) -> bool:
+		return p.y > y0 and p.y < y1 and p.z > z_costas and absf(p.x) < meia_larg
+	var novo := PackedInt32Array()
+	for t in range(0, idx.size(), 3):
+		if dentro.call(v[idx[t]]) and dentro.call(v[idx[t + 1]]) and dentro.call(v[idx[t + 2]]):
+			novo.append_array([idx[t], idx[t + 1], idx[t + 2]])
+	if novo.is_empty():
+		return
+	var v2 := v.duplicate()
+	var cols := PackedColorArray()
+	cols.resize(v.size())
+	for i in v.size():
+		v2[i] = v[i] + n[i] * folga
+		# faixas horizontais de placas (lâminas sobrepostas) pela cor: mais escuro na emenda
+		var faixa := fposmod((v[i].y - y0) / 0.075, 1.0)
+		var k := 0.72 if (placas and faixa < 0.12) else 1.0
+		cols[i] = Color(k, k, k)
+	a[Mesh.ARRAY_VERTEX] = v2
+	a[Mesh.ARRAY_INDEX] = novo
+	a[Mesh.ARRAY_COLOR] = cols
+	var am := ArrayMesh.new()
+	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a, [], {}, corpo.mesh.surface_get_format(0) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS)
+	var mi := MeshInstance3D.new()
+	mi.name = "PeitoralAjustado"
+	mi.mesh = am
+	var m2: StandardMaterial3D = (mat as StandardMaterial3D).duplicate()
+	m2.vertex_color_use_as_albedo = true
+	m2.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m2
+	skel.add_child(mi)
+	mi.skin = corpo.skin
+	mi.skeleton = NodePath("..")
 
 
 static var _barba: ArrayMesh
@@ -1718,6 +1768,8 @@ func _make_sheath(back: bool, small: bool) -> void:
 func set_battle(on: bool) -> void:
 	if postura != null:
 		postura.em_combate = on
+	if asas != null and asas.estado != "planar":
+		asas.estado = "combate" if on else "dobrada"
 	if on == armed or wnode == null or sheath == null:
 		armed = on
 		return

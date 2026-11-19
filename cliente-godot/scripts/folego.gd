@@ -40,7 +40,7 @@ func passo(dt: float, quer_correr: bool, andando: bool, nadando: bool) -> float:
 	var gastou := false
 	correndo = false
 	if planando:
-		atual -= GASTO_PLANAR * dt
+		atual -= GASTO_PLANAR * dt * (0.5 if main.player.get("asas") != null else 1.0)
 		gastou = true
 		if atual <= 0.0:
 			fechar_planador()
@@ -80,7 +80,8 @@ func altura(dt: float, chao: float) -> float:
 		else:
 			return chao
 	if planando:
-		vy = -QUEDA_PLANANDO
+		# dragonita cai mais devagar com as asas abertas
+		vy = -QUEDA_PLANANDO * (0.6 if main.player.get("asas") != null else 1.0)
 	else:
 		vy -= GRAVIDADE * dt
 	y += vy * dt
@@ -112,6 +113,11 @@ func _asa(on: bool) -> void:
 	if asa != null:
 		asa.queue_free()
 		asa = null
+	var dr = main.player.get("asas") if main.player != null else null
+	if dr != null:
+		# dragonita plana com as próprias asas (D5): sem planador de lona
+		dr.estado = "planar" if on else ("combate" if main.player.get("armed") else "dobrada")
+		return
 	if not on:
 		return
 	# planador simples de lona e varetas sobre os ombros

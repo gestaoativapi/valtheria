@@ -809,6 +809,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 				ui.chat_edit.grab_focus()
 			KEY_TAB:
 				combat.next_target()
+			KEY_R:
+				# dragonita: sopro elemental (visual; dano depende do servidor)
+				if player != null and player.get("asas") != null:
+					player.asas.sopro("fogo")
 			KEY_F:
 				combat.engage(combat.target)
 	if not playing:
