@@ -1,6 +1,7 @@
 extends Node3D
 const Perfil := preload("res://scripts/perfil.gd")
 const FeraHibrida := preload("res://scripts/fera_hibrida.gd")
+const RostoRaca := preload("res://scripts/rosto_raca.gd")
 # Personagem: corpo-base + roupa + cabelo presos ao mesmo esqueleto, com as animações do jogo.
 
 const DIR := "res://assets/chars/"
@@ -820,6 +821,8 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 	for m in skel.find_children("*", "MeshInstance3D", true, false):
 		if String(m.name) == "corpo":
 			_tint(m as MeshInstance3D, tinta)
+	# rosto próprio da raça (forma da malha em repouso; esqueleto e animações oficiais intactos)
+	RostoRaca.aplicar(skel, "goblin" if (race == "orc" and subtipo == "goblin") else race, male)
 	var tr: Dictionary = TRACOS.get(race, {})
 	var hb := skel.find_bone("Head")
 	if tr.is_empty() or hb < 0:
@@ -863,14 +866,14 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 			var mi := MeshInstance3D.new()
 			var c := CylinderMesh.new()
 			c.top_radius = 0.0
-			c.bottom_radius = 0.007 if subtipo != "goblin" else 0.004
-			c.height = (0.04 if male else 0.022) if subtipo != "goblin" else 0.012
+			c.bottom_radius = 0.0085 if subtipo != "goblin" else 0.0045
+			c.height = (0.048 if male else 0.026) if subtipo != "goblin" else 0.014
 			c.radial_segments = 8
 			c.rings = 1
 			mi.mesh = c
 			mi.material_override = marfim
 			var b := Basis(Quaternion(Vector3.UP, Vector3(lado * 0.25, 1.0, 0.25).normalized()))
-			mi.transform = rest.affine_inverse() * Transform3D(b, Vector3(lado * 0.02, olho_y - 0.072, olho_z + 0.012))
+			mi.transform = rest.affine_inverse() * Transform3D(b, Vector3(lado * 0.022, olho_y - 0.082, olho_z + 0.02))
 			att.add_child(mi)
 	if tr.get("barba", false) and male:
 		# barba cheia de anão: uma casca que nasce na linha do queixo, desce até o peito e afina na ponta
@@ -1204,18 +1207,7 @@ func _tracos_extras(race: String, male: bool, olho_y: float, olho_z: float) -> v
 			var cr := _mat_simples(Color("#c8f1f5"), 0.2, 0.15, 0.35)
 			for lado in [-1.0, 1.0]:
 				_peca_osso("Head", _prisma(0.012, 0.04, 4), cr, Vector3(lado * 0.07, olho_y + 0.045, olho_z - 0.03), Basis.from_euler(Vector3(0.3, 0, -lado * 0.5)))
-		"sombrio":
-			var bm := _mat_simples(pele_raca.darkened(0.25), 0.0, 0.7)
-			var cap := CapsuleMesh.new()
-			cap.radius = 0.014
-			cap.height = 0.11
-			_peca_osso("Head", cap, bm, Vector3(0, olho_y + 0.028, olho_z + 0.012), Basis.from_euler(Vector3(0, 0, PI * 0.5)) * Basis.from_scale(Vector3(1.0, 1.0, 0.7)))
 		"gigante":
-			var bm2 := _mat_simples(pele_raca.darkened(0.12), 0.0, 0.7)
-			var cap2 := CapsuleMesh.new()
-			cap2.radius = 0.02
-			cap2.height = 0.15
-			_peca_osso("Head", cap2, bm2, Vector3(0, olho_y + 0.03, olho_z + 0.01), Basis.from_euler(Vector3(0, 0, PI * 0.5)))
 			var gelo := _mat_simples(Color("#9be5f4"), 0.1, 0.1, 0.25)
 			gelo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			gelo.albedo_color.a = 0.85
@@ -1229,10 +1221,6 @@ func _tracos_extras(race: String, male: bool, olho_y: float, olho_z: float) -> v
 				for lado in [-1.0, 1.0]:
 					var o := _prisma(0.045, 0.15, 6)
 					var mi := _peca_osso("Head", o, pele, Vector3(lado * 0.1, olho_y + 0.005, olho_z - 0.07), Basis(Quaternion(Vector3.UP, Vector3(lado, 0.25, -0.25).normalized())) * Basis.from_scale(Vector3(1.0, 1.0, 0.35)))
-				var na := SphereMesh.new()
-				na.radius = 0.022
-				na.height = 0.05
-				_peca_osso("Head", na, pele, Vector3(0, olho_y - 0.03, olho_z + 0.04), Basis.from_euler(Vector3(PI * 0.5, 0, 0)) * Basis.from_scale(Vector3(1.0, 1.6, 1.0)))
 			else:
 				var osso := _mat_simples(Color("#d9cdb2"), 0.0, 0.6)
 				var couro := _mat_simples(Color("#74604b"), 0.0, 0.9)
