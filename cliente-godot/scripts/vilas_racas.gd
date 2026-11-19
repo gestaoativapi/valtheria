@@ -13,7 +13,7 @@ const PALETAS := {
 	"beastman": {"pedra": "#716451", "pedra2": "#393A32", "madeira": "#60432D", "madeira_clara": "#987047", "osso": "#D5C6A0",
 		"couro": "#704A32", "tecido": "#8A573B", "vegetacao": "#3D4F2C", "luz": "#E5A34D"},
 	# Fortaleza Glacial, gigantes de gelo (MESA-019.1): granito, gelo, cristal azul — escala de gigante
-	"gigante": {"pedra": "#68727A", "pedra2": "#343C46", "gelo": "#B9DCE8", "gelo_profundo": "#52758C", "cristal": "#8EDCF5",
+	"gigante": {"pedra": "#68727A", "pedra2": "#343C46", "gelo": "#B9DCE8", "gelo_profundo": "#3A5468", "cristal": "#8EDCF5",
 		"metal": "#667984", "prata": "#AABBC3", "madeira": "#514A43", "tecido": "#526D83", "luz": "#A9E9FF"},
 	# Pico do Dragão, dragonitas (MESA-019.1): rocha vulcânica, basalto, bronze, escamas e cristais elementais
 	"draconato": {"pedra": "#39343A", "obsidiana": "#25272C", "pedra2": "#68504A", "metal": "#555D66", "bronze": "#A66D43",
