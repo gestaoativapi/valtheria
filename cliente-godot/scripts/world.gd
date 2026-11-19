@@ -1,6 +1,7 @@
 extends Node3D
 const VilaElfica := preload("res://scripts/vila_elfica.gd")
 const VilaAna := preload("res://scripts/vila_ana.gd")
+const VilaOrc := preload("res://scripts/vila_orc.gd")
 const Perfil := preload("res://scripts/perfil.gd")
 # Mundo real de Valtheria: o mesmo relevo do servidor (assado em data/height.bin), carregado por blocos em volta do jogador.
 
@@ -1146,7 +1147,10 @@ func _build_town(t: Dictionary) -> void:
 	var lay := _layout(style, t, r)
 	town_svc[str(t.id)] = lay.svc
 	var anao := str(t.get("race", "")) == "anao"
+	var orc := str(t.get("race", "")) == "orc"
 	var casas_anas: Array = []
+	var casas_orc: Array = []
+	var casas_gob: Array = []
 	if anao:
 		# Pedra Alta (MESA-016.1): casas, forja, estalagem, cofre e salão anões no lugar dos modelos humanos
 		lay.props = lay.props.filter(func(pd): return str(pd[0]) != "b_blacksmith")
@@ -1157,13 +1161,24 @@ func _build_town(t: Dictionary) -> void:
 		if not _clear_of_gates(t, hx, hz, 7.5):
 			continue
 		var yaw: float = hdef[4] if hdef.size() > 4 else atan2(-hx, -hz)
-		if anao:
+		if anao or orc:
 			var xf := at(cx + hx, cz + hz, yaw, 1.0, 0.3)
 			xf.origin -= Vector3(cx, 0, cz)
-			casas_anas.append(xf)
+			if anao:
+				casas_anas.append(xf)
+			elif hx < 0.0 and hz < 0.0:
+				# bairro goblin (MESA-017.1): canto da cidadela perto da forja, casas menores lado a lado
+				for k in 2:
+					var xg := xf * Transform3D(Basis.IDENTITY, Vector3(-2.6 + k * 5.2, 0, 0))
+					casas_gob.append(xg)
+			else:
+				casas_orc.append(xf)
 			continue
 		var sz := place(root, hdef[0], [at(cx + hx, cz + hz, yaw, 1.0, 0.15)], hdef[3], true, 900.0)
 		block(cx + hx, cz + hz, maxf(sz.x, sz.z) * 0.42)
+	if orc:
+		VilaOrc.construir(self, root, "casa", casas_orc, 0.78)
+		VilaOrc.construir(self, root, "goblin", casas_gob, 0.9)
 	if anao:
 		VilaAna.construir(self, root, "casa", casas_anas, 0.85)
 		var sx := at(cx, cz - 22.0, 0.0, 1.0, 0.4)
@@ -1200,7 +1215,13 @@ func _build_town(t: Dictionary) -> void:
 	if sp == "caverna":
 		Especial.caverna(self, t, root)
 	# praça (igual em função, muda de lugar o que é de serviço)
-	if anao:
+	if orc:
+		for par in [["estalagem", lay.svc.pousada, 0.75], ["forja", lay.svc.forja, 0.72], ["armazem", lay.svc.estabulo, 0.7]]:
+			var sv3: Vector2 = par[1]
+			var xf3 := at(cx + sv3.x, cz + sv3.y, atan2(-sv3.x, -sv3.y), 1.0, 0.4)
+			xf3.origin -= Vector3(cx, 0, cz)
+			VilaOrc.construir(self, root, str(par[0]), [xf3], float(par[2]))
+	elif anao:
 		for par in [["estalagem", lay.svc.pousada, 0.8], ["forja", lay.svc.forja, 0.75], ["cofre", lay.svc.estabulo, 0.75]]:
 			var sv1: Vector2 = par[1]
 			var xf2 := at(cx + sv1.x, cz + sv1.y, atan2(-sv1.x, -sv1.y), 1.0, 0.4)

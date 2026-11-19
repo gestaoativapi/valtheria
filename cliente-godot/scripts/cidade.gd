@@ -41,6 +41,9 @@ void fragment() {
 """
 
 var w: Node3D  # mundo
+var tema := ""
+var orc_casas: Array = []  # Cidadela Rubra (MESA-017.1): casas orc e bairro goblin
+var gob_casas: Array = []
 var mats := {}
 var lists := {}  # material -> [Transform3D] (caixas)
 var prisms := {}  # material -> [Transform3D] (telhados)
@@ -158,6 +161,12 @@ func door(kind: String, name: String, x: float, z: float, yaw: float) -> void:
 
 
 func finish() -> void:
+	if not orc_casas.is_empty() or not gob_casas.is_empty():
+		var VO = load("res://scripts/vila_orc.gd")
+		VO.construir(w, root, "casa", orc_casas, 0.8)
+		VO.construir(w, root, "goblin", gob_casas, 0.85)
+		orc_casas = []
+		gob_casas = []
 	for k in lists:
 		w._boxes(root, mats[k], lists[k], 900.0)
 	for k in prisms:
@@ -732,6 +741,7 @@ func stone_bridge(a: Vector3, b: Vector3, deck_y: float) -> void:
 # ---------- cidade grande e capital: ruas retas em grade, quarteirões de casas lado a lado ----------
 # devolve os pontos de serviço (coordenadas da cidade) para os moradores e funções
 func build_big(t: Dictionary, size: String, theme: String) -> Dictionary:
+	tema = theme
 	var cap := size == "capital"
 	var L: Array = [-185.0, -142.0, -97.0, -52.0, 0.0, 52.0, 97.0, 142.0, 185.0] if cap else [-116.0, -78.0, -40.0, 0.0, 40.0, 78.0, 116.0]
 	var c := L.size() / 2
@@ -982,7 +992,17 @@ func _block_houses(x0: float, x1: float, z0: float, z1: float, r: RandomNumberGe
 					x = x1 - D * 0.5
 					z = m
 					yaw = PI * 0.5
-			townhouse(x, z, yaw, wid - 0.1, D, r.randi_range(fmin, fmax), tones[r.randi() % tones.size()], roofs[r.randi() % roofs.size()])
+			if tema == "rubra":
+				var xf: Transform3D = w.at(cx + x, cz + z, yaw, 1.0, 0.3)
+				xf.origin -= Vector3(cx, 0, cz)
+				if x < 0.0 and z < 0.0:
+					# bairro goblin: duas casinhas por lote, no canto da cidadela
+					for k in 2:
+						gob_casas.append(xf * Transform3D(Basis.IDENTITY, Vector3(-wid * 0.25 + k * wid * 0.5, 0, 0)))
+				else:
+					orc_casas.append(xf)
+			else:
+				townhouse(x, z, yaw, wid - 0.1, D, r.randi_range(fmin, fmax), tones[r.randi() % tones.size()], roofs[r.randi() % roofs.size()])
 			if first:
 				first = false
 				var f := Basis(Vector3.UP, yaw) * Vector3(0, 0, 1)
