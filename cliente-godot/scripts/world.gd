@@ -1,5 +1,6 @@
 extends Node3D
 const VilaElfica := preload("res://scripts/vila_elfica.gd")
+const VilaAna := preload("res://scripts/vila_ana.gd")
 const Perfil := preload("res://scripts/perfil.gd")
 # Mundo real de Valtheria: o mesmo relevo do servidor (assado em data/height.bin), carregado por blocos em volta do jogador.
 
@@ -1144,14 +1145,30 @@ func _build_town(t: Dictionary) -> void:
 		return
 	var lay := _layout(style, t, r)
 	town_svc[str(t.id)] = lay.svc
+	var anao := str(t.get("race", "")) == "anao"
+	var casas_anas: Array = []
+	if anao:
+		# Pedra Alta (MESA-016.1): casas, forja, estalagem, cofre e salão anões no lugar dos modelos humanos
+		lay.props = lay.props.filter(func(pd): return str(pd[0]) != "b_blacksmith")
+		lay.boxes = []
 	for hdef in lay.houses:
 		var hx: float = hdef[1]
 		var hz: float = hdef[2]
 		if not _clear_of_gates(t, hx, hz, 7.5):
 			continue
 		var yaw: float = hdef[4] if hdef.size() > 4 else atan2(-hx, -hz)
+		if anao:
+			var xf := at(cx + hx, cz + hz, yaw, 1.0, 0.3)
+			xf.origin -= Vector3(cx, 0, cz)
+			casas_anas.append(xf)
+			continue
 		var sz := place(root, hdef[0], [at(cx + hx, cz + hz, yaw, 1.0, 0.15)], hdef[3], true, 900.0)
 		block(cx + hx, cz + hz, maxf(sz.x, sz.z) * 0.42)
+	if anao:
+		VilaAna.construir(self, root, "casa", casas_anas, 0.85)
+		var sx := at(cx, cz - 22.0, 0.0, 1.0, 0.4)
+		sx.origin -= Vector3(cx, 0, cz)
+		VilaAna.construir(self, root, "salao", [sx], 0.62)
 	for pdef in lay.props:
 		if _clear_of_gates(t, pdef[1], pdef[2], 5.0):
 			place(root, pdef[0], [at(cx + float(pdef[1]), cz + float(pdef[2]), float(pdef[4]) if pdef.size() > 4 else r.randf() * TAU, 1.0, 0.1)], pdef[3], true, 400.0)
@@ -1183,9 +1200,16 @@ func _build_town(t: Dictionary) -> void:
 	if sp == "caverna":
 		Especial.caverna(self, t, root)
 	# praça (igual em função, muda de lugar o que é de serviço)
-	_building(root, "b_inn", cx + lay.svc.pousada.x, cz + lay.svc.pousada.y, 10.5, cx, cz)
-	_building(root, "b_blacksmith", cx + lay.svc.forja.x, cz + lay.svc.forja.y, 6.8, cx, cz)
-	_building(root, "b_stable", cx + lay.svc.estabulo.x, cz + lay.svc.estabulo.y, 6.2, cx, cz)
+	if anao:
+		for par in [["estalagem", lay.svc.pousada, 0.8], ["forja", lay.svc.forja, 0.75], ["cofre", lay.svc.estabulo, 0.75]]:
+			var sv1: Vector2 = par[1]
+			var xf2 := at(cx + sv1.x, cz + sv1.y, atan2(-sv1.x, -sv1.y), 1.0, 0.4)
+			xf2.origin -= Vector3(cx, 0, cz)
+			VilaAna.construir(self, root, str(par[0]), [xf2], float(par[2]))
+	else:
+		_building(root, "b_inn", cx + lay.svc.pousada.x, cz + lay.svc.pousada.y, 10.5, cx, cz)
+		_building(root, "b_blacksmith", cx + lay.svc.forja.x, cz + lay.svc.forja.y, 6.8, cx, cz)
+		_building(root, "b_stable", cx + lay.svc.estabulo.x, cz + lay.svc.estabulo.y, 6.2, cx, cz)
 	_building(root, "b_well", cx + 7.0, cz + 6.0, 2.6, cx + 30.0, cz + 30.0)
 	_building(root, "b_marketstand_1", cx - 10.0, cz + 9.0, 3.1, cx, cz)
 	_building(root, "b_marketstand_2", cx - 12.5, cz - 3.0, 3.1, cx, cz)
