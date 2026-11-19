@@ -200,6 +200,10 @@ func _setup_medido(o: Dictionary) -> void:
 	var race := str(o.get("race", "humano"))
 	race_id = race
 	subtipo = str(o.get("subtipo", ""))
+	# crocodilo saiu das linhagens de homem-fera (decisão de Robson, 19/11: exigiria mutação demais no corpo)
+	if race == "beastman" and subtipo == "crocodilo":
+		subtipo = "lobo" if str(o.get("gender", "m")) != "f" else "ursa"
+		o["subtipo"] = subtipo
 	var male := str(o.get("gender", "m")) != "f"
 	var rd: Dictionary = RACES.get(race, {})
 	var look: Dictionary = o.get("look") if o.get("look") is Dictionary else {}
@@ -947,6 +951,7 @@ const FERAS := {
 	"javali": {"pelo": ["#4a3428", "#5a4030", "#3a2a20", "#6a4a36"], "escuro": "#1e1410", "focinho": [0.15, 0.078, 0.9], "orelha": "pontuda", "presas": true, "cerdas": true, "cauda": [0.35, 0.03, "tufo"]},
 	"onca": {"pelo": ["#d9a24e", "#e3b062", "#c48a3c", "#eabf78"], "escuro": "#2a1e16", "focinho": [0.1, 0.058, 0.85], "orelha": "redonda", "cauda": [0.85, 0.032, "listrada"]},
 	"ursa": {"pelo": ["#6b4a32", "#7d5a3c", "#5a3e2a", "#8c6a48"], "escuro": "#3a281c", "focinho": [0.1, 0.06, 0.85], "orelha": "redonda", "cauda": [0.12, 0.05, "tufo"]},
+	# fora das linhagens jogáveis desde 19/11; mantido só para não quebrar personagens antigos (são convertidos acima)
 	"crocodilo": {"pelo": ["#567e54", "#6b8b55", "#4a6b47", "#7d8f5c"], "escuro": "#354e3c", "focinho": [0.26, 0.05, 0.55], "orelha": "", "placas": true, "cauda": [1.0, 0.075, "placas"]},
 }
 
