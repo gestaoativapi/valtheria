@@ -100,9 +100,12 @@ static func tick(c: Node, m: Dictionary, dt: float) -> bool:
 	var hs := lista(str(m.fam.id))
 	if hs.is_empty():
 		return false
-	var t: float = c.now()
+	# relógio próprio do chefe em tempo de jogo (soma de dt): independe do relógio do sistema
+	if m.has("hab"):
+		m.hab.relogio = float(m.hab.relogio) + dt
+	var t: float = float(m.hab.relogio) if m.has("hab") else 0.0
 	if not m.has("hab"):
-		m.hab = {"cd": {}, "lanca": null, "buff_ate": 0.0, "atk_base": float(m.atk)}
+		m.hab = {"cd": {}, "lanca": null, "buff_ate": 0.0, "atk_base": float(m.atk), "relogio": 0.0}
 		for h in hs:
 			m.hab.cd[h.id] = t + (0.5 if str(m.spot) == "gm" else 4.0 + randf() * 4.0)   # primeira habilidade alguns segundos depois do início
 	var hab: Dictionary = m.hab
@@ -164,7 +167,7 @@ static func _comecar(c: Node, m: Dictionary, h: Dictionary, alvo: Vector3) -> vo
 	mi.rotation.y = giro
 	c._float_text(node.position + Vector3(0, float(m.height) + 0.6, 0), str(h.nome), Color(1.0, 0.85, 0.4))
 	c._mob_anim(m, "attack")
-	m.hab.lanca = {"h": h, "t0": c.now(), "no": mi, "centro": centro, "giro": giro, "raio": raio}
+	m.hab.lanca = {"h": h, "t0": float(m.hab.relogio), "no": mi, "centro": centro, "giro": giro, "raio": raio}
 
 
 static func _dentro(l: Dictionary, p: Vector3) -> bool:
@@ -189,7 +192,7 @@ static func _executar(c: Node, m: Dictionary, l: Dictionary) -> void:
 	match tipo:
 		"buff":
 			# fase final: o chefe muda (fica mais forte por 12 s) e explode a aura
-			m.hab.buff_ate = c.now() + 12.0
+			m.hab.buff_ate = float(m.hab.relogio) + 12.0
 			m.atk = float(m.hab.atk_base) * 1.3
 			FX.burst(c, (m.node as Node3D).position + Vector3(0, float(m.height) * 0.6, 0), str(h.elem), 2.4)
 			c._float_text((m.node as Node3D).position + Vector3(0, float(m.height) + 1.0, 0), "FÚRIA", Color(1.0, 0.3, 0.2))
