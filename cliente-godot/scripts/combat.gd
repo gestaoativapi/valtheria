@@ -1,4 +1,5 @@
 extends Node3D
+const CorpoChefe := preload("res://scripts/corpo_chefe.gd")
 const VisualMonstros := preload("res://scripts/visual_monstros.gd")
 const Perfil := preload("res://scripts/perfil.gd")
 # Combate: atributos do personagem (mesma fórmula do jogo web), monstros, alvo, ataque automático, habilidades, XP e morte.
@@ -167,7 +168,7 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 			var o := {"race": "humano", "gender": "m", "hair": 0, "equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}}
 			if id == "bandido":
 				o = {"race": "orc", "gender": "m", "hair": 0, "equipment": {"armadura": "leve_ng", "arma": "machado_ng"}}
-			elif id == "esqueleto":
+			elif id in ["esqueleto", "espectro"]:
 				o.skin_color = "#d6d4c4"
 			elif id in ["demonio", "senhor_dem"]:
 				o.skin_color = "#a8281e"
@@ -184,19 +185,27 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 			if bool(fam.boss):
 				# chefe: sem roupa humana; corpo na cor da criatura e armadura mutante por cima
 				o.sem_roupa = true
-				o.armadura_mutante = {"senhor_dem": "pesada_b", "golem_anc": "pesada_ng", "ent_mil": "leve_ng", "dragao": "pesada_a"}.get(id, "pesada_d")
+				# golem e ent não vestem armadura: o corpo deles é a própria pedra / madeira (CorpoChefe)
+				if not id in ["golem_anc", "ent_mil"]:
+					o.armadura_mutante = {"senhor_dem": "pesada_b", "dragao": "pesada_a"}.get(id, "pesada_d")
 				if not o.has("skin_color") and id != "dragao":
 					o.skin_color = str(fam.get("color", "#888888"))
 			node = Character.create(o)
 			node.scale = Vector3.ONE * sc
 			VisualMonstros.aplicar(id, str(fam.model), node, bool(fam.boss), Color(str(fam.get("color", "#888888"))))
+			if not bool(fam.boss):
+				CorpoChefe.comum(node, id)
 			if bool(fam.boss):
+				CorpoChefe.aplicar(node, id)
 				VisualMonstros.chefe(node, fam)
 			height = node.height_m * sc
 		_:
 			var file := "m_wolf"
 			var target_h := 0.95
-			if id.contains("javali"):
+			if id == "cervo_luz":
+				file = "m_wolf"   # cervo de luz: esqueleto do lobo com pernas longas e galhada
+				target_h = 1.3
+			elif id.contains("javali"):
 				file = "m_wolf"   # o javali usa o esqueleto do lobo transformado (antes era o touro e parecia um boi)
 				target_h = 0.85
 			elif str(fam.model) == "spider":
@@ -220,6 +229,17 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 			sc_node.scale = Vector3.ONE * k
 			if id.contains("javali"):
 				VisualMonstros.javali(sc_node, bool(fam.boss))
+			match id:
+				"cervo_luz":
+					VisualMonstros.cervo_luz(sc_node)
+				"lobo_esp":
+					VisualMonstros.lobo_espectral(sc_node)
+				"lagarto":
+					VisualMonstros.lagarto_mutante(sc_node)
+				"besouro":
+					VisualMonstros.besouro(sc_node)
+				"rainha":
+					VisualMonstros.rainha(sc_node)
 			holder.add_child(sc_node)
 			node = holder
 			height = target_h * sc

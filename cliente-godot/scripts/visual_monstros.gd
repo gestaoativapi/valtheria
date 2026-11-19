@@ -252,8 +252,9 @@ static func chefe(c: Node3D, fam: Dictionary) -> void:
 	var ferro := _mat(Color(0.22, 0.2, 0.19), 0.0, 0.5)
 	ferro.metallic = 0.7
 	var osso := _mat(Color(0.88, 0.83, 0.7), 0.0, 0.55)
+	var proprio := str(fam.get("id", "")) in ["golem_anc", "ent_mil", "dragao"]   # corpo próprio (CorpoChefe): sem ombreira humana
 	# ombreiras mutantes com espinhos de osso
-	for lado in ["l", "r"]:
+	for lado in (["l", "r"] if not proprio else []):
 		var bi := skel.find_bone("upperarm_" + lado)
 		if bi < 0:
 			continue
@@ -271,7 +272,7 @@ static func chefe(c: Node3D, fam: Dictionary) -> void:
 			e.transform = inv * Transform3D(Basis.from_euler(Vector3(-0.5 + k * 0.33, 0, -sg * (0.25 + 0.2 * (k % 2)))), o + Vector3(sg * (0.04 + k * 0.012), 0.16, -0.08 + k * 0.05))
 	# placas de mutação nas costas
 	var sp := skel.find_bone("spine_03")
-	if sp >= 0:
+	if sp >= 0 and not proprio:
 		var at2 := _osso(skel, "spine_03")
 		var inv2 := skel.get_bone_global_rest(sp).affine_inverse()
 		var o2 := skel.get_bone_global_rest(sp).origin
@@ -400,3 +401,185 @@ static func _habilidade(c: Node3D, el: Array) -> void:
 		m.albedo_color.a = 0.9)
 	tw.tween_property(anel, "scale", Vector3(4.0, 0.3, 4.0), 0.9).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(m, "albedo_color:a", 0.0, 0.9)
+
+
+# ---------------------------------------------------------------- bestiário de fantasia (lapidação 18/11)
+# Peças presas aos ossos de modelos de bicho (lobo, raptor, aranha). Medidas relativas à caixa do modelo,
+# porque cada modelo usa uma unidade diferente.
+static func _caixa(sk: Skeleton3D) -> AABB:
+	# caixa dos ossos no espaço do esqueleto (a malha pode estar em outra unidade)
+	var bb := AABB(sk.get_bone_global_rest(0).origin, Vector3.ZERO)
+	for i in sk.get_bone_count():
+		var n := sk.get_bone_name(i)
+		if n.begins_with("Pole") or n.begins_with("IK") or n.begins_with("FF"):
+			continue
+		bb = bb.expand(sk.get_bone_global_rest(i).origin)
+	bb.size.y = maxf(bb.size.y, maxf(bb.size.x, bb.size.z) * 0.45)
+	return bb
+
+
+static func _no_osso(sk: Skeleton3D, osso: String, mesh: Mesh, mat: Material, pos: Vector3, base: Basis) -> MeshInstance3D:
+	var i := sk.find_bone(osso)
+	if i < 0:
+		return null
+	var at := _osso(sk, osso)
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.transform = sk.get_bone_global_rest(i).affine_inverse() * Transform3D(base, pos)
+	at.add_child(mi)
+	return mi
+
+
+static func _recolorir(raiz: Node3D, cor: Color, emite := 0.0, transparente := 0.0) -> void:
+	for m in raiz.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for s in mi.mesh.get_surface_count():
+			var orig := mi.get_active_material(s)
+			if orig is StandardMaterial3D:
+				var nm: StandardMaterial3D = (orig as StandardMaterial3D).duplicate()
+				nm.albedo_color = Color(cor.r, cor.g, cor.b, 1.0 - transparente)
+				if transparente > 0.0:
+					nm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				if emite > 0.0:
+					nm.emission_enabled = true
+					nm.emission = cor
+					nm.emission_energy_multiplier = emite
+				mi.set_surface_override_material(s, nm)
+
+
+static func _particulas(no: Node3D, cor: Color, raio: float, altura: float) -> void:
+	var p := CPUParticles3D.new()
+	p.amount = 24
+	p.lifetime = 2.2
+	p.local_coords = false
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = raio
+	p.position = Vector3(0, altura, 0)
+	p.direction = Vector3.UP
+	p.gravity = Vector3(0, 0.3, 0)
+	p.initial_velocity_min = 0.05
+	p.initial_velocity_max = 0.25
+	p.color_ramp = _rampa(cor, cor.lightened(0.3))
+	var q := QuadMesh.new()
+	q.size = Vector2(0.08, 0.08)
+	q.material = _mat_brilho()
+	p.mesh = q
+	p.visibility_range_end = 60.0
+	no.add_child(p)
+
+
+# cervo de luz (passivo, região inicial): lobo transformado em cervo de pernas longas, pelagem clara
+# que brilha de leve e galhada de luz
+static func cervo_luz(raiz: Node3D) -> void:
+	var sk := raiz.find_child("Skeleton3D", true, false) as Skeleton3D
+	if sk == null:
+		return
+	raiz.scale *= Vector3(0.8, 1.25, 1.05)
+	_recolorir(raiz, Color(0.93, 0.9, 0.8), 0.25)
+	var galhada := _mat(Color(1.0, 0.92, 0.6), 1.6, 0.4)
+	for lado in [-1.0, 1.0]:
+		var p := Vector3(lado * 0.16, 2.35, 1.8)
+		var dir := Vector3(lado * 0.45, 1.0, -0.25).normalized()
+		for s in 4:
+			var comp := 0.75 - s * 0.1
+			_no_osso(sk, "Head", _cil(0.06 - s * 0.012, comp), galhada, p + dir * comp * 0.5, Basis(Quaternion(Vector3.UP, dir)))
+			# ponta lateral de cada galho
+			var lat := (dir + Vector3(0, 0.1, 0.9)).normalized()
+			_no_osso(sk, "Head", _cone(0.035, 0.45), galhada, p + dir * comp * 0.7 + lat * 0.22, Basis(Quaternion(Vector3.UP, lat)))
+			p += dir * comp * 0.95
+			dir = (dir + Vector3(lado * 0.15, -0.05, -0.15)).normalized()
+	_particulas(raiz, Color(1.0, 0.95, 0.7), 0.6, 1.2)
+
+
+# lobo espectral (gelo): corpo translúcido azul que brilha, rastro de névoa
+static func lobo_espectral(raiz: Node3D) -> void:
+	_recolorir(raiz, Color(0.55, 0.8, 1.0), 0.9, 0.35)
+	_particulas(raiz, Color(0.7, 0.9, 1.0), 0.5, 0.6)
+
+
+# lagarto mutante: escamas verde-musgo com manchas, fileira de espinhos nas costas e na cauda, bolsas acesas
+static func lagarto_mutante(raiz: Node3D) -> void:
+	var sk := raiz.find_child("Skeleton3D", true, false) as Skeleton3D
+	if sk == null:
+		return
+	_recolorir(raiz, Color(0.36, 0.45, 0.22))
+	var bb := _caixa(sk)
+	var h := bb.size.y
+	var espinho := _mat(Color(0.85, 0.8, 0.6), 0.0, 0.5)
+	var bolsa := _mat(Color(0.6, 1.0, 0.3), 1.8, 0.3)
+	var ossos := ["Shoulders", "Torso", "Back", "Hips", "Tail1", "Tail2", "Tail3", "Tail4"]
+	for k in ossos.size():
+		var i := sk.find_bone(ossos[k])
+		if i < 0:
+			continue
+		var o := sk.get_bone_global_rest(i).origin
+		var tam := h * (0.22 - k * 0.018)
+		_no_osso(sk, ossos[k], _cone(tam * 0.22, tam), espinho, o + Vector3(0, h * 0.12 + tam * 0.4, 0), Basis.from_euler(Vector3(-0.5, 0, 0)))
+		if k % 2 == 1:
+			var e := SphereMesh.new()
+			e.radius = h * 0.016
+			e.height = h * 0.028
+			for lado in [-1.0, 1.0]:
+				_no_osso(sk, ossos[k], e, bolsa, o + Vector3(lado * h * 0.11, h * 0.05, 0), Basis.IDENTITY)
+
+
+# besouro colosso (inseto gigante): carapaça de couraça verde-escura metálica e chifre na cabeça
+static func besouro(raiz: Node3D) -> void:
+	var sk := raiz.find_child("Skeleton3D", true, false) as Skeleton3D
+	if sk == null:
+		return
+	_recolorir(raiz, Color(0.16, 0.22, 0.17))
+	var bb := _caixa(sk)
+	var d := bb.size.length()
+	# eixos do mundo vistos de dentro do esqueleto (o modelo pode estar deitado em Z para cima)
+	var rel := Transform3D.IDENTITY
+	var n: Node = sk
+	while n != null and n != raiz:
+		if n is Node3D:
+			rel = (n as Node3D).transform * rel
+		n = n.get_parent()
+	var cima := (rel.basis.inverse() * Vector3.UP).normalized()
+	var frente := (rel.basis.inverse() * Vector3.FORWARD * -1.0).normalized()
+	var lado := cima.cross(frente).normalized()
+	var base := Basis(lado, cima, frente)
+	var couraca := _mat(Color(0.12, 0.28, 0.2), 0.0, 0.25)
+	couraca.metallic = 0.6
+	var corpo := sk.find_bone("Body")
+	if corpo < 0:
+		return
+	var o := sk.get_bone_global_rest(corpo).origin
+	var s := SphereMesh.new()
+	s.radius = d * 0.15
+	s.height = d * 0.12
+	s.is_hemisphere = true
+	_no_osso(sk, "Body", s, couraca, o - cima * d * 0.05 - frente * d * 0.06, base * Basis.from_scale(Vector3(1.0, 1.0, 1.4)))
+	var linha := BoxMesh.new()
+	linha.size = Vector3(d * 0.01, d * 0.01, d * 0.5)
+	_no_osso(sk, "Body", linha, _mat(Color(0.05, 0.08, 0.06)), o + cima * d * 0.07 - frente * d * 0.06, base)
+	_no_osso(sk, "Body", _cone(d * 0.03, d * 0.22), couraca, o + cima * d * 0.02 + frente * d * 0.16, base * Basis.from_euler(Vector3(0.9, 0, 0)))
+
+
+# rainha aracnídea: coroa de espinhos e marcas acesas no abdômen
+static func rainha(raiz: Node3D) -> void:
+	var sk := raiz.find_child("Skeleton3D", true, false) as Skeleton3D
+	if sk == null:
+		return
+	var bb := _caixa(sk)
+	var h := bb.size.y
+	var marca := _mat(Color(0.9, 0.2, 0.8), 2.0, 0.3)
+	var osso := _mat(Color(0.2, 0.08, 0.18), 0.0, 0.4)
+	var hd := sk.find_bone("Head")
+	if hd >= 0:
+		for k in 7:
+			var ang := -1.2 + k * 0.4
+			_no_osso(sk, "Head", _cone(h * 0.04, h * 0.35), osso, sk.get_bone_global_rest(hd).origin + Vector3(sin(ang) * h * 0.15, h * 0.25, cos(ang) * h * 0.05), Basis.from_euler(Vector3(-0.2, 0, -sin(ang) * 0.6)))
+	var ab := sk.find_bone("Abdomen")
+	if ab >= 0:
+		for k in 5:
+			var e := SphereMesh.new()
+			e.radius = h * 0.06
+			e.height = h * 0.03
+			_no_osso(sk, "Abdomen", e, marca, sk.get_bone_global_rest(ab).origin + Vector3((k - 2) * h * 0.08, h * 0.45 - absf(k - 2) * h * 0.05, -h * 0.3), Basis.IDENTITY)

@@ -13,6 +13,7 @@ var _asas: Array = []     # [raiz, lado]
 var _cauda_mat: ShaderMaterial
 var _cor := Color(0.3, 0.45, 0.32)
 var _amp := 0.1
+var tamanho := 1.0
 
 const CAUDA_SHADER := """
 shader_type spatial;
@@ -209,7 +210,7 @@ func _process(dt: float) -> void:
 		var giro_y := lerpf(-0.95, -0.25, _abre) * lado
 		var giro_x := lerpf(0.35, 0.0, _abre)
 		raiz.transform = base * Transform3D(Basis.from_euler(Vector3(giro_x, giro_y, giro_z)), Vector3.ZERO)
-		mi.scale = Vector3(lado * lerpf(0.42, 1.0, _abre), lerpf(0.75, 1.0, _abre), 1.0)
+		mi.scale = Vector3(lado * lerpf(0.42, 1.0, _abre), lerpf(0.75, 1.0, _abre), 1.0) * tamanho
 	if _cauda_mat:
 		var forte := 0.22 if estado == "combate" else 0.1
 		var ritmo := 2.6 if estado == "combate" else 1.3
