@@ -147,6 +147,7 @@ const PosturaRaca = preload("res://scripts/postura_raca.gd")
 var postura: Node
 var ciclo_raca := 1.0
 var subtipo := ""
+var race_id := "humano"
 
 
 const SHAPE := {
@@ -195,6 +196,8 @@ func _setup(o: Dictionary) -> void:
 
 func _setup_medido(o: Dictionary) -> void:
 	var race := str(o.get("race", "humano"))
+	race_id = race
+	subtipo = str(o.get("subtipo", ""))
 	var male := str(o.get("gender", "m")) != "f"
 	var rd: Dictionary = RACES.get(race, {})
 	var look: Dictionary = o.get("look") if o.get("look") is Dictionary else {}
@@ -268,6 +271,7 @@ func _setup_medido(o: Dictionary) -> void:
 					_tint(m as MeshInstance3D, skin.darkened(0.15))
 		else:
 			_vestir_v3(male, outfit, hair_col, race != "beastman")
+		race_id = race
 		if race != "humano":
 			subtipo = str(o.get("subtipo", ""))
 			if subtipo == "" and race == "beastman":
@@ -1542,6 +1546,29 @@ static func _model(item_id: String, kind: String, file: String, length: float, a
 	return _place(file, length, at)
 
 
+# pegada de arma por raça (MESA-013 + pedido de Robson 12:17: "forma de segurar armas própria, que não
+# se pareça com a humana"). guarda = eixo da arma e posição das mãos na guarda de duas mãos (corpo de 1,8 m);
+# uma_mao = giro do punho com arma de uma mão [inclina para frente, gira para fora]. Valores abertos a ajuste.
+const PEGADA_RACA := {
+	"humano": {"guarda": [Vector3(0.22, 0.86, 0.46), Vector3(-0.04, 0.98, 0.3)], "uma_mao": [0.0, 0.0]},
+	"elfo": {"guarda": [Vector3(0.1, 0.96, 0.28), Vector3(-0.02, 1.1, 0.27)], "uma_mao": [-0.18, -0.08]},
+	"sombrio": {"guarda": [Vector3(-0.05, 0.6, 0.8), Vector3(0.0, 1.04, 0.33)], "uma_mao": [-0.42, -0.12]},
+	"orc": {"guarda": [Vector3(0.5, 0.72, 0.2), Vector3(-0.14, 0.92, 0.3)], "uma_mao": [0.12, 0.38]},
+	"goblin": {"guarda": [Vector3(0.3, 0.6, 0.62), Vector3(-0.06, 0.86, 0.34)], "uma_mao": [-0.5, 0.2]},
+	"gigante": {"guarda": [Vector3(0.38, 0.68, 0.6), Vector3(-0.06, 0.84, 0.38)], "uma_mao": [0.18, 0.1]},
+	"anao": {"guarda": [Vector3(0.26, 0.8, 0.54), Vector3(-0.02, 0.82, 0.28)], "uma_mao": [0.1, 0.15]},
+	"beastman": {"guarda": [Vector3(0.14, 0.55, 0.82), Vector3(-0.04, 1.0, 0.37)], "uma_mao": [-0.38, 0.1]},
+	"draconato": {"guarda": [Vector3(0.32, 0.84, 0.42), Vector3(-0.07, 1.02, 0.31)], "uma_mao": [0.05, 0.22]},
+}
+
+
+func _pegada() -> Dictionary:
+	var k := race_id
+	if race_id == "orc" and subtipo == "goblin":
+		k = "goblin"
+	return PEGADA_RACA.get(k, PEGADA_RACA.humano)
+
+
 func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id := "") -> void:
 	var g: Dictionary = GRIP[kind]
 	var side := str(g.get("hand", "r"))
@@ -1557,16 +1584,20 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	wnode = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
 	if kind == "arco":
 		wnode.transform = Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO) * wnode.transform
+	elif float(g.get("two", 0.0)) <= 0.0:
+		var um: Array = _pegada().uma_mao
+		wnode.transform = Transform3D(Basis.from_euler(Vector3(float(um[0]), 0.0, float(um[1]))), Vector3.ZERO) * wnode.transform
 	grip.add_child(wnode)
 	grip_node = grip
 	var two := float(g.get("two", 0.0))
 	if two > 0.0:
 		# postura de guarda: arma à frente do corpo, na diagonal, com as duas mãos no cabo
 		var k := height_m / 1.8
-		var up := Vector3(0.22, 0.86, 0.46).normalized()
+		var pg: Array = _pegada().guarda
+		var up: Vector3 = (pg[0] as Vector3).normalized()
 		guard = Node3D.new()
 		var gx := Vector3(1, 0, 0).cross(up).normalized()
-		guard.transform = Transform3D(Basis(up.cross(gx).normalized(), gx, up), Vector3(-0.04, 0.98, 0.3) * k)
+		guard.transform = Transform3D(Basis(up.cross(gx).normalized(), gx, up), (pg[1] as Vector3) * k)
 		add_child(guard)
 		var hand_r := Node3D.new()
 		guard.add_child(hand_r)

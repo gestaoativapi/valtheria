@@ -45,7 +45,7 @@ func _init() -> void:
 	var alt := 0.0
 	for i in itens.size():
 		var p := itens[i].split(":")
-		var o := {"race": p[0], "gender": p[2] if p.size() > 2 else "m", "skin": 0, "hair": 1, "hair_color": 1, "equipment": {"armadura": "nenhuma", "arma": ""}}
+		var o := {"race": p[0], "gender": p[2] if p.size() > 2 else "m", "skin": 0, "hair": 1, "hair_color": 1, "equipment": {"armadura": "nenhuma", "arma": p[3] if p.size() > 3 else ""}}
 		if p.size() > 1 and p[1] != "":
 			o["subtipo"] = p[1]
 		var c: Node3D = Character.create(o)
