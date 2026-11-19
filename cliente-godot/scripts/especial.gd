@@ -3,6 +3,7 @@ extends RefCounted
 # Ilha de Coralis, enfeites das cidades médias e portais (redemoinhos) entre o porto, a ilha e o fundo do mar.
 
 const FX = preload("res://scripts/fx.gd")
+const VilaElfica = preload("res://scripts/vila_elfica.gd")
 
 
 static func _mat(c: Color, rough := 0.9, glow := 0.0) -> StandardMaterial3D:
@@ -201,7 +202,7 @@ static func arvore(w: Node3D, t: Dictionary, root: Node3D) -> Dictionary:
 			pts.append(Transform3D(Basis(Vector3.UP, a + PI), Vector3(cx + sin(a) * rm, y, cz + cos(a) * rm)))
 			w.lamps.append(Vector3(cx + sin(a + 0.4) * (r2 - 0.5), y + 2.2, cz + cos(a + 0.4) * (r2 - 0.5)))
 			_mesh(root, _sphere(0.3, gold, 6), Vector3(sin(a + 0.4) * (r2 - 0.5), y + 2.2, cos(a + 0.4) * (r2 - 0.5)), Basis.IDENTITY, false, 200.0)
-		w.place(root, houses[lvl % 4], pts, 4.6, true, 500.0)
+		VilaElfica.casas(w, root, pts, 5.2, 500.0, false)
 	# rampa em espiral do chão até a última plataforma
 	var hr1 := 19.6
 	var hr2 := 23.6
@@ -238,8 +239,8 @@ static func arvore(w: Node3D, t: Dictionary, root: Node3D) -> Dictionary:
 		if w._clear_of_gates(t, x, z, 8.0):
 			gpts.append(w.at(cx + x, cz + z, a + PI))
 			w.block(cx + x, cz + z, 3.6)
-	w.place(root, "b_house_2", gpts.slice(0, gpts.size() / 2), 6.0, true, 900.0)
-	w.place(root, "b_house_4", gpts.slice(gpts.size() / 2), 6.0, true, 900.0)
+	# casas élficas (D8): redondas, telhado em folha, janelas acesas e cristal na porta
+	VilaElfica.casas(w, root, gpts, 8.0, 900.0, false)
 	var pool := MeshInstance3D.new()
 	pool.mesh = _cyl(5.0, 5.0, 0.12, _mat(Color(0.3, 0.9, 1.0), 0.1, 2.0), 24)
 	pool.position = Vector3(30.0, w.height(cx + 30.0, cz - 22.0) + 0.1, -22.0)
