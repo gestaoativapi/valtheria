@@ -150,6 +150,21 @@ func _process(_dt: float) -> bool:
 		if quadros > 12 + nq:
 			quit()
 		return false
+	if quadros == 29 and OS.get_environment("DBG_PEGADA") != "":
+		for c in root.find_children("*", "Node3D", true, false):
+			if c.get("arqueria") != null and c.arqueria != null:
+				var e = c.empunho
+				print("arco: alvo=", e.alvo["l"].name, " pos=", e.alvo["l"].global_position, " grip=", e.pegada["l"].global_position, " peso=", e.peso["l"], " ikl=", c.arqueria.ik_l.active, " ativo=", c.arqueria.ativo)
+				continue
+			if c.get("grip_node") != null and c.get("empunho") != null:
+				var g: Node3D = c.grip_node
+				var b := g.global_transform.basis.orthonormalized()
+				var w: Node3D = c.wnode
+				var wb := w.global_transform.basis.orthonormalized()
+				print("grip X=", b.x.snapped(Vector3.ONE*0.01), " Y=", b.y.snapped(Vector3.ONE*0.01), " Z=", b.z.snapped(Vector3.ONE*0.01), " | arma X=", wb.x.snapped(Vector3.ONE*0.01), " Y=", wb.y.snapped(Vector3.ONE*0.01))
+				var alvo = c._mao_alvo["r"][0]
+				var ab: Basis = alvo.global_transform.basis
+				print("alvo X=", ab.x.snapped(Vector3.ONE*0.01), " Y=", ab.y.snapped(Vector3.ONE*0.01), " Z=", ab.z.snapped(Vector3.ONE*0.01))
 	if quadros == 30:
 		var img := root.get_viewport().get_texture().get_image()
 		img.save_png(saida)

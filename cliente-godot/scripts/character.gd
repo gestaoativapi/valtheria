@@ -1805,8 +1805,9 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	if kind == "arco":
 		arco_costas = wnode.transform
 	elif float(g.get("two", 0.0)) <= 0.0:
-		var um: Array = _pegada().uma_mao
-		wnode.transform = Transform3D(Basis.from_euler(Vector3(float(um[0]), 0.0, float(um[1]))), Vector3.ZERO) * wnode.transform
+		# pegada natural (pedido de Robson 20/11): as faces largas da lâmina para a esquerda e a direita da mão,
+		# um fio para cima e outro para baixo; a inclinação da mão vem da pose (a mesma para todas as raças)
+		wnode.transform = _alinhar_lamina(wnode.transform, wnode)
 	grip.add_child(wnode)
 	grip_node = grip
 	var two := float(g.get("two", 0.0))
@@ -1839,7 +1840,7 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 		var um2: Array = _pegada().uma_mao
 		var giro := Transform3D(Basis.from_euler(Vector3(float(um2[0]), 0.0, float(um2[1]))), Vector3.ZERO)
 		arma_base = wnode.transform
-		arma_golpe = giro * wnode.transform
+		arma_golpe = _alinhar_lamina(giro * wnode.transform, wnode)
 		mao_l_golpe = Node3D.new()
 		mao_l_golpe.name = "SegundaMao"
 		mao_l_golpe.position = giro * Vector3(0, 0, -(float(g.at) - two) * s)
@@ -1848,6 +1849,7 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 		var g2 := _hand_grip("l")
 		if g2 != null:
 			offhand = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
+			offhand.transform = _alinhar_lamina(offhand.transform, offhand)
 			g2.add_child(offhand)
 			offhand.visible = false
 	if has_shield and two <= 0.0 and side == "r":
@@ -1857,6 +1859,9 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 		_montar_empunho(kind, grip, offhand.get_parent() if offhand != null else null, has_shield)
 	else:
 		_montar_empunho_arco(grip)
+	if kind == "arco" and postura != null:
+		postura.ereto = 1.0          # arqueiro: postura própria, mais ereta e de busto firme (parado e no tiro)
+		postura.ereto_combate = 1.0
 	if kind == "arco":
 		# arco segurado por IK num suporte próprio: a mão vai até o arco (serve para todas as raças)
 		arqueria = load("res://scripts/arqueria.gd").new()
@@ -1981,7 +1986,7 @@ const POSE_ARMA := {
 	"normal_cajado": {"mao": Vector3(-0.2, -0.93, 0.26), "k": 0.92, "lamina": Vector3(-0.26, -0.8, 0.54), "polo": Vector3(-0.3, -0.35, -0.9)},
 	"normal_dupla": {"mao": Vector3(-0.22, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.38, -0.84, 0.39), "polo": Vector3(-0.4, -0.3, -0.85)},
 	"combate": {"mao": Vector3(-0.08, -0.8, 0.6), "k": 0.88, "lamina": Vector3(-0.22, 0.5, 0.84), "polo": Vector3(-0.7, -0.7, -0.2)},
-	"normal_arco": {"mao": Vector3(-0.2, -0.95, 0.16), "k": 0.93, "lamina": Vector3(-0.22, -0.55, 0.8), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal_arco": {"mao": Vector3(-0.2, -0.95, 0.12), "k": 0.93, "lamina": Vector3(-0.08, 0.0, 1.0), "reto": true, "polo": Vector3(-0.3, -0.35, -0.9)},
 	"combate_dupla": {"mao": Vector3(0.02, -0.6, 0.8), "k": 0.86, "lamina": Vector3(-0.12, 0.34, 0.93), "polo": Vector3(-0.7, -0.7, -0.2)},
 	"combate_dupla_l": {"mao": Vector3(-0.05, -0.78, 0.6), "k": 0.88, "lamina": Vector3(-0.28, 0.12, 0.95), "polo": Vector3(-0.7, -0.6, -0.3)},
 }
@@ -2015,10 +2020,34 @@ func _quadro_pose(lado: String, chave: String) -> Array:
 	var mao: Vector3 = om + (esp.call(p.mao) as Vector3).normalized() * braco * float(p.k)
 	var z: Vector3 = (esp.call(p.lamina) as Vector3).normalized()
 	var dica := (om - mao).normalized()
+	if p.get("reto", false):  # punho reto: a arma (arco) fica a 90 graus do antebraço, as duas pontas iguais
+		z = (z - dica * z.dot(dica)).normalized()
 	var y := (dica - z * dica.dot(z)).normalized()
 	var x := y.cross(z).normalized()
 	var polo: Vector3 = om + (esp.call(p.polo) as Vector3) * braco
 	return [Transform3D(Basis(x, y, z), mao), polo]
+
+
+# gira a arma em volta do próprio eixo (Z) para a parte fina da lâmina ficar no eixo X da pegada (para o lado,
+# medido: X sai para fora do corpo nas duas poses): faces largas para os lados, um fio para cima e outro para baixo
+func _alinhar_lamina(t: Transform3D, w: Node3D) -> Transform3D:
+	var bb := AABB()
+	var first := true
+	for m in w.find_children("*", "MeshInstance3D", true, false):
+		var rel := Transform3D()
+		var n: Node = m
+		while n != null and n != w:
+			if n is Node3D:
+				rel = (n as Node3D).transform * rel
+			n = n.get_parent()
+		var a: AABB = (t * rel) * (m as MeshInstance3D).get_aabb()
+		bb = a if first else bb.merge(a)
+		first = false
+	if first:
+		return t
+	if bb.size.y < bb.size.x * 0.85:
+		return Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3.ZERO) * t
+	return t
 
 
 func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: bool) -> void:
@@ -2056,6 +2085,7 @@ func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: b
 		empunho.alvo[lado] = alvo
 		empunho.polo[lado] = polo
 		empunho.pegada[lado] = lados[lado]
+		empunho.peso[lado] = 1.0
 
 
 # arco fora de combate: na mão esquerda, baixo e inclinado à frente (pedido de Robson 20/11, como nas referências)
@@ -2077,6 +2107,7 @@ func _montar_empunho_arco(grip_l: Node3D) -> void:
 	empunho.alvo["l"] = alvo
 	empunho.polo["l"] = polo
 	empunho.pegada["l"] = grip_l
+	empunho.peso["l"] = 1.0  # já nasce segurando (sem transição da animação no primeiro quadro)
 
 
 # arco parado na mão (pedido de Robson 20/11): a mão fecha no centro da empunhadura, a corda fica por dentro
@@ -2085,7 +2116,7 @@ func _montar_empunho_arco(grip_l: Node3D) -> void:
 func _arco_na_mao() -> Transform3D:
 	var qn: Array = _pose_mao["l"].normal
 	var quadro: Basis = (qn[0] as Transform3D).basis
-	var dentro := quadro.inverse() * Vector3(-1.0, 0.35, -0.2).normalized()  # corda: para o lado do corpo
+	var dentro := quadro.inverse() * Vector3(0.35, -1.0, 0.0).normalized()  # (medido) eixo X do modelo para baixo: corda junto do braço, pontas e barriga do arco para o chão
 	var zg := Vector3(0, 0, 1)
 	var xg := (dentro - zg * dentro.dot(zg)).normalized()
 	var b := Basis(xg, zg.cross(xg), zg)
@@ -2098,6 +2129,16 @@ func _empunho_passo(dt: float) -> void:
 	if empunho == null:
 		return
 	var golpe := is_busy() or _mart_alvo != null
+	if arqueria != null and _pose_mao.has("l"):
+		# arco: a mão esquerda segura o centro da empunhadura com o punho reto, parado e no tiro
+		var no_tiro: bool = armed and arqueria.get("alvo_mao") != null
+		empunho.alvo["l"] = arqueria.alvo_mao if no_tiro else _mao_alvo["l"][0]
+		empunho.polo["l"] = (arqueria.polo_l if arqueria.polo_l != null else _mao_alvo["l"][1]) if no_tiro else _mao_alvo["l"][1]
+		var na: Node3D = _mao_alvo["l"][0]
+		na.transform = na.transform.interpolate_with(_pose_mao["l"].normal[0], clampf(dt * 6.0, 0.0, 1.0))
+		empunho.meta["l"] = 1.0
+		empunho.velocidade = 8.0
+		return
 	for lado in _pose_mao:
 		var pm: Dictionary = _pose_mao[lado]
 		var usa_combate: bool = armed and pm.combate != null

@@ -19,6 +19,7 @@ var k := 1.0
 var mira: Node3D        # segura o arco: origem = ponto da empunhadura
 var mao_arco: Node3D    # alvo da mão esquerda (na empunhadura)
 var mao_corda: Node3D   # alvo da mão direita (corda)
+var alvo_mao: Node3D    # quadro da pegada da mão esquerda no arco (usado pelo Empunhar do personagem)
 var ik_l: SkeletonModifier3D
 var ik_r: SkeletonModifier3D
 var flecha: MeshInstance3D
@@ -79,6 +80,11 @@ func montar(personagem: Node3D, arco: Node3D, s: float) -> void:
 	mao_arco = Node3D.new()
 	mira.add_child(mao_arco)
 	mao_arco.position = Vector3(0.0, -0.01, -0.03) * k   # o pulso fica logo atrás e abaixo do centro da empunhadura
+	# quadro da mão do arco no centro da empunhadura: +Z ao longo do arco (para cima), +Y para o pulso (para trás,
+	# na direção do arqueiro). Punho reto: arco a 90 graus do braço, as duas pontas equilibradas.
+	alvo_mao = Node3D.new()
+	alvo_mao.transform = Transform3D(Basis(Vector3(1, 0, 0), Vector3(0, 0, -1), Vector3(0, 1, 0)), Vector3.ZERO)
+	mira.add_child(alvo_mao)
 	mao_corda = Node3D.new()
 	add_child(mao_corda)
 	ik_l = c._arm_ik("l", mao_arco, Vector3(0.7, 0.6, -0.4) * k)
@@ -120,7 +126,7 @@ func montar(personagem: Node3D, arco: Node3D, s: float) -> void:
 
 func ligar(on: bool) -> void:
 	ativo = on
-	ik_l.active = on
+	ik_l.active = on and c.get("empunho") == null  # com Empunhar a mão do arco é posta por ele (punho reto)
 	ik_r.active = on
 	flecha.visible = on
 	t = -1.0
@@ -155,7 +161,7 @@ func soltou() -> bool:
 # Tudo é medido no corpo de quem atira, a cada quadro: ombros, cabeça e comprimento do braço. Por isso o braço
 # do arco fica sempre esticado na altura do ombro, a mão da corda sempre ancora no queixo e o corpo sempre gira de
 # lado para o alvo, seja anão, gigante ou elfo. Em combate parado: arco baixo à frente, flecha encaixada (prontidão).
-const GIRO_TIRO := 0.75     # corpo de lado: ombro esquerdo para o alvo
+const GIRO_TIRO := 0.95     # corpo de lado, peito aberto: ombro esquerdo para o alvo (pedido de Robson 20/11)
 const GIRO_PRONTO := 0.45
 var giro_base := 0.0
 var giro_ok := false
@@ -197,7 +203,7 @@ func _pontos() -> Dictionary:
 	var sh_l := _osso("upperarm_l")
 	var sh_r := _osso("upperarm_r")
 	var cab := _osso("Head")
-	var ancora := Vector3(cab.x - 0.03 * hs, sh_l.y + 0.07 * hs, cab.z + 0.07 * hs)
+	var ancora := Vector3(cab.x - 0.04 * hs, sh_l.y + 0.07 * hs, cab.z + 0.03 * hs)
 	var gx := ancora.x + 0.025 * hs
 	var gy := ancora.y - 0.015 * hs
 	var dx := gx - sh_l.x
@@ -230,7 +236,8 @@ func _polos(pt: Dictionary) -> void:
 		(ik_r as TwoBoneIK3D).set_pole_node(0, (ik_r as TwoBoneIK3D).get_path_to(polo_r))
 	var hs: float = pt.hs
 	polo_l.position = (pt.sh_l as Vector3) + Vector3(0.45, -0.35, 0.1) * hs
-	polo_r.position = (pt.sh_r as Vector3) + Vector3(-0.25, 0.12, -0.6) * hs
+	# cotovelo da corda recua na altura do ombro, atrás, em linha com a flecha (abre o peito)
+	polo_r.position = (pt.sh_r as Vector3) + Vector3(-0.12, 0.1, -1.0) * hs
 
 
 func _flecha_na_corda(ponto_corda: Vector3) -> void:
