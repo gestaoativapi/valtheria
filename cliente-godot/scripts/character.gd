@@ -1981,7 +1981,7 @@ const POSE_ARMA := {
 	"normal_cajado": {"mao": Vector3(-0.2, -0.93, 0.26), "k": 0.92, "lamina": Vector3(-0.26, -0.8, 0.54), "polo": Vector3(-0.3, -0.35, -0.9)},
 	"normal_dupla": {"mao": Vector3(-0.22, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.38, -0.84, 0.39), "polo": Vector3(-0.4, -0.3, -0.85)},
 	"combate": {"mao": Vector3(-0.08, -0.8, 0.6), "k": 0.88, "lamina": Vector3(-0.22, 0.5, 0.84), "polo": Vector3(-0.7, -0.7, -0.2)},
-	"normal_arco": {"mao": Vector3(-0.26, -0.95, 0.1), "k": 0.93, "lamina": Vector3(-0.22, 0.95, 0.2), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal_arco": {"mao": Vector3(-0.2, -0.95, 0.16), "k": 0.93, "lamina": Vector3(-0.22, -0.55, 0.8), "polo": Vector3(-0.3, -0.35, -0.9)},
 	"combate_dupla": {"mao": Vector3(0.02, -0.6, 0.8), "k": 0.86, "lamina": Vector3(-0.12, 0.34, 0.93), "polo": Vector3(-0.7, -0.7, -0.2)},
 	"combate_dupla_l": {"mao": Vector3(-0.05, -0.78, 0.6), "k": 0.88, "lamina": Vector3(-0.28, 0.12, 0.95), "polo": Vector3(-0.7, -0.6, -0.3)},
 }
@@ -2079,6 +2079,20 @@ func _montar_empunho_arco(grip_l: Node3D) -> void:
 	empunho.pegada["l"] = grip_l
 
 
+# arco parado na mão (pedido de Robson 20/11): a mão fecha no centro da empunhadura, a corda fica por dentro
+# (voltada para o corpo, junto do braço) e o desenho do arco para fora; o arco fica baixo, apontado para o chão.
+# Modelo do arco: comprimento em Z, corda em +X (x = 0,16), empunhadura em -X (x = -0,09).
+func _arco_na_mao() -> Transform3D:
+	var qn: Array = _pose_mao["l"].normal
+	var quadro: Basis = (qn[0] as Transform3D).basis
+	var dentro := quadro.inverse() * Vector3(-1.0, 0.35, -0.2).normalized()  # corda: para o lado do corpo
+	var zg := Vector3(0, 0, 1)
+	var xg := (dentro - zg * dentro.dot(zg)).normalized()
+	var b := Basis(xg, zg.cross(xg), zg)
+	var pega := Vector3(-0.09, 0, 0) * float(arqueria.escala)
+	return Transform3D(b, -(b * pega))
+
+
 # a cada quadro: escolhe a pose (normal ou combate), suaviza a troca e desliga durante golpes e no arco
 func _empunho_passo(dt: float) -> void:
 	if empunho == null:
@@ -2119,7 +2133,7 @@ func set_battle(on: bool) -> void:
 	if arqueria != null:
 		(arqueria.mira if on else (grip_node if empunho != null else sheath)).add_child(wnode)
 		if not on:
-			wnode.transform = arco_costas
+			wnode.transform = _arco_na_mao() if empunho != null else arco_costas
 		else:
 			arqueria.mira.remove_child(wnode)
 			arqueria.montar_arco(wnode)

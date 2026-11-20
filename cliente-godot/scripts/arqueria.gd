@@ -130,8 +130,9 @@ func ligar(on: bool) -> void:
 		(seg as Node3D).visible = on
 	if not on:
 		_girar_corpo(0.0)
-		# arco nas costas: volta a corda reta do próprio modelo (a nossa só existe na mão)
-		if c.wnode != null:
+		# fora do ataque a corda é mágica e some (pedido de Robson 20/11): a do modelo continua oculta;
+		# só o arco guardado nas costas (personagem sem pose de arma) mostra a corda reta do modelo
+		if c.wnode != null and c.get("empunho") == null:
 			for mi in c.wnode.find_children("*", "MeshInstance3D", true, false):
 				var m: Mesh = (mi as MeshInstance3D).mesh
 				if m != null and m.get_surface_count() >= 3:
