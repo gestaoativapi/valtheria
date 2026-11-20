@@ -80,22 +80,60 @@ static func _prisma(sx: float, sy: float, sz: float) -> PrismMesh:
 
 # peças [malha, material, Transform3D] de cada construção, frente para +Z, base em y = 0
 static func _casa() -> Array:
+	# casa anã de pedra lavrada (20/11): alicerce em degraus, cantos reforçados, cinta de pedra, mísulas sob o beiral,
+	# telhado de ardósia com cumeeira de ferro, portal fundo em arco com cravos e argola, janelas com grade e lanternas
 	var p: Array = []
-	p.append([_caixa(9.4, 0.6, 8.4), _m("basalto"), Transform3D(Basis.IDENTITY, Vector3(0, 0.3, 0))])        # alicerce
-	p.append([_caixa(9.0, 3.4, 6.0), _m("pedra"), Transform3D(Basis.IDENTITY, Vector3(0, 2.3, -1.0))])     # corpo
-	var frente := _cil(4.5, 4.5, 3.4, 20)
-	p.append([frente, _m("pedra"), Transform3D(Basis.from_scale(Vector3(1.0, 1.0, 0.45)), Vector3(0, 2.3, 1.6))])  # fachada arredondada
-	p.append([_prisma(10.0, 1.4, 8.6), _m("telhado"), Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 4.7, 0.0))])  # telhado baixo
-	p.append([_caixa(10.2, 0.25, 8.8), _m("basalto"), Transform3D(Basis.IDENTITY, Vector3(0, 4.05, 0.0))])  # beiral
-	p.append([_caixa(1.0, 2.2, 1.0), _m("basalto"), Transform3D(Basis.IDENTITY, Vector3(2.6, 5.3, -2.0))])  # chaminé curta
-	p.append([_caixa(1.6, 2.4, 0.3), _m("madeira"), Transform3D(Basis.IDENTITY, Vector3(0, 1.8, 3.6))])      # porta reforçada
-	for y in [1.1, 1.9, 2.7]:
-		p.append([_caixa(1.7, 0.12, 0.34), _m("metal"), Transform3D(Basis.IDENTITY, Vector3(0, y, 3.62))])   # faixas de ferro
-	p.append([_cil(0.95, 0.95, 0.3, 14), _m("madeira"), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 3.0, 3.6))])  # arco da porta
+	var I := Basis.IDENTITY
+	p.append([_caixa(9.8, 0.4, 8.8), _m("basalto"), Transform3D(I, Vector3(0, 0.2, 0))])          # alicerce em degraus
+	p.append([_caixa(9.3, 0.4, 8.2), _m("basalto"), Transform3D(I, Vector3(0, 0.55, 0))])
+	p.append([_caixa(9.0, 3.4, 6.0), _m("clara"), Transform3D(I, Vector3(0, 2.4, -1.0))])          # corpo em blocos
+	var frente := _cil(4.5, 4.5, 3.4, 24)
+	p.append([frente, _m("clara"), Transform3D(Basis.from_scale(Vector3(1.0, 1.0, 0.45)), Vector3(0, 2.4, 1.6))])
+	for c in [[-4.55, -3.9], [4.55, -3.9], [-4.3, 1.6], [4.3, 1.6]]:                           # pilares de canto
+		p.append([_caixa(0.8, 3.9, 0.8), _m("basalto"), Transform3D(I, Vector3(c[0], 2.6, c[1]))])
+		p.append([_caixa(1.0, 0.3, 1.0), _m("basalto"), Transform3D(I, Vector3(c[0], 4.6, c[1]))])
+	p.append([_caixa(9.3, 0.22, 6.3), _m("basalto"), Transform3D(I, Vector3(0, 2.75, -1.0))])     # cinta de pedra
+	p.append([_cil(4.62, 4.62, 0.22, 24), _m("basalto"), Transform3D(Basis.from_scale(Vector3(1.0, 1.0, 0.47)), Vector3(0, 2.75, 1.6))])
+	p.append([_caixa(10.4, 0.3, 9.0), _m("basalto"), Transform3D(I, Vector3(0, 4.15, -0.1))])      # beiral
+	for x in [-3.6, -1.8, 0.0, 1.8, 3.6]:                                                          # mísulas sob o beiral
+		for z in [-4.3, 4.2]:
+			p.append([_caixa(0.35, 0.45, 0.6), _m("basalto"), Transform3D(I, Vector3(x, 3.85, z))])
+	p.append([_prisma(10.4, 2.0, 9.0), _m("telhado"), Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 5.3, -0.1))])  # ardósia
+	p.append([_caixa(0.25, 0.25, 10.6), _m("metal"), Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 6.32, -0.1))])  # cumeeira
+	p.append([_caixa(1.2, 3.4, 1.2), _m("basalto"), Transform3D(I, Vector3(2.8, 5.9, -2.3))])      # chaminé com capa
+	p.append([_caixa(1.5, 0.25, 1.5), _m("basalto"), Transform3D(I, Vector3(2.8, 7.7, -2.3))])
+	p.append([_caixa(0.9, 0.5, 0.9), _m("metal"), Transform3D(I, Vector3(2.8, 8.05, -2.3))])
+	# portal fundo em arco: ombreiras e verga de pedra, porta de tábuas com faixas, cravos e argola
 	for lado in [-1.0, 1.0]:
-		p.append([_caixa(1.0, 0.8, 0.2), _m("luz"), Transform3D(Basis.IDENTITY, Vector3(lado * 2.7, 2.5, 3.25))])  # janela âmbar
-		p.append([_caixa(1.25, 1.05, 0.15), _m("metal"), Transform3D(Basis.IDENTITY, Vector3(lado * 2.7, 2.5, 3.2))])  # moldura
-	p.append([_cil(0.35, 0.35, 0.08, 6), _m("bronze"), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 3.6, 3.75))])  # runa
+		p.append([_caixa(0.6, 2.8, 0.7), _m("basalto"), Transform3D(I, Vector3(lado * 1.15, 2.0, 3.55))])
+	p.append([_cil(1.45, 1.45, 0.7, 18), _m("basalto"), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 3.35, 3.55))])
+	p.append([_caixa(1.7, 2.6, 0.25), _m("madeira"), Transform3D(I, Vector3(0, 1.95, 3.75))])
+	p.append([_cil(0.85, 0.85, 0.25, 16), _m("madeira"), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 3.2, 3.75))])
+	for y in [1.1, 1.9, 2.7]:
+		p.append([_caixa(1.75, 0.12, 0.3), _m("metal"), Transform3D(I, Vector3(0, y, 3.8))])
+		for x in [-0.6, 0.0, 0.6]:
+			p.append([_cil(0.06, 0.06, 0.08, 6), _m("metal"), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(x, y, 3.96))])
+	var argola := TorusMesh.new()
+	argola.inner_radius = 0.1
+	argola.outer_radius = 0.15
+	argola.rings = 12
+	argola.ring_segments = 6
+	p.append([argola, _m("bronze"), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0.45, 2.0, 3.92))])
+	p.append([_cil(0.35, 0.35, 0.08, 6), _m("bronze"), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 4.2, 3.82))])  # runa
+	# janelas pequenas em arco com grade de ferro e peitoril
+	for lado in [-1.0, 1.0]:
+		var jx: float = lado * 2.75
+		p.append([_caixa(1.0, 0.9, 0.2), _m("luz"), Transform3D(I, Vector3(jx, 2.1, 3.12))])
+		p.append([_cil(0.5, 0.5, 0.2, 12), _m("luz"), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(jx, 2.55, 3.12))])
+		p.append([_caixa(1.4, 0.18, 0.45), _m("basalto"), Transform3D(I, Vector3(jx, 1.6, 3.2))])
+		p.append([_caixa(1.5, 0.3, 0.3), _m("basalto"), Transform3D(I, Vector3(jx, 3.2, 3.1))])
+		for k in [-0.3, 0.0, 0.3]:
+			p.append([_caixa(0.05, 1.2, 0.05), _m("metal"), Transform3D(I, Vector3(jx + k, 2.25, 3.25))])
+		# lanterna ao lado da porta
+		p.append([_caixa(0.08, 0.5, 0.08), _m("metal"), Transform3D(I, Vector3(lado * 1.75, 3.1, 3.75))])
+		p.append([_cil(0.14, 0.18, 0.35, 6), _m("luz"), Transform3D(I, Vector3(lado * 1.75, 2.75, 3.85))])
+		p.append([_cil(0.05, 0.2, 0.15, 6), _m("bronze"), Transform3D(I, Vector3(lado * 1.75, 3.0, 3.85))])
+	p.append([_cil(0.4, 0.4, 0.9, 10), _m("madeira"), Transform3D(I, Vector3(-3.5, 1.2, 3.4))])   # barril na entrada
 	# rocha no fundo: a casa parece apoiada na encosta
 	p.append([_cil(3.2, 4.2, 3.6, 7), _m("basalto"), Transform3D(Basis.from_scale(Vector3(1.0, 1.0, 0.4)), Vector3(0, 1.6, -4.3))])
 	return p
