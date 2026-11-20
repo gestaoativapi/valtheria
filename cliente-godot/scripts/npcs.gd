@@ -501,16 +501,15 @@ func _make(q: Dictionary) -> void:
 					bg.position = Vector3(0, 0, 0.8) / c.scale.x
 					bg.scale = Vector3.ONE / c.scale.x
 					bg.rotation.y = PI * 0.5
-					c.set_battle(true)
-					c.play("TreeChopping")
+					c.martelar(0.8, 0.77)
 					d = d.duplicate()
-					d[3] = "TreeChopping"
+					d[3] = "Idle"
 			else:
 				pos = spots[rng.randi() % 10]
 				c.play("Idle")
 			c.position = pos
 			var nm: String = (d[0] if role else "%s\n%s" % [d[0], d[1]])
-			c.set_tag(nm, Color(0.7, 1.0, 0.75) if (role and str(d[4]) != "") else (Color(1.0, 0.85, 0.45) if not role else Color(0.85, 0.9, 1.0)))
+			c.set_tag(nm, Color(0.7, 1.0, 0.75) if (role and str(d[4]) != "") else (Color(1.0, 0.85, 0.45) if not role else Color(0.85, 0.9, 1.0)), 25.0 if role else 12.0)
 			var e := {"node": c, "window": d[4] if role else "", "name": d[0], "kind": q.kind, "age": "adulto", "lines": (d[2] as Array) if not role else (CHAT.guarda if d[0] == "Guarda" else CHAT.adulto),
 				"home": pos, "goal": pos, "state": "parado", "timer": rng.randf_range(3.0, 10.0), "speed": 1.0, "anim": d[3] if role else "Idle", "walks": not role, "line_i": 0}
 			list.append(e)
@@ -530,7 +529,7 @@ func _make(q: Dictionary) -> void:
 				"goal": Vector3.ZERO, "state": "casa", "timer": 0.0, "speed": info.speed, "anim": "", "walks": true, "line_i": rng.randi() % 5,
 				"job": job, "group": rng.randi() % 12, "shift": rng.randf_range(-0.8, 0.8), "taste": rng.randf(), "dest_kind": "", "dest": Vector3.ZERO,
 				"path": [], "path_i": 0, "act_t": 0.0, "talk_cd": clock + rng.randf_range(10.0, 60.0), "soc_t": rng.randf(), "conv": {}, "meet": {}, "seed": rng.randi()}
-			c.set_tag(info.name, Color(0.92, 0.92, 0.88))
+			c.set_tag(info.name, Color(0.92, 0.92, 0.88), 12.0)
 			c.tag.visibility_range_end = 18.0
 			list.append(e)
 			# já começa no lugar onde estaria a esta hora

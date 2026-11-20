@@ -72,6 +72,10 @@ var magic_idle := false
 var ik: SkeletonModifier3D  # braço esquerdo até o cabo (arma de duas mãos)
 var ik_r: SkeletonModifier3D  # braço direito até a guarda, na postura parada
 var guard: Node3D  # arma de duas mãos segura à frente do corpo, com as duas mãos
+var mao_l_guarda: Node3D  # alvo da mão esquerda na guarda
+var mao_l_golpe: Node3D   # alvo da mão esquerda no golpe: preso ao cabo, segue a arma em todo o movimento
+var arma_base: Transform3D  # encaixe da arma de duas mãos na guarda
+var arma_golpe: Transform3D  # encaixe da mesma arma na mão direita, alinhada como espada (lâmina para a frente)
 var guard_on := false
 var arqueria: Node3D  # arco: pose e tiro por IK (arqueria.gd)
 var cabelos: Array = []  # malhas de cabelo (somem debaixo de elmo, capuz e chapéu)
@@ -1693,6 +1697,17 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 			mao.position += guard.basis.inverse() * (-dirb * 0.065 * k)
 		ik_r = _arm_ik("r", hand_r, Vector3(-0.6, 0.45, -0.5) * k)
 		ik = _arm_ik("l", hand_l, Vector3(0.6, 0.45, -0.5) * k)
+		mao_l_guarda = hand_l
+		# no golpe a arma fica na mão direita e a esquerda continua no cabo: o alvo dela é um ponto do próprio
+		# cabo (no mesmo lugar da guarda, medido a partir da mão direita), então ela acompanha o giro da arma
+		var um2: Array = _pegada().uma_mao
+		var giro := Transform3D(Basis.from_euler(Vector3(float(um2[0]), 0.0, float(um2[1]))), Vector3.ZERO)
+		arma_base = wnode.transform
+		arma_golpe = giro * wnode.transform
+		mao_l_golpe = Node3D.new()
+		mao_l_golpe.name = "SegundaMao"
+		mao_l_golpe.position = giro * Vector3(0, 0, -(float(g.at) - two) * s)
+		grip.add_child(mao_l_golpe)
 	if g.get("dual", false):
 		var g2 := _hand_grip("l")
 		if g2 != null:
@@ -1735,7 +1750,13 @@ func _set_guard(on: bool) -> void:
 	guard_on = on
 	wnode.get_parent().remove_child(wnode)
 	(guard if on else grip_node).add_child(wnode)
-	ik.active = on
+	if mao_l_golpe != null:
+		wnode.transform = arma_base if on else arma_golpe
+	# as duas mãos ficam sempre no cabo: na guarda as duas vão até a arma parada; no golpe a direita conduz
+	# a arma (animação) e a esquerda segue o cabo pelo IK
+	if mao_l_golpe != null:
+		(ik as TwoBoneIK3D).set_target_node(0, (ik as TwoBoneIK3D).get_path_to(mao_l_guarda if on else mao_l_golpe))
+	ik.active = true
 	ik_r.active = on
 	if postura != null:
 		postura.bracos_livres = not on
@@ -1850,7 +1871,7 @@ func set_battle(on: bool) -> void:
 
 
 func play(n: String, speed := 1.0) -> void:
-	if guard != null and armed and not guard_on and not is_busy():
+	if guard != null and armed and not guard_on and not is_busy() and _mart_alvo == null:
 		_set_guard(true)
 	if n == "Idle" and armed and magic_idle and anim.has_animation("Spell_Simple_Idle"):
 		n = "Spell_Simple_Idle"
@@ -1931,6 +1952,10 @@ func vestir_cabeca(item: Node3D, esconde_cabelo := false) -> void:
 		if is_instance_valid(m):
 			(m as Node3D).visible = item == null or not esconde_cabelo
 	if item != null:
+		# molde: o item segue o formato real da cabeça (ou do cabelo, quando o cabelo continua à mostra)
+		var molde: PackedFloat32Array = cabeca_no.get_meta("molde_cabelo" if not esconde_cabelo else "molde", PackedFloat32Array())
+		if molde.size() > 0:
+			load("res://scripts/cabeca.gd").moldar(item, molde)
 		cabeca_no.add_child(item)
 
 
@@ -1948,7 +1973,8 @@ func is_busy() -> bool:
 	return Time.get_ticks_msec() * 0.001 < busy_until
 
 
-func set_tag(text: String, color := Color(1, 0.92, 0.7)) -> void:
+# perto > 0: o nome só aparece quando a câmera chega a essa distância (moradores e NPCs, 20/11)
+func set_tag(text: String, color := Color(1, 0.92, 0.7), perto := 0.0) -> void:
 	if not tag:
 		tag = Label3D.new()
 		tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -1961,6 +1987,10 @@ func set_tag(text: String, color := Color(1, 0.92, 0.7)) -> void:
 		add_child(tag)
 	tag.text = text
 	tag.modulate = color
+	if perto > 0.0:
+		tag.visibility_range_end = perto
+		tag.visibility_range_end_margin = 2.0
+		tag.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 
 # pés no chão: o pé que está apoiado (o mais baixo na animação) encosta no terreno embaixo dele.
@@ -2036,7 +2066,7 @@ func oficio(tipo: String, sem_tunica := false) -> void:
 		return
 	var cfg: Dictionary = OFICIOS[tipo]
 	if tipo == "ferreiro" and wnode != null:
-		wnode.scale *= 0.55  # martelo de forja, não o martelo de guerra
+		wnode.scale *= 0.42  # martelo de forja, não o martelo de guerra
 	var R := func(b: String) -> Vector3: return skel.get_bone_global_rest(skel.find_bone(b)).origin
 	var pel: Vector3 = R.call("pelvis")
 	var sp2: Vector3 = R.call("spine_02")
@@ -2204,6 +2234,11 @@ void fragment() {
 			for i in mi.mesh.get_surface_count():
 				var orig := mi.mesh.surface_get_material(i) as BaseMaterial3D
 				if orig == null or orig.albedo_texture == null:
+					# parte lisa da túnica (forro da gola): antes ficava branca no decote
+					var liso := StandardMaterial3D.new()
+					liso.albedo_color = Color(str(cfg[0])).darkened(0.25)
+					liso.roughness = 0.9
+					mi.set_surface_override_material(i, liso)
 					continue
 				var sm := ShaderMaterial.new()
 				sm.shader = _traje_shader
@@ -2216,3 +2251,74 @@ void fragment() {
 				mi.set_surface_override_material(i, sm)
 		elif nm.begins_with("calca"):
 			_tint(mi, Color(str(cfg[2])).lightened(0.35))
+
+
+# ---------- ferreiro martelando na bigorna (20/11, Robson: "animar por código") ----------
+# Sem animação de ofício gratuita: a mão direita, com o martelo, sobe e desce num arco acima da bigorna pelo IK do
+# braço; a esquerda segura a peça na mesa da bigorna. O corpo segue na animação parada, então serve a qualquer raça.
+class _Martelada extends Node:
+	var c: Node3D
+	var t := 0.0
+	func _process(dt: float) -> void:
+		t += dt
+		c._martelo_passo(t)
+
+var _mart_alvo: Node3D
+var _mart_dist := 0.85
+var _mart_topo := 0.77
+
+
+# dist e topo em metros do mundo: distância até a bigorna à frente e altura da mesa dela
+func martelar(dist := 0.85, topo := 0.77) -> void:
+	if skel == null or wnode == null:
+		return
+	var esc := maxf(scale.x, 0.01)
+	_mart_dist = dist / esc
+	_mart_topo = topo / esc
+	set_battle(true)
+	# martelo numa mão só, alinhado como ferramenta
+	if guard != null:
+		guard_on = false
+		wnode.get_parent().remove_child(wnode)
+		grip_node.add_child(wnode)
+		if mao_l_golpe != null:
+			wnode.transform = arma_golpe
+		if ik_r != null:
+			ik_r.active = false
+	# martelo de ferramenta: cabo curto na mão, cabeça virada para a frente para bater na bigorna
+	wnode.transform = Transform3D(Basis(Vector3.RIGHT, PI), Vector3.ZERO) * wnode.transform
+	if postura != null:
+		postura.bracos_livres = false
+	var k := height_m / 1.8
+	_mart_alvo = Node3D.new()
+	add_child(_mart_alvo)
+	_arm_ik("r", _mart_alvo, Vector3(-0.55, 1.25, -0.35) * k).active = true
+	var peca := Node3D.new()
+	peca.position = Vector3(0.1, _mart_topo + 0.1, _mart_dist - 0.22)
+	add_child(peca)
+	if ik != null:
+		(ik as TwoBoneIK3D).set_target_node(0, (ik as TwoBoneIK3D).get_path_to(peca))
+		ik.active = true
+	else:
+		_arm_ik("l", peca, Vector3(0.6, 1.0, -0.4) * k).active = true
+	play("Idle")
+	var m := _Martelada.new()
+	m.c = self
+	add_child(m)
+
+
+func _martelo_passo(t: float) -> void:
+	if _mart_alvo == null:
+		return
+	var k := height_m / 1.8
+	var f := fposmod(t, 1.15) / 1.15
+	var bate := Vector3(-0.12, _mart_topo + 0.24 * k, _mart_dist - 0.32)   # mão quando a cabeça do martelo toca a bigorna
+	var alto := Vector3(-0.2, _mart_topo + 0.85 * k, _mart_dist - 0.62)    # mão no alto, martelo erguido
+	var p: Vector3
+	if f < 0.55:      # sobe devagar
+		p = bate.lerp(alto, ease(f / 0.55, 0.6))
+	elif f < 0.68:    # desce rápido
+		p = alto.lerp(bate, ease((f - 0.55) / 0.13, 2.4))
+	else:             # repique e pausa na bigorna
+		p = bate + Vector3(0, sin((f - 0.68) / 0.32 * PI) * 0.05 * k, 0)
+	_mart_alvo.position = p

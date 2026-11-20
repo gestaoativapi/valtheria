@@ -448,10 +448,12 @@ func _build() -> void:
 		c.position = Vector3(float(n[1]), 0, float(n[2]))
 		c.rotation.y = float(n[3])
 		c.play(str(n[4]))
+		if str(n[0]) == "Ferreiro":
+			c.martelar(0.9, 0.77)  # bigorna a 0,9 m à frente (ver lista de móveis da forja)
 		if str(n[4]) == "Sitting_Idle":  # banquinho embaixo de quem está sentado
 			var back := Vector3(sin(float(n[3])), 0, cos(float(n[3]))) * -0.15
 			_box(room, _mat(Color(0.36, 0.24, 0.14)), Vector3(float(n[1]), 0.24, float(n[2])) + back, Vector3(0.5, 0.48, 0.5))
-		c.set_tag(str(n[0]), Color(0.92, 0.92, 0.85))
+		c.set_tag(str(n[0]), Color(0.92, 0.92, 0.85), 12.0)
 		people.append({"node": c, "name": n[0], "lines": LINES.get(str(n[5]), LINES.casa)})
 		blockers.append([Vector2(float(n[1]), float(n[2])), 0.35])
 

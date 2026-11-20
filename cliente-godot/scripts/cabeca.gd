@@ -26,19 +26,31 @@ static func medir(skel: Skeleton3D) -> Dictionary:
 	var pesc := skel.find_bone("neck_01")
 	var y_pesc := skel.get_bone_global_rest(pesc).origin.y if pesc >= 0 else cabeca.y - 0.1
 	var pts: Array = []
-	for m in skel.find_children("*", "MeshInstance3D", false, false):
+	var pts_cabelo: Array = []
+	# todas as malhas do corpo, inclusive cabeças de raça presas ao osso (leão, dragão), já na pose de repouso
+	for m in skel.find_children("*", "MeshInstance3D", true, false):
 		var nm := String(m.name).to_lower()
-		if not (m as Node3D).visible or nm.contains("hood") or nm.begins_with("ca_") or nm.contains("hair") or nm.contains("barba") or nm.contains("beard") or nm.contains("cilio") or nm.contains("sobrancelha"):
+		if not (m as Node3D).is_visible_in_tree() or nm.contains("hood") or nm.contains("cilio") or nm.contains("sobrancelha") or nm.contains("barba") or nm.contains("beard") or nm.contains("olho"):
 			continue
+		if _dentro_de_encaixe(m, skel):
+			continue
+		var eh_cabelo := nm.begins_with("ca_") or nm.begins_with("cabelo") or nm.contains("hair") or nm.contains("juba")
+		var xm := _xf_ate(m as Node3D, skel)
 		var mesh: Mesh = (m as MeshInstance3D).mesh
 		if mesh == null or not (mesh is ArrayMesh):
 			continue
 		for si in mesh.get_surface_count():
 			var arr := (mesh as ArrayMesh).surface_get_arrays(si)
 			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
-			for v in vs:
-				if v.y > cabeca.y - 0.02 and absf(v.x - cabeca.x) < 0.2 and absf(v.z - cabeca.z) < 0.25:
-					pts.append(v)
+			for v0 in vs:
+				var v := xm * v0
+				if v.y > cabeca.y - 0.09 and absf(v.x - cabeca.x) < 0.22 and absf(v.z - cabeca.z) < 0.26:
+					if eh_cabelo:
+						pts_cabelo.append(v)
+					else:
+						pts.append(v)
+	var pele := pts.duplicate()
+	pts = pts + pts_cabelo
 	if pts.size() < 20:
 		return {"centro": cabeca + Vector3(0, 0.1, 0.02), "raio": Vector3(0.1, 0.12, 0.115), "testa": 0.0}
 	# topo pela linha do meio da cabeça (chifres, orelhas e juba ficam de fora) e larguras por percentil
@@ -63,7 +75,158 @@ static func medir(skel: Skeleton3D) -> Dictionary:
 	var ry := clampf((topo - y_pesc) * 0.55, 0.08, 0.2)
 	var rz := rx * 1.12
 	var centro := Vector3(cabeca.x, topo - ry, nuca + rz)
-	return {"centro": centro, "raio": Vector3(rx, ry, rz)}
+	var raio := Vector3(rx, ry, rz)
+	var com_cabelo := _campo(pts, centro, raio)
+	return {"centro": centro, "raio": raio, "molde": _campo(pele, centro, raio, com_cabelo), "molde_cabelo": com_cabelo}
+
+
+# ---------- molde: o formato real da cabeça em cada direção ----------
+# Em vez de esticar uma bola, o jogo guarda, para cada direção a partir do centro do crânio (12 faixas de altura x
+# 24 de giro), a distância real até a pele (ou até o cabelo, para coroas). Cada item é depois "moldado": cada ponto
+# dele é empurrado ou puxado nessa direção para manter a mesma folga sobre a cabeça de quem usa.
+const MOLDE_T := 12
+const MOLDE_P := 24
+
+# base: onde não há pele (nuca coberta pelo cabelo), usa o contorno com cabelo um pouco recolhido
+static func _campo(pts: Array, centro: Vector3, raio: Vector3, base := PackedFloat32Array()) -> PackedFloat32Array:
+	var bins: Array = []
+	bins.resize(MOLDE_T * MOLDE_P)
+	for i in bins.size():
+		bins[i] = []
+	for p in pts:
+		var u: Vector3 = ((p as Vector3) - centro) / raio
+		var r := u.length()
+		if r < 0.2 or r > 2.2:
+			continue
+		var th := acos(clampf(u.y / r, -1.0, 1.0))
+		var ph := fposmod(atan2(u.x, u.z), TAU)
+		var ti := mini(int(th / PI * MOLDE_T), MOLDE_T - 1)
+		var pi_ := mini(int(ph / TAU * MOLDE_P), MOLDE_P - 1)
+		(bins[ti * MOLDE_P + pi_] as Array).append(r)
+	var f := PackedFloat32Array()
+	f.resize(MOLDE_T * MOLDE_P)
+	var tem := PackedByteArray()
+	tem.resize(f.size())
+	for i in bins.size():
+		var b: Array = bins[i]
+		if b.size() >= 3:
+			b.sort()
+			f[i] = b[int(b.size() * 0.85)]
+			tem[i] = 1
+	if base.size() == tem.size():
+		for i in tem.size():
+			if not tem[i]:
+				f[i] = base[i] * 0.94
+				tem[i] = 1
+	# direções sem pele (pescoço, rosto aberto): herdam a vizinha; o resto fica na bola medida
+	for _passo in 6:
+		for t in MOLDE_T:
+			for q in MOLDE_P:
+				var i := t * MOLDE_P + q
+				if tem[i]:
+					continue
+				var soma := 0.0
+				var n := 0
+				for d in [[0, 1], [0, -1], [1, 0], [-1, 0]]:
+					var tt: int = t + d[0]
+					if tt < 0 or tt >= MOLDE_T:
+						continue
+					var j: int = tt * MOLDE_P + posmod(q + d[1], MOLDE_P)
+					if tem[j]:
+						soma += f[j]
+						n += 1
+				if n > 0:
+					f[i] = soma / n
+					tem[i] = 2
+		for i in tem.size():
+			if tem[i] == 2:
+				tem[i] = 1
+	for i in f.size():
+		if not tem[i]:
+			f[i] = 1.0
+	# suaviza duas vezes para a peça não copiar cada saliência (orelha, sobrancelha)
+	for _s in 2:
+		var g := f.duplicate()
+		for t in MOLDE_T:
+			for q in MOLDE_P:
+				var acc := f[t * MOLDE_P + q] * 2.0
+				var n := 2.0
+				for d in [[0, 1], [0, -1], [1, 0], [-1, 0]]:
+					var tt: int = t + d[0]
+					if tt < 0 or tt >= MOLDE_T:
+						continue
+					acc += f[tt * MOLDE_P + posmod(q + d[1], MOLDE_P)]
+					n += 1.0
+				g[t * MOLDE_P + q] = acc / n
+		f = g
+	for i in f.size():
+		f[i] = clampf(f[i], 0.72, 1.35)
+	return f
+
+
+static func _raio_molde(f: PackedFloat32Array, u: Vector3) -> float:
+	var r := u.length()
+	if r < 0.001 or f.size() != MOLDE_T * MOLDE_P:
+		return 1.0
+	var th := acos(clampf(u.y / r, -1.0, 1.0)) / PI * MOLDE_T - 0.5
+	var ph := fposmod(atan2(u.x, u.z), TAU) / TAU * MOLDE_P - 0.5
+	var t0 := clampi(int(floorf(th)), 0, MOLDE_T - 1)
+	var t1 := clampi(t0 + 1, 0, MOLDE_T - 1)
+	var ft := clampf(th - floorf(th), 0.0, 1.0) if th >= 0.0 else 0.0
+	var q0 := posmod(int(floorf(ph)), MOLDE_P)
+	var q1 := posmod(q0 + 1, MOLDE_P)
+	var fq := ph - floorf(ph)
+	var a := lerpf(f[t0 * MOLDE_P + q0], f[t0 * MOLDE_P + q1], fq)
+	var b := lerpf(f[t1 * MOLDE_P + q0], f[t1 * MOLDE_P + q1], fq)
+	return lerpf(a, b, ft)
+
+
+# molda todas as malhas de um item (montado na cabeça unitária) ao formato real da cabeça
+static func moldar(item: Node3D, f: PackedFloat32Array) -> void:
+	for mi in item.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if m.mesh == null:
+			continue
+		var xf := item.global_transform.affine_inverse() * m.global_transform if m.is_inside_tree() else _xf_ate(m, item)
+		var inv := xf.affine_inverse()
+		var nova := ArrayMesh.new()
+		for si in m.mesh.get_surface_count():
+			var arr := m.mesh.surface_get_arrays(si)
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			for k in vs.size():
+				var u := xf * vs[k]
+				vs[k] = inv * (u * _raio_molde(f, u))
+			arr[Mesh.ARRAY_VERTEX] = vs
+			nova.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+			var mat := m.mesh.surface_get_material(si)
+			if mat != null:
+				nova.surface_set_material(si, mat)
+		m.mesh = nova
+
+
+static func _dentro_de_encaixe(n: Node, skel: Node) -> bool:
+	var a := n.get_parent()
+	while a != null and a != skel:
+		if String(a.name) == "EncaixeCabeca":
+			return true
+		a = a.get_parent()
+	return false
+
+
+static func _xf_ate(n: Node3D, raiz: Node3D) -> Transform3D:
+	var xf := Transform3D.IDENTITY
+	var a: Node = n
+	while a != null and a != raiz:
+		if a is BoneAttachment3D and raiz is Skeleton3D:
+			# preso a um osso: vale a posição de repouso do osso (o nó só é atualizado depois, no quadro)
+			var sk := raiz as Skeleton3D
+			var bi := sk.find_bone((a as BoneAttachment3D).bone_name)
+			if bi >= 0:
+				return sk.get_bone_global_rest(bi) * xf
+		if a is Node3D:
+			xf = (a as Node3D).transform * xf
+		a = a.get_parent()
+	return xf
 
 
 # nó de encaixe preso ao osso da cabeça: tudo que for posto nele está em "cabeça unitária"
@@ -87,6 +250,12 @@ static func encaixe(c: Node3D) -> Node3D:
 	no.name = "CabecaUnitaria"
 	att.add_child(no)
 	no.transform = skel.get_bone_global_rest(hb).affine_inverse() * Transform3D(Basis.from_scale(med.raio), med.centro)
+	if OS.get_environment("DBG_CABECA") != "":
+		print("CABECA ", c.get("race_id"), " osso=", skel.get_bone_global_rest(hb).origin, " centro=", med.centro, " raio=", med.raio, " molde=", med.get("molde", PackedFloat32Array()).slice(0, 48))
+		for mm in skel.find_children("*", "MeshInstance3D", false, false):
+			print("   malha ", mm.name, " vis=", (mm as Node3D).visible)
+	no.set_meta("molde", med.get("molde", PackedFloat32Array()))
+	no.set_meta("molde_cabelo", med.get("molde_cabelo", PackedFloat32Array()))
 	return no
 
 
@@ -150,27 +319,24 @@ static func _peca(no: Node3D, mesh: Mesh, mat: Material, pos: Vector3, rot := Ve
 
 # elmo de metal: calota, aro na testa, nasal e jugulares; grau muda o metal
 static func elmo(grau := 0) -> Node3D:
+	# moldado: calota e protetores de face numa peça só que desce pelos lados até a mandíbula, com o rosto aberto
 	var n := Node3D.new()
 	var metal: Color = [Color(0.42, 0.43, 0.46), Color(0.55, 0.42, 0.28), Color(0.62, 0.64, 0.68), Color(0.7, 0.72, 0.76), Color(0.74, 0.62, 0.38)][clampi(grau, 0, 4)]
 	var m := _mat(metal, 0.85, 0.35)
 	var esc := _mat(metal.darkened(0.35), 0.8, 0.45)
-	n.add_child(_casca(1.13, 1.62, 0.95, m))
-	var aro := TorusMesh.new()
-	aro.inner_radius = 1.08
-	aro.outer_radius = 1.2
-	aro.rings = 28
+	n.add_child(_casca(1.07, 2.15, 0.78, m, 32, 18))
+	var aro := TorusMesh.new()   # aro reforçado na altura da testa
+	aro.inner_radius = 1.05
+	aro.outer_radius = 1.13
+	aro.rings = 32
 	aro.ring_segments = 6
-	_peca(n, aro, esc, Vector3(0, 0.02, 0.0), Vector3.ZERO, Vector3(1, 0.6, 1))
-	var crista := BoxMesh.new()
-	crista.size = Vector3(0.08, 0.22, 1.9)
-	_peca(n, crista, esc, Vector3(0, 0.98, -0.1), Vector3(-0.15, 0, 0))
+	_peca(n, aro, esc, Vector3(0, 0.12, 0.0), Vector3.ZERO, Vector3(1, 0.5, 1))
+	var crista := BoxMesh.new()  # crista baixa do topo à nuca
+	crista.size = Vector3(0.07, 0.12, 1.7)
+	_peca(n, crista, esc, Vector3(0, 1.06, -0.12), Vector3(-0.12, 0, 0))
 	var nasal := BoxMesh.new()
-	nasal.size = Vector3(0.16, 0.85, 0.08)
-	_peca(n, nasal, m, Vector3(0, -0.25, 1.16), Vector3(-0.12, 0, 0))
-	for s in [-1.0, 1.0]:
-		var jug := BoxMesh.new()
-		jug.size = Vector3(0.08, 0.95, 0.65)
-		_peca(n, jug, m, Vector3(s * 1.05, -0.55, 0.5), Vector3(0.1, s * 0.35, 0))
+	nasal.size = Vector3(0.14, 0.62, 0.06)
+	_peca(n, nasal, m, Vector3(0, -0.2, 1.08), Vector3(-0.08, 0, 0))
 	return n
 
 

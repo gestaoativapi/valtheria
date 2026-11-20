@@ -1182,11 +1182,14 @@ func build_big(t: Dictionary, size: String, theme: String) -> Dictionary:
 			span = lim + 6.0
 		pave_rects.append([float(v), 0.0, wd * 0.5, span, 0.0])
 		pave_rects.append([0.0, float(v), span, wd * 0.5, 0.0])
+		# postes pela metade (20/11): um lado da rua por vez, alternando, com o mesmo espaçamento
 		var step := 22.0 if v == 0.0 else 30.0
 		var k := -lim
+		var vez := 0
 		while k <= lim:
-			for sgn in [-1.0, 1.0]:
-				for p in [Vector2(float(v) + sgn * (wd * 0.5 + 0.6), k), Vector2(k, float(v) + sgn * (wd * 0.5 + 0.6))]:
+			vez += 1
+			for sgn in [-1.0 if vez % 2 == 0 else 1.0]:
+				for p in [Vector2(float(v) + sgn * (wd * 0.5 + 0.6), k), Vector2(k, float(v) - sgn * (wd * 0.5 + 0.6))]:
 					if absf(p.x) < 12.0 and absf(p.y) < 12.0:
 						continue
 					lamp_pts.append(w.at(cx + p.x, cz + p.y, 0.0))

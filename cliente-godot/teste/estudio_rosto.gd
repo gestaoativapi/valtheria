@@ -59,10 +59,22 @@ func _init() -> void:
 			c.arqueria.disparar()
 			c.arqueria.t = float(OS.get_environment("ARCO_T"))
 			Engine.time_scale = 0.0001  # congela no instante pedido do tiro
+		if OS.get_environment("COMBATE") != "" and p.size() > 3 and p[3] != "":
+			c.set_battle(true)
+		if OS.get_environment("GOLPE") != "" and p.size() > 3 and p[3] != "":
+			c.set_battle(true)
+			c.set_meta("golpe", OS.get_environment("GOLPE"))
+		if OS.get_environment("MARTELAR") != "":
+			var bg: Node3D = load("res://scripts/props.gd").bigorna()
+			raiz.add_child(bg)
+			bg.position = c.position + Vector3(sin(ang), 0, cos(ang)) * 0.85
+			bg.rotation.y = ang + PI * 0.5
 		if p.size() > 5 and p[5] != "":  # 6º campo: roupa de ofício (ferreiro, estalajadeiro...)
 			c.oficio(p[5], p[4] == "nenhuma")
 			if p[3] != "":
 				c.set_battle(true)
+			if OS.get_environment("MARTELAR") != "":
+				c.martelar(0.85, 0.77)
 		alt = maxf(alt, 1.0)
 	cam = Camera3D.new()
 	cam.fov = 30.0 if not corpo else 34.0
@@ -84,6 +96,15 @@ func _process(_dt: float) -> bool:
 		for c in root.find_children("*", "Node3D", true, false):
 			if c.get("asas") != null:
 				c.asas.sopro("fogo")
+	if quadros == 12 and OS.get_environment("GOLPE") != "":
+		# congela um golpe no instante pedido (GOLPE=animação, GOLPE_T=fração 0..1)
+		for c in root.find_children("*", "Node3D", true, false):
+			if c.has_meta("golpe") and c.get("anim") != null:
+				var ap: AnimationPlayer = c.anim
+				var nome: String = c.get_meta("golpe")
+				for n in ap.get_animation_list():
+					if n.ends_with(nome):
+						c.action(n)
 	if quadros == 22 and not corpo_modo:
 		# mira a câmera na altura média das cabeças
 		var soma := 0.0
@@ -98,6 +119,13 @@ func _process(_dt: float) -> bool:
 			cam.position.y = y + 0.02
 			cam.look_at(Vector3(0, y, 0))
 			print("cabeças em y=", y, " cam=", cam.global_position)
+	if OS.get_environment("QUADROS") != "":
+		var nq := int(OS.get_environment("QUADROS"))
+		if quadros > 12 and quadros <= 12 + nq:
+			root.get_viewport().get_texture().get_image().save_png(saida.replace(".png", "_%03d.png" % (quadros - 12)))
+		if quadros > 12 + nq:
+			quit()
+		return false
 	if quadros == 30:
 		var img := root.get_viewport().get_texture().get_image()
 		img.save_png(saida)

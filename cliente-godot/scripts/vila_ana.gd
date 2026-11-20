@@ -205,7 +205,7 @@ static func _salao() -> Array:
 	p.append([_cil(12.0, 12.5, 1.2, 8), _m("basalto"), Transform3D(Basis.IDENTITY, Vector3(0, 0.6, 0))])
 	p.append([_cil(10.0, 10.5, 9.0, 8), _m("clara"), Transform3D(Basis.IDENTITY, Vector3(0, 5.7, 0))])
 	p.append([_cil(5.0, 10.8, 5.0, 8), _m("telhado"), Transform3D(Basis.IDENTITY, Vector3(0, 12.7, 0))])
-	p.append([_cil(0.0, 5.2, 2.0, 8), _m("bronze"), Transform3D(Basis.IDENTITY, Vector3(0, 16.2, 0))])
+	p.append([_cil(0.0, 5.2, 2.0, 8), _m("telhado"), Transform3D(Basis.IDENTITY, Vector3(0, 16.2, 0))])
 	for k in 8:
 		var a := TAU * k / 8.0 + PI / 8.0
 		p.append([_cil(0.9, 1.1, 9.5, 10), _m("pedra"), Transform3D(Basis.IDENTITY, Vector3(sin(a) * 10.8, 5.9, cos(a) * 10.8))])  # colunas grossas
