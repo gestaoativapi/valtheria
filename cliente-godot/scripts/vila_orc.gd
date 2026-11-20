@@ -10,14 +10,25 @@ extends RefCounted
 # Mesma técnica das outras vilas: uma MultiMesh por peça, sem luzes dinâmicas novas.
 const VilaAna := preload("res://scripts/vila_ana.gd")
 const FX = preload("res://scripts/fx.gd")
+const Arq = preload("res://scripts/arquitetura.gd")
 
 const COR := {"pedra": "#783D32", "escura": "#393536", "basalto": "#292B2D", "metal": "#55504A", "ferro": "#343638",
 	"bronze": "#95613D", "cobre": "#A65E3D", "madeira": "#493024", "couro": "#68432E", "tecido": "#792D25", "luz": "#FF8A32", "osso": "#D9CDB2"}
 static var _mats := {}
 
 
-static func _m(nome: String) -> StandardMaterial3D:
+static func _m(nome: String) -> Material:
 	if _mats.has(nome):
+		return _mats[nome]
+	var arq := {"pedra": ["pedra", {"bloco": Vector2(1.0, 0.5)}], "escura": ["pedra", {"bloco": Vector2(0.8, 0.4)}],
+		"basalto": ["pedra", {"bloco": Vector2(1.2, 0.55)}], "madeira": ["madeira", {"variacao": 0.3}],
+		"metal": ["metal", {}], "ferro": ["metal", {"rugosidade": 0.55}], "bronze": ["metal", {"rugosidade": 0.35, "metalico": 0.75}],
+		"cobre": ["metal", {"rugosidade": 0.35, "metalico": 0.75}], "osso": ["reboco", {"desgaste": 0.5}]}
+	if arq.has(nome):
+		var c := Color(str(COR.get(nome, "#777777")))
+		if arq[nome][0] == "pedra":
+			c = c.darkened(0.05)
+		_mats[nome] = Arq.material(arq[nome][0], c, arq[nome][1])
 		return _mats[nome]
 	var m := StandardMaterial3D.new()
 	m.albedo_color = Color(str(COR.get(nome, "#777777")))

@@ -1,4 +1,5 @@
 extends RefCounted
+const Arq = preload("res://scripts/arquitetura.gd")
 # Construções das cidades: calçamento de pedra, casas grandes lado a lado, chafarizes, jardins, igrejas,
 # estátuas, palácio, Arena dos Heróis, porto com cais e barcos, farol, ponte de pedra.
 # Tudo é feito de peças simples (caixas, prismas, cilindros) agrupadas por material, para pesar pouco.
@@ -69,18 +70,18 @@ func _init(world: Node3D) -> void:
 	cob2.set_shader_parameter("base", Color(0.66, 0.62, 0.56))
 	cob2.set_shader_parameter("cell", 0.62)
 	mats.praca = cob2
-	mats.pedra = w._stone(Color(0.66, 0.64, 0.6))
-	mats.base = w._stone(Color(0.5, 0.48, 0.46))
+	mats.pedra = Arq.material("pedra", Color(0.66, 0.64, 0.6))
+	mats.base = Arq.material("pedra", Color(0.5, 0.48, 0.46), {"bloco": Vector2(1.1, 0.5)})
 	mats.marmore = _plain(Color(0.9, 0.89, 0.85), 0.5)
-	mats.cimento = _plain(Color(0.86, 0.82, 0.74), 0.92)
-	mats.cimento2 = _plain(Color(0.78, 0.8, 0.82), 0.92)
-	mats.cimento3 = _plain(Color(0.88, 0.78, 0.66), 0.92)
-	mats.viga = _plain(Color(0.26, 0.17, 0.1), 0.85)
-	mats.madeira = w._wood_mat()
-	mats.telha = _plain(Color(0.58, 0.24, 0.16), 0.8)
-	mats.ardosia = _plain(Color(0.24, 0.27, 0.32), 0.7)
-	mats.telha_azul = _plain(Color(0.2, 0.32, 0.5), 0.7)
-	mats.porta = _plain(Color(0.2, 0.12, 0.07), 0.8)
+	mats.cimento = Arq.material("reboco", Color(0.86, 0.82, 0.74))
+	mats.cimento2 = Arq.material("reboco", Color(0.78, 0.8, 0.82))
+	mats.cimento3 = Arq.material("reboco", Color(0.88, 0.78, 0.66))
+	mats.viga = Arq.material("madeira", Color(0.26, 0.17, 0.1))
+	mats.madeira = Arq.material("madeira", Color(0.4, 0.27, 0.16))
+	mats.telha = Arq.material("telha", Color(0.58, 0.24, 0.16), {"bloco": Vector2(0.3, 0.22)})
+	mats.ardosia = Arq.material("telha", Color(0.24, 0.27, 0.32), {"bloco": Vector2(0.36, 0.22), "rugosidade": 0.6})
+	mats.telha_azul = Arq.material("telha", Color(0.2, 0.32, 0.5), {"bloco": Vector2(0.3, 0.22), "rugosidade": 0.6})
+	mats.porta = Arq.material("madeira", Color(0.2, 0.12, 0.07), {"desgaste": 0.1})
 	mats.sebe = _plain(Color(0.2, 0.38, 0.14), 1.0)
 	mats.terra = _plain(Color(0.3, 0.22, 0.14), 1.0)
 	mats.bronze = _plain(Color(0.55, 0.42, 0.24), 0.35)

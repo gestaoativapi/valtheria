@@ -4,6 +4,7 @@ extends RefCounted
 # Desenho em lote com VilaAna._lote (uma MultiMesh por peça), sem luzes dinâmicas novas.
 const VilaAna := preload("res://scripts/vila_ana.gd")
 const FX = preload("res://scripts/fx.gd")
+const Arq = preload("res://scripts/arquitetura.gd")
 
 const PALETAS := {
 	# Umbraval, elfos negros (MESA-018.1): pedra vulcânica, obsidiana, prata e cristal violeta
@@ -22,11 +23,28 @@ const PALETAS := {
 static var _mats := {}
 
 
-static func _m(raca: String, nome: String) -> StandardMaterial3D:
+static func _m(raca: String, nome: String) -> Material:
 	var k := raca + ":" + nome
 	if _mats.has(k):
 		return _mats[k]
 	var pal: Dictionary = PALETAS.get(raca, {})
+	var arq := {"pedra": ["pedra", {}], "pedra2": ["pedra", {"bloco": Vector2(0.7, 0.35)}],
+		"obsidiana": ["pedra", {"bloco": Vector2(1.3, 0.6), "rugosidade": 0.4, "variacao": 0.12}],
+		"madeira": ["madeira", {}], "madeira_clara": ["madeira", {"variacao": 0.3}],
+		"metal": ["metal", {}], "prata": ["metal", {"rugosidade": 0.3, "metalico": 0.8}], "bronze": ["metal", {"rugosidade": 0.35, "metalico": 0.75}],
+		"escama": ["telha", {"bloco": Vector2(0.38, 0.26), "rugosidade": 0.5}], "escama_azul": ["telha", {"bloco": Vector2(0.38, 0.26), "rugosidade": 0.5}],
+		"osso": ["reboco", {"desgaste": 0.5}], "vegetacao": ["palha", {"variacao": 0.35}], "gelo_profundo": ["telha", {"bloco": Vector2(0.6, 0.4), "rugosidade": 0.7, "variacao": 0.15, "desgaste": 0.2}]}
+	if arq.has(nome):
+		var c := Color(str(pal.get(nome, "#777777")))
+		if arq[nome][0] == "pedra" and nome != "gelo_profundo":
+			c = c.darkened(0.02 if raca == "sombrio" else 0.08)
+		if raca == "gigante":
+			var o: Dictionary = (arq[nome][1] as Dictionary).duplicate()
+			o["bloco"] = (o.get("bloco", Vector2(0.9, 0.42)) as Vector2) * 1.8  # escala de gigante
+			_mats[k] = Arq.material(arq[nome][0], c, o)
+		else:
+			_mats[k] = Arq.material(arq[nome][0], c, arq[nome][1])
+		return _mats[k]
 	var m := StandardMaterial3D.new()
 	m.albedo_color = Color(str(pal.get(nome, "#777777")))
 	m.roughness = 0.85
@@ -76,7 +94,7 @@ static func _T(pos: Vector3, b := Basis.IDENTITY) -> Transform3D:
 # ---------------------------------------------------------------- Umbraval (elfos negros)
 static func _sombrio(tipo: String) -> Array:
 	var R := "sombrio"
-	var M := func(n: String) -> StandardMaterial3D: return _m(R, n)
+	var M := func(n: String) -> Material: return _m(R, n)
 	var p: Array = []
 	match tipo:
 		"casa":
@@ -147,7 +165,7 @@ static func _sombrio(tipo: String) -> Array:
 
 # ---------------------------------------------------------------- Clã das Presas (homens-fera)
 static func _fera(tipo: String) -> Array:
-	var M := func(n: String) -> StandardMaterial3D: return _m("beastman", n)
+	var M := func(n: String) -> Material: return _m("beastman", n)
 	var p: Array = []
 	match tipo:
 		"casa":
@@ -217,7 +235,7 @@ static func _fera(tipo: String) -> Array:
 
 # ---------------------------------------------------------------- Fortaleza Glacial (gigantes de gelo)
 static func _gigante(tipo: String) -> Array:
-	var M := func(n: String) -> StandardMaterial3D: return _m("gigante", n)
+	var M := func(n: String) -> Material: return _m("gigante", n)
 	var p: Array = []
 	match tipo:
 		"casa":
@@ -275,7 +293,7 @@ static func _gigante(tipo: String) -> Array:
 
 # ---------------------------------------------------------------- Pico do Dragão (dragonitas)
 static func _draco(tipo: String) -> Array:
-	var M := func(n: String) -> StandardMaterial3D: return _m("draconato", n)
+	var M := func(n: String) -> Material: return _m("draconato", n)
 	var p: Array = []
 	match tipo:
 		"casa":

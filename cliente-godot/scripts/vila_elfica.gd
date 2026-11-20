@@ -1,4 +1,5 @@
 extends RefCounted
+const Arq = preload("res://scripts/arquitetura.gd")
 # Casas élficas (decisão D8 de Robson, 18/11: primeira vila de raça = élfica, em Sylvar).
 # Casa redonda sobre base de mármore claro, paredes de madeira clara com nervuras de árvore viva,
 # telhado em folha (cúpula pontuda) verde-prata com anel dourado, janelas redondas acesas,
@@ -43,10 +44,10 @@ static func _pecas() -> Array:
 	# [malha, material, Transform3D local] em metros, casa de 6 m de altura até a ponta do telhado
 	if _malhas.has("pecas"):
 		return _malhas.pecas
-	var marmore := _mat(Color(0.9, 0.89, 0.85), 0.45)
-	var madeira := _mat(Color(0.9, 0.84, 0.72), 0.8)
+	var marmore := Arq.material("pedra", Color(0.88, 0.87, 0.83), {"bloco": Vector2(1.2, 0.55), "rugosidade": 0.45, "variacao": 0.1, "desgaste": 0.2})
+	var madeira := Arq.material("madeira", Color(0.86, 0.8, 0.68), {"variacao": 0.14, "desgaste": 0.15})
 	var nervura := _mat(Color(0.78, 0.72, 0.6), 0.85)
-	var telhado := _mat(Color(0.36, 0.55, 0.5), 0.55, 0.0, 0.25)
+	var telhado := Arq.material("telha", Color(0.36, 0.55, 0.5), {"bloco": Vector2(0.3, 0.2), "rugosidade": 0.5, "metalico": 0.25, "desgaste": 0.15})
 	var ouro := _mat(Color(0.84, 0.72, 0.44), 0.35, 0.0, 0.7)
 	var janela := _mat(Color(1.0, 0.88, 0.6), 0.4, 1.4)
 	var porta := _mat(Color(0.42, 0.3, 0.2), 0.7)
@@ -161,7 +162,7 @@ static func casas(w: Node3D, root: Node3D, pts: Array, altura := 7.0, vis_end :=
 		mi.multimesh = mm
 		mi.material_override = peca[1]
 		mi.visibility_range_end = vis_end
-		if (peca[1] as StandardMaterial3D).emission_enabled:
+		if peca[1] is StandardMaterial3D and (peca[1] as StandardMaterial3D).emission_enabled:
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(mi)
 	for t in (pts if bloquear else []):

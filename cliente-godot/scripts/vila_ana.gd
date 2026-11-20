@@ -8,6 +8,7 @@ extends RefCounted
 #   "Cofre das Sete Fechaduras" 13 x 11 x 7 m, baixo, portão de ferro com sete travas
 #   "Salão dos Ancestrais" 22 x 20 x 15 m, octogonal, colunas grossas, estátuas e braseiros
 const FX = preload("res://scripts/fx.gd")
+const Arq = preload("res://scripts/arquitetura.gd")
 
 const COR := {"pedra": "#777B7D", "clara": "#A6A39A", "basalto": "#34383D", "metal": "#59636A", "bronze": "#A66E3F",
 	"cobre": "#B66D45", "madeira": "#493326", "telhado": "#3A3F45", "luz": "#FFB347", "cristal": "#E5A94F"}
@@ -15,8 +16,17 @@ const COR := {"pedra": "#777B7D", "clara": "#A6A39A", "basalto": "#34383D", "met
 static var _mats := {}
 
 
-static func _m(nome: String) -> StandardMaterial3D:
+static func _m(nome: String) -> Material:
 	if _mats.has(nome):
+		return _mats[nome]
+	var arq := {"pedra": ["pedra", {}], "clara": ["pedra", {"bloco": Vector2(1.1, 0.5)}], "basalto": ["pedra", {"bloco": Vector2(1.2, 0.55)}],
+		"madeira": ["madeira", {}], "telhado": ["telha", {"bloco": Vector2(0.42, 0.26)}], "metal": ["metal", {}],
+		"bronze": ["metal", {"rugosidade": 0.35, "metalico": 0.75}], "cobre": ["metal", {"rugosidade": 0.35, "metalico": 0.75}]}
+	if arq.has(nome):
+		var c := Color(str(COR.get(nome, "#777777")))
+		if arq[nome][0] == "pedra":
+			c = c.darkened(0.12)
+		_mats[nome] = Arq.material(arq[nome][0], c, arq[nome][1])
 		return _mats[nome]
 	var m := StandardMaterial3D.new()
 	m.albedo_color = Color(str(COR.get(nome, "#777777")))
