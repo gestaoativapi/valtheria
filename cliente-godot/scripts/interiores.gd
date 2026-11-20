@@ -546,6 +546,9 @@ func _item(i: Array, wood: Material, dark: Material) -> void:
 		l.outline_size = 8
 		l.modulate = Color(1.0, 0.92, 0.7)
 		l.position = Vector3(x, maxf(h, 0.8) + 0.6, z)
+		l.visibility_range_end = 4.0  # nome do móvel só aparece de perto (antes ficava flutuando na sala toda)
+		l.visibility_range_end_margin = 0.6
+		l.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		room.add_child(l)
 
 
