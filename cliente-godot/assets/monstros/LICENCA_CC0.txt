@@ -1,0 +1,7 @@
+Modelos de criaturas (CC0 1.0 — domínio público, uso comercial livre, sem atribuição obrigatória)
+Origem: Grab3D (https://grab3d.com/models/creatures/), catálogo conferido em https://github.com/oosawak/cc0-monsters
+- stone_golem.glb  (Stone Golem, rigged, walk/run)
+- yeti.glb         (Yeti, rigged, walk/run)
+- werewolf.glb     (Werewolf, rigged, walk/run)
+- stylized_zombie.glb (Stylized Zombie, rigged, walk/run)
+Otimizados para o jogo (20/11/2026): malha simplificada para ~8 mil triângulos, texturas 1024 px WebP.

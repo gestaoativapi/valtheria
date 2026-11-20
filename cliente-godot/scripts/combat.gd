@@ -1,4 +1,5 @@
 extends Node3D
+const Criatura = preload("res://scripts/criatura.gd")
 const CorpoChefe := preload("res://scripts/corpo_chefe.gd")
 const HabChefe := preload("res://scripts/habilidades_chefe.gd")
 const VisualMonstros := preload("res://scripts/visual_monstros.gd")
@@ -155,6 +156,12 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 	var modelo := str(fam.model)
 	if bool(fam.get("boss", false)) and modelo == "quad":
 		modelo = "fera_chefe"   # chefe de 4 patas: mutante que anda em 2 patas, com armadura e arma
+	if Criatura.tem(id):
+		# criatura com modelo próprio (CC0): corpo de verdade em vez de corpo humano decorado
+		node = Criatura.criar(id, sc)
+		if bool(fam.get("boss", false)):
+			VisualMonstros.aura_chefe(node, Color(str(fam.get("color", "#888888"))).lightened(0.2), 0.45 * node.altura)
+		return {"node": node, "kind": "criatura", "height": node.altura}
 	match modelo:
 		"fera_chefe":
 			kind = "char"
@@ -311,12 +318,17 @@ func _spawn_medido(x: float, z: float, boss := false, boss_lvl := 0, spot := "",
 	node.add_child(lb)
 	var m := {"fam": fam, "L": L, "hp": float(ms[0]), "maxHp": float(ms[0]), "atk": float(ms[1]), "def": float(ms[2]), "xp": float(ms[3]), "node": node, "kind": md.kind, "home": node.position,
 		"aggro": false, "next_atk": 0.0, "stun": 0.0, "wander": node.position, "wander_t": rng.randf() * 4.0, "dead": false, "dead_t": 0.0, "weak": 0.0, "anim": "", "height": md.height, "boss": boss, "spot": spot}
-	m.ap = node.anim if md.kind == "char" else node.find_child("AnimationPlayer", true, false)
+	m.ap = node.anim if md.kind == "char" else (node.ap if md.kind == "criatura" else node.find_child("AnimationPlayer", true, false))
 	_mob_anim(m, "idle")
 	mobs.append(m)
 
 
 func _mob_anim(m: Dictionary, what: String) -> void:
+	if m.kind == "criatura":  # ataque e golpe se repetem a cada vez; o resto só quando muda
+		if m.anim != what or what in ["attack", "hit"]:
+			m.anim = what
+			m.node.estado(what)
+		return
 	if m.anim == what:
 		return
 	m.anim = what

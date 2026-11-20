@@ -97,6 +97,7 @@ func _init(world: Node3D) -> void:
 	mats.pano_azul = w._cloth_mat(Color(0.16, 0.26, 0.6))
 	mats.vela = w._cloth_mat(Color(0.92, 0.88, 0.78))
 	mats.janela = w.window_mat
+	mats.vao = _plain(Color(0.05, 0.05, 0.06), 1.0)  # aberturas do campanário
 	var water := StandardMaterial3D.new()
 	water.albedo_color = Color(0.25, 0.5, 0.62, 0.78)
 	water.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -147,6 +148,9 @@ func cyl(mat: String, x: float, y: float, z: float, r: float, h: float) -> void:
 
 
 func label(text: String, x: float, z: float, h: float, col := Color(1.0, 0.88, 0.6), size := 64, far := 160.0) -> void:
+	# nomes de prédios não ficam mais flutuando no céu: aparecem no mapa e no aviso ao chegar (19/11, Robson)
+	if not OS.has_feature("rotulos"):
+		return
 	var l := Label3D.new()
 	l.text = text
 	l.font = load("res://assets/cinzel.ttf")
@@ -420,8 +424,8 @@ func hall(x: float, z: float, yaw: float, wid: float, dep: float, hgt: float, to
 var colunas: Array = []
 
 
-func _coluna(x: float, y: float, z: float, h: float) -> void:
-	colunas.append(Transform3D(Basis.from_scale(Vector3(1.0, h, 1.0)), Vector3(x, y, z)))
+func _coluna(x: float, y: float, z: float, h: float, r := 1.0) -> void:
+	colunas.append(Transform3D(Basis.from_scale(Vector3(r, h, r)), Vector3(x, y, z)))
 
 
 func _malha_coluna() -> ArrayMesh:
@@ -430,58 +434,128 @@ func _malha_coluna() -> ArrayMesh:
 		Vector2(0.42, 0.09), Vector2(0.4, 0.5), Vector2(0.36, 0.9), Vector2(0.44, 0.92), Vector2(0.56, 0.95),
 		Vector2(0.62, 0.96), Vector2(0.62, 1.0), Vector2(0.0, 1.0)], 16)
 
-func church(x: float, z: float, yaw: float, big := false, title := "Igreja") -> void:
-	var k := 1.5 if big else 1.0
+# janela ogival (gótica): moldura de pedra, vidro e arco apontado. ry = giro em que a janela olha para fora
+func _lanceta(p: Vector3, y: float, wd: float, h: float, ry: float, vidro := "janela") -> void:
+	box("marmore", p.x, y, p.z, wd + 0.5, h + 0.3, 0.14, ry)
+	roof("marmore", p.x, y + h * 0.5 + 0.15 + (wd + 0.5) * 0.4, p.z, wd + 0.5, (wd + 0.5) * 0.8, 0.14, ry)
+	box(vidro, p.x, y, p.z, wd, h, 0.2, ry)
+	roof(vidro, p.x, y + h * 0.5 + wd * 0.4, p.z, wd, wd * 0.8, 0.2, ry)
+
+
+func _cone(mat: String, p: Vector3, r: float, h: float, lados := 8, giro := 0.0) -> void:
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.0
+	cm.bottom_radius = r
+	cm.height = h
+	cm.radial_segments = lados
+	cm.rings = 1
+	cm.material = mats[mat]
+	var mi := MeshInstance3D.new()
+	mi.mesh = cm
+	mi.position = p + Vector3(0, h * 0.5, 0)
+	mi.rotation.y = giro
+	mi.visibility_range_end = 1000.0
+	root.add_child(mi)
+
+
+# igreja gótica: embasamento, nave alta com clerestório, naves laterais de meia-água, contrafortes escalonados,
+# janelas ogivais, abside redonda nos fundos e torre de três andares com campanário, pináculos, agulha e cruz
+func church(x: float, z: float, yaw: float, big := false, title := "Igreja", fundo_max := 1e9) -> Vector2:
+	# o tamanho cabe no lote: a fachada não invade a rua nem o prédio vizinho
+	var k := minf(1.5 if big else 1.0, fundo_max / 35.0)
 	var g := gy(x, z) - 0.3
 	var bas := Basis(Vector3.UP, yaw)
 	var fwd := bas * Vector3(0, 0, 1)
 	var side := bas * Vector3(1, 0, 0)
+	var P := func(sx: float, fz: float) -> Vector3: return Vector3(x, 0, z) + side * sx + fwd * fz
 	var L := 26.0 * k
-	var Wd := 12.0 * k
-	var Hn := 10.0 * k
+	var Wd := 9.0 * k
+	var Hn := 13.0 * k
+	var Wa := 3.6 * k
+	var Ha := 6.5 * k
+	var ry_lado := yaw + PI * 0.5
+	box("base", x, g + 0.5, z, Wd + Wa * 2.0 + 1.4, 1.0, L + 1.4, yaw)
 	box("pedra", x, g + Hn * 0.5, z, Wd, Hn, L, yaw)
-	roof("ardosia", x, g + Hn + 3.2 * k, z, Wd + 1.0, 6.4 * k, L + 0.6, yaw + PI * 0.5)
-	for s in [-1.0, 1.0]:  # contrafortes e vitrais
-		for i in 5:
-			var p: Vector3 = Vector3(x, 0, z) + side * (s * (Wd * 0.5 + 0.5)) + fwd * (-L * 0.4 + i * L * 0.2)
-			box("base", p.x, g + Hn * 0.4, p.z, 1.0, Hn * 0.8, 1.2, yaw)
-			var v: Vector3 = Vector3(x, 0, z) + side * (s * (Wd * 0.5 + 0.04)) + fwd * (-L * 0.3 + i * L * 0.15)
-			box("janela", v.x, g + Hn * 0.55, v.z, 0.12, Hn * 0.5, 1.4, yaw)
-	# torre do sino com agulha
-	var tp := Vector3(x, 0, z) + fwd * (L * 0.5 + 3.0 * k)
-	box("pedra", tp.x, g + 9.0 * k, tp.z, 7.0 * k, 18.0 * k, 7.0 * k, yaw)
-	box("janela", tp.x + fwd.x * 3.55 * k, g + 15.0 * k, tp.z + fwd.z * 3.55 * k, 1.6, 3.0, 0.12, yaw)
-	var sp := CylinderMesh.new()
-	sp.top_radius = 0.0
-	sp.bottom_radius = 4.6 * k
-	sp.height = 12.0 * k
-	sp.radial_segments = 4
-	sp.material = mats.ardosia
-	var spi := MeshInstance3D.new()
-	spi.mesh = sp
-	spi.position = Vector3(tp.x, g + 18.0 * k + 6.0 * k, tp.z)
-	spi.rotation.y = yaw + PI * 0.25
-	spi.visibility_range_end = 1000.0
-	root.add_child(spi)
-	# rosácea e porta
-	var rose := MeshInstance3D.new()
-	var rm := CylinderMesh.new()
-	rm.top_radius = 1.8 * k
-	rm.bottom_radius = 1.8 * k
-	rm.height = 0.15
-	rm.material = mats.janela
-	rose.mesh = rm
-	rose.position = Vector3(tp.x + fwd.x * 3.56 * k, g + 9.5 * k, tp.z + fwd.z * 3.56 * k)
-	rose.basis = Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, PI * 0.5)
-	root.add_child(rose)
-	box("porta", tp.x + fwd.x * 3.56 * k, g + 2.4 * k, tp.z + fwd.z * 3.56 * k, 2.6 * k, 4.8 * k, 0.16, yaw)
+	box("marmore", x, g + Hn + 0.15, z, Wd + 0.6, 0.3, L + 0.4, yaw)
+	roof("ardosia", x, g + Hn + 0.3 + 3.8 * k, z, Wd + 1.2, 7.6 * k, L + 0.6, yaw)
+	for s in [-1.0, 1.0]:
+		var a: Vector3 = P.call(s * (Wd * 0.5 + Wa * 0.5), 0.0)
+		box("pedra", a.x, g + Ha * 0.5, a.z, Wa, Ha, L * 0.92, yaw)
+		var c: Vector3 = P.call(s * Wd * 0.5, 0.0)
+		roof("ardosia", c.x, g + Ha + 1.5 * k, c.z, Wa * 2.0 + 0.8, 3.0 * k, L * 0.92 + 0.4, yaw)
+		for i in 6:
+			var fz := -L * 0.4 + i * L * 0.16
+			# clerestório (janelas altas da nave) e janelas da nave lateral
+			_lanceta(P.call(s * (Wd * 0.5 + 0.04), fz + L * 0.08), g + Ha + 3.6 * k, 1.0 * k, 2.6 * k, ry_lado)
+			if i < 5:
+				_lanceta(P.call(s * (Wd * 0.5 + Wa + 0.04), fz + L * 0.08), g + Ha * 0.48, 1.0 * k, 2.6 * k, ry_lado)
+			# contraforte escalonado com capa inclinada
+			var b: Vector3 = P.call(s * (Wd * 0.5 + Wa + 0.6 * k), fz)
+			box("base", b.x, g + Ha * 0.42, b.z, 1.3 * k, Ha * 0.84, 0.9 * k, yaw)
+			var b2: Vector3 = P.call(s * (Wd * 0.5 + Wa + 0.35 * k), fz)
+			box("pedra", b2.x, g + Ha * 0.92, b2.z, 0.8 * k, Ha * 0.3, 0.8 * k, yaw)
+			roof("ardosia", b2.x, g + Ha * 1.07 + 0.35 * k, b2.z, 0.85 * k, 0.7 * k, 0.85 * k, ry_lado)
+	# abside semicircular nos fundos, com telhado cônico e três janelas
+	var ab: Vector3 = P.call(0.0, -L * 0.5)
+	cyl("pedra", ab.x, g + Hn * 0.4, ab.z, Wd * 0.5, Hn * 0.8)
+	_cone("ardosia", Vector3(ab.x, g + Hn * 0.8, ab.z), Wd * 0.5 + 0.5, 4.5 * k, 12)
+	for t in [-0.6, 0.0, 0.6]:
+		var dirv: Vector3 = (side * sin(t) - fwd * cos(t))
+		var wp: Vector3 = ab + dirv * (Wd * 0.5 + 0.03)
+		_lanceta(wp, g + Hn * 0.45, 0.9 * k, 3.0 * k, yaw + PI - t)
+	# torre da fachada: três andares, cornijas, rosácea, campanário, pináculos, agulha e cruz
+	var Tw := 7.5 * k
+	var Ht := 22.0 * k
+	var tp: Vector3 = P.call(0.0, L * 0.5 - Tw * 0.5 + 1.0)  # torre embutida na fachada: deixa a praça da porta livre
+	box("base", tp.x, g + 0.6, tp.z, Tw + 1.0, 1.2, Tw + 1.0, yaw)
+	box("pedra", tp.x, g + Ht * 0.5, tp.z, Tw, Ht, Tw, yaw)
+	for f in [0.36, 0.66, 1.0]:
+		box("marmore", tp.x, g + Ht * f, tp.z, Tw + 0.5, 0.45, Tw + 0.5, yaw)
+	for q in 4:  # aberturas do campanário nos quatro lados
+		var rq := yaw + q * PI * 0.5
+		var nq := Basis(Vector3.UP, rq) * Vector3(0, 0, 1)
+		var lq := Basis(Vector3.UP, rq) * Vector3(1, 0, 0)
+		for e in [-1.0, 1.0]:
+			_lanceta(tp + nq * (Tw * 0.5 + 0.04) + lq * (e * Tw * 0.18), g + Ht * 0.82, 1.0 * k, 3.4 * k, rq, "vao")
+	for c in [[-1.0, -1.0], [1.0, -1.0], [-1.0, 1.0], [1.0, 1.0]]:
+		var pq: Vector3 = tp + side * (c[0] * (Tw * 0.5 - 0.4)) + fwd * (c[1] * (Tw * 0.5 - 0.4))
+		box("pedra", pq.x, g + Ht + 0.8, pq.z, 0.8, 1.6, 0.8, yaw)
+		_cone("ardosia", Vector3(pq.x, g + Ht + 1.6, pq.z), 0.55 * k, 3.2 * k, 4, yaw + PI * 0.25)
+	_cone("ardosia", Vector3(tp.x, g + Ht + 0.2, tp.z), Tw * 0.4, 15.0 * k, 8, yaw + PI / 8.0)
+	var topo := g + Ht + 0.2 + 15.0 * k
+	box("ouro", tp.x, topo + 1.1, tp.z, 0.22, 2.2, 0.22, yaw)
+	box("ouro", tp.x, topo + 1.5, tp.z, 1.3, 0.22, 0.22, yaw)
+	var frente: Vector3 = tp + fwd * (Tw * 0.5)
+	# rosácea com aro de pedra
+	for r in [[1.95 * k, "marmore", 0.02], [1.6 * k, "janela", 0.08], [0.35 * k, "marmore", 0.12]]:
+		var rose := MeshInstance3D.new()
+		var rm := CylinderMesh.new()
+		rm.top_radius = r[0]
+		rm.bottom_radius = r[0]
+		rm.height = 0.15
+		rm.radial_segments = 24
+		rm.material = mats[r[1]]
+		rose.mesh = rm
+		rose.position = frente + fwd * r[2] + Vector3(0, g + Ht * 0.5, 0)
+		rose.basis = Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, PI * 0.5)
+		root.add_child(rose)
+	# portal com arquivoltas (molduras ogivais em degraus), porta e escadaria
+	for i in 3:
+		var e := 0.12 * (3 - i)
+		var lw := (2.6 + i * -0.0 + (2 - i) * 0.7) * k
+		_lanceta(frente + fwd * e, g + 1.2 + 2.6 * k, lw, 4.6 * k, yaw, "marmore" if i < 2 else "porta")
+	for i in 3:
+		var dg: Vector3 = frente + fwd * (0.8 + i * 0.7)
+		box("base", dg.x, g + 0.95 - i * 0.3, dg.z, 5.0 * k - i * 0.0 + 1.0, 0.3, 0.7, yaw)
 	for i in 5:
-		w.block(cx + x + fwd.x * (-L * 0.4 + i * L * 0.2), cz + z + fwd.z * (-L * 0.4 + i * L * 0.2), Wd * 0.55)
-	w.block(cx + tp.x, cz + tp.z, 3.8 * k)
-	var dd := tp + fwd * (3.6 * k + 2.0)
+		var bl: Vector3 = P.call(0.0, -L * 0.4 + i * L * 0.2)
+		w.block(cx + bl.x, cz + bl.z, (Wd + Wa * 2.0) * 0.55)
+	w.block(cx + ab.x, cz + ab.z, Wd * 0.5)
+	w.block(cx + tp.x, cz + tp.z, Tw * 0.55)
+	var dd := frente + fwd * 3.6
 	door("igreja", title, dd.x, dd.z, yaw)
 	pave_rects.append([dd.x, dd.z, 3.0 * k, 3.0, yaw])
-	label(title, tp.x, tp.z, 32.0 * k, Color(0.95, 0.92, 1.0), 56, 200.0)
+	return Vector2(dd.x, dd.z)
 
 
 # chafariz: bacia redonda de pedra com borda, coluna torneada, duas taças e jatos de água
@@ -701,56 +775,120 @@ func arena(x: float, z: float, r: float, title: String) -> void:
 	door("arena", title, x, z + r + 3.0, 0.0)
 
 
-# palácio: corpo central com cúpula, alas, torres nos cantos e escadaria
+# janela de palácio: moldura, vidro, peitoril e (no andar nobre) frontão triangular por cima
+func _janela_pal(p: Vector3, y: float, ry: float, wd := 1.5, h := 2.6, fronton := false) -> void:
+	box("marmore", p.x, y, p.z, wd + 0.5, h + 0.5, 0.16, ry)
+	box("janela", p.x, y, p.z, wd, h, 0.24, ry)
+	box("marmore", p.x, y - h * 0.5 - 0.3, p.z, wd + 0.9, 0.2, 0.4, ry)
+	if fronton:
+		roof("marmore", p.x, y + h * 0.5 + 0.75, p.z, wd + 1.1, 0.9, 0.3, ry)
+	else:
+		box("marmore", p.x, y + h * 0.5 + 0.4, p.z, wd + 0.9, 0.3, 0.3, ry)
+
+
+# balaustrada: corrimão, base e balaústres torneados ao longo de uma borda
+func _balaustrada(a: Vector3, b: Vector3, y: float, ry: float) -> void:
+	var m := (a + b) * 0.5
+	var comp := a.distance_to(b)
+	box("marmore", m.x, y + 0.1, m.z, comp, 0.2, 0.5, ry)
+	box("marmore", m.x, y + 1.0, m.z, comp + 0.2, 0.18, 0.55, ry)
+	var n := int(comp / 0.55)
+	for i in n:
+		var q := a.lerp(b, (i + 0.5) / n)
+		_coluna(q.x, y + 0.2, q.z, 0.72, 0.28)
+
+
+# palácio: embasamento rusticado, corpo central com pórtico de colunas e frontão, alas com dois andares de janelas
+# emolduradas, balaustradas, cúpula sobre tambor com lanterna, torres redondas nos cantos e escadaria
 func palace(x: float, z: float, yaw: float, title: String) -> void:
 	var g := gy(x, z) - 0.3
 	var bas := Basis(Vector3.UP, yaw)
 	var fwd := bas * Vector3(0, 0, 1)
 	var side := bas * Vector3(1, 0, 0)
+	var P := func(sx: float, fz: float) -> Vector3: return Vector3(x, 0, z) + side * sx + fwd * fz
 	box("marmore", x, g + 1.0, z, 74.0, 2.0, 34.0, yaw)
+	# corpo central (2 andares) e alas
+	box("base", x, g + 5.0, z, 30.6, 6.0, 22.6, yaw)             # térreo rusticado
 	box("cimento", x, g + 9.0, z, 30.0, 14.0, 22.0, yaw)
-	box("cimento2", x + side.x * 25.0, g + 7.0, z + side.z * 25.0, 20.0, 10.0, 18.0, yaw)
-	box("cimento2", x - side.x * 25.0, g + 7.0, z - side.z * 25.0, 20.0, 10.0, 18.0, yaw)
-	roof("telha_azul", x + side.x * 25.0, g + 14.4, z + side.z * 25.0, 21.0, 4.8, 19.0, yaw)
-	roof("telha_azul", x - side.x * 25.0, g + 14.4, z - side.z * 25.0, 21.0, 4.8, 19.0, yaw)
-	var dome := MeshInstance3D.new()
-	var dm := SphereMesh.new()
-	dm.radius = 9.0
-	dm.height = 12.0
-	dm.is_hemisphere = true
-	dm.material = mats.ouro
-	dome.mesh = dm
-	dome.position = Vector3(x, g + 16.0, z)
-	root.add_child(dome)
-	for c in [[-1.0, -1.0], [1.0, -1.0], [-1.0, 1.0], [1.0, 1.0]]:
-		var p: Vector3 = Vector3(x, 0, z) + side * (c[0] * 35.0) + fwd * (c[1] * 15.0)
-		cyl("cimento", p.x, g + 11.0, p.z, 3.4, 22.0)
-		var cone := MeshInstance3D.new()
-		var cm := CylinderMesh.new()
-		cm.top_radius = 0.0
-		cm.bottom_radius = 4.2
-		cm.height = 8.0
-		cm.radial_segments = 10
-		cm.material = mats.telha_azul
-		cone.mesh = cm
-		cone.position = Vector3(p.x, g + 26.0, p.z)
-		root.add_child(cone)
-		w.block(cx + p.x, cz + p.z, 3.6)
+	box("marmore", x, g + 8.2, z, 30.8, 0.35, 22.8, yaw)          # cinta entre andares
+	box("marmore", x, g + 16.2, z, 31.0, 0.5, 23.0, yaw)          # cornija
+	for s in [-1.0, 1.0]:
+		var c: Vector3 = P.call(s * 25.0, 0.0)
+		box("base", c.x, g + 4.5, c.z, 20.6, 5.0, 18.6, yaw)
+		box("cimento2", c.x, g + 7.0, c.z, 20.0, 10.0, 18.0, yaw)
+		box("marmore", c.x, g + 7.1, c.z, 20.8, 0.3, 18.8, yaw)
+		box("marmore", c.x, g + 12.2, c.z, 20.9, 0.45, 18.9, yaw)
+		roof("telha_azul", c.x, g + 14.8, c.z, 21.0, 4.8, 19.0, yaw)
+		for i in 4:  # janelas das alas: térreo e andar nobre com frontão
+			_janela_pal(P.call(s * (17.5 + i * 5.0), 9.35), g + 4.6, yaw, 1.4, 2.0)
+			_janela_pal(P.call(s * (17.5 + i * 5.0), 9.05), g + 9.8, yaw, 1.4, 2.4, true)
+	for i in 6:  # janelas do corpo central atrás das colunas
+		if absf(-12.5 + i * 5.0) > 3.0:
+			_janela_pal(P.call(-12.5 + i * 5.0, 11.35), g + 5.0, yaw, 1.5, 2.4)
+		_janela_pal(P.call(-12.5 + i * 5.0, 11.05), g + 11.6, yaw, 1.6, 3.0, true)
+	_balaustrada(P.call(-15.0, 11.2), P.call(15.0, 11.2), g + 16.45, yaw)
+	# pórtico: colunas torneadas, arquitrave e frontão com tímpano
 	for k in 8:
 		var off := (k + 0.5) / 8.0 - 0.5
-		var p := Vector3(x, 0, z) + side * (off * 28.0) + fwd * 12.5
-		cyl("marmore", p.x, g + 8.0, p.z, 0.6, 14.0)
-	for k in 5:  # escadaria
-		var p := Vector3(x, 0, z) + fwd * (17.5 + k * 1.2)
+		var p: Vector3 = P.call(off * 28.0, 13.0)
+		box("marmore", p.x, g + 2.3, p.z, 1.6, 0.6, 1.6, yaw)
+		_coluna(p.x, g + 2.6, p.z, 12.2)
+	var arq: Vector3 = P.call(0.0, 12.6)
+	box("marmore", arq.x, g + 15.4, arq.z, 30.0, 1.3, 3.2, yaw)
+	roof("marmore", arq.x, g + 18.2, arq.z, 31.0, 4.4, 3.4, yaw)
+	roof("cimento2", arq.x + fwd.x * 0.05, g + 18.0, arq.z + fwd.z * 0.05, 26.0, 3.4, 3.4, yaw)
+	box("ouro", arq.x + fwd.x * 1.75, g + 17.6, arq.z + fwd.z * 1.75, 1.3, 1.0, 0.1, yaw)   # brasão no tímpano
+	# cúpula sobre tambor com janelas, nervuras douradas e lanterna
+	cyl("cimento", x, g + 18.4, z, 8.2, 4.4)
+	cyl("marmore", x, g + 20.75, z, 8.6, 0.5)
+	for i in 12:
+		var a := TAU * i / 12.0
+		var dv := bas * Vector3(sin(a), 0, cos(a))
+		var wp: Vector3 = Vector3(x, 0, z) + dv * 8.22
+		box("janela", wp.x, g + 18.4, wp.z, 1.2, 2.4, 0.2, yaw + a)
+		var pl: Vector3 = Vector3(x, 0, z) + dv.rotated(Vector3.UP, PI / 12.0) * 8.3
+		box("marmore", pl.x, g + 18.4, pl.z, 0.5, 4.4, 0.3, yaw + a + PI / 12.0)
+	var dome := MeshInstance3D.new()
+	var dm := SphereMesh.new()
+	dm.radius = 8.0
+	dm.height = 9.0
+	dm.is_hemisphere = true
+	dm.radial_segments = 32
+	dm.rings = 12
+	dm.material = mats.telha_azul
+	dome.mesh = dm
+	dome.position = Vector3(x, g + 21.0, z)
+	root.add_child(dome)
+	cyl("marmore", x, g + 31.0, z, 1.3, 2.6)
+	cyl("ouro", x, g + 32.4, z, 1.5, 0.3)
+	_cone("ouro", Vector3(x, g + 32.5, z), 1.1, 3.6, 8)
+	# torres redondas nos cantos: cinta, cornija, janelas e telhado cônico
+	for c in [[-1.0, -1.0], [1.0, -1.0], [-1.0, 1.0], [1.0, 1.0]]:
+		var p: Vector3 = P.call(c[0] * 35.0, c[1] * 15.0)
+		cyl("base", p.x, g + 4.0, p.z, 3.6, 6.0)
+		cyl("cimento", p.x, g + 12.0, p.z, 3.4, 20.0)
+		cyl("marmore", p.x, g + 7.2, p.z, 3.6, 0.35)
+		cyl("marmore", p.x, g + 21.9, p.z, 3.9, 0.6)
+		_cone("telha_azul", Vector3(p.x, g + 22.2, p.z), 4.3, 8.5, 16)
+		cyl("ouro", p.x, g + 31.4, p.z, 0.08, 2.0)
+		box("pano_azul", p.x + side.x * 0.6, g + 31.8, p.z + side.z * 0.6, 1.1, 0.7, 0.05, yaw)
+		var fora: Vector3 = (side * c[0] + fwd * c[1]).normalized()
+		for hh in [g + 11.0, g + 17.0]:
+			var wp: Vector3 = p + fora * 3.42
+			box("marmore", wp.x, hh, wp.z, 1.3, 2.4, 0.16, atan2(fora.x, fora.z))
+			box("janela", wp.x, hh, wp.z, 0.9, 2.0, 0.24, atan2(fora.x, fora.z))
+		w.block(cx + p.x, cz + p.z, 3.6)
+	for k in 5:  # escadaria com balaustradas
+		var p: Vector3 = P.call(0.0, 17.5 + k * 1.2)
 		box("marmore", p.x, g + 1.6 - k * 0.35, p.z, 26.0 - k * 1.0, 0.5, 1.4, yaw)
-	box("porta", x + fwd.x * 11.1, g + 5.0, z + fwd.z * 11.1, 5.0, 8.0, 0.2, yaw)
+	box("porta", x + fwd.x * 11.1, g + 5.5, z + fwd.z * 11.1, 5.0, 7.0, 0.2, yaw)
+	roof("marmore", x + fwd.x * 11.15, g + 9.6, z + fwd.z * 11.15, 6.4, 1.4, 0.3, yaw)
 	for i in 7:
 		var off := (i / 6.0) - 0.5
 		var p := Vector3(x, 0, z) + side * (off * 66.0)
 		w.block(cx + p.x, cz + p.z, 10.0)
 		w.block(cx + p.x + fwd.x * 8.0, cz + p.z + fwd.z * 8.0, 8.0)
 		w.block(cx + p.x - fwd.x * 8.0, cz + p.z - fwd.z * 8.0, 8.0)
-	label(title, x, z, 34.0, Color(1.0, 0.85, 0.45), 96, 500.0)
 	door("palacio", title, x + fwd.x * 24.0, z + fwd.z * 24.0, yaw)
 
 
@@ -969,8 +1107,7 @@ func build_big(t: Dictionary, size: String, theme: String) -> Dictionary:
 							w.block(cx + tx, cz + tz, 0.5)
 					svc.arena = Vector2(mx, mz + minf(hx, hz) + 2.0)
 				"catedral", "igreja":
-					church(mx, mz, 0.0, role == "catedral" or theme == "noctis", "Catedral da Aurora" if role == "catedral" else ("Catedral Sombria" if theme == "noctis" else "Igreja"))
-					svc.igreja = Vector2(mx, mz + 30.0 if role == "catedral" or theme == "noctis" else mz + 21.0)
+					svc.igreja = church(mx, mz, 0.0, role == "catedral" or theme == "noctis", "Catedral da Aurora" if role == "catedral" else ("Catedral Sombria" if theme == "noctis" else "Igreja"), hz * 2.0)
 				"mercado":
 					hall(mx, mz - hz * 0.45, 0.0, hx * 1.6, hz * 0.7, 7.0, "cimento3", "telha", "Grande Mercado", "loja")
 					var stands: Array = []
