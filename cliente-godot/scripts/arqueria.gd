@@ -116,17 +116,18 @@ func montar(personagem: Node3D, arco: Node3D, s: float) -> void:
 	flecha.add_child(pena)
 	add_child(flecha)
 	flecha.visible = false
-	_pose_baixo(1.0)
 
 
 func ligar(on: bool) -> void:
 	ativo = on
 	ik_l.active = on
-	ik_r.active = false
-	flecha.visible = false
+	ik_r.active = on
+	flecha.visible = on
 	t = -1.0
 	if c.postura != null:
 		c.postura.bracos_livres = not on
+	if not on:
+		_girar_corpo(0.0)
 
 
 # devolve a duração do tiro; o personagem já deve estar virado para o alvo
@@ -141,56 +142,141 @@ func soltou() -> bool:
 	return t >= SOLTAR
 
 
-# pose parada: arco em pé ao lado do quadril esquerdo, ponta de baixo à frente
-func _pose_baixo(_w: float) -> void:
-	mira.position = Vector3(0.24, 0.98, 0.16) * k
-	mira.basis = Basis(Vector3.RIGHT, 0.35) * Basis(Vector3.UP, 0.5)
+# ---------- pose de arqueiro, a mesma para todas as raças (21/11) ----------
+# Tudo é medido no corpo de quem atira, a cada quadro: ombros, cabeça e comprimento do braço. Por isso o braço
+# do arco fica sempre esticado na altura do ombro, a mão da corda sempre ancora no queixo e o corpo sempre gira de
+# lado para o alvo, seja anão, gigante ou elfo. Em combate parado: arco baixo à frente, flecha encaixada (prontidão).
+const GIRO_TIRO := 0.75     # corpo de lado: ombro esquerdo para o alvo
+const GIRO_PRONTO := 0.45
+var giro_base := 0.0
+var giro_ok := false
+var giro_atual := 0.0
 
 
-func _pose_mira(w: float) -> void:
-	# braço esquerdo esticado à frente, na altura do ombro; arco quase em pé (leve inclinação para fora)
-	var baixo := Transform3D(Basis(Vector3.RIGHT, 0.35) * Basis(Vector3.UP, 0.5), Vector3(0.24, 0.98, 0.16) * k)
-	var alto := Transform3D(Basis(Vector3.BACK, -0.12), Vector3(0.1, 1.4, 0.56) * k)
-	var tr := baixo.interpolate_with(alto, clampf(w, 0.0, 1.0))
-	mira.transform = tr
+func _osso(nome: String) -> Vector3:
+	var sk: Skeleton3D = c.skel
+	var b := sk.find_bone(nome)
+	if b < 0:
+		return Vector3.ZERO
+	return c.global_transform.affine_inverse() * (sk.global_transform * sk.get_bone_global_pose(b).origin)
+
+
+func _braco() -> float:
+	var sk: Skeleton3D = c.skel
+	var a := sk.get_bone_global_rest(sk.find_bone("upperarm_l")).origin
+	var m := sk.get_bone_global_rest(sk.find_bone("lowerarm_l")).origin
+	var h := sk.get_bone_global_rest(sk.find_bone("hand_l")).origin
+	var esc := (c.global_transform.affine_inverse() * sk.global_transform).basis.get_scale().x
+	return (a.distance_to(m) + m.distance_to(h)) * esc
+
+
+func _girar_corpo(w: float) -> void:
+	var corpo: Node3D = c.body_node
+	if corpo == null:
+		return
+	if not giro_ok:
+		giro_base = corpo.rotation.y
+		giro_ok = true
+	giro_atual = w
+	corpo.rotation.y = giro_base - w
+
+
+# pontos da pose (espaço do personagem): empunhadura do arco e âncora da mão da corda
+func _pontos() -> Dictionary:
+	var L := _braco()
+	var hs := L / 0.56          # escala do corpo pelo braço (braço humano ~0,56 m)
+	var sh_l := _osso("upperarm_l")
+	var sh_r := _osso("upperarm_r")
+	var cab := _osso("Head")
+	var ancora := Vector3(cab.x - 0.03 * hs, sh_l.y + 0.07 * hs, cab.z + 0.07 * hs)
+	var gx := ancora.x + 0.025 * hs
+	var gy := ancora.y - 0.015 * hs
+	var dx := gx - sh_l.x
+	var dy := gy - sh_l.y
+	var alcance := 0.94 * L
+	var gz := sh_l.z + sqrt(maxf(alcance * alcance - dx * dx - dy * dy, 0.01))
+	var pronto := sh_l + Vector3(0.08, -0.72, 0.69).normalized() * L * 0.92
+	return {"L": L, "hs": hs, "sh_l": sh_l, "sh_r": sh_r, "ancora": ancora, "mira": Vector3(gx, gy, gz), "pronto": pronto}
+
+
+func _pose(w: float, pt: Dictionary) -> void:
+	# w = 0: prontidão (arco baixo e inclinado, flecha apontada para o chão à frente); w = 1: mirando
+	var pronto := Transform3D(Basis(Vector3.RIGHT, 0.55) * Basis(Vector3.BACK, -0.5), pt.pronto)
+	var mirando := Transform3D(Basis(Vector3.BACK, -0.1), pt.mira)
+	mira.transform = pronto.interpolate_with(mirando, clampf(w, 0.0, 1.0))
+	_polos(pt)
+
+
+var polo_l: Node3D
+var polo_r: Node3D
+
+func _polos(pt: Dictionary) -> void:
+	# cotovelo do arco para fora (braço reto); cotovelo da corda alto e atrás, na linha da flecha
+	if polo_l == null:
+		polo_l = Node3D.new()
+		add_child(polo_l)
+		polo_r = Node3D.new()
+		add_child(polo_r)
+		(ik_l as TwoBoneIK3D).set_pole_node(0, (ik_l as TwoBoneIK3D).get_path_to(polo_l))
+		(ik_r as TwoBoneIK3D).set_pole_node(0, (ik_r as TwoBoneIK3D).get_path_to(polo_r))
+	var hs: float = pt.hs
+	polo_l.position = (pt.sh_l as Vector3) + Vector3(0.45, -0.35, 0.1) * hs
+	polo_r.position = (pt.sh_r as Vector3) + Vector3(-0.25, 0.12, -0.6) * hs
+
+
+func _flecha_na_corda(ponto_corda: Vector3) -> void:
+	# flecha da corda passando pelo arco, apontada para onde o arco aponta
+	var frente := (mira.transform.basis * Vector3(0, 0, 1)).normalized()
+	flecha.visible = true
+	flecha.position = ponto_corda + frente * (0.39 * k)
+	flecha.basis = _base_y(frente)
 
 
 func _process(dt: float) -> void:
-	if not ativo or mira == null:
+	if not ativo or mira == null or c.skel == null:
 		return
+	var pt := _pontos()
+	var ancora: Vector3 = pt.ancora
 	if t < 0.0:
-		_pose_baixo(1.0)
+		# prontidão: corpo meio de lado, arco baixo, mão direita na corda com a flecha encaixada
+		_girar_corpo(lerpf(giro_atual, GIRO_PRONTO, minf(dt * 6.0, 1.0)))
+		_pose(0.0, pt)
+		var nock: Vector3 = mira.transform * corda
+		mao_corda.position = nock
+		ik_r.active = true
+		_corda(corda)
+		_flecha_na_corda(nock)
 		return
 	t += dt
-	var ancora := Vector3(-0.07, 1.5, 0.06) * k   # canto da boca, lado direito
+	_girar_corpo(lerpf(GIRO_PRONTO, GIRO_TIRO, clampf(t / ERGUER, 0.0, 1.0)) if t < BAIXAR else lerpf(GIRO_TIRO, GIRO_PRONTO, clampf((t - BAIXAR) / (DURACAO - BAIXAR), 0.0, 1.0)))
 	if t < ERGUER:
-		_pose_mira(t / ERGUER)
-		ik_r.active = false
-		flecha.visible = false
+		var w := clampf(t / ERGUER, 0.0, 1.0)
+		_pose(w * w * (3.0 - 2.0 * w), pt)
+		var nock: Vector3 = mira.transform * corda
+		mao_corda.position = nock
+		_corda(corda)
+		_flecha_na_corda(nock)
 	elif t < SOLTAR:
-		_pose_mira(1.0)
-		ik_r.active = true
+		_pose(1.0, pt)
 		var nock: Vector3 = mira.transform * corda
 		var f := clampf((t - ERGUER) / (PUXAR - ERGUER), 0.0, 1.0)
 		f = f * f * (3.0 - 2.0 * f)
 		mao_corda.position = nock.lerp(ancora, f)
-		_corda(mira.transform.affine_inverse() * (mao_corda.position + (mira.transform.basis * Vector3(0, 0, 0.0))))
-		# flecha da mão direita até passar o arco, apontada para frente
-		var frente := (mira.global_position - mao_corda.global_position).normalized()
-		flecha.visible = true
-		flecha.global_position = mao_corda.global_position + frente * (0.39 * k)
-		flecha.global_basis = _base_y(frente)
+		_corda(mira.transform.affine_inverse() * mao_corda.position)
+		_flecha_na_corda(mao_corda.position)
 	elif t < BAIXAR:
-		_pose_mira(1.0)
+		_pose(1.0, pt)
 		flecha.visible = false
 		_corda(corda)
-		mao_corda.position = ancora + Vector3(-0.04, 0.02, -0.08) * k   # recuo da mão ao soltar
+		mao_corda.position = ancora + Vector3(-0.03, 0.02, -0.07) * float(pt.hs)   # mão recua ao soltar
 	elif t < DURACAO:
-		_pose_mira(1.0 - (t - BAIXAR) / (DURACAO - BAIXAR))
-		ik_r.active = false
+		var w := 1.0 - (t - BAIXAR) / (DURACAO - BAIXAR)
+		_pose(w, pt)
+		var nock: Vector3 = mira.transform * corda
+		mao_corda.position = mao_corda.position.lerp(nock, 0.25)
+		_corda(corda)
 	else:
 		t = -1.0
-		_pose_baixo(1.0)
 
 
 # corda das duas pontas até o ponto de puxada (no espaço da mira)
