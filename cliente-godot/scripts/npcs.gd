@@ -6,6 +6,7 @@ const Perfil := preload("res://scripts/perfil.gd")
 # Nas estradas que saem dos portões passam viajantes. Todos falam: de tempos em tempos e ao clique.
 
 const Character = preload("res://scripts/character.gd")
+const Props = preload("res://scripts/props.gd")
 
 # função, posição (x, z a partir do centro), giro, animação, janela que abre ao clicar, roupa, arma
 const ROLES := [
@@ -463,8 +464,21 @@ func _make(q: Dictionary) -> void:
 		"role", "story":
 			var d: Array = q.def
 			var role: bool = q.kind == "role"
-			var info := _person(q.race, {"fixed_race": true, "adult": true, "armor": d[5] if role else "robe_ng", "weapon": d[6] if role else ""})
+			var raca_npc: String = q.race
+			var oficio := ""
+			if role:
+				match str(d[0]):
+					"Ferreiro":  # ofício dos anões (orcs forjam a própria arma na Cidadela Rubra)
+						raca_npc = q.race if q.race in ["anao", "orc"] else "anao"
+						oficio = "ferreiro"
+					"Estalajadeiro":
+						oficio = "estalajadeiro"
+					"Mercador":
+						oficio = "mercador"
+			var info := _person(raca_npc, {"fixed_race": true, "adult": true, "armor": ("" if oficio != "" else d[5]) if role else "robe_ng", "weapon": d[6] if role else "", "female": false if oficio == "ferreiro" else rng.randf() < 0.5})
 			var c: Node3D = info.node
+			if oficio != "":
+				c.oficio(oficio)
 			var pos: Vector3
 			if role:
 				var lp: Vector3 = d[1]
@@ -477,6 +491,19 @@ func _make(q: Dictionary) -> void:
 				pos = _w(t, lp.x, lp.z)
 				c.rotation.y = d[2]
 				c.play(d[3])
+				if oficio == "ferreiro":  # bigorna à frente, martelo na mão e faíscas a cada batida
+					var bg: Node3D = Props.bigorna()
+					var fa := Props.faiscas()
+					fa.position = Vector3(0, 0.8, 0)
+					bg.add_child(fa)
+					c.add_child(bg)  # sai junto com o ferreiro quando a cidade descarrega
+					bg.position = Vector3(0, 0, 0.8) / c.scale.x
+					bg.scale = Vector3.ONE / c.scale.x
+					bg.rotation.y = PI * 0.5
+					c.set_battle(true)
+					c.play("TreeChopping")
+					d = d.duplicate()
+					d[3] = "TreeChopping"
 			else:
 				pos = spots[rng.randi() % 10]
 				c.play("Idle")

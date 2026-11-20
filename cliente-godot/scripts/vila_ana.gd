@@ -19,8 +19,8 @@ static var _mats := {}
 static func _m(nome: String) -> Material:
 	if _mats.has(nome):
 		return _mats[nome]
-	var arq := {"pedra": ["pedra", {}], "clara": ["pedra", {"bloco": Vector2(1.1, 0.5)}], "basalto": ["pedra", {"bloco": Vector2(1.2, 0.55)}],
-		"madeira": ["madeira", {}], "telhado": ["telha", {"bloco": Vector2(0.42, 0.26)}], "metal": ["metal", {}],
+	var arq := {"pedra": ["pedra", {"metros": 3.0}], "clara": ["pedra", {"bloco": Vector2(1.1, 0.5), "metros": 3.0}], "basalto": ["pedra", {"bloco": Vector2(1.2, 0.55), "textura": "unevenbrick", "metros": 3.5}],
+		"madeira": ["madeira", {}], "telhado": ["telha", {"bloco": Vector2(0.42, 0.26), "tingir": 1.0}], "metal": ["metal", {}],
 		"bronze": ["metal", {"rugosidade": 0.35, "metalico": 0.75}], "cobre": ["metal", {"rugosidade": 0.35, "metalico": 0.75}]}
 	if arq.has(nome):
 		var c := Color(str(COR.get(nome, "#777777")))

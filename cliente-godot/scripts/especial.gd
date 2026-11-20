@@ -185,13 +185,13 @@ static func arvore(w: Node3D, t: Dictionary, root: Node3D) -> Dictionary:
 		for k in segs:
 			var a := TAU * k / segs
 			var rm := (r1 + r2) * 0.5
-			deck.append(Transform3D(Basis(Vector3.UP, a).scaled(Vector3(TAU * r2 / segs + 0.3, 0.45, r2 - r1)), Vector3(sin(a) * rm, y - 0.22, cos(a) * rm)))
+			deck.append(Transform3D(Basis(Vector3.UP, a) * Basis.from_scale(Vector3(TAU * r2 / segs + 0.3, 0.45, r2 - r1)), Vector3(sin(a) * rm, y - 0.22, cos(a) * rm)))
 			if k % 2 == 0 and fposmod(a + 0.3, TAU) > 0.6:
 				rail.append(Transform3D(Basis(Vector3.UP, a).scaled(Vector3(0.18, 1.1, 0.18)), Vector3(sin(a) * (r2 - 0.2), y + 0.55, cos(a) * (r2 - 0.2))))
 			# vigas de apoio
 			if k % 4 == 0:
 				var sp := Vector3(sin(a) * (r2 - 1.0), y - 3.0, cos(a) * (r2 - 1.0))
-				rail.append(Transform3D(Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, 0.75).scaled(Vector3(0.35, 7.5, 0.35)), (sp + Vector3(sin(a) * r1, y - 5.0, cos(a) * r1)) * 0.5 + Vector3(0, 1.5, 0)))
+				rail.append(Transform3D(Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, 0.75) * Basis.from_scale(Vector3(0.35, 7.5, 0.35)), (sp + Vector3(sin(a) * r1, y - 5.0, cos(a) * r1)) * 0.5 + Vector3(0, 1.5, 0)))
 		w._boxes(root, wood, deck, 700.0)
 		w._boxes(root, wood, rail, 300.0)
 		w.floors.append({"kind": "ring", "c": Vector2(cx, cz), "r1": r1 - 0.5, "r2": r2, "y": y})
@@ -219,7 +219,7 @@ static func arvore(w: Node3D, t: Dictionary, root: Node3D) -> Dictionary:
 		var seg_len := rm * (a1 - a0)
 		var tilt := atan2(pitch * (a1 - a0), seg_len)
 		var bas := Basis(Vector3.UP, am + PI * 0.5) * Basis(Vector3.RIGHT, -tilt)
-		ramp.append(Transform3D(bas.scaled(Vector3(hr2 - hr1, 0.35, seg_len + 0.15)), Vector3(sin(am) * rm, y - 0.18, cos(am) * rm)))
+		ramp.append(Transform3D(bas * Basis.from_scale(Vector3(hr2 - hr1, 0.35, seg_len + 0.15)), Vector3(sin(am) * rm, y - 0.18, cos(am) * rm)))
 		if k % 3 == 0:
 			posts.append(Transform3D(Basis.from_scale(Vector3(0.16, 1.1, 0.16)), Vector3(sin(am) * (hr2 - 0.15), y + 0.55, cos(am) * (hr2 - 0.15))))
 		if k % 5 == 0 and y > g + 3.0:

@@ -45,6 +45,7 @@ var w: Node3D  # mundo
 var tema := ""
 var orc_casas: Array = []  # Cidadela Rubra (MESA-017.1): casas orc e bairro goblin
 var gob_casas: Array = []
+var kit_casas := {}  # "larg:andares" -> [Transform3D] casas montadas com o kit modular CC0 (casa_kit.gd)
 var mats := {}
 var lists := {}  # material -> [Transform3D] (caixas)
 var prisms := {}  # material -> [Transform3D] (telhados)
@@ -70,6 +71,9 @@ func _init(world: Node3D) -> void:
 	cob2.set_shader_parameter("base", Color(0.66, 0.62, 0.56))
 	cob2.set_shader_parameter("cell", 0.62)
 	mats.praca = cob2
+	# calçamento com textura de pedra irregular (kit CC0); o desenho procedural antigo fica como reserva
+	mats.calcada = Arq.material("pedra", Color(0.46, 0.43, 0.39), {"textura": "unevenbrick", "metros": 2.0, "tingir": 0.35, "desgaste": 0.25})
+	mats.praca = Arq.material("pedra", Color(0.52, 0.49, 0.44), {"textura": "unevenbrick", "metros": 2.4, "tingir": 0.35, "desgaste": 0.25})
 	mats.pedra = Arq.material("pedra", Color(0.66, 0.64, 0.6))
 	mats.base = Arq.material("pedra", Color(0.5, 0.48, 0.46), {"bloco": Vector2(1.1, 0.5)})
 	mats.marmore = _plain(Color(0.9, 0.89, 0.85), 0.5)
@@ -127,13 +131,13 @@ func gy(x: float, z: float) -> float:
 func box(mat: String, x: float, y: float, z: float, sx: float, sy: float, sz: float, yaw := 0.0) -> void:
 	if not lists.has(mat):
 		lists[mat] = []
-	lists[mat].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sx, sy, sz)), Vector3(x, y, z)))
+	lists[mat].append(Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(sx, sy, sz)), Vector3(x, y, z)))
 
 
 func roof(mat: String, x: float, y: float, z: float, sx: float, sy: float, sz: float, yaw := 0.0) -> void:
 	if not prisms.has(mat):
 		prisms[mat] = []
-	prisms[mat].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sx, sy, sz)), Vector3(x, y, z)))
+	prisms[mat].append(Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(sx, sy, sz)), Vector3(x, y, z)))
 
 
 func cyl(mat: String, x: float, y: float, z: float, r: float, h: float) -> void:
@@ -175,6 +179,12 @@ func finish() -> void:
 		VO.construir(w, root, "goblin", gob_casas, 0.85)
 		orc_casas = []
 		gob_casas = []
+	if not kit_casas.is_empty():
+		var CK = load("res://scripts/casa_kit.gd")
+		for chave in kit_casas:
+			var pr: PackedStringArray = str(chave).split(":")
+			CK.construir(root, kit_casas[chave], int(pr[0]), 4, int(pr[1]), 320.0)
+		kit_casas = {}
 	for k in lists:
 		w._boxes(root, mats[k], lists[k], 900.0)
 	for k in prisms:
@@ -230,6 +240,7 @@ func _pave() -> void:
 						var pz: float = float(r[1]) + lp.z
 						q.append(Vector3(px, gy(px, pz) + 0.07, pz))
 					_quad(st, q)
+					_marca_chao((q[0] + q[2]) * 0.5)
 		for d in pave_discs:
 			if (d.size() > 3 and d[3] != which) or (d.size() <= 3 and which != "praca"):
 				continue
@@ -247,6 +258,7 @@ func _pave() -> void:
 						var pz: float = float(d[1]) + cos(a) * rr
 						q.append(Vector3(px, gy(px, pz) + 0.09, pz))
 					_quad(st, q)
+					_marca_chao((q[0] + q[2]) * 0.5)
 		if not any:
 			continue
 		var mi := MeshInstance3D.new()
@@ -255,6 +267,13 @@ func _pave() -> void:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.visibility_range_end = 700.0
 		root.add_child(mi)
+
+
+# chão calçado não recebe capim (grade de 2 m no mundo)
+func _marca_chao(p: Vector3) -> void:
+	for dx in [-1.0, 0.0, 1.0]:
+		for dz in [-1.0, 0.0, 1.0]:
+			w.calcado[Vector2i(floori((cx + p.x + dx) / 2.0), floori((cz + p.z + dz) / 2.0))] = true
 
 
 func _quad(st: SurfaceTool, q: Array) -> void:
@@ -270,6 +289,18 @@ func townhouse(x: float, z: float, yaw: float, wid: float, dep: float, floors: i
 	var g := gy(x, z) - 0.3
 	var bas := Basis(Vector3.UP, yaw)
 	var fwd := bas * Vector3(0, 0, 1)  # frente (rua)
+	if tema not in ["rubra", "noctis"]:
+		# casa de verdade (paredes de pedra e enxaimel, janelas com venezianas, telhado de telha), no lugar das caixas
+		var larg := 4 if wid >= 8.4 else 3
+		var chave := "%d:%d" % [larg, 2 if floors >= 2 else 1]
+		if not kit_casas.has(chave):
+			kit_casas[chave] = []
+		var lo := minf(minf(gy(x - wid * 0.5, z), gy(x + wid * 0.5, z)), minf(gy(x, z - dep * 0.5), gy(x, z + dep * 0.5)))
+		var hi := maxf(maxf(gy(x - wid * 0.5, z), gy(x + wid * 0.5, z)), maxf(gy(x, z - dep * 0.5), gy(x, z + dep * 0.5)))
+		kit_casas[chave].append(Transform3D(bas, Vector3(x, hi + 0.05, z)))
+		box("base", x, (lo - 0.6 + hi + 0.05) * 0.5, z, larg * 2.0 + 0.5, hi + 0.05 - lo + 0.6, 8.5, yaw)  # embasamento no declive
+		w.block(cx + x, cz + z, minf(larg * 2.0, 8.0) * 0.55)
+		return
 	var side := bas * Vector3(1, 0, 0)
 	var h0 := 3.4
 	var hf := 2.9

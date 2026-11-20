@@ -1340,11 +1340,12 @@ func _armadura_dragonita(armor: String) -> void:
 
 
 # casca de armadura moldada no corpo: triângulos do tronco entre duas alturas, empurrados pela normal
-func _casca_ajustada(mat: Material, folga: float, y0: float, y1: float, z_costas: float, meia_larg: float, placas: bool) -> void:
+func _casca_ajustada(mat: Material, folga: float, y0: float, y1: float, z_costas: float, meia_larg: float, placas: bool, fonte := "", nome := "PeitoralAjustado") -> void:
 	var corpo: MeshInstance3D = null
 	for m in skel.find_children("*", "MeshInstance3D", false, false):
-		corpo = m
-		break
+		if fonte == "" or m.name == fonte:
+			corpo = m
+			break
 	if corpo == null:
 		return
 	var a := corpo.mesh.surface_get_arrays(0)
@@ -1374,7 +1375,7 @@ func _casca_ajustada(mat: Material, folga: float, y0: float, y1: float, z_costas
 	var am := ArrayMesh.new()
 	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a, [], {}, corpo.mesh.surface_get_format(0) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS)
 	var mi := MeshInstance3D.new()
-	mi.name = "PeitoralAjustado"
+	mi.name = nome
 	mi.mesh = am
 	var m2: StandardMaterial3D = (mat as StandardMaterial3D).duplicate()
 	m2.vertex_color_use_as_albedo = true
@@ -1892,6 +1893,100 @@ func _process(dt: float) -> void:
 
 
 # roupa de frio: capa de pele nas costas, gola felpuda e capuz (lugares gelados)
+# roupa de ofício por cima da roupa comum (19/11, pedido de Robson: NPCs com características da função).
+# avental: peito tirado do próprio corpo (veste e acompanha o movimento) + saia presa à pélvis até o joelho.
+const OFICIOS := {
+	"ferreiro": {"avental": "#3E2B1F", "rug": 0.75, "luvas": "#2A1F18", "faixa": "#6B4A2E"},
+	"aprendiz": {"avental": "#5A4231", "rug": 0.85, "luvas": "", "faixa": ""},
+	"estalajadeiro": {"avental": "#A8885E", "rug": 1.0, "luvas": "", "faixa": "#7A2E22"},
+	"mercador": {"avental": "#4C5B3A", "rug": 0.95, "luvas": "", "faixa": "#B08A3E"},
+	"cozinheiro": {"avental": "#E4DED0", "rug": 1.0, "luvas": "", "faixa": ""},
+}
+
+
+func oficio(tipo: String, sem_tunica := false) -> void:
+	if skel == null or not OFICIOS.has(tipo) or skel.find_bone("spine_01") < 0 or skel.find_bone("calf_l") < 0:
+		return
+	var cfg: Dictionary = OFICIOS[tipo]
+	var R := func(b: String) -> Vector3: return skel.get_bone_global_rest(skel.find_bone(b)).origin
+	var pel: Vector3 = R.call("pelvis")
+	var sp2: Vector3 = R.call("spine_02")
+	var sp3: Vector3 = R.call("spine_03")
+	var joelho: Vector3 = R.call("calf_l")
+	var larg: float = (R.call("upperarm_l") - R.call("upperarm_r")).length() * 0.42
+	var couro := _mat_simples(Color(str(cfg.avental)), 0.0, float(cfg.rug))
+	# peito do avental tirado da própria túnica (frente, da cintura ao peito): veste certinho e acompanha cada movimento
+	var tem_tunica := skel.find_child("tunica", false, false) != null
+	if tem_tunica:
+		_casca_ajustada(couro, 0.014, pel.y - 0.1, sp3.y + 0.16, sp2.z - 0.03, larg * 1.0, false, "tunica", "AventalPeito")
+	# sem túnica (outra roupa): placa presa ao peito com alças
+	var pa := BoneAttachment3D.new()
+	pa.visible = not tem_tunica
+	pa.bone_name = "spine_03"
+	skel.add_child(pa)
+	var inv3 := skel.get_bone_global_rest(skel.find_bone("spine_03")).affine_inverse()
+	var alt_peito := sp3.y + 0.1 - (pel.y + 0.06)
+	var pb := BoxMesh.new()
+	pb.size = Vector3(larg * 1.05, alt_peito, 0.014)
+	pb.material = couro
+	var peito := MeshInstance3D.new()
+	peito.name = "AventalPeito"
+	peito.mesh = pb
+	pa.add_child(peito)
+	peito.transform = inv3 * Transform3D(Basis(Vector3.RIGHT, -0.12), Vector3(0, pel.y + 0.06 + alt_peito * 0.5, sp2.z + larg * 1.55))
+	var al := BoxMesh.new()
+	al.size = Vector3(0.025, 0.2, 0.012)
+	al.material = couro
+	for lado in [-1.0, 1.0]:
+		var alca := MeshInstance3D.new()
+		alca.mesh = al
+		pa.add_child(alca)
+		alca.transform = inv3 * Transform3D(Basis(Vector3.RIGHT, -0.7) * Basis(Vector3.FORWARD, lado * 0.25), Vector3(lado * larg * 0.42, sp3.y + 0.17, sp2.z + larg * 1.1))
+	# saia do avental: painel preso à pélvis, da cintura até abaixo do joelho, levemente curvado
+	var att := BoneAttachment3D.new()
+	att.bone_name = "pelvis"
+	skel.add_child(att)
+	var alt := pel.y - joelho.y + 0.2
+	var bm := BoxMesh.new()
+	bm.size = Vector3(larg * 1.45, alt, 0.014)
+	bm.material = couro
+	var saia := MeshInstance3D.new()
+	saia.name = "AventalSaia"
+	saia.mesh = bm
+	att.add_child(saia)
+	var inv := skel.get_bone_global_rest(skel.find_bone("pelvis")).affine_inverse()
+	var centro := Vector3(0, pel.y - alt * 0.5 + 0.1, pel.z + larg * 1.2)
+	saia.transform = inv * Transform3D(Basis(Vector3.RIGHT, -0.06), centro)
+	if str(cfg.faixa) != "":  # cinta na cintura
+		var cm := CylinderMesh.new()
+		cm.top_radius = larg * 0.78
+		cm.bottom_radius = larg * 0.8
+		cm.height = 0.05
+		cm.radial_segments = 14
+		cm.material = _mat_simples(Color(str(cfg.faixa)), 0.0, 0.8)
+		var cinta := MeshInstance3D.new()
+		cinta.mesh = cm
+		att.add_child(cinta)
+		cinta.transform = inv * Transform3D(Basis.from_scale(Vector3(1.0, 1.0, 0.78)), Vector3(0, pel.y + 0.04, pel.z + 0.01))
+	if str(cfg.luvas) != "":  # luvas grossas de couro (mãos e punhos)
+		for lado in ["l", "r"]:
+			var b: String = "hand_" + lado
+			if skel.find_bone(b) < 0:
+				continue
+			var la := BoneAttachment3D.new()
+			la.bone_name = b
+			skel.add_child(la)
+			var gm := CapsuleMesh.new()
+			gm.radius = 0.04
+			gm.height = 0.15
+			gm.material = _mat_simples(Color(str(cfg.luvas)), 0.0, 0.9)
+			var luva := MeshInstance3D.new()
+			luva.mesh = gm
+			la.add_child(luva)
+			luva.rotation = Vector3(0, 0, PI * 0.5 if lado == "l" else -PI * 0.5)
+			luva.position = Vector3(0.02 if lado == "l" else -0.02, 0, 0)
+
+
 func winter(seed: int) -> void:
 	var h := height_m
 	var k := h / 1.8

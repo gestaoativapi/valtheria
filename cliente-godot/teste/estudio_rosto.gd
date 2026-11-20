@@ -55,6 +55,10 @@ func _init() -> void:
 		c.rotation.y = ang
 		if c.has_method("play"):
 			c.play("Idle")
+		if p.size() > 5 and p[5] != "":  # 6º campo: roupa de ofício (ferreiro, estalajadeiro...)
+			c.oficio(p[5], p[4] == "nenhuma")
+			if p[3] != "":
+				c.set_battle(true)
 		alt = maxf(alt, 1.0)
 	cam = Camera3D.new()
 	cam.fov = 30.0 if not corpo else 34.0

@@ -38,12 +38,15 @@ static func _m(raca: String, nome: String) -> Material:
 		var c := Color(str(pal.get(nome, "#777777")))
 		if arq[nome][0] == "pedra" and nome != "gelo_profundo":
 			c = c.darkened(0.02 if raca == "sombrio" else 0.08)
+		var o: Dictionary = (arq[nome][1] as Dictionary).duplicate()
+		if arq[nome][0] == "pedra" and raca in ["beastman", "gigante"]:
+			o["textura"] = "unevenbrick"  # pedra bruta, sem corte
 		if raca == "gigante":
-			var o: Dictionary = (arq[nome][1] as Dictionary).duplicate()
 			o["bloco"] = (o.get("bloco", Vector2(0.9, 0.42)) as Vector2) * 1.8  # escala de gigante
-			_mats[k] = Arq.material(arq[nome][0], c, o)
-		else:
-			_mats[k] = Arq.material(arq[nome][0], c, arq[nome][1])
+			o["metros"] = 3.6
+		if nome in ["escama", "escama_azul", "gelo_profundo"]:
+			o["tingir"] = 1.0
+		_mats[k] = Arq.material(arq[nome][0], c, o)
 		return _mats[k]
 	var m := StandardMaterial3D.new()
 	m.albedo_color = Color(str(pal.get(nome, "#777777")))

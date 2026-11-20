@@ -5,6 +5,16 @@ extends Node3D
 
 const Character = preload("res://scripts/character.gd")
 const FX = preload("res://scripts/fx.gd")
+const Props = preload("res://scripts/props.gd")
+const Arq = preload("res://scripts/arquitetura.gd")
+# quem faz cada ofício: raça típica, roupa de ofício (Character.oficio), armadura de baixo e ferramenta na mão
+# (19/11, Robson: "um anão ferreiro, com forja e roupa de ferreiro")
+const OFICIO_NPC := {
+	"Ferreiro": ["anao", "ferreiro", "", "martelo_ng"], "Aprendiz": ["anao", "aprendiz", "", ""],
+	"Estalajadeira": ["humano", "estalajadeiro", "", ""], "Estalajadeiro": ["humano", "estalajadeiro", "", ""],
+	"Dona da casa": ["", "cozinheiro", "", ""], "Bardo": ["elfo", "", "leve_ng", ""], "Sacerdotisa": ["elfo", "", "robe_ng", ""],
+	"Mercador de Lendários": ["humano", "mercador", "robe_ng", ""], "Mercador": ["", "mercador", "", ""],
+}
 const BASE := Vector3(-2400.0, 600.0, -2400.0)  # longe do mapa: a sala fica fora do mundo
 
 var main: Node3D
@@ -372,9 +382,11 @@ func _build() -> void:
 	var W: float = inside.w
 	var D: float = inside.d
 	var H: float = inside.h
-	var floor_m := _mat(inside.floor)
-	floor_m.albedo_texture = load("res://assets/world/t_dirt.webp") if inside.kind in ["forja", "arena"] else null
-	var wall_m := _mat(inside.wall)
+	var pedra_chao: bool = inside.kind in ["forja", "arena", "igreja", "palacio"]
+	var floor_m: Material = Arq.material("pedra", inside.floor, {"textura": "unevenbrick", "metros": 2.2, "tingir": 0.6}) if pedra_chao \
+		else Arq.material("madeira", inside.floor, {"bloco": Vector2(1.6, 0.42), "desgaste": 0.15})
+	var wall_m: Material = Arq.material("reboco", inside.wall, {"metros": 2.5, "tingir": 0.7}) if inside.kind != "forja" \
+		else Arq.material("pedra", inside.wall, {"metros": 2.4, "tingir": 0.6})
 	var wood := _mat(Color(0.36, 0.24, 0.14))
 	var dark := _mat(Color(0.2, 0.14, 0.09))
 	_box(room, floor_m, Vector3(0, -0.1, 0), Vector3(W, 0.2, D))
@@ -409,17 +421,29 @@ func _build() -> void:
 	room.add_child(l2)
 	# pessoas
 	for n in inside.npcs:
-		var race: Array = main.world.info.races.keys()
+		var race: Array = main.world.info.races.keys().filter(func(x): return x != "gigante")
 		var rr: String = race[randi() % race.size()] if randf() < 0.45 else "humano"
+		var povo := str(inside.get("door", {}).get("race", ""))
+		if povo != "" and povo in race:
+			rr = povo  # casa de vila de raça: moradores do próprio povo
 		if str(n[0]).begins_with("Cavaleiro") or str(n[0]).begins_with("Guarda"):
 			rr = "humano"
 		var armor: String = "pesada_ng" if str(n[4]) == "Idle_Shield" else ["", "robe_ng", "leve_ng"][randi() % 3]
+		var arma: String = "espada_ng" if armor == "pesada_ng" else ""
+		var of: Array = OFICIO_NPC.get(str(n[0]), [])
+		if not of.is_empty():
+			if str(of[0]) != "":
+				rr = of[0]
+			armor = of[2]
+			arma = of[3]
 		var c: Node3D = Character.create({"race": rr, "gender": "f" if str(n[0]).ends_with("a") or str(n[0]).ends_with("eira") else "m", "skin": randi() % 3, "hair": randi() % 6, "hair_color": randi() % 6,
-			"equipment": {"armadura": armor, "arma": "espada_ng" if armor == "pesada_ng" else ""}})
+			"equipment": {"armadura": armor, "arma": arma}})
 		if str(n[0]) == "Criança":
 			c.scale = Vector3.ONE * 0.62
 		room.add_child(c)
-		c.set_battle(false)
+		c.set_battle(not of.is_empty() and str(of[3]) != "")  # ferramenta na mão de quem trabalha
+		if not of.is_empty() and str(of[1]) != "":
+			c.oficio(str(of[1]))
 		c.position = Vector3(float(n[1]), 0, float(n[2]))
 		c.rotation.y = float(n[3])
 		c.play(str(n[4]))
@@ -439,30 +463,50 @@ func _item(i: Array, wood: Material, dark: Material) -> void:
 	var d: float = i[4]
 	var h := 1.0
 	var mat: Material = wood
+	var prop: Node3D = null
+	match k:
+		"bigorna":
+			prop = Props.bigorna()
+			var fa := Props.faiscas()
+			fa.position = Vector3(0, 0.8, 0)
+			prop.add_child(fa)
+			h = 0.0
+		"fornalha":
+			prop = Props.fornalha(w, d, float(inside.h))
+			h = 0.0
+		"barril":
+			prop = Props.barril()
+			h = 0.0
+		"mesa":
+			prop = Props.bancada(w, d) if inside.kind == "forja" else Props.mesa(w, d)
+			h = 0.0
+		"cama":
+			prop = Props.cama(w, d)
+			h = 0.0
+		"prateleira", "armario":
+			prop = Props.prateleira(maxf(w, d), 2.4, minf(w, d))
+			if d > w:
+				prop.rotation.y = PI * 0.5
+			h = 0.0
+		"armas":
+			prop = Props.armas(maxf(w, d))
+			if x > 0.0:
+				prop.rotation.y = PI  # lâminas viradas para dentro da sala
+			h = 0.0
+	if prop != null:
+		prop.position = Vector3(x, 0, z)
+		room.add_child(prop)
 	match k:
 		"balcao":
 			h = 1.1
-		"prateleira", "armario":
-			h = 2.4
-			mat = dark
-		"lareira", "fornalha":
+		"lareira":
 			h = 2.2
 			mat = _mat(Color(0.45, 0.42, 0.4))
 			var f: Node3D = FX.fire(0.9 if k == "fornalha" else 0.7, true)
 			f.position = Vector3(x, 0.5, z + d * 0.55)
 			room.add_child(f)
-		"mesa":
-			h = 0.78
 		"banco":
 			h = 0.5
-		"barril":
-			h = 1.0
-		"bigorna":
-			h = 0.8
-			mat = _mat(Color(0.25, 0.25, 0.27))
-		"cama":
-			h = 0.6
-			_box(room, _mat(Color(0.75, 0.2, 0.18)), Vector3(x, 0.66, z + 0.2), Vector3(w * 0.95, 0.12, d * 0.7))
 		"coluna":
 			h = float(inside.h)
 			mat = _mat(Color(0.86, 0.84, 0.8))
@@ -479,7 +523,7 @@ func _item(i: Array, wood: Material, dark: Material) -> void:
 		"vitrine":
 			h = 1.2
 			_box(room, _mat(Color(0.6, 0.85, 1.0), 1.5), Vector3(x, 1.45, z), Vector3(w * 0.5, 0.3, d * 0.4))
-		"armas", "mural":
+		"mural":
 			h = 2.2
 			mat = dark
 		"escada":

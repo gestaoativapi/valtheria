@@ -27,6 +27,7 @@ var fire: OmniLight3D
 var water: MeshInstance3D
 var terrain_mat: ShaderMaterial
 var blade: ArrayMesh
+var calcado := {}  # células de 2 m com calçamento (sem capim)
 var chunks := {}  # Vector2i -> {"node", "lod"}
 var grass := {}  # Vector2i -> MultiMeshInstance3D
 var models := {}  # arquivo -> {"parts", "bb"}
@@ -1072,7 +1073,7 @@ func _stream_grass_medido(center: Vector3) -> void:
 		var x := ox + r.randf_range(-cell, cell) * 0.5
 		var z := oz + r.randf_range(-cell, cell) * 0.5
 		var g := ground(x, z)
-		if g.g < 0.8 or g.a8 < 110 or height(x, z) < 1.3:
+		if g.g < 0.8 or g.a8 < 110 or height(x, z) < 1.3 or calcado.has(Vector2i(floori(x / 2.0), floori(z / 2.0))):
 			continue
 		var s := r.randf_range(0.8, 1.3)
 		xfs.append(Transform3D(Basis(Vector3.UP, r.randf() * TAU).scaled(Vector3(s, s * r.randf_range(0.8, 1.3), s)), Vector3(x - ox, height(x, z), z - oz)))
@@ -1182,6 +1183,12 @@ func _build_town(t: Dictionary) -> void:
 			continue
 		var sz := place(root, hdef[0], [at(cx + hx, cz + hz, yaw, 1.0, 0.15)], hdef[3], true, 900.0)
 		block(cx + hx, cz + hz, maxf(sz.x, sz.z) * 0.42)
+		_porta_casa(t, cx + hx, cz + hz, yaw, sz.z * 0.5 + 0.6)
+	# portas das casas de raça: moradores do próprio povo dentro (19/11)
+	for par in [[casas_r, VilasRacas.RAIO.casa * VilasRacas.escala(raca_v, "casa") if outra else 0.0], [casas_anas, 4.6 * 0.85], [casas_orc, 5.0 * 0.78]]:
+		for xf in par[0]:
+			var o: Vector3 = (xf as Transform3D).origin
+			_porta_casa(t, cx + o.x, cz + o.z, (xf as Transform3D).basis.get_euler().y, float(par[1]) + 0.7)
 	if outra:
 		VilasRacas.construir(self, root, raca_v, "casa", casas_r, VilasRacas.escala(raca_v, "casa"))
 		var sr := at(cx, cz - 24.0, 0.0, 1.0, 0.4)
@@ -1429,6 +1436,14 @@ func _plaza_core(root: Node3D, t: Dictionary, svc: Dictionary, fire := true) -> 
 		doors.append({"kind": d[0], "name": d[1], "pos": Vector3(cx + sv.x + toward.x, height(cx + sv.x + toward.x, cz + sv.y + toward.y), cz + sv.y + toward.y), "yaw": atan2(toward.x, toward.y), "town": str(t.id)})
 
 
+# porta de casa com interior (moradores do povo da vila lá dentro); frente da casa = +Z girado por yaw
+func _porta_casa(t: Dictionary, x: float, z: float, yaw: float, frente: float) -> void:
+	var p := Vector3(x + sin(yaw) * frente, 0, z + cos(yaw) * frente)
+	p.y = height(p.x, p.z)
+	var nomes := ["Casa dos Pedra-Funda", "Casa da Família", "Lar do Clã", "Morada", "Casa do Artesão", "Casa da Colina"]
+	doors.append({"kind": "casa", "name": nomes[absi(int(x * 7.0 + z * 3.0)) % nomes.size()], "pos": p, "yaw": yaw + PI, "town": str(t.id), "race": str(t.get("race", ""))})
+
+
 func _near_gate(t: Dictionary, a: float, tol: float) -> bool:
 	for g in t.get("gates", []):
 		if absf(wrapf(a - float(g), -PI, PI)) < tol:
@@ -1466,7 +1481,7 @@ func _boxes(parent: Node3D, mat: Material, xfs: Array, vis := 700.0) -> void:
 
 # caixa de tamanho `size`, centrada em `pos` (coordenadas da cidade), girada em Y
 func _box(pos: Vector3, size: Vector3, yaw: float) -> Transform3D:
-	return Transform3D(Basis(Vector3.UP, yaw).scaled(size), pos)
+	return Transform3D(Basis(Vector3.UP, yaw) * Basis.from_scale(size), pos)
 
 
 # muralha em volta da cidade: o formato muda com o estilo (redonda, quadrada, hexagonal ou paliçada de madeira)

@@ -25,6 +25,14 @@ uniform float rugosidade = 0.9;
 uniform float metalico = 0.0;
 uniform float variacao = 0.22;           // diferença de tom entre peças
 uniform float desgaste = 0.35;           // manchas grandes (sujeira, umidade)
+// textura de verdade (kit CC0 da Quaternius): cor, relevo (normal map) e aspereza, projetadas no mundo
+uniform bool usa_tex = false;
+uniform sampler2D tex_cor : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D tex_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D tex_rug : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float tex_metros = 2.0;          // metros cobertos por uma repetição da textura
+uniform vec4 tex_media : source_color = vec4(0.5, 0.5, 0.5, 1.0);
+uniform float tingir = 0.85;             // 0 = cor original da textura, 1 = cor da paleta da raça
 
 varying vec3 wpos;
 varying vec3 wnor;
@@ -110,10 +118,37 @@ vec3 padrao(vec2 uv, int t, vec2 b, bool chao) {
 	return vec3(0.5 + r * 0.1, r, 0.0);
 }
 
+vec3 nmap(vec2 uv) {
+	vec3 t = texture(tex_nor, uv).xyz * 2.0 - 1.0;
+	t.y = -t.y;   // normal map no padrão DirectX
+	return t;
+}
+
 void fragment() {
 	vec3 n = normalize(wnor);
 	vec3 w = pow(abs(n), vec3(5.0));
 	w /= (w.x + w.y + w.z);
+	if (usa_tex) {
+		float k = 1.0 / tex_metros;
+		vec2 ux = vec2(wpos.z * sign(n.x), -wpos.y) * k;
+		vec2 uy = vec2(wpos.x, wpos.z * sign(n.y)) * k;
+		vec2 uz = vec2(-wpos.x * sign(n.z), -wpos.y) * k;
+		vec3 c = texture(tex_cor, ux).rgb * w.x + texture(tex_cor, uy).rgb * w.y + texture(tex_cor, uz).rgb * w.z;
+		float rr = texture(tex_rug, ux).g * w.x + texture(tex_rug, uy).g * w.y + texture(tex_rug, uz).g * w.z;
+		// relevo: mistura "whiteout" das três projeções
+		vec3 tx = nmap(ux); vec3 ty = nmap(uy); vec3 tz = nmap(uz);
+		tx = vec3(tx.xy + n.zy, abs(tx.z) * n.x);
+		ty = vec3(ty.xy + n.xz, abs(ty.z) * n.y);
+		tz = vec3(tz.xy + n.xy, abs(tz.z) * n.z);
+		vec3 nw = normalize(tx.zyx * w.x + ty.xzy * w.y + tz.xyz * w.z);
+		NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
+		vec3 tingida = c / max(tex_media.rgb, vec3(0.02)) * cor.rgb;
+		float mancha = fbm(wpos.xz * 0.12 + wpos.y * 0.05);
+		ALBEDO = mix(c, tingida, tingir) * (1.0 - desgaste * 0.3 * smoothstep(0.45, 0.85, mancha));
+		ROUGHNESS = clamp(rr * rugosidade / 0.85, 0.05, 1.0);
+		METALLIC = metalico;
+		SPECULAR = 0.35;
+	} else {
 	vec2 b = bloco;
 	vec3 px = padrao(wpos.zy, tipo, b, false);
 	vec3 pz = padrao(wpos.xy, tipo, b, false);
@@ -147,8 +182,14 @@ void fragment() {
 	ROUGHNESS = clamp(rugosidade + p.z * 0.08 - (1.0 - p.x) * 0.04, 0.05, 1.0);
 	METALLIC = metalico;
 	SPECULAR = 0.35;
+	}
 }
 """
+
+# cor média de cada textura (para tingir na paleta da raça sem perder o desenho)
+const MEDIAS := {"brick": Color(0.574, 0.523, 0.459), "unevenbrick": Color(0.53, 0.474, 0.4),
+	"plaster": Color(0.684, 0.621, 0.497), "roundtiles": Color(0.697, 0.33, 0.186)}
+# Texturas: kit "Medieval Village MegaKit" da Quaternius, licença CC0 (assets/world/arq/LICENSE_CC0_Quaternius.txt)
 
 static var _shader: Shader
 static var _cache := {}
@@ -175,5 +216,14 @@ static func material(tipo: String, c: Color, opcoes := {}) -> ShaderMaterial:
 	m.set_shader_parameter("relevo", opcoes.get("relevo", 1.0))
 	m.set_shader_parameter("variacao", opcoes.get("variacao", 0.3 if tipo == "pedra" else 0.22))
 	m.set_shader_parameter("desgaste", opcoes.get("desgaste", 0.35))
+	var tex: String = opcoes.get("textura", {"pedra": "brick", "telha": "roundtiles", "reboco": "plaster"}.get(tipo, ""))
+	if tex != "" and tex != "nenhuma" and ResourceLoader.exists("res://assets/world/arq/%s_basecolor.webp" % tex):
+		m.set_shader_parameter("usa_tex", true)
+		m.set_shader_parameter("tex_cor", load("res://assets/world/arq/%s_basecolor.webp" % tex))
+		m.set_shader_parameter("tex_nor", load("res://assets/world/arq/%s_normal.webp" % tex))
+		m.set_shader_parameter("tex_rug", load("res://assets/world/arq/%s_roughness.webp" % tex))
+		m.set_shader_parameter("tex_media", MEDIAS.get(tex, Color(0.5, 0.5, 0.5)))
+		m.set_shader_parameter("tex_metros", float(opcoes.get("metros", 2.0 if tipo != "telha" else 1.6)))
+		m.set_shader_parameter("tingir", float(opcoes.get("tingir", 0.85)))
 	_cache[k] = m
 	return m

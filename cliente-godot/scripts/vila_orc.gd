@@ -20,7 +20,7 @@ static var _mats := {}
 static func _m(nome: String) -> Material:
 	if _mats.has(nome):
 		return _mats[nome]
-	var arq := {"pedra": ["pedra", {"bloco": Vector2(1.0, 0.5)}], "escura": ["pedra", {"bloco": Vector2(0.8, 0.4)}],
+	var arq := {"pedra": ["pedra", {"bloco": Vector2(1.0, 0.5), "textura": "unevenbrick"}], "escura": ["pedra", {"bloco": Vector2(0.8, 0.4)}],
 		"basalto": ["pedra", {"bloco": Vector2(1.2, 0.55)}], "madeira": ["madeira", {"variacao": 0.3}],
 		"metal": ["metal", {}], "ferro": ["metal", {"rugosidade": 0.55}], "bronze": ["metal", {"rugosidade": 0.35, "metalico": 0.75}],
 		"cobre": ["metal", {"rugosidade": 0.35, "metalico": 0.75}], "osso": ["reboco", {"desgaste": 0.5}]}
