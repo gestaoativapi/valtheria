@@ -413,7 +413,7 @@ func _mob_tick(m: Dictionary, dt: float) -> void:
 	var d := Vector2(pp.x - node.position.x, pp.z - node.position.z).length()
 	if t < float(m.stun):
 		return
-	if not m.aggro and m.fam.aggro and not dead and not main.gm_hide and d < 11.0 and not world.nearest_town(pp.x, pp.z).in_safe:
+	if not m.aggro and m.fam.aggro and not dead and not main.gm_hide and d < 11.0 and not world.zona(pp.x, pp.z).paz:
 		m.aggro = true
 	if m.aggro and (dead or (node.position as Vector3).distance_to(m.home) > 55.0):
 		m.aggro = false
@@ -554,7 +554,9 @@ func _debuffs_tick(dt: float) -> void:
 			# valor = intensidade: 0,4% da vida máxima por segundo por ponto
 			hp -= st.maxHp * float(debuffs[k][0]) * 0.004 * dt
 			combat_until = now() + 6.0
-			if hp <= 0.0 and not dead:
+			if hp <= 1.0 and not dead and main.world.zona(main.player.position.x, main.player.position.z).paz:
+				hp = 1.0  # veneno não mata dentro da zona de paz
+			elif hp <= 0.0 and not dead:
 				hp = 0.0
 				_die()
 
@@ -580,6 +582,8 @@ func _float_text(pos: Vector3, text: String, col: Color) -> void:
 func _hurt_player(dmg: float) -> void:
 	if dead or main.gm_god:
 		return
+	if main.world.zona(main.player.position.x, main.player.position.z).paz:
+		return  # zona de paz (cidades e áreas de missão): ninguém morre
 	combat_until = now() + 6.0
 	if shield > 0.0 and now() < shield_until:
 		var ab := minf(shield, dmg)

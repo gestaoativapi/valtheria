@@ -76,7 +76,7 @@ func _init(world: Node3D) -> void:
 	mats.praca = Arq.material("pedra", Color(0.52, 0.49, 0.44), {"textura": "unevenbrick", "metros": 2.4, "tingir": 0.35, "desgaste": 0.25})
 	mats.pedra = Arq.material("pedra", Color(0.66, 0.64, 0.6))
 	mats.base = Arq.material("pedra", Color(0.5, 0.48, 0.46), {"bloco": Vector2(1.1, 0.5)})
-	mats.marmore = _plain(Color(0.9, 0.89, 0.85), 0.5)
+	mats.marmore = Arq.material("pedra", Color(0.84, 0.82, 0.78), {"bloco": Vector2(1.4, 0.6), "textura": "nenhuma", "rugosidade": 0.45, "variacao": 0.08, "desgaste": 0.2})
 	mats.cimento = Arq.material("reboco", Color(0.86, 0.82, 0.74))
 	mats.cimento2 = Arq.material("reboco", Color(0.78, 0.8, 0.82))
 	mats.cimento3 = Arq.material("reboco", Color(0.88, 0.78, 0.66))
@@ -189,6 +189,19 @@ func finish() -> void:
 		w._boxes(root, mats[k], lists[k], 900.0)
 	for k in prisms:
 		_multi(PrismMesh.new(), k, prisms[k])
+	if not colunas.is_empty():
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = _malha_coluna()
+		mm.instance_count = colunas.size()
+		for i in colunas.size():
+			mm.set_instance_transform(i, colunas[i])
+		var mi := MultiMeshInstance3D.new()
+		mi.multimesh = mm
+		mi.material_override = mats.marmore
+		mi.visibility_range_end = 600.0
+		root.add_child(mi)
+		colunas = []
 	for k in cyls:
 		var c := CylinderMesh.new()
 		c.radial_segments = 12
@@ -337,35 +350,85 @@ func townhouse(x: float, z: float, yaw: float, wid: float, dep: float, floors: i
 
 # prédio público grande (salão, quartel, loja), com colunas na frente e nome
 func hall(x: float, z: float, yaw: float, wid: float, dep: float, hgt: float, tone: String, roof_mat: String, title: String, door_kind := "") -> void:
+	# prédio público com detalhe de verdade (19/11): pódio com degraus, embasamento de pedra, pilastras,
+	# janelas com moldura e peitoril, cornija em dois níveis, pórtico com colunas torneadas e frontão triangular
 	var g := gy(x, z) - 0.3
 	var bas := Basis(Vector3.UP, yaw)
 	var fwd := bas * Vector3(0, 0, 1)
 	var side := bas * Vector3(1, 0, 0)
+	var P := func(dx: float, dz: float) -> Vector3: return Vector3(x, 0, z) + side * dx + fwd * dz
 	box("base", x, g + 0.6, z, wid + 1.2, 1.2, dep + 1.2, yaw)
-	box(tone, x, g + 1.2 + hgt * 0.5, z, wid, hgt, dep, yaw)
-	box("viga", x, g + 1.2 + hgt, z, wid + 0.4, 0.4, dep + 0.4, yaw)
-	roof(roof_mat, x, g + 1.4 + hgt + 2.2, z, wid + 1.0, 4.4, dep + 1.0, yaw)
-	var ncol := maxi(2, int(wid / 4.0))
+	for k in 3:  # degraus na frente, até o pórtico
+		var q: Vector3 = P.call(0.0, dep * 0.5 + 3.8 + (2 - k) * 0.55)
+		box("base", q.x, g + 0.2 + k * 0.4, q.z, wid * 0.8 + (2 - k) * 0.8, 0.4 * (k + 1) + 0.4, 0.6, yaw)
+	var piso: Vector3 = P.call(0.0, dep * 0.5 + 1.7)
+	box("base", piso.x, g + 0.6, piso.z, wid * 0.98, 1.2, 3.8, yaw)  # piso do pórtico
+	var y0 := g + 1.2
+	box(tone, x, y0 + hgt * 0.5, z, wid, hgt, dep, yaw)
+	box("base", x, y0 + 0.5, z, wid + 0.2, 1.0, dep + 0.2, yaw)  # rodapé de pedra
+	# pilastras nas quinas e ao longo das laterais
+	var npil := maxi(2, int(dep / 4.5))
+	for lado in [-1.0, 1.0]:
+		for k in npil + 1:
+			var zz := -dep * 0.5 + dep * float(k) / float(npil)
+			var q: Vector3 = P.call(lado * (wid * 0.5 + 0.12), zz)
+			box("marmore", q.x, y0 + hgt * 0.5, q.z, 0.3, hgt, 0.7, yaw)
+		# janelas laterais com moldura e peitoril
+		for k in npil:
+			var zz := -dep * 0.5 + dep * (float(k) + 0.5) / float(npil)
+			var q: Vector3 = P.call(lado * (wid * 0.5 + 0.05), zz)
+			box("marmore", q.x, y0 + hgt * 0.55, q.z, 0.14, 2.8, 1.8, yaw)
+			var v: Vector3 = P.call(lado * (wid * 0.5 + 0.1), zz)
+			box("janela", v.x, y0 + hgt * 0.55, v.z, 0.14, 2.3, 1.3, yaw)
+			var ps: Vector3 = P.call(lado * (wid * 0.5 + 0.18), zz)
+			box("base", ps.x, y0 + hgt * 0.55 - 1.3, ps.z, 0.3, 0.15, 2.0, yaw)
+	# cornija em dois níveis e friso
+	box("viga", x, y0 + hgt - 0.35, z, wid + 0.25, 0.3, dep + 0.25, yaw)
+	box("marmore", x, y0 + hgt + 0.1, z, wid + 0.6, 0.35, dep + 0.6, yaw)
+	box("marmore", x, y0 + hgt + 0.35, z, wid + 0.9, 0.18, dep + 0.9, yaw)
+	roof(roof_mat, x, y0 + hgt + 0.44 + 2.2, z, wid + 1.0, 4.4, dep + 1.0, yaw)
+	# pórtico: colunas torneadas (base, fuste afinando, capitel), arquitrave e frontão
+	var ncol := maxi(4, int(wid / 3.2))
 	for k in ncol:
 		var off := (k + 0.5) / ncol - 0.5
-		var p := Vector3(x, 0, z) + side * (off * wid * 0.9) + fwd * (dep * 0.5 + 1.6)
-		cyl("marmore", p.x, g + 1.2 + hgt * 0.5, p.z, 0.4, hgt)
-	var pp := Vector3(x, 0, z) + fwd * (dep * 0.5 + 1.6)
-	box("marmore", pp.x, g + 1.4 + hgt, pp.z, wid * 0.95, 0.5, 3.6, yaw)
-	var dp := Vector3(x, 0, z) + fwd * (dep * 0.5 + 0.05)
-	box("porta", dp.x, g + 2.6, dp.z, 2.4, 3.6, 0.16, yaw)
+		var p: Vector3 = P.call(off * wid * 0.88, dep * 0.5 + 2.6)
+		_coluna(p.x, y0, p.z, hgt)
+	var pp: Vector3 = P.call(0.0, dep * 0.5 + 1.8)
+	box("marmore", pp.x, y0 + hgt + 0.1, pp.z, wid * 0.98, 0.7, 3.9, yaw)        # arquitrave
+	box("marmore", pp.x, y0 + hgt + 0.55, pp.z, wid * 1.02, 0.2, 4.1, yaw)       # cimalha
+	var fr: Vector3 = P.call(0.0, dep * 0.5 + 3.5)
+	roof("marmore", fr.x, y0 + hgt + 0.65 + 1.4, fr.z, wid * 1.0, 2.8, 0.5, yaw)   # frontão
+	box("porta", P.call(0.0, dep * 0.5 + 0.05).x, g + 2.8, P.call(0.0, dep * 0.5 + 0.05).z, 2.4, 3.6, 0.16, yaw)
+	var mold: Vector3 = P.call(0.0, dep * 0.5 + 0.02)
+	box("marmore", mold.x, g + 3.0, mold.z, 3.2, 4.4, 0.12, yaw)                   # moldura da porta
 	for k in [-0.3, 0.3]:
-		var q: Vector3 = dp + side * (wid * k)
-		box("janela", q.x, g + 1.2 + hgt * 0.55, q.z, 1.4, 2.2, 0.14, yaw)
+		var q: Vector3 = P.call(wid * k, dep * 0.5 + 0.05)
+		box("marmore", q.x, y0 + hgt * 0.55, q.z, 2.0, 3.0, 0.12, yaw)
+		var v: Vector3 = P.call(wid * k, dep * 0.5 + 0.1)
+		box("janela", v.x, y0 + hgt * 0.55, v.z, 1.4, 2.4, 0.14, yaw)
 	w.block(cx + x, cz + z, minf(wid, dep) * 0.5)
 	for k in [-0.33, 0.33]:
 		w.block(cx + x + side.x * wid * k, cz + z + side.z * wid * k, dep * 0.5)
 	if title != "":
 		label(title, pp.x, pp.z, hgt + 6.5, Color(1.0, 0.86, 0.55), 56, 140.0)
 	if door_kind != "":
-		var dd := Vector3(x, 0, z) + fwd * (dep * 0.5 + 3.6)
+		var dd: Vector3 = P.call(0.0, dep * 0.5 + 4.6)
 		door(door_kind, title, dd.x, dd.z, yaw)
 
+
+# coluna torneada de mármore (base, fuste com leve afinamento e capitel), desenhada em lote
+var colunas: Array = []
+
+
+func _coluna(x: float, y: float, z: float, h: float) -> void:
+	colunas.append(Transform3D(Basis.from_scale(Vector3(1.0, h, 1.0)), Vector3(x, y, z)))
+
+
+func _malha_coluna() -> ArrayMesh:
+	# perfil em unidades da altura (y de 0 a 1) e raio em metros
+	return lathe([Vector2(0.0, 0.0), Vector2(0.62, 0.0), Vector2(0.62, 0.04), Vector2(0.52, 0.05), Vector2(0.5, 0.08),
+		Vector2(0.42, 0.09), Vector2(0.4, 0.5), Vector2(0.36, 0.9), Vector2(0.44, 0.92), Vector2(0.56, 0.95),
+		Vector2(0.62, 0.96), Vector2(0.62, 1.0), Vector2(0.0, 1.0)], 16)
 
 func church(x: float, z: float, yaw: float, big := false, title := "Igreja") -> void:
 	var k := 1.5 if big else 1.0

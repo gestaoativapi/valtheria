@@ -261,6 +261,28 @@ func ground(x: float, z: float) -> Color:
 	return splat_img.get_pixel(clampi(roundi(x / step), 0, n - 1), clampi(roundi(z / step), 0, n - 1))
 
 
+# Zonas de paz (19/11, Robson): cidades e áreas importantes de missão. Invisíveis no chão; o jogo só avisa ao
+# entrar e sair. Dentro delas ninguém morre (monstros não atacam e o dano ao jogador é anulado).
+# Áreas de missão extras: data/world.json "zonas_paz": [{"name", "x", "z", "r"}] e as que os NPCs de missão registram.
+var zonas_missao: Array = []
+
+
+func zona(x: float, z: float) -> Dictionary:
+	var nt := nearest_town(x, z)
+	if nt.in_safe:
+		return {"paz": true, "nome": str(nt.town.get("name", "")), "cidade": true, "id": str(nt.town.get("id", ""))}
+	for v in villages:  # povoados pequenos também são zona de paz
+		if Vector2(x - float(v.x), z - float(v.z)).length() < 36.0:
+			return {"paz": true, "nome": str(v.name), "cidade": true, "id": str(v.id)}
+	for a in info.get("zonas_paz", []) + zonas_missao:
+		if Vector2(x - float(a.x), z - float(a.z)).length() < float(a.r):
+			return {"paz": true, "nome": str(a.name), "cidade": false, "id": str(a.get("id", a.name))}
+	for l in info.get("landmarks", []):  # masmorras, castelos e ruínas: zona de batalha com nome próprio
+		if Vector2(x - float(l.x), z - float(l.z)).length() < float(l.get("r", 50)) + 10.0:
+			return {"paz": false, "nome": str(l.name), "cidade": false, "id": str(l.id)}
+	return {"paz": false, "nome": "", "cidade": false, "id": ""}
+
+
 func nearest_town(x: float, z: float) -> Dictionary:
 	var best := {}
 	var bd := 1e9
@@ -314,6 +336,8 @@ func safe_r(t: Dictionary) -> float:
 # altura do piso em x, z: o chão ou algo construído por cima (cais, ponte, plataforma), se estiver ao alcance do pé
 func floor_y(x: float, z: float, cur_y: float) -> float:
 	var g := height(x, z)
+	if calcado.has(Vector2i(floori(x / 2.0), floori(z / 2.0))):
+		g += 0.08  # calçamento das cidades fica uns 8 cm acima da terra: o pé pisa em cima, não dentro
 	for f in floors:
 		var c: Vector2 = f.c
 		var dx := x - c.x
@@ -1377,23 +1401,7 @@ func _build_town(t: Dictionary) -> void:
 		var sz := place(root, "n_light_street_1", lamp_pts, 4.2, true, 260.0)
 		for xf in lamp_pts:
 			lamps.append((xf as Transform3D).origin + Vector3(0, sz.y * 0.9, 0))
-	# anel dourado no chão: limite da zona segura
-	var ring := MeshInstance3D.new()
-	var tm := TorusMesh.new()
-	tm.inner_radius = safe_r(t) - 0.4
-	tm.outer_radius = safe_r(t)
-	tm.rings = 96
-	tm.ring_segments = 4
-	var rmat := StandardMaterial3D.new()
-	rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	rmat.albedo_color = Color(1.0, 0.82, 0.4, 0.55)
-	tm.material = rmat
-	ring.mesh = tm
-	ring.position = Vector3(0.0, gy + 0.12, 0.0)
-	ring.scale = Vector3(1.0, 0.2, 1.0)
-	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	root.add_child(ring)
+	# sem anel no chão: a zona de paz é invisível (aviso ao entrar e sair, main.gd)
 	var l := OmniLight3D.new()
 	l.position = Vector3(0.0, height(cx, cz) + 1.3, 0.0)
 	l.light_color = Color(1.0, 0.55, 0.2)
@@ -1402,70 +1410,13 @@ func _build_town(t: Dictionary) -> void:
 	l.distance_fade_enabled = true
 	l.distance_fade_begin = 90.0
 	root.add_child(l)
-	var plate := Label3D.new()
-	plate.text = t.name
-	plate.font = load("res://assets/cinzel.ttf")
-	plate.font_size = 96
-	plate.pixel_size = 0.02
-	plate.outline_size = 18
-	plate.modulate = Color(1.0, 0.9, 0.62)
-	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	plate.position = Vector3(0.0, height(cx, cz) + 22.0, 0.0)
-	plate.visibility_range_begin = 60.0
-	plate.visibility_range_end = 700.0
-	root.add_child(plate)
+	# nome da vila: aviso na tela ao chegar e fixo no mapa (sem placa flutuando sobre a vila)
 
 
-# anel da zona segura e placa com o nome (cidades grandes e especiais)
-func _town_marks(t: Dictionary, root: Node3D, ring_on := true) -> void:
-	var cx: float = t.x
-	var cz: float = t.z
-	var gy := height(cx, cz)
-	if ring_on and size_of(t) in ["capital", "grande"]:  # zona segura quadrada, como a muralha
-		ring_on = false
-		var sm := StandardMaterial3D.new()
-		sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		sm.albedo_color = Color(1.0, 0.82, 0.4, 0.55)
-		var S := safe_r(t)
-		var segs: Array = []
-		var k := -S
-		while k < S:
-			for e in [[k + 2.0, -S, 0.0], [k + 2.0, S, 0.0], [-S, k + 2.0, PI * 0.5], [S, k + 2.0, PI * 0.5]]:
-				segs.append(_box(Vector3(e[0], height(cx + float(e[0]), cz + float(e[1])) + 0.1, e[1]), Vector3(4.05, 0.06, 0.4), e[2]))
-			k += 4.0
-		_boxes(root, sm, segs, 400.0)
-	if ring_on:
-		var ring := MeshInstance3D.new()
-		var tm := TorusMesh.new()
-		tm.inner_radius = safe_r(t) - 0.4
-		tm.outer_radius = safe_r(t)
-		tm.rings = 160
-		tm.ring_segments = 4
-		var rmat := StandardMaterial3D.new()
-		rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		rmat.albedo_color = Color(1.0, 0.82, 0.4, 0.55)
-		tm.material = rmat
-		ring.mesh = tm
-		ring.position = Vector3(0.0, gy + 0.12, 0.0)
-		ring.scale = Vector3(1.0, 0.2, 1.0)
-		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		root.add_child(ring)
-	if special_of(t) in ["arvore", "submarina", "ilha"]:
-		return
-	var plate := Label3D.new()
-	plate.text = t.name
-	plate.font = load("res://assets/cinzel.ttf")
-	plate.font_size = 120 if size_of(t) == "capital" else 104
-	plate.pixel_size = 0.02 if size_of(t) != "capital" else 0.03
-	plate.outline_size = 18
-	plate.modulate = Color(1.0, 0.9, 0.62)
-	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	plate.position = Vector3(0.0, gy + (60.0 if size_of(t) == "capital" else 40.0), 0.0)
-	plate.visibility_range_begin = 90.0
-	plate.visibility_range_end = 1400.0
-	root.add_child(plate)
+# antes: anel dourado no chão e placa com o nome flutuando sobre a cidade. Agora a zona de paz é invisível e o
+# nome aparece na tela ao chegar (main.gd) e fica fixo no mapa (mapa_ui.gd).
+func _town_marks(_t: Dictionary, _root: Node3D, _ring_on := true) -> void:
+	pass
 
 
 # núcleo de serviço comum (pousada, ferraria, estábulo, poço, bancas) para cidades de planta própria
@@ -1744,18 +1695,7 @@ func _build_castle(c: Dictionary) -> void:
 		tf.position = Vector3(cx + tp.x, height(cx + tp.x, cz + tp.y) + 4.2, cz + tp.y)
 		root.add_child(tf)
 		fires.append(tf)
-	var plate := Label3D.new()
-	plate.text = "%s\n(zona de cerco)" % c.name
-	plate.font = load("res://assets/cinzel.ttf")
-	plate.font_size = 88
-	plate.pixel_size = 0.022
-	plate.outline_size = 18
-	plate.modulate = Color(1.0, 0.75, 0.55)
-	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	plate.position = Vector3(cx, kg + 38.0, cz)
-	plate.visibility_range_begin = 50.0
-	plate.visibility_range_end = 1200.0
-	root.add_child(plate)
+	# nome do castelo: aviso na tela ao chegar e fixo no mapa
 
 
 # ---------- vilas ----------
@@ -1795,18 +1735,7 @@ func _build_village(v: Dictionary) -> void:
 	var sz := place(root, "n_light_street_1", lamp_pts, 4.0, true, 260.0)
 	for xf in lamp_pts:
 		lamps.append((xf as Transform3D).origin + Vector3(0, sz.y * 0.9, 0))
-	var plate := Label3D.new()
-	plate.text = str(v.name)
-	plate.font = load("res://assets/cinzel.ttf")
-	plate.font_size = 72
-	plate.pixel_size = 0.018
-	plate.outline_size = 16
-	plate.modulate = Color(0.95, 0.9, 0.7)
-	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	plate.position = Vector3(cx, height(cx, cz) + 13.0, cz)
-	plate.visibility_range_begin = 40.0
-	plate.visibility_range_end = 500.0
-	root.add_child(plate)
+	# nome do povoado: aviso na tela ao chegar (sem placa flutuando)
 	var owner := town_by_id(str(v.towns[0]))
 	villages.append({"id": v.id, "name": v.name, "x": cx, "z": cz, "race": owner.get("race", "humano"), "homes": homes, "village": true, "gates": [], "band": owner.get("band", 0)})
 
@@ -2049,18 +1978,7 @@ func _build_ruin(l: Dictionary) -> void:
 		fx.position = Vector3(cx + sin(a) * R * 0.4, height(cx + sin(a) * R * 0.4, cz + cos(a) * R * 0.4) + 1.8, cz + cos(a) * R * 0.4)
 		root.add_child(fx)
 		fires.append(fx)
-	var plate := Label3D.new()
-	plate.text = str(l.name)
-	plate.font = load("res://assets/cinzel.ttf")
-	plate.font_size = 72
-	plate.pixel_size = 0.02
-	plate.outline_size = 16
-	plate.modulate = Color(0.85, 0.82, 0.75)
-	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	plate.position = Vector3(cx, height(cx, cz) + 12.0, cz)
-	plate.visibility_range_begin = 30.0
-	plate.visibility_range_end = 420.0
-	root.add_child(plate)
+	# nome do lugar: aviso na tela ao chegar (sem placa flutuando)
 	counts["ruinas"] = int(counts.get("ruinas", 0)) + 1
 
 

@@ -61,6 +61,8 @@ var tgt_bar: ProgressBar
 var hot: Array = []
 var toast: Label
 var toast_until := 0.0
+var faixa: VBoxContainer  # chegada a uma cidade: nome grande no alto da tela, some sozinho
+var faixa_tw: Tween
 var win: PanelContainer
 var win_title: Label
 var win_list: VBoxContainer
@@ -571,6 +573,22 @@ func _build_hud() -> void:
 	toast.add_theme_constant_override("outline_size", 8)
 	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(toast)
+	faixa = VBoxContainer.new()
+	faixa.anchor_left = 0.0
+	faixa.anchor_right = 1.0
+	faixa.offset_top = 140
+	faixa.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	faixa.modulate.a = 0.0
+	for k in 2:
+		var lb := _label("", 46 if k == 0 else 20, Color(1.0, 0.9, 0.62) if k == 0 else Color(0.92, 0.94, 0.98), true)
+		lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lb.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+		lb.add_theme_constant_override("outline_size", 10 if k == 0 else 6)
+		if k == 0 and ResourceLoader.exists("res://assets/cinzel.ttf"):
+			lb.add_theme_font_override("font", load("res://assets/cinzel.ttf"))
+		lb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		faixa.add_child(lb)
+	hud.add_child(faixa)
 	_movable(win, "janela")
 	_movable(hot_panel, "barra")
 	_movable(plate, "status")
@@ -1293,6 +1311,20 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 		if extra.get("top") is Array:
 			for t in extra.top:
 				_row("[%s] %s   ·   nível %s   ·   %s pontos   ·   %s membros" % [t.get("tag", ""), t.get("name", ""), str(t.get("level", 1)), str(t.get("points", 0)), str(t.get("n", 0))], [])
+
+
+# nome da cidade (ou da área) ao chegar: aparece, fica uns segundos e some
+func anunciar(titulo: String, sub := "", segundos := 3.5) -> void:
+	if faixa == null:
+		return
+	(faixa.get_child(0) as Label).text = titulo
+	(faixa.get_child(1) as Label).text = sub
+	if faixa_tw:
+		faixa_tw.kill()
+	faixa_tw = create_tween()
+	faixa_tw.tween_property(faixa, "modulate:a", 1.0, 0.6)
+	faixa_tw.tween_interval(segundos)
+	faixa_tw.tween_property(faixa, "modulate:a", 0.0, 1.2)
 
 
 func say(t: String) -> void:

@@ -40,7 +40,8 @@ func _process(_d: float) -> bool:
 		var low := 1e9
 		for b in c.feet:
 			var p: Vector3 = xf * c.skel.get_bone_global_pose(b).origin
-			var g: float = (p.y - c.ankle) - float(main.world.height(p.x, p.z))
+			# mede contra o piso de verdade (calçada da cidade fica ~8 cm acima da terra)
+			var g: float = (p.y - c.ankle) - float(main.world.floor_y(p.x, p.z, p.y + 0.5))
 			low = minf(low, g)
 		pior = maxf(pior, absf(low))
 		if absf(low) > 0.04:

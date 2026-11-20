@@ -1002,6 +1002,31 @@ func _physics_process(dt: float) -> void:
 		player.position.y = base_y + sin(PI * jump_t) * 0.85
 
 
+# zona de paz / zona de batalha: invisível no chão; avisa só ao entrar e ao sair. Ao chegar numa cidade ou lugar
+# com nome, o nome aparece grande na tela e some (fica fixo no mapa).
+var zona_atual := {}
+
+
+func _checar_zona() -> void:
+	var z: Dictionary = world.zona(player.position.x, player.position.z)
+	if not interiores.inside.is_empty():
+		z = {"paz": true, "nome": zona_atual.get("nome", ""), "cidade": true, "id": zona_atual.get("id", "")}
+	if zona_atual.is_empty():
+		zona_atual = z
+		if str(z.nome) != "":
+			ui.anunciar(str(z.nome), "Zona de paz" if z.paz else "Zona de batalha")
+		return
+	if bool(z.paz) == bool(zona_atual.paz) and str(z.id) == str(zona_atual.id):
+		return
+	var antes := zona_atual
+	zona_atual = z
+	if str(z.id) != "" and str(z.id) != str(antes.id):
+		ui.anunciar(str(z.nome), ("Zona de paz — aqui ninguém morre" if z.paz else "Zona de batalha — cuidado"))
+	elif bool(antes.paz) and not bool(z.paz):
+		ui.say("Você saiu da zona de paz · zona de batalha")
+	elif bool(z.paz) and not bool(antes.paz):
+		ui.say("Você entrou numa zona de paz")
+
 func _process(dt: float) -> void:
 	Character.recolher()
 	world.recolher()
@@ -1044,8 +1069,10 @@ func _process(dt: float) -> void:
 		if ui.win.visible and Engine.get_frames_drawn() % 20 == 0:
 			var cs: Dictionary = combat.st
 			ui.stats_view = {"Vida": "%d / %d" % [int(combat.hp), int(cs.get("maxHp", 0))], "Mana": "%d / %d" % [int(combat.mp), int(cs.get("maxMp", 0))], "Ataque físico": str(int(cs.get("patk", 0))), "Ataque mágico": str(int(cs.get("matk", 0))), "Defesa": str(int(cs.get("pdef", 0))), "Velocidade": "%.1f m/s" % float(cs.get("speed", 0)), "Alcance": "%.1f m" % float(cs.get("range", 0)), "Intervalo de ataque": "%.2f s" % float(cs.get("interval", 0)), "Elemento": str(combat.my_elem).capitalize()}
-		# na cidade ninguém fica em postura de combate: arma guardada dentro da zona segura
-		var in_town: bool = world.nearest_town(player.position.x, player.position.z).in_safe
+		# na cidade ninguém fica em postura de combate: arma guardada dentro da zona de paz
+		if Engine.get_frames_drawn() % 20 == 0:
+			_checar_zona()
+		var in_town: bool = bool(zona_atual.get("paz", false))
 		var fighting: bool = (combat.auto or combat.now() < combat.combat_until) and not in_town
 		if fighting != player.armed:
 			player.magic_idle = bool(combat.st.get("magic", false))
@@ -1065,7 +1092,7 @@ func _process(dt: float) -> void:
 				nt = world.nearest_town((dt_.pos as Vector3).x, (dt_.pos as Vector3).z)
 				nt.in_safe = true
 				nt.town = {"name": "%s · %s" % [interiores.inside.name, nt.town.name], "min": 1, "max": 1}
-			var where: String = nt.town.name + ("  ·  zona segura" if nt.in_safe else "  ·  arredores (nível %d a %d)" % [int(nt.town.min), int(nt.town.max)])
+			var where: String = nt.town.name + ("  ·  zona de paz" if nt.in_safe else "  ·  arredores (nível %d a %d)" % [int(nt.town.min), int(nt.town.max)])
 			ui.place_label.text = "%s\nPosição %d, %d   ·   %s%s" % [where, int(player.position.x), int(player.position.z), atmos.hour_text(), "   ·   chuva" if atmos.wet > 0.3 else ""]
 	elif creating or showing:
 		var f := Vector3(sin(facing), 0, cos(facing))

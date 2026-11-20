@@ -899,7 +899,9 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 		var mi := MeshInstance3D.new()
 		mi.mesh = _malha_barba()
 		mi.material_override = pelo
-		mi.transform = rest.affine_inverse()
+		# barba de anão mais cheia e comprida (larga 15%, desce 35% a mais a partir do queixo)
+		var queixo := Vector3(0.0, 1.6, 0.09)
+		mi.transform = rest.affine_inverse() * Transform3D(Basis.from_scale(Vector3(1.15, 1.35, 1.15)), queixo - Basis.from_scale(Vector3(1.15, 1.35, 1.15)) * queixo)
 		att.add_child(mi)
 		var cobre := StandardMaterial3D.new()
 		cobre.albedo_color = Color(0.72, 0.42, 0.22)
@@ -1639,7 +1641,8 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	var at := float(g.at) * s if float(g.at) >= 0.0 else -1.0
 	wnode = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
 	if kind == "arco":
-		wnode.transform = Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3.ZERO) * wnode.transform
+		# arco em pé na mão esquerda (corda para dentro), não deitado na horizontal
+		wnode.transform = Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3.ZERO) * wnode.transform
 	elif float(g.get("two", 0.0)) <= 0.0:
 		var um: Array = _pegada().uma_mao
 		wnode.transform = Transform3D(Basis.from_euler(Vector3(float(um[0]), 0.0, float(um[1]))), Vector3.ZERO) * wnode.transform
@@ -1660,6 +1663,13 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 		var hand_l := Node3D.new()
 		hand_l.position = Vector3(0, 0, -(float(g.at) - two) * s)
 		guard.add_child(hand_l)
+		# o IK leva o PULSO ao alvo; a palma fica uns 6 cm adiante, na direção do antebraço. Recua cada alvo
+		# para a palma (e não o pulso) cair em cima do cabo — antes as mãos ficavam ao lado da arma.
+		for par in [[hand_r, Vector3(-0.19, 1.42, 0.0) * k], [hand_l, Vector3(0.19, 1.42, 0.0) * k]]:
+			var mao: Node3D = par[0]
+			var ponto: Vector3 = guard.transform * mao.position
+			var dirb := (ponto - (par[1] as Vector3)).normalized()
+			mao.position += guard.basis.inverse() * (-dirb * 0.065 * k)
 		ik_r = _arm_ik("r", hand_r, Vector3(-0.6, 0.45, -0.5) * k)
 		ik = _arm_ik("l", hand_l, Vector3(0.6, 0.45, -0.5) * k)
 	if g.get("dual", false):
@@ -1886,7 +1896,10 @@ func _process(dt: float) -> void:
 	var gap := 1e9
 	for p in locs:
 		if (p as Vector3).y - root_y <= best + 0.06:
-			gap = minf(gap, ((p as Vector3).y - ankle) - float(world_ref.floor_y(p.x, p.z, root_y + 0.5)))
+			var chao := float(world_ref.floor_y(p.x, p.z, root_y + 0.5))
+			if absf(chao - root_y) > 0.9:
+				chao = root_y  # sem chão do mundo por perto (interior de casa, ponte alta): o piso é o da própria raiz
+			gap = minf(gap, ((p as Vector3).y - ankle) - chao)
 	var want := clampf(foot_off - gap, -0.35, 0.25)
 	foot_off = lerpf(foot_off, want, clampf(dt * 10.0, 0.0, 1.0))
 	body_node.position.y = body_base_y + foot_off / maxf(scale.y, 0.01)
@@ -1925,6 +1938,8 @@ func oficio(tipo: String, sem_tunica := false) -> void:
 	if skel == null or not OFICIOS.has(tipo) or skel.find_bone("spine_01") < 0 or skel.find_bone("calf_l") < 0:
 		return
 	var cfg: Dictionary = OFICIOS[tipo]
+	if tipo == "ferreiro" and wnode != null:
+		wnode.scale *= 0.55  # martelo de forja, não o martelo de guerra
 	var R := func(b: String) -> Vector3: return skel.get_bone_global_rest(skel.find_bone(b)).origin
 	var pel: Vector3 = R.call("pelvis")
 	var sp2: Vector3 = R.call("spine_02")
