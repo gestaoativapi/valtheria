@@ -31,6 +31,7 @@ var yaw := 0.6
 var pitch := -0.32
 var dist := 7.5
 var orbiting := false
+var toque: CanvasLayer  # controles de toque (celular)
 var target := Vector3.ZERO
 var has_target := false
 var facing := 0.0
@@ -116,6 +117,13 @@ func _ready() -> void:
 	ui = UI.new()
 	ui.info = world.info
 	add_child(ui)
+	if OS.has_feature("mobile") and not net.ambiente_teste():
+		ui.modo_so_offline()  # APK de teste: nunca entra no servidor oficial
+	# celular (ou PC com --toque): joystick, câmera por arraste e botões de ação
+	if OS.has_feature("mobile") or OS.get_cmdline_user_args().has("--toque"):
+		toque = load("res://scripts/toque.gd").new()
+		toque.main = self
+		add_child(toque)
 	if net.ambiente_teste():
 		# aviso fixo na tela: este jogo usa o servidor de testes, não o oficial
 		var faixa := Label.new()
@@ -482,7 +490,13 @@ func _place_player(p: Vector3) -> void:
 
 
 # ---------- conta ----------
+func _login_bloqueado() -> bool:
+	return OS.has_feature("mobile") and not net.ambiente_teste()
+
+
 func _login(user: String, password: String) -> void:
+	if _login_bloqueado():
+		return
 	ui.busy(true)
 	ui.set_status("Entrando...", false)
 	var err: String = await net.login(user, password)
@@ -495,6 +509,8 @@ func _login(user: String, password: String) -> void:
 
 
 func _signup(user: String, password: String) -> void:
+	if _login_bloqueado():
+		return
 	ui.busy(true)
 	ui.set_status("Criando a conta...", false)
 	var err: String = await net.signup(user, password)
@@ -928,6 +944,8 @@ func _physics_process(dt: float) -> void:
 	if not typing and Input.is_physical_key_pressed(KEY_D): input.x += 1.0
 	if not typing and Input.is_physical_key_pressed(KEY_W): input.y -= 1.0
 	if not typing and Input.is_physical_key_pressed(KEY_S): input.y += 1.0
+	if toque != null and toque.mov != Vector2.ZERO:
+		input = toque.mov
 	var move := Vector3.ZERO
 	if input.length() > 0.1 and not combat.dead:
 		combat.stop_auto()

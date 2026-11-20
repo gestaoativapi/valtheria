@@ -3,6 +3,8 @@ config_version=5
 
 [application]
 
+config/icon="res://icone_valtheria.png"
+
 config/name="Valtheria"
 config/version="0.17.0"
 run/main_scene="res://main.tscn"
@@ -17,6 +19,9 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
 [rendering]
+
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
 
 rendering_device/driver.windows="vulkan"
 anti_aliasing/quality/msaa_3d=2

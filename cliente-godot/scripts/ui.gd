@@ -7,6 +7,14 @@ const IconButton = preload("res://scripts/icon_button.gd")
 signal want_login(user: String, password: String)
 signal want_signup(user: String, password: String)
 signal want_offline
+var login_conta: Array = []  # campos e botões de conta (somem na versão de celular sem servidor de testes)
+
+
+# versão de teste no celular sem o endereço do servidor de testes: só o modo sem conta, nunca o servidor oficial
+func modo_so_offline() -> void:
+	for n in login_conta:
+		if is_instance_valid(n):
+			(n as Control).visible = false
 signal want_char(c: Dictionary)
 signal want_quality
 signal want_vsync
@@ -299,6 +307,7 @@ func _build_login() -> void:
 	var off := _button("Entrar sem conta (teste)")
 	off.pressed.connect(func(): want_offline.emit())
 	form.add_child(off)
+	login_conta = [user_edit, pass_edit, enter, create]
 
 	char_box = VBoxContainer.new()
 	char_box.add_theme_constant_override("separation", 10)
