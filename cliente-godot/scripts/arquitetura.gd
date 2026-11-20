@@ -143,6 +143,9 @@ void fragment() {
 		vec3 nw = normalize(tx.zyx * w.x + ty.xzy * w.y + tz.xyz * w.z);
 		NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
 		vec3 tingida = c / max(tex_media.rgb, vec3(0.02)) * cor.rgb;
+		// tingimento forte usa só o claro-escuro da textura (some o musgo verde da telha original)
+		float lum = dot(c, vec3(0.3, 0.59, 0.11)) / max(dot(tex_media.rgb, vec3(0.3, 0.59, 0.11)), 0.02);
+		tingida = mix(tingida, lum * cor.rgb, smoothstep(0.8, 1.0, tingir));
 		float mancha = fbm(wpos.xz * 0.12 + wpos.y * 0.05);
 		ALBEDO = mix(c, tingida, tingir) * (1.0 - desgaste * 0.3 * smoothstep(0.45, 0.85, mancha));
 		ROUGHNESS = clamp(rr * rugosidade / 0.85, 0.05, 1.0);

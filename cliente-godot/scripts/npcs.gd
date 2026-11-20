@@ -452,6 +452,7 @@ func _person(race: String, opts: Dictionary = {}) -> Dictionary:
 	c.scale = Vector3(w, h, w)
 	add_child(c)
 	c.set_battle(false)  # ninguém anda de arma em punho na cidade nem na estrada
+	c.tingir_roupa(rng.randi())  # cada morador com a túnica de uma cor (antes todos de branco)
 	if _cold():
 		c.winter(rng.randi())
 	return {"node": c, "race": race, "female": female, "age": age, "name": _name(race, female),

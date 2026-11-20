@@ -622,6 +622,8 @@ func _model(file: String) -> Dictionary:
 
 # desenha um modelo em vários pontos de uma vez; pts em coordenadas do mundo, nó filho de `parent`
 func place(parent: Node3D, file: String, pts: Array, target_h: float, shadows := true, vis_end := 0.0) -> Vector3:
+	if file == "n_light_street_1":
+		return _postes(parent, pts, target_h, vis_end)
 	var m := _model(file)
 	var bb: AABB = m.bb
 	var k := target_h / bb.size.y
@@ -645,6 +647,36 @@ func place(parent: Node3D, file: String, pts: Array, target_h: float, shadows :=
 		parent.add_child(mi)
 	_solidify(file, pts, bb.size * k)
 	return bb.size * k
+
+
+# postes medievais (props.gd) no lugar do poste de rua moderno do pacote; o vidro usa lamp_mat (acende à noite)
+func _postes(parent: Node3D, pts: Array, alt: float, vis_end: float) -> Vector3:
+	var Props = load("res://scripts/props.gd")
+	if lamp_mat == null:
+		lamp_mat = StandardMaterial3D.new()
+		lamp_mat.albedo_color = Color(1.0, 0.82, 0.5)
+		lamp_mat.emission_enabled = true
+		lamp_mat.emission = Color(1.0, 0.7, 0.35)
+		lamp_mat.emission_energy_multiplier = 0.2
+	var inv := parent.global_transform.affine_inverse() if parent.is_inside_tree() else Transform3D(Basis.IDENTITY, -parent.position)
+	for pc in Props.poste_pecas(alt):
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = pc[0]
+		mm.instance_count = pts.size()
+		for i in pts.size():
+			mm.set_instance_transform(i, inv * (pts[i] as Transform3D) * (pc[2] as Transform3D))
+		var mi := MultiMeshInstance3D.new()
+		mi.multimesh = mm
+		mi.material_override = lamp_mat if str(pc[1]) == "luz" else Props.mat(str(pc[1]))
+		if str(pc[1]) == "luz":
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if vis_end > 0.0:
+			mi.visibility_range_end = vis_end
+		parent.add_child(mi)
+	var tam := Vector3(0.6, alt, 0.6)
+	_solidify("n_light_street_1", pts, tam)
+	return tam
 
 
 # folhagem com cor de natureza real (lapidação 18/11): as folhas dos modelos vinham em verde-limão
@@ -690,6 +722,13 @@ func _folha(m: Material) -> Material:
 	if not (m is StandardMaterial3D):
 		return m
 	var nome := String(m.resource_name)
+	if nome.begins_with("Bark"):  # casca das árvores: tom de madeira de verdade (vinha amarelo-esverdeado)
+		if not _folha_mats.has(m):
+			var bk := (m as StandardMaterial3D).duplicate() as StandardMaterial3D
+			bk.albedo_color = Color(0.46, 0.42, 0.39) if nome.contains("Normal") or nome.contains("Twisted") else Color(0.6, 0.56, 0.52)
+			bk.roughness = 0.95
+			_folha_mats[m] = bk
+		return _folha_mats[m]
 	var cfg := {}
 	if nome.contains("TwistedTree"):
 		cfg = {"escuro": Color(0.09, 0.15, 0.06), "claro": Color(0.36, 0.44, 0.2), "mistura": 1.0, "chance_outono": 0.22}
@@ -1156,6 +1195,8 @@ func _build_town(t: Dictionary) -> void:
 	var raca_v := str(t.get("race", ""))
 	var outra := VilasRacas.PALETAS.has(raca_v)   # Umbraval e as próximas vilas de raça (vilas_racas.gd)
 	var casas_r: Array = []
+	var casas_kit: Array = []  # vilas humanas e halflings: casas modulares (casa_kit.gd) no lugar dos modelos de brinquedo
+	var humana := raca_v in ["humano", "halfling"] and not (anao or orc or outra)
 	if anao or outra:
 		# Pedra Alta (MESA-016.1): casas, forja, estalagem, cofre e salão anões no lugar dos modelos humanos
 		lay.props = lay.props.filter(func(pd): return str(pd[0]) != "b_blacksmith")
@@ -1181,9 +1222,24 @@ func _build_town(t: Dictionary) -> void:
 			else:
 				casas_orc.append(xf)
 			continue
+		if humana:
+			var xk := at(cx + hx, cz + hz, yaw, 1.0, 0.05)
+			xk.origin -= Vector3(cx, 0, cz)
+			casas_kit.append(xk)
+			block_box(cx + hx, cz + hz, 3.2, 4.2, yaw)
+			_porta_casa(t, cx + hx, cz + hz, yaw, 4.9)
+			continue
 		var sz := place(root, hdef[0], [at(cx + hx, cz + hz, yaw, 1.0, 0.15)], hdef[3], true, 900.0)
 		block(cx + hx, cz + hz, maxf(sz.x, sz.z) * 0.42)
 		_porta_casa(t, cx + hx, cz + hz, yaw, sz.z * 0.5 + 0.6)
+	if not casas_kit.is_empty():
+		var CK = load("res://scripts/casa_kit.gd")
+		var k1: Array = []
+		var k2: Array = []
+		for i in casas_kit.size():  # metade térrea, metade sobrado
+			(k1 if i % 3 == 0 else k2).append(casas_kit[i])
+		CK.construir(root, k1, 3, 4, 1, 320.0)
+		CK.construir(root, k2, 3, 4, 2, 320.0)
 	# portas das casas de raça: moradores do próprio povo dentro (19/11)
 	for par in [[casas_r, VilasRacas.RAIO.casa * VilasRacas.escala(raca_v, "casa") if outra else 0.0], [casas_anas, 4.6 * 0.85], [casas_orc, 5.0 * 0.78]]:
 		for xf in par[0]:

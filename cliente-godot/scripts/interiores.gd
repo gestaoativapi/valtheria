@@ -277,7 +277,7 @@ func _layout(kind: String, title: String) -> Dictionary:
 			it.append(["mesa", 4.0, -4.6, 3.0, 1.2, "Bancada"])
 			it.append(["armas", 6.4, 0.0, 0.5, 5.0, "Armas"])
 			it.append(["barril", -6.0, 2.0, 0.8, 0.8, ""])
-			np.append(["Ferreiro", -1.0, -3.0, 0.0, "TreeChopping", "forja"])
+			np.append(["Ferreiro", -1.9, -2.0, PI * 0.5, "TreeChopping", "forja"])  # de lado para a bigorna: visível da porta
 			np.append(["Aprendiz", 4.0, -3.6, PI, "Interact", "forja"])
 			np.append(["Cliente", 1.5, 1.0, -PI * 0.6, "Idle_FoldArms", "forja"])
 		"igreja":
@@ -306,7 +306,7 @@ func _layout(kind: String, title: String) -> Dictionary:
 			it.append(["mesa", 1.4, -0.8, 1.8, 1.2, "Mesa"])
 			it.append(["lareira", 3.8, -3.8, 2.2, 0.8, "Fogão"])
 			it.append(["armario", -4.8, 1.8, 0.6, 2.0, ""])
-			np.append(["Dona da casa", 3.4, -2.6, 0.0, "Interact", "casa"])
+			np.append(["Dona da casa", 2.6, -2.7, PI * 0.8, "Interact", "casa"])  # cozinhando de frente para o fogão
 			np.append(["Morador", 1.4, 0.2, PI, "Sitting_Idle", "casa"])
 			np.append(["Criança", -1.6, 1.4, 0.0, "Dance", "casa"])
 		"loja":
@@ -384,7 +384,7 @@ func _build() -> void:
 	var H: float = inside.h
 	var pedra_chao: bool = inside.kind in ["forja", "arena", "igreja", "palacio"]
 	var floor_m: Material = Arq.material("pedra", inside.floor, {"textura": "unevenbrick", "metros": 2.2, "tingir": 0.6}) if pedra_chao \
-		else Arq.material("madeira", inside.floor, {"bloco": Vector2(1.6, 0.42), "desgaste": 0.15})
+		else Arq.material("madeira", inside.floor, {"bloco": Vector2(0.75, 0.42), "desgaste": 0.15})
 	var wall_m: Material = Arq.material("reboco", inside.wall, {"metros": 2.5, "tingir": 0.7}) if inside.kind != "forja" \
 		else Arq.material("pedra", inside.wall, {"metros": 2.4, "tingir": 0.6})
 	var wood := _mat(Color(0.36, 0.24, 0.14))
@@ -441,6 +441,7 @@ func _build() -> void:
 		if str(n[0]) == "Criança":
 			c.scale = Vector3.ONE * 0.62
 		room.add_child(c)
+		c.tingir_roupa(randi())
 		c.set_battle(not of.is_empty() and str(of[3]) != "")  # ferramenta na mão de quem trabalha
 		if not of.is_empty() and str(of[1]) != "":
 			c.oficio(str(of[1]))
@@ -488,6 +489,9 @@ func _item(i: Array, wood: Material, dark: Material) -> void:
 			if d > w:
 				prop.rotation.y = PI * 0.5
 			h = 0.0
+		"lareira":
+			prop = Props.lareira(w, d, minf(float(inside.h), 3.0))
+			h = 0.0
 		"armas":
 			prop = Props.armas(maxf(w, d))
 			if x > 0.0:
@@ -499,12 +503,6 @@ func _item(i: Array, wood: Material, dark: Material) -> void:
 	match k:
 		"balcao":
 			h = 1.1
-		"lareira":
-			h = 2.2
-			mat = _mat(Color(0.45, 0.42, 0.4))
-			var f: Node3D = FX.fire(0.9 if k == "fornalha" else 0.7, true)
-			f.position = Vector3(x, 0.5, z + d * 0.55)
-			room.add_child(f)
 		"banco":
 			h = 0.5
 		"coluna":

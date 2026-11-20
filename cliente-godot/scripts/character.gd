@@ -1904,6 +1904,23 @@ const OFICIOS := {
 }
 
 
+# túnica tingida (moradores): linho cru, castanho, oliva, ferrugem, anil, ocre e ameixa — cores de tintura natural
+const TINGIMENTOS := [Color(1, 1, 1), Color(0.8, 0.68, 0.52), Color(0.58, 0.64, 0.46), Color(0.74, 0.47, 0.4),
+	Color(0.52, 0.58, 0.72), Color(0.82, 0.72, 0.46), Color(0.62, 0.52, 0.62), Color(0.45, 0.4, 0.36)]
+
+
+func tingir_roupa(semente: int) -> void:
+	if skel == null:
+		return
+	var cor: Color = TINGIMENTOS[absi(semente) % TINGIMENTOS.size()]
+	var cor_calca: Color = TINGIMENTOS[absi(semente / 7 + 3) % TINGIMENTOS.size()].darkened(0.25)
+	for m in skel.find_children("*", "MeshInstance3D", false, false):
+		if String(m.name).begins_with("tunica"):
+			_tint(m, cor)
+		elif String(m.name).begins_with("calca"):
+			_tint(m, cor_calca)
+
+
 func oficio(tipo: String, sem_tunica := false) -> void:
 	if skel == null or not OFICIOS.has(tipo) or skel.find_bone("spine_01") < 0 or skel.find_bone("calf_l") < 0:
 		return

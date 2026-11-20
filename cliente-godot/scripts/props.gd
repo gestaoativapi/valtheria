@@ -17,7 +17,7 @@ static func mat(nome: String) -> Material:
 		"madeira_escura":
 			m = Arq.material("madeira", Color(0.22, 0.15, 0.1), {"desgaste": 0.2})
 		"pedra":
-			m = Arq.material("pedra", Color(0.42, 0.4, 0.38), {"textura": "unevenbrick", "metros": 1.4})
+			m = Arq.material("pedra", Color(0.32, 0.3, 0.29), {"textura": "unevenbrick", "metros": 1.4})
 		"tijolo":
 			m = Arq.material("pedra", Color(0.5, 0.36, 0.3), {"metros": 1.4})
 		"ferro":
@@ -104,6 +104,23 @@ static func fornalha(larg := 2.4, fundo := 1.6, altura_teto := 4.2) -> Node3D:
 	_peca(n, _cx(0.06, 0.06, 0.5), "madeira", Vector3(larg * 0.5 + 0.4, 0.86, 0.55))
 	var f: Node3D = FX.fire(0.6, true)
 	f.position = Vector3(0, 1.0, 0.05)
+	n.add_child(f)
+	return n
+
+
+# lareira/fogão de pedra com boca aberta, fogo dentro, panela pendurada e consolo de madeira
+static func lareira(larg := 2.2, fundo := 0.8, alt := 2.4) -> Node3D:
+	var n := Node3D.new()
+	for s in [-1.0, 1.0]:  # laterais da boca
+		_peca(n, _cx(larg * 0.25, 1.2, fundo), "pedra", Vector3(s * larg * 0.375, 0.6, 0))
+	_peca(n, _cx(larg, 0.25, fundo), "pedra", Vector3(0, 0.12, 0))                  # soleira
+	_peca(n, _cx(larg * 0.5, 1.0, 0.15), "tijolo", Vector3(0, 0.75, -fundo * 0.42))   # fundo da boca
+	_peca(n, _cx(larg + 0.15, 0.14, fundo + 0.15), "madeira_escura", Vector3(0, 1.27, 0.04))  # consolo
+	_peca(n, _cil(larg * 0.32, larg * 0.48, alt - 1.34, 4), "pedra", Vector3(0, 1.34 + (alt - 1.34) * 0.5, -0.05), Vector3(0, PI * 0.25, 0), Vector3(1, 1, fundo / larg * 1.4))
+	_peca(n, _cil(0.16, 0.13, 0.2, 10), "ferro", Vector3(0, 0.62, 0.0))              # panela
+	_peca(n, _cx(0.02, 0.4, 0.02), "ferro", Vector3(0, 0.92, 0.0))
+	var f: Node3D = FX.fire(0.45, true)
+	f.position = Vector3(0, 0.28, 0.0)
 	n.add_child(f)
 	return n
 
@@ -196,3 +213,23 @@ static func prateleira(larg := 6.0, alt := 2.4, prof := 0.5) -> Node3D:
 			x += 0.42 + 0.1 * float(i % 2)
 			i += 1
 	return n
+
+
+# poste medieval (no lugar do poste de rua moderno): mastro de madeira, braço de ferro e lanterna com vidros
+# que acendem à noite. Devolve peças [malha, material ("luz" = vidro aceso), Transform3D] para desenho em lote.
+static func poste_pecas(alt := 4.0) -> Array:
+	var p: Array = []
+	p.append([_cx(0.62, 0.35, 0.62), "pedra", Transform3D(Basis.IDENTITY, Vector3(0, 0.17, 0))])
+	p.append([_cil(0.09, 0.12, alt - 0.3, 8), "madeira_escura", Transform3D(Basis.IDENTITY, Vector3(0, 0.3 + (alt - 0.3) * 0.5, 0))])
+	p.append([_cx(0.06, 0.06, 0.75), "ferro", Transform3D(Basis.IDENTITY, Vector3(0, alt - 0.25, 0.36))])
+	p.append([_cx(0.04, 0.4, 0.04), "ferro", Transform3D(Basis(Vector3.RIGHT, 0.75), Vector3(0, alt - 0.45, 0.16))])
+	var lz := 0.68
+	var ly := alt - 0.68
+	p.append([_cil(0.0, 0.2, 0.16, 4), "ferro", Transform3D(Basis(Vector3.UP, PI * 0.25), Vector3(0, ly + 0.3, lz))])   # chapéu
+	p.append([_cx(0.26, 0.04, 0.26), "ferro", Transform3D(Basis.IDENTITY, Vector3(0, ly - 0.22, lz))])                # fundo
+	p.append([_cx(0.2, 0.4, 0.2), "luz", Transform3D(Basis.IDENTITY, Vector3(0, ly, lz))])                            # vidro
+	for sx in [-1.0, 1.0]:
+		for sz in [-1.0, 1.0]:
+			p.append([_cx(0.03, 0.44, 0.03), "ferro", Transform3D(Basis.IDENTITY, Vector3(sx * 0.115, ly, lz + sz * 0.115))])
+	p.append([_cx(0.08, 0.08, 0.08), "ferro", Transform3D(Basis.IDENTITY, Vector3(0, ly + 0.42, lz))])
+	return p
