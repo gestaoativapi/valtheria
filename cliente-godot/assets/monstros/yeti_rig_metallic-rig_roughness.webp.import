@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bkhp40fcsu605"
-path="res://.godot/imported/yeti_rig_metallic-rig_roughness.webp-414fe8f62e45d46aca689e5032bd6357.ctex"
+path.s3tc="res://.godot/imported/yeti_rig_metallic-rig_roughness.webp-414fe8f62e45d46aca689e5032bd6357.s3tc.ctex"
+path.etc2="res://.godot/imported/yeti_rig_metallic-rig_roughness.webp-414fe8f62e45d46aca689e5032bd6357.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "3e3b24bae62338685ba4774fc91e71c0"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/monstros/yeti_rig_metallic-rig_roughness.webp"
-dest_files=["res://.godot/imported/yeti_rig_metallic-rig_roughness.webp-414fe8f62e45d46aca689e5032bd6357.ctex"]
+dest_files=["res://.godot/imported/yeti_rig_metallic-rig_roughness.webp-414fe8f62e45d46aca689e5032bd6357.s3tc.ctex", "res://.godot/imported/yeti_rig_metallic-rig_roughness.webp-414fe8f62e45d46aca689e5032bd6357.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cwpvg0q5nu80q"
-path="res://.godot/imported/body_female_T_Superhero_Female_Normal.webp-68a1b91e45b0fb6c45d603595bd2394d.ctex"
+path.s3tc="res://.godot/imported/body_female_T_Superhero_Female_Normal.webp-68a1b91e45b0fb6c45d603595bd2394d.s3tc.ctex"
+path.etc2="res://.godot/imported/body_female_T_Superhero_Female_Normal.webp-68a1b91e45b0fb6c45d603595bd2394d.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1bbd1161e928e02702e4f3126dc589aa"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/body_female_T_Superhero_Female_Normal.webp"
-dest_files=["res://.godot/imported/body_female_T_Superhero_Female_Normal.webp-68a1b91e45b0fb6c45d603595bd2394d.ctex"]
+dest_files=["res://.godot/imported/body_female_T_Superhero_Female_Normal.webp-68a1b91e45b0fb6c45d603595bd2394d.s3tc.ctex", "res://.godot/imported/body_female_T_Superhero_Female_Normal.webp-68a1b91e45b0fb6c45d603595bd2394d.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

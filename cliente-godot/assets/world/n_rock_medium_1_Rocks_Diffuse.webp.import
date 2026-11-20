@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bfeto8i0bod3n"
-path="res://.godot/imported/n_rock_medium_1_Rocks_Diffuse.webp-d8c8d09238e68d7342cfc4a6ea29bd78.ctex"
+path.s3tc="res://.godot/imported/n_rock_medium_1_Rocks_Diffuse.webp-d8c8d09238e68d7342cfc4a6ea29bd78.s3tc.ctex"
+path.etc2="res://.godot/imported/n_rock_medium_1_Rocks_Diffuse.webp-d8c8d09238e68d7342cfc4a6ea29bd78.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "3f8d8eb11666794c4d08c8fdfd9ccb01"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/world/n_rock_medium_1_Rocks_Diffuse.webp"
-dest_files=["res://.godot/imported/n_rock_medium_1_Rocks_Diffuse.webp-d8c8d09238e68d7342cfc4a6ea29bd78.ctex"]
+dest_files=["res://.godot/imported/n_rock_medium_1_Rocks_Diffuse.webp-d8c8d09238e68d7342cfc4a6ea29bd78.s3tc.ctex", "res://.godot/imported/n_rock_medium_1_Rocks_Diffuse.webp-d8c8d09238e68d7342cfc4a6ea29bd78.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

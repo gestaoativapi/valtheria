@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dy8geqeowfu48"
-path="res://.godot/imported/outfit_male_wizard_T_Regular_Male_Roughness.webp-90e2c18b289d76511dd7074b1bf6123a.ctex"
+path.s3tc="res://.godot/imported/outfit_male_wizard_T_Regular_Male_Roughness.webp-90e2c18b289d76511dd7074b1bf6123a.s3tc.ctex"
+path.etc2="res://.godot/imported/outfit_male_wizard_T_Regular_Male_Roughness.webp-90e2c18b289d76511dd7074b1bf6123a.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "50284ed05258abb9cf942ddfce9eaa8a"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/outfit_male_wizard_T_Regular_Male_Roughness.webp"
-dest_files=["res://.godot/imported/outfit_male_wizard_T_Regular_Male_Roughness.webp-90e2c18b289d76511dd7074b1bf6123a.ctex"]
+dest_files=["res://.godot/imported/outfit_male_wizard_T_Regular_Male_Roughness.webp-90e2c18b289d76511dd7074b1bf6123a.s3tc.ctex", "res://.godot/imported/outfit_male_wizard_T_Regular_Male_Roughness.webp-90e2c18b289d76511dd7074b1bf6123a.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cnagfv6e1ok1d"
-path="res://.godot/imported/outfit_female_ranger_T_Ranger_Normal.webp-076551f8dc3b75d738e269c1c8a2b89c.ctex"
+path.s3tc="res://.godot/imported/outfit_female_ranger_T_Ranger_Normal.webp-076551f8dc3b75d738e269c1c8a2b89c.s3tc.ctex"
+path.etc2="res://.godot/imported/outfit_female_ranger_T_Ranger_Normal.webp-076551f8dc3b75d738e269c1c8a2b89c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1e2e51c09b95f698d9ad61b5df13a091"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/outfit_female_ranger_T_Ranger_Normal.webp"
-dest_files=["res://.godot/imported/outfit_female_ranger_T_Ranger_Normal.webp-076551f8dc3b75d738e269c1c8a2b89c.ctex"]
+dest_files=["res://.godot/imported/outfit_female_ranger_T_Ranger_Normal.webp-076551f8dc3b75d738e269c1c8a2b89c.s3tc.ctex", "res://.godot/imported/outfit_female_ranger_T_Ranger_Normal.webp-076551f8dc3b75d738e269c1c8a2b89c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

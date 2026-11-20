@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://s106wp5kokpl"
-path="res://.godot/imported/pc_humano_f_3.png-81305a3a5b2057c7752fcea0dd1ee214.ctex"
+path.s3tc="res://.godot/imported/pc_humano_f_3.png-81305a3a5b2057c7752fcea0dd1ee214.s3tc.ctex"
+path.etc2="res://.godot/imported/pc_humano_f_3.png-81305a3a5b2057c7752fcea0dd1ee214.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "95b65a0d75e981c13d27c1081294645c"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets_v3/personagens/pc_humano_f_3.png"
-dest_files=["res://.godot/imported/pc_humano_f_3.png-81305a3a5b2057c7752fcea0dd1ee214.ctex"]
+dest_files=["res://.godot/imported/pc_humano_f_3.png-81305a3a5b2057c7752fcea0dd1ee214.s3tc.ctex", "res://.godot/imported/pc_humano_f_3.png-81305a3a5b2057c7752fcea0dd1ee214.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

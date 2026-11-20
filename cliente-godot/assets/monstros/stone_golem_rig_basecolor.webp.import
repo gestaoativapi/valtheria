@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://2io0h4bbqqn7"
-path="res://.godot/imported/stone_golem_rig_basecolor.webp-0446f32148ac866efe82e8d06faac7db.ctex"
+path.s3tc="res://.godot/imported/stone_golem_rig_basecolor.webp-0446f32148ac866efe82e8d06faac7db.s3tc.ctex"
+path.etc2="res://.godot/imported/stone_golem_rig_basecolor.webp-0446f32148ac866efe82e8d06faac7db.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e3579aa151f538080d0b4ce68a02a984"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/monstros/stone_golem_rig_basecolor.webp"
-dest_files=["res://.godot/imported/stone_golem_rig_basecolor.webp-0446f32148ac866efe82e8d06faac7db.ctex"]
+dest_files=["res://.godot/imported/stone_golem_rig_basecolor.webp-0446f32148ac866efe82e8d06faac7db.s3tc.ctex", "res://.godot/imported/stone_golem_rig_basecolor.webp-0446f32148ac866efe82e8d06faac7db.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

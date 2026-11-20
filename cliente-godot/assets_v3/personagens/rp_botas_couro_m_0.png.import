@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://x2r75070dsf0"
-path="res://.godot/imported/rp_botas_couro_m_0.png-9a60292316469fa3073a004c5c9aee9b.ctex"
+path.s3tc="res://.godot/imported/rp_botas_couro_m_0.png-9a60292316469fa3073a004c5c9aee9b.s3tc.ctex"
+path.etc2="res://.godot/imported/rp_botas_couro_m_0.png-9a60292316469fa3073a004c5c9aee9b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0c1454f395fb04011c97e6f72b1ccaf4"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets_v3/personagens/rp_botas_couro_m_0.png"
-dest_files=["res://.godot/imported/rp_botas_couro_m_0.png-9a60292316469fa3073a004c5c9aee9b.ctex"]
+dest_files=["res://.godot/imported/rp_botas_couro_m_0.png-9a60292316469fa3073a004c5c9aee9b.s3tc.ctex", "res://.godot/imported/rp_botas_couro_m_0.png-9a60292316469fa3073a004c5c9aee9b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

@@ -3,21 +3,23 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://gov66emys605"
-path="res://.godot/imported/roundtiles_basecolor.webp-f30fd89ac5ff57bd55e69f8fb73c73d9.ctex"
+path.s3tc="res://.godot/imported/roundtiles_basecolor.webp-f30fd89ac5ff57bd55e69f8fb73c73d9.s3tc.ctex"
+path.etc2="res://.godot/imported/roundtiles_basecolor.webp-f30fd89ac5ff57bd55e69f8fb73c73d9.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/world/arq/roundtiles_basecolor.webp"
-dest_files=["res://.godot/imported/roundtiles_basecolor.webp-f30fd89ac5ff57bd55e69f8fb73c73d9.ctex"]
+dest_files=["res://.godot/imported/roundtiles_basecolor.webp-f30fd89ac5ff57bd55e69f8fb73c73d9.s3tc.ctex", "res://.godot/imported/roundtiles_basecolor.webp-f30fd89ac5ff57bd55e69f8fb73c73d9.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bnql3vq0mkudp"
-path="res://.godot/imported/n_commontree_1_Leaves_NormalTree_C.webp-4e675b3db364e22fc25182ccce4fed8c.ctex"
+path.s3tc="res://.godot/imported/n_commontree_1_Leaves_NormalTree_C.webp-4e675b3db364e22fc25182ccce4fed8c.s3tc.ctex"
+path.etc2="res://.godot/imported/n_commontree_1_Leaves_NormalTree_C.webp-4e675b3db364e22fc25182ccce4fed8c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "cda12286b0e94e6e33c115559a9f6874"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/world/n_commontree_1_Leaves_NormalTree_C.webp"
-dest_files=["res://.godot/imported/n_commontree_1_Leaves_NormalTree_C.webp-4e675b3db364e22fc25182ccce4fed8c.ctex"]
+dest_files=["res://.godot/imported/n_commontree_1_Leaves_NormalTree_C.webp-4e675b3db364e22fc25182ccce4fed8c.s3tc.ctex", "res://.godot/imported/n_commontree_1_Leaves_NormalTree_C.webp-4e675b3db364e22fc25182ccce4fed8c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

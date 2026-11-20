@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://codymli0vyrlp"
-path="res://.godot/imported/yeti_rig_basecolor.webp-6aa9d304deb5140d82105ee4e1b61f1c.ctex"
+path.s3tc="res://.godot/imported/yeti_rig_basecolor.webp-6aa9d304deb5140d82105ee4e1b61f1c.s3tc.ctex"
+path.etc2="res://.godot/imported/yeti_rig_basecolor.webp-6aa9d304deb5140d82105ee4e1b61f1c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "3e9cdea0c2432c4ae6f06b991cab9a0d"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/monstros/yeti_rig_basecolor.webp"
-dest_files=["res://.godot/imported/yeti_rig_basecolor.webp-6aa9d304deb5140d82105ee4e1b61f1c.ctex"]
+dest_files=["res://.godot/imported/yeti_rig_basecolor.webp-6aa9d304deb5140d82105ee4e1b61f1c.s3tc.ctex", "res://.godot/imported/yeti_rig_basecolor.webp-6aa9d304deb5140d82105ee4e1b61f1c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

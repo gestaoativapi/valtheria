@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://wxpdfaa8hcoj"
-path="res://.godot/imported/body_male_T_Superhero_Male_Roughness.webp-427ce71f224361f09e4a532f93265131.ctex"
+path.s3tc="res://.godot/imported/body_male_T_Superhero_Male_Roughness.webp-427ce71f224361f09e4a532f93265131.s3tc.ctex"
+path.etc2="res://.godot/imported/body_male_T_Superhero_Male_Roughness.webp-427ce71f224361f09e4a532f93265131.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "ecc55da556a83d4e7ec8f47c1325d81e"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/body_male_T_Superhero_Male_Roughness.webp"
-dest_files=["res://.godot/imported/body_male_T_Superhero_Male_Roughness.webp-427ce71f224361f09e4a532f93265131.ctex"]
+dest_files=["res://.godot/imported/body_male_T_Superhero_Male_Roughness.webp-427ce71f224361f09e4a532f93265131.s3tc.ctex", "res://.godot/imported/body_male_T_Superhero_Male_Roughness.webp-427ce71f224361f09e4a532f93265131.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

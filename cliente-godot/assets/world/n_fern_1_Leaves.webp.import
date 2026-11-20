@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dlcm8mpiaajny"
-path="res://.godot/imported/n_fern_1_Leaves.webp-d4500352c18a4125468aa35bf328d332.ctex"
+path.s3tc="res://.godot/imported/n_fern_1_Leaves.webp-d4500352c18a4125468aa35bf328d332.s3tc.ctex"
+path.etc2="res://.godot/imported/n_fern_1_Leaves.webp-d4500352c18a4125468aa35bf328d332.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "c4cbb4414b55d4d3729681aa718fbc2d"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/world/n_fern_1_Leaves.webp"
-dest_files=["res://.godot/imported/n_fern_1_Leaves.webp-d4500352c18a4125468aa35bf328d332.ctex"]
+dest_files=["res://.godot/imported/n_fern_1_Leaves.webp-d4500352c18a4125468aa35bf328d332.s3tc.ctex", "res://.godot/imported/n_fern_1_Leaves.webp-d4500352c18a4125468aa35bf328d332.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

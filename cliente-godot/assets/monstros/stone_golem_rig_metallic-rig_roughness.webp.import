@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bhaoa87lxofmx"
-path="res://.godot/imported/stone_golem_rig_metallic-rig_roughness.webp-102be51564d9100ecc956526e1fb180c.ctex"
+path.s3tc="res://.godot/imported/stone_golem_rig_metallic-rig_roughness.webp-102be51564d9100ecc956526e1fb180c.s3tc.ctex"
+path.etc2="res://.godot/imported/stone_golem_rig_metallic-rig_roughness.webp-102be51564d9100ecc956526e1fb180c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "2ff72c6788a8aae5039f8bb211d1b49e"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/monstros/stone_golem_rig_metallic-rig_roughness.webp"
-dest_files=["res://.godot/imported/stone_golem_rig_metallic-rig_roughness.webp-102be51564d9100ecc956526e1fb180c.ctex"]
+dest_files=["res://.godot/imported/stone_golem_rig_metallic-rig_roughness.webp-102be51564d9100ecc956526e1fb180c.s3tc.ctex", "res://.godot/imported/stone_golem_rig_metallic-rig_roughness.webp-102be51564d9100ecc956526e1fb180c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

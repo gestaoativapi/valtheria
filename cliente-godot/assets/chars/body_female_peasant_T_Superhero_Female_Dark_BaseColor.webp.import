@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cgmhwhpewojy2"
-path="res://.godot/imported/body_female_peasant_T_Superhero_Female_Dark_BaseColor.webp-855e8bba1cb13fb0bb351f662bc2a92d.ctex"
+path.s3tc="res://.godot/imported/body_female_peasant_T_Superhero_Female_Dark_BaseColor.webp-855e8bba1cb13fb0bb351f662bc2a92d.s3tc.ctex"
+path.etc2="res://.godot/imported/body_female_peasant_T_Superhero_Female_Dark_BaseColor.webp-855e8bba1cb13fb0bb351f662bc2a92d.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "ce74912f454c86e63bfe81b092fdfc40"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/body_female_peasant_T_Superhero_Female_Dark_BaseColor.webp"
-dest_files=["res://.godot/imported/body_female_peasant_T_Superhero_Female_Dark_BaseColor.webp-855e8bba1cb13fb0bb351f662bc2a92d.ctex"]
+dest_files=["res://.godot/imported/body_female_peasant_T_Superhero_Female_Dark_BaseColor.webp-855e8bba1cb13fb0bb351f662bc2a92d.s3tc.ctex", "res://.godot/imported/body_female_peasant_T_Superhero_Female_Dark_BaseColor.webp-855e8bba1cb13fb0bb351f662bc2a92d.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

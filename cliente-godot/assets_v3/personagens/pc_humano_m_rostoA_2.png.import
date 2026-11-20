@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bhixx8b1lkyh2"
-path="res://.godot/imported/pc_humano_m_rostoA_2.png-e4a5bda8d1fb19be248f3da8c2a3d7ce.ctex"
+path.s3tc="res://.godot/imported/pc_humano_m_rostoA_2.png-e4a5bda8d1fb19be248f3da8c2a3d7ce.s3tc.ctex"
+path.etc2="res://.godot/imported/pc_humano_m_rostoA_2.png-e4a5bda8d1fb19be248f3da8c2a3d7ce.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "67bd4a6045281c2f8aa7f28610223c5c"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets_v3/personagens/pc_humano_m_rostoA_2.png"
-dest_files=["res://.godot/imported/pc_humano_m_rostoA_2.png-e4a5bda8d1fb19be248f3da8c2a3d7ce.ctex"]
+dest_files=["res://.godot/imported/pc_humano_m_rostoA_2.png-e4a5bda8d1fb19be248f3da8c2a3d7ce.s3tc.ctex", "res://.godot/imported/pc_humano_m_rostoA_2.png-e4a5bda8d1fb19be248f3da8c2a3d7ce.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

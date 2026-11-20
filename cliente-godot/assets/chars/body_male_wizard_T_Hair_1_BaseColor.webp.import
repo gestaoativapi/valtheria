@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dojwe4ab4ve2v"
-path="res://.godot/imported/body_male_wizard_T_Hair_1_BaseColor.webp-4024619bcbd3e1bc912ce70969c83c43.ctex"
+path.s3tc="res://.godot/imported/body_male_wizard_T_Hair_1_BaseColor.webp-4024619bcbd3e1bc912ce70969c83c43.s3tc.ctex"
+path.etc2="res://.godot/imported/body_male_wizard_T_Hair_1_BaseColor.webp-4024619bcbd3e1bc912ce70969c83c43.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "a6d5f7eecfed55d205f4ff2086edf62e"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/body_male_wizard_T_Hair_1_BaseColor.webp"
-dest_files=["res://.godot/imported/body_male_wizard_T_Hair_1_BaseColor.webp-4024619bcbd3e1bc912ce70969c83c43.ctex"]
+dest_files=["res://.godot/imported/body_male_wizard_T_Hair_1_BaseColor.webp-4024619bcbd3e1bc912ce70969c83c43.s3tc.ctex", "res://.godot/imported/body_male_wizard_T_Hair_1_BaseColor.webp-4024619bcbd3e1bc912ce70969c83c43.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

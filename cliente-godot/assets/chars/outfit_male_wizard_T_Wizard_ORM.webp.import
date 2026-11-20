@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dpfyxcbtmgebt"
-path="res://.godot/imported/outfit_male_wizard_T_Wizard_ORM.webp-ca90dd5c3a55d5df020e748d9b45a245.ctex"
+path.s3tc="res://.godot/imported/outfit_male_wizard_T_Wizard_ORM.webp-ca90dd5c3a55d5df020e748d9b45a245.s3tc.ctex"
+path.etc2="res://.godot/imported/outfit_male_wizard_T_Wizard_ORM.webp-ca90dd5c3a55d5df020e748d9b45a245.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "744090d34473c84c462222241b506460"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/outfit_male_wizard_T_Wizard_ORM.webp"
-dest_files=["res://.godot/imported/outfit_male_wizard_T_Wizard_ORM.webp-ca90dd5c3a55d5df020e748d9b45a245.ctex"]
+dest_files=["res://.godot/imported/outfit_male_wizard_T_Wizard_ORM.webp-ca90dd5c3a55d5df020e748d9b45a245.s3tc.ctex", "res://.godot/imported/outfit_male_wizard_T_Wizard_ORM.webp-ca90dd5c3a55d5df020e748d9b45a245.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

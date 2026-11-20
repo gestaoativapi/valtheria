@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ymhlsvfriqoq"
-path="res://.godot/imported/n_plant_1_big_Leaves.webp-d8e186742adfab4e6a274b686b44c866.ctex"
+path.s3tc="res://.godot/imported/n_plant_1_big_Leaves.webp-d8e186742adfab4e6a274b686b44c866.s3tc.ctex"
+path.etc2="res://.godot/imported/n_plant_1_big_Leaves.webp-d8e186742adfab4e6a274b686b44c866.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "c4cbb4414b55d4d3729681aa718fbc2d"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/world/n_plant_1_big_Leaves.webp"
-dest_files=["res://.godot/imported/n_plant_1_big_Leaves.webp-d8e186742adfab4e6a274b686b44c866.ctex"]
+dest_files=["res://.godot/imported/n_plant_1_big_Leaves.webp-d8e186742adfab4e6a274b686b44c866.s3tc.ctex", "res://.godot/imported/n_plant_1_big_Leaves.webp-d8e186742adfab4e6a274b686b44c866.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

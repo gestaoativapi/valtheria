@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bn58a2ob7tu7s"
-path="res://.godot/imported/hair_simpleparted_T_Hair_1_Normal.webp-a48d98c35f2e2d5cfc619014229a284b.ctex"
+path.s3tc="res://.godot/imported/hair_simpleparted_T_Hair_1_Normal.webp-a48d98c35f2e2d5cfc619014229a284b.s3tc.ctex"
+path.etc2="res://.godot/imported/hair_simpleparted_T_Hair_1_Normal.webp-a48d98c35f2e2d5cfc619014229a284b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "e485d5809e67f6c40c896e4144afd752"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/hair_simpleparted_T_Hair_1_Normal.webp"
-dest_files=["res://.godot/imported/hair_simpleparted_T_Hair_1_Normal.webp-a48d98c35f2e2d5cfc619014229a284b.ctex"]
+dest_files=["res://.godot/imported/hair_simpleparted_T_Hair_1_Normal.webp-a48d98c35f2e2d5cfc619014229a284b.s3tc.ctex", "res://.godot/imported/hair_simpleparted_T_Hair_1_Normal.webp-a48d98c35f2e2d5cfc619014229a284b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

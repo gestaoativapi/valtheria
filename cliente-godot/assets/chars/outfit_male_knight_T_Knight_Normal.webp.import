@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b06w4drq5f7bt"
-path="res://.godot/imported/outfit_male_knight_T_Knight_Normal.webp-77180f40b6f78bcc82f447b075bed425.ctex"
+path.s3tc="res://.godot/imported/outfit_male_knight_T_Knight_Normal.webp-77180f40b6f78bcc82f447b075bed425.s3tc.ctex"
+path.etc2="res://.godot/imported/outfit_male_knight_T_Knight_Normal.webp-77180f40b6f78bcc82f447b075bed425.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "12c6659f9c88d82bdd3b9e33d554b44e"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/outfit_male_knight_T_Knight_Normal.webp"
-dest_files=["res://.godot/imported/outfit_male_knight_T_Knight_Normal.webp-77180f40b6f78bcc82f447b075bed425.ctex"]
+dest_files=["res://.godot/imported/outfit_male_knight_T_Knight_Normal.webp-77180f40b6f78bcc82f447b075bed425.s3tc.ctex", "res://.godot/imported/outfit_male_knight_T_Knight_Normal.webp-77180f40b6f78bcc82f447b075bed425.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

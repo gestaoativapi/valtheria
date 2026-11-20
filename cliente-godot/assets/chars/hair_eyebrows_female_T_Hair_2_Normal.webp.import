@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dwt6fkgdgevej"
-path="res://.godot/imported/hair_eyebrows_female_T_Hair_2_Normal.webp-f375349c098490441caaa39f59f5953a.ctex"
+path.s3tc="res://.godot/imported/hair_eyebrows_female_T_Hair_2_Normal.webp-f375349c098490441caaa39f59f5953a.s3tc.ctex"
+path.etc2="res://.godot/imported/hair_eyebrows_female_T_Hair_2_Normal.webp-f375349c098490441caaa39f59f5953a.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "4fba5ddff283bfc75f6d691a077dea0e"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/hair_eyebrows_female_T_Hair_2_Normal.webp"
-dest_files=["res://.godot/imported/hair_eyebrows_female_T_Hair_2_Normal.webp-f375349c098490441caaa39f59f5953a.ctex"]
+dest_files=["res://.godot/imported/hair_eyebrows_female_T_Hair_2_Normal.webp-f375349c098490441caaa39f59f5953a.s3tc.ctex", "res://.godot/imported/hair_eyebrows_female_T_Hair_2_Normal.webp-f375349c098490441caaa39f59f5953a.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

@@ -3,21 +3,23 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7d1iloc2ebmb"
-path="res://.godot/imported/unevenbrick_roughness.webp-2dceac0e22ce9366d24da64be927be4f.ctex"
+path.s3tc="res://.godot/imported/unevenbrick_roughness.webp-2dceac0e22ce9366d24da64be927be4f.s3tc.ctex"
+path.etc2="res://.godot/imported/unevenbrick_roughness.webp-2dceac0e22ce9366d24da64be927be4f.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/world/arq/unevenbrick_roughness.webp"
-dest_files=["res://.godot/imported/unevenbrick_roughness.webp-2dceac0e22ce9366d24da64be927be4f.ctex"]
+dest_files=["res://.godot/imported/unevenbrick_roughness.webp-2dceac0e22ce9366d24da64be927be4f.s3tc.ctex", "res://.godot/imported/unevenbrick_roughness.webp-2dceac0e22ce9366d24da64be927be4f.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

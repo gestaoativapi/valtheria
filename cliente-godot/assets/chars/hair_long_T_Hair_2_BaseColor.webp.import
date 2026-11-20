@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://n2agftd02gpa"
-path="res://.godot/imported/hair_long_T_Hair_2_BaseColor.webp-31ee5497f12dfa2ccb2133a5cf3f934e.ctex"
+path.s3tc="res://.godot/imported/hair_long_T_Hair_2_BaseColor.webp-31ee5497f12dfa2ccb2133a5cf3f934e.s3tc.ctex"
+path.etc2="res://.godot/imported/hair_long_T_Hair_2_BaseColor.webp-31ee5497f12dfa2ccb2133a5cf3f934e.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "59baaae3b2192a56fccb4d006ee4624a"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/hair_long_T_Hair_2_BaseColor.webp"
-dest_files=["res://.godot/imported/hair_long_T_Hair_2_BaseColor.webp-31ee5497f12dfa2ccb2133a5cf3f934e.ctex"]
+dest_files=["res://.godot/imported/hair_long_T_Hair_2_BaseColor.webp-31ee5497f12dfa2ccb2133a5cf3f934e.s3tc.ctex", "res://.godot/imported/hair_long_T_Hair_2_BaseColor.webp-31ee5497f12dfa2ccb2133a5cf3f934e.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

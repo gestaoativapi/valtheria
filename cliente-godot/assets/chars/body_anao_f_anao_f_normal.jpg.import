@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://brndkf6k6rcof"
-path="res://.godot/imported/body_anao_f_anao_f_normal.jpg-b32e33244dbfe76f106972a097a52ec1.ctex"
+path.s3tc="res://.godot/imported/body_anao_f_anao_f_normal.jpg-b32e33244dbfe76f106972a097a52ec1.s3tc.ctex"
+path.etc2="res://.godot/imported/body_anao_f_anao_f_normal.jpg-b32e33244dbfe76f106972a097a52ec1.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "8a5b7cd394c92f4993d7e47f0d8b08cb"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/body_anao_f_anao_f_normal.jpg"
-dest_files=["res://.godot/imported/body_anao_f_anao_f_normal.jpg-b32e33244dbfe76f106972a097a52ec1.ctex"]
+dest_files=["res://.godot/imported/body_anao_f_anao_f_normal.jpg-b32e33244dbfe76f106972a097a52ec1.s3tc.ctex", "res://.godot/imported/body_anao_f_anao_f_normal.jpg-b32e33244dbfe76f106972a097a52ec1.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

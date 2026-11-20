@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c3g3pnh0a531y"
-path="res://.godot/imported/n_flower_4_group_Flowers.webp-54cca42237cfe3f9da890037d14e418f.ctex"
+path.s3tc="res://.godot/imported/n_flower_4_group_Flowers.webp-54cca42237cfe3f9da890037d14e418f.s3tc.ctex"
+path.etc2="res://.godot/imported/n_flower_4_group_Flowers.webp-54cca42237cfe3f9da890037d14e418f.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "590c0fac367a1fb6fac6b0a62b67e459"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/world/n_flower_4_group_Flowers.webp"
-dest_files=["res://.godot/imported/n_flower_4_group_Flowers.webp-54cca42237cfe3f9da890037d14e418f.ctex"]
+dest_files=["res://.godot/imported/n_flower_4_group_Flowers.webp-54cca42237cfe3f9da890037d14e418f.s3tc.ctex", "res://.godot/imported/n_flower_4_group_Flowers.webp-54cca42237cfe3f9da890037d14e418f.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

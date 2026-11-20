@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://50kyfyp4k76v"
-path="res://.godot/imported/body_dragonita_0.png-3a504d79303b70b16c3c7f2791eb28c7.ctex"
+path.s3tc="res://.godot/imported/body_dragonita_0.png-3a504d79303b70b16c3c7f2791eb28c7.s3tc.ctex"
+path.etc2="res://.godot/imported/body_dragonita_0.png-3a504d79303b70b16c3c7f2791eb28c7.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "039c34c7fe37b515412f083cff1bbda0"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/body_dragonita_0.png"
-dest_files=["res://.godot/imported/body_dragonita_0.png-3a504d79303b70b16c3c7f2791eb28c7.ctex"]
+dest_files=["res://.godot/imported/body_dragonita_0.png-3a504d79303b70b16c3c7f2791eb28c7.s3tc.ctex", "res://.godot/imported/body_dragonita_0.png-3a504d79303b70b16c3c7f2791eb28c7.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

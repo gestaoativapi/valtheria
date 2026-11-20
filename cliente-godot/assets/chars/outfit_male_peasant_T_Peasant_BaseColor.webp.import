@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c5xno8mdbhid5"
-path="res://.godot/imported/outfit_male_peasant_T_Peasant_BaseColor.webp-ca3fd25c617a0bbd9715fb6aac0b0e3b.ctex"
+path.s3tc="res://.godot/imported/outfit_male_peasant_T_Peasant_BaseColor.webp-ca3fd25c617a0bbd9715fb6aac0b0e3b.s3tc.ctex"
+path.etc2="res://.godot/imported/outfit_male_peasant_T_Peasant_BaseColor.webp-ca3fd25c617a0bbd9715fb6aac0b0e3b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "8f1a6655e3de1ea1b5c7d77785bf88c7"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/outfit_male_peasant_T_Peasant_BaseColor.webp"
-dest_files=["res://.godot/imported/outfit_male_peasant_T_Peasant_BaseColor.webp-ca3fd25c617a0bbd9715fb6aac0b0e3b.ctex"]
+dest_files=["res://.godot/imported/outfit_male_peasant_T_Peasant_BaseColor.webp-ca3fd25c617a0bbd9715fb6aac0b0e3b.s3tc.ctex", "res://.godot/imported/outfit_male_peasant_T_Peasant_BaseColor.webp-ca3fd25c617a0bbd9715fb6aac0b0e3b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

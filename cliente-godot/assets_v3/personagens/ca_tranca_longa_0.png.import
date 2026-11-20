@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://coiywltiegldi"
-path="res://.godot/imported/ca_tranca_longa_0.png-a2aa1c9d9346d2c314e85a2f2f32b20e.ctex"
+path.s3tc="res://.godot/imported/ca_tranca_longa_0.png-a2aa1c9d9346d2c314e85a2f2f32b20e.s3tc.ctex"
+path.etc2="res://.godot/imported/ca_tranca_longa_0.png-a2aa1c9d9346d2c314e85a2f2f32b20e.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "666d3348450bf693968b2cd5eda1958d"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets_v3/personagens/ca_tranca_longa_0.png"
-dest_files=["res://.godot/imported/ca_tranca_longa_0.png-a2aa1c9d9346d2c314e85a2f2f32b20e.ctex"]
+dest_files=["res://.godot/imported/ca_tranca_longa_0.png-a2aa1c9d9346d2c314e85a2f2f32b20e.s3tc.ctex", "res://.godot/imported/ca_tranca_longa_0.png-a2aa1c9d9346d2c314e85a2f2f32b20e.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

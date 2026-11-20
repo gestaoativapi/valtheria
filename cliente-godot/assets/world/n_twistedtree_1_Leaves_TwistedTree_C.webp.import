@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bdfncauujbqxk"
-path="res://.godot/imported/n_twistedtree_1_Leaves_TwistedTree_C.webp-e6348197486af2256b44abf3e054d61a.ctex"
+path.s3tc="res://.godot/imported/n_twistedtree_1_Leaves_TwistedTree_C.webp-e6348197486af2256b44abf3e054d61a.s3tc.ctex"
+path.etc2="res://.godot/imported/n_twistedtree_1_Leaves_TwistedTree_C.webp-e6348197486af2256b44abf3e054d61a.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "f0332fad3c122378ae6c55e47689735f"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/world/n_twistedtree_1_Leaves_TwistedTree_C.webp"
-dest_files=["res://.godot/imported/n_twistedtree_1_Leaves_TwistedTree_C.webp-e6348197486af2256b44abf3e054d61a.ctex"]
+dest_files=["res://.godot/imported/n_twistedtree_1_Leaves_TwistedTree_C.webp-e6348197486af2256b44abf3e054d61a.s3tc.ctex", "res://.godot/imported/n_twistedtree_1_Leaves_TwistedTree_C.webp-e6348197486af2256b44abf3e054d61a.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

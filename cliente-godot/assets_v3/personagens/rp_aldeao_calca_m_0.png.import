@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dpq3o5rjy4hrd"
-path="res://.godot/imported/rp_aldeao_calca_m_0.png-563c4b626580ff88f730a4ec79e28c98.ctex"
+path.s3tc="res://.godot/imported/rp_aldeao_calca_m_0.png-563c4b626580ff88f730a4ec79e28c98.s3tc.ctex"
+path.etc2="res://.godot/imported/rp_aldeao_calca_m_0.png-563c4b626580ff88f730a4ec79e28c98.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "ec63f3d46457e61700d87888478e7954"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets_v3/personagens/rp_aldeao_calca_m_0.png"
-dest_files=["res://.godot/imported/rp_aldeao_calca_m_0.png-563c4b626580ff88f730a4ec79e28c98.ctex"]
+dest_files=["res://.godot/imported/rp_aldeao_calca_m_0.png-563c4b626580ff88f730a4ec79e28c98.s3tc.ctex", "res://.godot/imported/rp_aldeao_calca_m_0.png-563c4b626580ff88f730a4ec79e28c98.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

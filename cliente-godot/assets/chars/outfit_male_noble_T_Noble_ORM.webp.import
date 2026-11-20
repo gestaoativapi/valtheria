@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://4re4infuwhod"
-path="res://.godot/imported/outfit_male_noble_T_Noble_ORM.webp-6e9c4768069c3bbe59dbb3c5b038ddb5.ctex"
+path.s3tc="res://.godot/imported/outfit_male_noble_T_Noble_ORM.webp-6e9c4768069c3bbe59dbb3c5b038ddb5.s3tc.ctex"
+path.etc2="res://.godot/imported/outfit_male_noble_T_Noble_ORM.webp-6e9c4768069c3bbe59dbb3c5b038ddb5.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "6ab500a1e2dc0a8e7e4251c21adbd20e"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/outfit_male_noble_T_Noble_ORM.webp"
-dest_files=["res://.godot/imported/outfit_male_noble_T_Noble_ORM.webp-6e9c4768069c3bbe59dbb3c5b038ddb5.ctex"]
+dest_files=["res://.godot/imported/outfit_male_noble_T_Noble_ORM.webp-6e9c4768069c3bbe59dbb3c5b038ddb5.s3tc.ctex", "res://.godot/imported/outfit_male_noble_T_Noble_ORM.webp-6e9c4768069c3bbe59dbb3c5b038ddb5.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

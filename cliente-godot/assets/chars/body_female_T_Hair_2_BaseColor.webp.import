@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cv2efwlotkvhp"
-path="res://.godot/imported/body_female_T_Hair_2_BaseColor.webp-705784c7085f350f4be3648f9847e7c0.ctex"
+path.s3tc="res://.godot/imported/body_female_T_Hair_2_BaseColor.webp-705784c7085f350f4be3648f9847e7c0.s3tc.ctex"
+path.etc2="res://.godot/imported/body_female_T_Hair_2_BaseColor.webp-705784c7085f350f4be3648f9847e7c0.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "001c78f84a3e159e7929ba1a982dd64f"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/body_female_T_Hair_2_BaseColor.webp"
-dest_files=["res://.godot/imported/body_female_T_Hair_2_BaseColor.webp-705784c7085f350f4be3648f9847e7c0.ctex"]
+dest_files=["res://.godot/imported/body_female_T_Hair_2_BaseColor.webp-705784c7085f350f4be3648f9847e7c0.s3tc.ctex", "res://.godot/imported/body_female_T_Hair_2_BaseColor.webp-705784c7085f350f4be3648f9847e7c0.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

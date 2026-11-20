@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dx4s7e3vja8cl"
-path="res://.godot/imported/rp_aldeao_tunica_f_0.png-9f65fb87393aafeae48f56ae906e037c.ctex"
+path.s3tc="res://.godot/imported/rp_aldeao_tunica_f_0.png-9f65fb87393aafeae48f56ae906e037c.s3tc.ctex"
+path.etc2="res://.godot/imported/rp_aldeao_tunica_f_0.png-9f65fb87393aafeae48f56ae906e037c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d07ae298b5f8177e1b9652ff1b5239fa"
@@ -14,13 +16,13 @@ generator_parameters={
 [deps]
 
 source_file="res://assets_v3/personagens/rp_aldeao_tunica_f_0.png"
-dest_files=["res://.godot/imported/rp_aldeao_tunica_f_0.png-9f65fb87393aafeae48f56ae906e037c.ctex"]
+dest_files=["res://.godot/imported/rp_aldeao_tunica_f_0.png-9f65fb87393aafeae48f56ae906e037c.s3tc.ctex", "res://.godot/imported/rp_aldeao_tunica_f_0.png-9f65fb87393aafeae48f56ae906e037c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.82
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
