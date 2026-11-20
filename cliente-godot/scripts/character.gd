@@ -285,6 +285,8 @@ func _setup_medido(o: Dictionary) -> void:
 					_tint(m as MeshInstance3D, skin.darkened(0.15))
 		else:
 			_vestir_v3(male, outfit, hair_col, race != "beastman")
+			if outfit == "peasant":
+				roupa_raca(race)
 		race_id = race
 		if race != "humano":
 			subtipo = str(o.get("subtipo", ""))
@@ -2155,3 +2157,62 @@ func winter(seed: int) -> void:
 	hood.position = Vector3(0, 0.915 * h, -0.025 * k)
 	hood.scale = Vector3(1.0, 1.1, 1.15)
 	add_child(hood)
+
+
+# Traje base de cada raça (20/11): a túnica de aldeão deixa de ser igual para todos. Cada raça tem tecido, debrum
+# (a barra azul do modelo) e calça próprios, em tons naturais; o shader separa o tecido da barra pela cor original.
+const TRAJES := {
+	"humano": ["#d9cdb4", "#3c5a8c", "#5a4a3a"],     # linho cru, barra azul, calça marrom
+	"elfo": ["#7f9a64", "#d8d2b0", "#3e4a32"],       # verde musgo, barra de prata clara, calça verde escura
+	"sombrio": ["#3b3346", "#8c6fae", "#26222c"],    # ameixa escura, barra violeta, calça quase preta
+	"orc": ["#8a6440", "#7a2a1e", "#4a3a2a"],        # couro curtido, barra vermelho sangue
+	"anao": ["#8c3f2c", "#c9a24a", "#4a3626"],       # vermelho tijolo, barra dourada, calça de couro
+	"beastman": ["#a8865c", "#4e3a24", "#5e4630"],   # pele crua, barra escura
+	"gigante": ["#c8d6e0", "#3d6f96", "#6a7884"],    # lã clara, barra azul glacial, calça cinza
+}
+static var _traje_shader: Shader
+
+
+func roupa_raca(race: String) -> void:
+	if skel == null or not TRAJES.has(race):
+		return
+	if _traje_shader == null:
+		_traje_shader = Shader.new()
+		_traje_shader.code = """
+shader_type spatial;
+uniform sampler2D tex : source_color, filter_linear_mipmap;
+uniform sampler2D nmap : hint_normal, filter_linear_mipmap;
+uniform bool tem_nmap = false;
+uniform vec3 tecido : source_color;
+uniform vec3 barra : source_color;
+void fragment() {
+	vec3 c = texture(tex, UV).rgb;
+	float lum = dot(c, vec3(0.3, 0.55, 0.15));
+	float azul = smoothstep(0.04, 0.14, c.b - c.r);          // barra original azulada
+	float escuro = 1.0 - smoothstep(0.18, 0.42, lum);        // cinto, costuras e sombras pintadas ficam como estão
+	vec3 pano = mix(tecido * (0.42 + lum * 0.42), barra * (0.5 + lum * 0.5), azul);
+	ALBEDO = mix(pano, c, escuro * (1.0 - azul));
+	ROUGHNESS = 0.9;
+	if (tem_nmap) { NORMAL_MAP = texture(nmap, UV).rgb; }
+}
+"""
+	var cfg: Array = TRAJES[race]
+	for m in skel.find_children("*", "MeshInstance3D", false, false):
+		var nm := String(m.name)
+		var mi := m as MeshInstance3D
+		if nm.begins_with("tunica"):
+			for i in mi.mesh.get_surface_count():
+				var orig := mi.mesh.surface_get_material(i) as BaseMaterial3D
+				if orig == null or orig.albedo_texture == null:
+					continue
+				var sm := ShaderMaterial.new()
+				sm.shader = _traje_shader
+				sm.set_shader_parameter("tex", orig.albedo_texture)
+				if orig.normal_enabled and orig.normal_texture != null:
+					sm.set_shader_parameter("nmap", orig.normal_texture)
+					sm.set_shader_parameter("tem_nmap", true)
+				sm.set_shader_parameter("tecido", Color(str(cfg[0])))
+				sm.set_shader_parameter("barra", Color(str(cfg[1])))
+				mi.set_surface_override_material(i, sm)
+		elif nm.begins_with("calca"):
+			_tint(mi, Color(str(cfg[2])).lightened(0.35))
