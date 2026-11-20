@@ -395,11 +395,11 @@ func _setup_medido(o: Dictionary) -> void:
 # Camadas da arma: (1) a arma inteira acesa, mais forte nas bordas; (2) contorno de luz em volta de toda a
 # silhueta; (3) a partir do +7, aura de energia em ondas subindo pela lâmina; (4) a partir do +10, rastros em arco.
 # +4 começa num azul bem claro e vai ganhando cor, fluxo, brilho e tamanho até o +15; o +16 vira dourado-bronze.
-const AZUL_INICIO := Color(0.80, 0.90, 1.0)
-const AZUL_FIM := Color(0.38, 0.62, 1.0)
-const OURO_16 := Color(1.0, 0.76, 0.42)
-
-
+# paleta de encanto em três faixas (escolha de Robson 20/11, opção C do P6):
+# branco até +9, azul até +15, laranja-dourado no +16
+const BRANCO_ENC := Color(0.957, 0.965, 1.0)
+const AZUL_ENC := Color(0.31, 0.525, 1.0)
+const OURO_16 := Color(1.0, 0.604, 0.19)
 static var cor_forcada := Color(0, 0, 0, 0)  # teste visual de paletas (estúdio)
 
 
@@ -408,7 +408,9 @@ static func cor_encanto(nivel: int) -> Color:
 		return cor_forcada
 	if nivel >= 16:
 		return OURO_16
-	return AZUL_INICIO.lerp(AZUL_FIM, clampf((nivel - 4) / 11.0, 0.0, 1.0))
+	if nivel >= 10:
+		return AZUL_ENC
+	return BRANCO_ENC
 
 
 # 0 no +4, 1 no +15, 1.15 no +16
