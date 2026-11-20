@@ -59,6 +59,12 @@ func _init() -> void:
 			c.arqueria.disparar()
 			c.arqueria.t = float(OS.get_environment("ARCO_T"))
 			Engine.time_scale = 0.0001  # congela no instante pedido do tiro
+		if OS.get_environment("ENCANTO") != "":
+			c.brilho_encanto(int(OS.get_environment("ENCANTO")))
+		if OS.get_environment("HEROI") != "":
+			c.aura_heroi(true)
+		if OS.get_environment("NORMAL") != "" and p.size() > 3 and p[3] != "":
+			c.set_battle(false)
 		if OS.get_environment("COMBATE") != "" and p.size() > 3 and p[3] != "":
 			c.set_battle(true)
 		if OS.get_environment("GOLPE") != "" and p.size() > 3 and p[3] != "":
@@ -105,7 +111,20 @@ func _process(_dt: float) -> bool:
 				for n in ap.get_animation_list():
 					if n.ends_with(nome):
 						c.action(n)
-	if quadros == 22 and not corpo_modo:
+	if quadros == 26 and OS.get_environment("FOCO") != "":
+		# câmera na mão (FOCO=hand_r ou hand_l), do lado de fora, para conferir a pegada
+		var osso := OS.get_environment("FOCO")
+		for att in root.find_children("*", "BoneAttachment3D", true, false):
+			if (att as BoneAttachment3D).bone_name == osso:
+				var pm: Vector3 = (att as Node3D).global_position
+				var lado := -1.0 if osso.ends_with("_r") else 1.0
+				var ang := float(OS.get_environment("FOCO_ANG")) if OS.get_environment("FOCO_ANG") != "" else 35.0
+				var dv := Vector3(lado * sin(deg_to_rad(ang)), 0.15, cos(deg_to_rad(ang))).normalized()
+				cam.fov = 30.0
+				cam.position = pm + dv * float(OS.get_environment("FOCO_D") if OS.get_environment("FOCO_D") != "" else "0.55")
+				cam.look_at(pm)
+				break
+	if quadros == 22 and not corpo_modo and OS.get_environment("FOCO") == "":
 		# mira a câmera na altura média das cabeças
 		var soma := 0.0
 		var n := 0

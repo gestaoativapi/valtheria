@@ -28,6 +28,9 @@ var em_combate := false
 var intensidade := 2.1
 var bracos_livres := true  # com a guarda armada (IK nos braços) a postura não mexe nos braços
 var andando := 0.0   # 0 parado .. 1 andando (o personagem atualiza)
+# postura ereta e firme fora de combate (pedido de Robson 20/11, referências de MMO clássico): tira parte da
+# curvatura de coluna, pescoço e pernas; em combate a postura de ataque da raça volta inteira
+var ereto := 0.0
 var _mix := 0.0
 var _ids := {}
 var _base := {}     # rotação da animação antes da postura
@@ -46,7 +49,10 @@ func _ready() -> void:
 
 func _graus(nome: String) -> float:
 	var curto: String = OSSOS[nome][1] if OSSOS[nome][1] != "" else nome
-	var g := float(pose.get(curto, 0.0)) * intensidade + _mix * float(combate.get(curto, 0.0)) * 0.8
+	var base := float(pose.get(curto, 0.0)) * intensidade
+	if OSSOS[nome][0] in ["frente", "perna", "joelho", "pe"]:
+		base *= 1.0 - ereto * (1.0 - _mix)
+	var g := base + _mix * float(combate.get(curto, 0.0)) * 0.8
 	if nome == "spine_01":
 		g += inclina * andando
 	return g

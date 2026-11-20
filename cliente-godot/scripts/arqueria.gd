@@ -126,8 +126,16 @@ func ligar(on: bool) -> void:
 	t = -1.0
 	if c.postura != null:
 		c.postura.bracos_livres = not on
+	for seg in cordas:
+		(seg as Node3D).visible = on
 	if not on:
 		_girar_corpo(0.0)
+		# arco nas costas: volta a corda reta do próprio modelo (a nossa só existe na mão)
+		if c.wnode != null:
+			for mi in c.wnode.find_children("*", "MeshInstance3D", true, false):
+				var m: Mesh = (mi as MeshInstance3D).mesh
+				if m != null and m.get_surface_count() >= 3:
+					(mi as MeshInstance3D).set_surface_override_material(2, null)
 
 
 # devolve a duração do tiro; o personagem já deve estar virado para o alvo

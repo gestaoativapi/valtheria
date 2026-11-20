@@ -78,6 +78,9 @@ var arma_base: Transform3D  # encaixe da arma de duas mãos na guarda
 var arma_golpe: Transform3D  # encaixe da mesma arma na mão direita, alinhada como espada (lâmina para a frente)
 var guard_on := false
 var arqueria: Node3D  # arco: pose e tiro por IK (arqueria.gd)
+var empunho: Node  # Empunhar: mão no cabo com a palma alinhada (postura parada normal e de combate)
+var _mao_alvo := {}  # lado -> Node3D (quadro da pegada no corpo)
+var _pose_mao := {}  # lado -> {"normal": Transform3D, "combate": Transform3D ou null}
 var cabelos: Array = []  # malhas de cabelo (somem debaixo de elmo, capuz e chapéu)
 var cabeca_no: Node3D  # "cabeça unitária" medida no crânio da raça (cabeca.gd)
 var arco_costas := Transform3D.IDENTITY
@@ -361,6 +364,7 @@ func _setup_medido(o: Dictionary) -> void:
 		postura.pose = pr.pose
 		postura.combate = pr.combate
 		postura.inclina = float(pr.inclina)
+		postura.ereto = 0.75
 		ciclo_raca = float(pr.ciclo)
 		skel.add_child(postura)
 	if dragon:  # o modelo da dragonita é mais alto que o humano de referência (medido: 1,96 m e 1,84 m)
@@ -515,6 +519,19 @@ void fragment() {
 	ALBEDO = cor * a * forca;
 }
 """
+const DISCO_HEROI_SHADER := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never;
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	float d = length(p);
+	float ang = atan(p.y, p.x);
+	float anel = exp(-pow((d - 0.78) * 9.0, 2.0)) * (0.75 + 0.25 * sin(ang * 6.0 + TIME * 1.5));
+	float miolo = (1.0 - smoothstep(0.0, 0.85, d)) * 0.45;
+	float pul = 0.8 + 0.2 * sin(TIME * 2.0);
+	ALBEDO = vec3(1.0, 0.72, 0.32) * (anel * 0.9 + miolo) * pul * (1.0 - smoothstep(0.9, 1.0, d));
+}
+"""
 static var _shaders := {}
 var encanto := 0
 var _aura: Node3D
@@ -544,9 +561,13 @@ func brilho_encanto(nivel: int) -> void:
 	encanto = nivel
 	if wnode == null:
 		return
-	for c in wnode.get_children():
-		if c.name == "BrilhoEncanto":
-			c.queue_free()
+	for alvo_b in ([wnode, offhand] if offhand != null else [wnode]):
+		for c in alvo_b.get_children():
+			if str(c.name).begins_with("BrilhoEncanto"):
+				c.queue_free()
+		if alvo_b == offhand:
+			for m in offhand.find_children("*", "MeshInstance3D", true, false):
+				(m as MeshInstance3D).material_overlay = null
 	var malhas := wnode.find_children("*", "MeshInstance3D", true, false)
 	for m in malhas:
 		(m as MeshInstance3D).material_overlay = null
@@ -593,6 +614,9 @@ func brilho_encanto(nivel: int) -> void:
 			ultimo = onda
 	for m in malhas:
 		(m as MeshInstance3D).material_overlay = mat
+	if offhand != null:  # segunda lâmina (armas duplas): o mesmo brilho
+		for m in offhand.find_children("*", "MeshInstance3D", true, false):
+			(m as MeshInstance3D).material_overlay = mat
 	if nivel >= 10:   # gotas de luz desprendendo da aura
 		var p := CPUParticles3D.new()
 		p.name = "BrilhoEncanto"
@@ -622,9 +646,87 @@ func brilho_encanto(nivel: int) -> void:
 		p.mesh = q
 		p.visibility_range_end = 30.0
 		wnode.add_child(p)
+	if nivel >= 7:
+		_clarao_arma(bb, eixo, cor, t, wnode)
+		if offhand != null:
+			_clarao_arma(bb, eixo, cor, t, offhand)
 	_rastros_encanto((4 if nivel >= 16 else 2) if nivel >= 13 else -1, cor * (0.55 if nivel < 16 else 0.8))
 	if _rastros != null:
 		_rastros.set_meta("forca", t)
+
+
+# clarão da arma encantada: halo largo e macio ao longo da lâmina (brilho que "vaza" da arma, sem pós-processo,
+# leve no celular) e uma estrela de luz pulsando na ponta. Efeito genérico de jogo de fantasia, desenhado aqui.
+const ESTRELA_SHADER := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, depth_test_disabled;
+uniform vec3 cor : source_color = vec3(1.0);
+uniform float forca = 1.0;
+uniform float raios = 1.0;
+uniform float fase = 0.0;
+void vertex() {
+	// sempre de frente para a câmera
+	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
+	float esc = length(MODEL_MATRIX[0].xyz);
+	MODELVIEW_MATRIX[0] *= esc; MODELVIEW_MATRIX[1] *= esc; MODELVIEW_MATRIX[2] *= esc;
+}
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	float pul = 0.75 + 0.25 * sin(TIME * 3.1 + fase);
+	float g = TIME * 0.35 + fase;
+	mat2 r = mat2(vec2(cos(g), -sin(g)), vec2(sin(g), cos(g)));
+	vec2 q = r * p;
+	float d = length(p);
+	float nucleo = exp(-d * d * 18.0);
+	float halo = exp(-d * d * 3.5) * 0.35;
+	float cruz = (exp(-abs(q.x) * 60.0) + exp(-abs(q.y) * 60.0)) * (1.0 - smoothstep(0.0, 1.0, d));
+	vec2 q2 = mat2(vec2(0.7071, -0.7071), vec2(0.7071, 0.7071)) * q;
+	float x2 = (exp(-abs(q2.x) * 90.0) + exp(-abs(q2.y) * 90.0)) * (1.0 - smoothstep(0.0, 0.6, d)) * 0.6;
+	float a = (nucleo * 1.4 + halo + (cruz + x2) * raios * pul) * forca;
+	ALBEDO = mix(cor, vec3(1.0), nucleo * 0.7) * a;
+}
+"""
+
+
+func _clarao_arma(bb: AABB, eixo: Vector3, cor: Color, t: float, arma: Node3D) -> void:
+	var ponta := bb.get_center() + eixo * bb.size.dot(eixo) * 0.5
+	if eixo == Vector3.BACK and absf(bb.position.z) > absf(bb.end.z):
+		ponta = bb.get_center() - eixo * bb.size.dot(eixo) * 0.5
+	var kw := maxf(arma.transform.basis.get_scale().x, 0.0001)  # a arma pode estar em unidades do modelo
+	var est := ShaderMaterial.new()
+	est.shader = _shader("estrela", ESTRELA_SHADER)
+	est.set_shader_parameter("cor", cor)
+	est.set_shader_parameter("forca", 0.5 + 0.6 * t)
+	est.set_shader_parameter("raios", 0.6 + 0.8 * t)
+	var q := QuadMesh.new()
+	q.size = Vector2.ONE
+	var mi := MeshInstance3D.new()
+	mi.name = "BrilhoEncantoEstrela"
+	mi.mesh = q
+	mi.material_override = est
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = ponta
+	mi.scale = Vector3.ONE * (0.22 + 0.35 * t) / kw
+	mi.visibility_range_end = 40.0
+	arma.add_child(mi)
+	# halo da lâmina: 3 bolhas macias ao longo do eixo (sem raios)
+	var comp := bb.size.dot(eixo) * kw
+	for i in 3:
+		var h := ShaderMaterial.new()
+		h.shader = est.shader
+		h.set_shader_parameter("cor", cor)
+		h.set_shader_parameter("forca", 0.12 + 0.18 * t)
+		h.set_shader_parameter("raios", 0.0)
+		h.set_shader_parameter("fase", 1.7 * i)
+		var b := MeshInstance3D.new()
+		b.name = "BrilhoEncantoHalo"
+		b.mesh = q
+		b.material_override = h
+		b.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		b.position = bb.get_center() + (ponta - bb.get_center()) * (0.75 - 0.6 * i)
+		b.scale = Vector3.ONE * clampf(comp * 0.55, 0.2, 0.9) * (0.7 + 0.5 * t) / kw
+		b.visibility_range_end = 40.0
+		arma.add_child(b)
 
 
 # fita em arco (~220 graus), mais larga no meio e sumindo nas pontas
@@ -754,6 +856,33 @@ func aura_heroi(on: bool) -> void:
 		var f := _fluxo_aura(float(pt[1]))
 		f.scale = Vector3.ONE / maxf(esc, 0.0001)
 		att.add_child(f)
+	# círculo de luz no chão e brilho macio em volta do corpo (o herói "acende" o lugar onde está)
+	var disco := MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(1.7, 1.7) * (height_m / 1.8)
+	disco.mesh = pm
+	var dm := ShaderMaterial.new()
+	dm.shader = _shader("disco_heroi", DISCO_HEROI_SHADER)
+	disco.material_override = dm
+	disco.position = Vector3(0, 0.03, 0)
+	disco.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	disco.visibility_range_end = 50.0
+	_aura.add_child(disco)
+	var corpo := MeshInstance3D.new()
+	var qm := QuadMesh.new()
+	qm.size = Vector2.ONE
+	corpo.mesh = qm
+	var cm := ShaderMaterial.new()
+	cm.shader = _shader("estrela", ESTRELA_SHADER)
+	cm.set_shader_parameter("cor", Color(1.0, 0.78, 0.45))
+	cm.set_shader_parameter("forca", 0.16)
+	cm.set_shader_parameter("raios", 0.0)
+	corpo.material_override = cm
+	corpo.position = Vector3(0, height_m * 0.55, 0)
+	corpo.scale = Vector3.ONE * height_m * 1.1
+	corpo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	corpo.visibility_range_end = 50.0
+	_aura.add_child(corpo)
 	var luz := OmniLight3D.new()
 	luz.light_color = Color(1.0, 0.75, 0.45)
 	luz.light_energy = 0.3
@@ -1717,6 +1846,8 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	if has_shield and two <= 0.0 and side == "r":
 		_make_shield(s, shield_id)
 	_make_sheath(bool(g.get("back", false)), kind in ["adaga", "punhal"])
+	if kind != "arco":
+		_montar_empunho(kind, grip, offhand.get_parent() if offhand != null else null, has_shield)
 	if kind == "arco":
 		# arco segurado por IK num suporte próprio: a mão vai até o arco (serve para todas as raças)
 		arqueria = load("res://scripts/arqueria.gd").new()
@@ -1828,7 +1959,116 @@ func _make_sheath(back: bool, small: bool) -> void:
 	att.add_child(sheath)
 
 
+# ---------- postura com a arma (referências de MMO clássico enviadas por Robson, 20/11) ----------
+# Parado e fora de combate: corpo ereto, arma na mão baixa, ponta apontando para o chão à frente e para fora.
+# Cajado: cabeça do cajado para baixo, à frente. Duas espadas: uma em cada mão, as duas lâminas baixas e abertas.
+# Em combate: mão à frente da cintura, lâmina para a frente e para cima (armas de duas mãos usam a guarda).
+# Vetores no espaço do personagem para o lado DIREITO (+Z frente, +Y cima, -X direita); o esquerdo é espelhado.
+# mao = direção do ombro até a pegada (vezes k x comprimento do braço); lamina = para onde a arma aponta;
+# polo = para onde vai o cotovelo. Medidas pelo braço de cada raça, então valem para todas.
+const POSE_ARMA := {
+	"normal": {"mao": Vector3(-0.14, -0.95, 0.22), "k": 0.93, "lamina": Vector3(-0.26, -0.78, 0.57), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal_duas": {"mao": Vector3(-0.16, -0.95, 0.2), "k": 0.93, "lamina": Vector3(-0.22, -0.5, 0.84), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal_cajado": {"mao": Vector3(-0.2, -0.93, 0.26), "k": 0.92, "lamina": Vector3(-0.26, -0.8, 0.54), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal_dupla": {"mao": Vector3(-0.22, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.38, -0.84, 0.39), "polo": Vector3(-0.4, -0.3, -0.85)},
+	"combate": {"mao": Vector3(-0.08, -0.8, 0.6), "k": 0.88, "lamina": Vector3(-0.22, 0.5, 0.84), "polo": Vector3(-0.7, -0.7, -0.2)},
+	"combate_dupla": {"mao": Vector3(0.02, -0.6, 0.8), "k": 0.86, "lamina": Vector3(-0.12, 0.34, 0.93), "polo": Vector3(-0.7, -0.7, -0.2)},
+	"combate_dupla_l": {"mao": Vector3(-0.05, -0.78, 0.6), "k": 0.88, "lamina": Vector3(-0.28, 0.12, 0.95), "polo": Vector3(-0.7, -0.6, -0.3)},
+}
+
+
+# transformação de um nó relativa ao personagem, sem depender da árvore estar pronta
+func _rel_self(n: Node) -> Transform3D:
+	var t := Transform3D()
+	while n != null and n != self:
+		if n is Node3D:
+			t = (n as Node3D).transform * t
+		n = n.get_parent()
+	return t
+
+
+# quadro da pegada para uma pose: origem na mão, +Z na lâmina, +Y voltado para o pulso
+func _quadro_pose(lado: String, chave: String) -> Array:
+	var p: Dictionary = POSE_ARMA[chave]
+	var sx := 1.0 if lado == "r" else -1.0
+	var rs := _rel_self(skel)
+	var ub := skel.find_bone("upperarm_" + lado)
+	var lb := skel.find_bone("lowerarm_" + lado)
+	var hb := skel.find_bone("hand_" + lado)
+	var mb := skel.find_bone("middle_01_" + lado)
+	var om: Vector3 = rs * skel.get_bone_global_rest(ub).origin
+	var cot: Vector3 = rs * skel.get_bone_global_rest(lb).origin
+	var pu: Vector3 = rs * skel.get_bone_global_rest(hb).origin
+	var dedo: Vector3 = rs * skel.get_bone_global_rest(mb).origin if mb >= 0 else pu
+	var braco := om.distance_to(cot) + cot.distance_to(pu) + pu.distance_to(dedo) * 0.55
+	var esp := func(v: Vector3) -> Vector3: return Vector3(v.x * sx, v.y, v.z)
+	var mao: Vector3 = om + (esp.call(p.mao) as Vector3).normalized() * braco * float(p.k)
+	var z: Vector3 = (esp.call(p.lamina) as Vector3).normalized()
+	var dica := (om - mao).normalized()
+	var y := (dica - z * dica.dot(z)).normalized()
+	var x := y.cross(z).normalized()
+	var polo: Vector3 = om + (esp.call(p.polo) as Vector3) * braco
+	return [Transform3D(Basis(x, y, z), mao), polo]
+
+
+func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: bool) -> void:
+	if skel.find_bone("upperarm_r") < 0 or skel.find_bone("middle_01_r") < 0:
+		return
+	var duas := float(GRIP[kind].get("two", 0.0)) > 0.0
+	var dupla := bool(GRIP[kind].get("dual", false))
+	var lados := {"r": grip_r}
+	if dupla and grip_l != null:
+		lados["l"] = grip_l
+	empunho = load("res://scripts/empunhar.gd").new()
+	empunho.name = "Empunhar"
+	skel.add_child(empunho)
+	for lado in lados:
+		var nn := "normal"
+		var cc := "combate"
+		if dupla:
+			nn = "normal_dupla"
+			cc = "combate_dupla" if lado == "r" else "combate_dupla_l"
+		elif kind in ["cajado"]:
+			nn = "normal_cajado"
+		elif duas:
+			nn = "normal_duas"
+		var qn := _quadro_pose(lado, nn)
+		var qc: Variant = null if duas else _quadro_pose(lado, cc)
+		var alvo := Node3D.new()
+		alvo.name = "PegadaAlvo_" + lado
+		alvo.transform = qn[0]
+		add_child(alvo)
+		var polo := Node3D.new()
+		polo.position = qn[1]
+		add_child(polo)
+		_mao_alvo[lado] = [alvo, polo]
+		_pose_mao[lado] = {"normal": qn, "combate": qc}
+		empunho.alvo[lado] = alvo
+		empunho.polo[lado] = polo
+		empunho.pegada[lado] = lados[lado]
+
+
+# a cada quadro: escolhe a pose (normal ou combate), suaviza a troca e desliga durante golpes e no arco
+func _empunho_passo(dt: float) -> void:
+	if empunho == null:
+		return
+	var golpe := is_busy() or _mart_alvo != null
+	for lado in _pose_mao:
+		var pm: Dictionary = _pose_mao[lado]
+		var usa_combate: bool = armed and pm.combate != null
+		var q: Array = pm.combate if usa_combate else pm.normal
+		var no: Array = _mao_alvo[lado]
+		var a: Node3D = no[0]
+		var k := clampf(dt * 6.0, 0.0, 1.0)
+		a.transform = a.transform.interpolate_with(q[0], k)
+		(no[1] as Node3D).position = (no[1] as Node3D).position.lerp(q[1], k)
+		var on := not golpe and not (guard != null and armed)
+		empunho.meta[lado] = 1.0 if on else 0.0
+	empunho.velocidade = 4.0 if not golpe else 14.0
+
+
 # em combate a arma vai para a mão; fora dele, para as costas ou a cintura
+# (com a postura de arma na mão, a arma fica na mão também fora de combate, baixa e firme)
 func set_battle(on: bool) -> void:
 	if postura != null:
 		postura.em_combate = on
@@ -1838,6 +2078,9 @@ func set_battle(on: bool) -> void:
 		armed = on
 		return
 	armed = on
+	if empunho != null and arqueria == null:
+		_arma_na_mao(on)
+		return
 	if fist != null:
 		for h in ["r", "l"]:
 			fist.amount[h] = 1.0 if on and h in fist_hands else 0.0
@@ -1868,6 +2111,34 @@ func set_battle(on: bool) -> void:
 		var keep := shield.transform
 		(shield_arm if on else shield_back).add_child(shield)
 		shield.transform = keep
+
+
+# com a postura de arma: a arma nunca vai para a bainha; muda só a pose (normal ou combate)
+func _arma_na_mao(on: bool) -> void:
+	if fist != null:
+		for h in ["r", "l"]:
+			fist.amount[h] = 1.0 if h in fist_hands and not (h == "l" and guard != null and not on) else 0.0
+	if wnode.get_parent() != grip_node:
+		wnode.get_parent().remove_child(wnode)
+		grip_node.add_child(wnode)
+	if guard != null:
+		guard_on = false
+		wnode.transform = arma_golpe
+		if on:
+			_set_guard(true)
+		else:
+			ik.active = false
+			ik_r.active = false
+			if postura != null:
+				postura.bracos_livres = true
+	if offhand != null:
+		offhand.visible = true
+	if shield != null and shield_arm != null:
+		if shield.get_parent() != shield_arm:
+			var keep := shield.transform
+			shield.get_parent().remove_child(shield)
+			shield_arm.add_child(shield)
+			shield.transform = keep
 
 
 func play(n: String, speed := 1.0) -> void:
@@ -1996,6 +2267,7 @@ func set_tag(text: String, color := Color(1, 0.92, 0.7), perto := 0.0) -> void:
 # pés no chão: o pé que está apoiado (o mais baixo na animação) encosta no terreno embaixo dele.
 # Corrige o corpo flutuando em descidas e o pé afundando em subidas; suaviza para não tremer.
 func _process(dt: float) -> void:
+	_empunho_passo(dt)
 	if world_ref == null or skel == null or body_node == null or not visible:
 		return
 	if feet.is_empty():
