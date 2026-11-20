@@ -400,7 +400,12 @@ const AZUL_FIM := Color(0.38, 0.62, 1.0)
 const OURO_16 := Color(1.0, 0.76, 0.42)
 
 
+static var cor_forcada := Color(0, 0, 0, 0)  # teste visual de paletas (estúdio)
+
+
 static func cor_encanto(nivel: int) -> Color:
+	if cor_forcada.a > 0.0:
+		return cor_forcada
 	if nivel >= 16:
 		return OURO_16
 	return AZUL_INICIO.lerp(AZUL_FIM, clampf((nivel - 4) / 11.0, 0.0, 1.0))
@@ -1848,6 +1853,8 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	_make_sheath(bool(g.get("back", false)), kind in ["adaga", "punhal"])
 	if kind != "arco":
 		_montar_empunho(kind, grip, offhand.get_parent() if offhand != null else null, has_shield)
+	else:
+		_montar_empunho_arco(grip)
 	if kind == "arco":
 		# arco segurado por IK num suporte próprio: a mão vai até o arco (serve para todas as raças)
 		arqueria = load("res://scripts/arqueria.gd").new()
@@ -1972,6 +1979,7 @@ const POSE_ARMA := {
 	"normal_cajado": {"mao": Vector3(-0.2, -0.93, 0.26), "k": 0.92, "lamina": Vector3(-0.26, -0.8, 0.54), "polo": Vector3(-0.3, -0.35, -0.9)},
 	"normal_dupla": {"mao": Vector3(-0.22, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.38, -0.84, 0.39), "polo": Vector3(-0.4, -0.3, -0.85)},
 	"combate": {"mao": Vector3(-0.08, -0.8, 0.6), "k": 0.88, "lamina": Vector3(-0.22, 0.5, 0.84), "polo": Vector3(-0.7, -0.7, -0.2)},
+	"normal_arco": {"mao": Vector3(-0.26, -0.95, 0.1), "k": 0.93, "lamina": Vector3(-0.22, 0.95, 0.2), "polo": Vector3(-0.3, -0.35, -0.9)},
 	"combate_dupla": {"mao": Vector3(0.02, -0.6, 0.8), "k": 0.86, "lamina": Vector3(-0.12, 0.34, 0.93), "polo": Vector3(-0.7, -0.7, -0.2)},
 	"combate_dupla_l": {"mao": Vector3(-0.05, -0.78, 0.6), "k": 0.88, "lamina": Vector3(-0.28, 0.12, 0.95), "polo": Vector3(-0.7, -0.6, -0.3)},
 }
@@ -2048,6 +2056,27 @@ func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: b
 		empunho.pegada[lado] = lados[lado]
 
 
+# arco fora de combate: na mão esquerda, baixo e inclinado à frente (pedido de Robson 20/11, como nas referências)
+func _montar_empunho_arco(grip_l: Node3D) -> void:
+	if skel.find_bone("upperarm_l") < 0 or skel.find_bone("middle_01_l") < 0:
+		return
+	empunho = load("res://scripts/empunhar.gd").new()
+	empunho.name = "Empunhar"
+	skel.add_child(empunho)
+	var qn := _quadro_pose("l", "normal_arco")
+	var alvo := Node3D.new()
+	alvo.transform = qn[0]
+	add_child(alvo)
+	var polo := Node3D.new()
+	polo.position = qn[1]
+	add_child(polo)
+	_mao_alvo["l"] = [alvo, polo]
+	_pose_mao["l"] = {"normal": qn, "combate": null}
+	empunho.alvo["l"] = alvo
+	empunho.polo["l"] = polo
+	empunho.pegada["l"] = grip_l
+
+
 # a cada quadro: escolhe a pose (normal ou combate), suaviza a troca e desliga durante golpes e no arco
 func _empunho_passo(dt: float) -> void:
 	if empunho == null:
@@ -2062,7 +2091,7 @@ func _empunho_passo(dt: float) -> void:
 		var k := clampf(dt * 6.0, 0.0, 1.0)
 		a.transform = a.transform.interpolate_with(q[0], k)
 		(no[1] as Node3D).position = (no[1] as Node3D).position.lerp(q[1], k)
-		var on := not golpe and not (guard != null and armed)
+		var on := not golpe and not (guard != null and armed) and not (arqueria != null and armed)
 		empunho.meta[lado] = 1.0 if on else 0.0
 	empunho.velocidade = 4.0 if not golpe else 14.0
 
@@ -2083,10 +2112,10 @@ func set_battle(on: bool) -> void:
 		return
 	if fist != null:
 		for h in ["r", "l"]:
-			fist.amount[h] = 1.0 if on and h in fist_hands else 0.0
+			fist.amount[h] = 1.0 if (on and h in fist_hands) or (not on and arqueria != null and empunho != null and h == "l") else 0.0
 	wnode.get_parent().remove_child(wnode)
 	if arqueria != null:
-		(arqueria.mira if on else sheath).add_child(wnode)
+		(arqueria.mira if on else (grip_node if empunho != null else sheath)).add_child(wnode)
 		if not on:
 			wnode.transform = arco_costas
 		else:

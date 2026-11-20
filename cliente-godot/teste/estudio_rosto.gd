@@ -59,6 +59,11 @@ func _init() -> void:
 			c.arqueria.disparar()
 			c.arqueria.t = float(OS.get_environment("ARCO_T"))
 			Engine.time_scale = 0.0001  # congela no instante pedido do tiro
+		if p.size() > 7 and p[7] != "":  # 8º campo: nível de encanto; 9º: cor forçada (hex) para comparar paletas
+			if p.size() > 8 and p[8] != "":
+				Character.cor_forcada = Color(p[8])
+			c.brilho_encanto(int(p[7]))
+			Character.cor_forcada = Color(0, 0, 0, 0)
 		if OS.get_environment("ENCANTO") != "":
 			c.brilho_encanto(int(OS.get_environment("ENCANTO")))
 		if OS.get_environment("HEROI") != "":
