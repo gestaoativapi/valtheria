@@ -5,6 +5,7 @@ var frame := 0
 var saida := "/tmp/monstro.png"
 var t := 0.3
 var players: Array = []
+var quadros := 0
 
 func _init() -> void:
 	pass
@@ -19,6 +20,7 @@ func _setup() -> void:
 		if a.begins_with("--t="): t = float(a.substr(4))
 		if a.begins_with("--saida="): saida = a.substr(8)
 		if a.begins_with("--ang="): ang = float(a.substr(6))
+		if a.begins_with("--quadros="): quadros = int(a.substr(10))
 	var root := Node3D.new()
 	get_root().add_child(root)
 	var env := Environment.new()
@@ -80,6 +82,10 @@ func _process(_d: float) -> bool:
 	frame += 1
 	if frame == 1:
 		_setup()
+	if quadros > 0:
+		if frame > 6 and frame <= 6 + quadros:
+			get_root().get_texture().get_image().save_png(saida % (frame - 6))
+		return frame > 6 + quadros
 	if frame == 4:
 		for ap in players:
 			(ap as AnimationPlayer).seek(t * (ap as AnimationPlayer).current_animation_length, true)
