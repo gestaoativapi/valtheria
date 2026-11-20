@@ -28,6 +28,43 @@ static func _mesh(root: Node3D, mesh: Mesh, pos: Vector3, basis := Basis.IDENTIT
 	return mi
 
 
+# tubo liso ao longo de uma linha de pontos, com raio em cada ponto (tronco e raízes sem emendas).
+# achata = escala da seção (x lateral, y vertical) para raízes mais largas que altas
+static func _tubo(pts: Array, raios: Array, lados: int, mat: Material, uv_v := 0.1, achata := Vector2.ONE) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := pts.size()
+	var acc := 0.0
+	for k in n:
+		var p: Vector3 = pts[k]
+		var t: Vector3 = ((pts[mini(k + 1, n - 1)] as Vector3) - (pts[maxi(k - 1, 0)] as Vector3)).normalized()
+		var lado := t.cross(Vector3.UP)
+		if lado.length() < 0.01:
+			lado = Vector3.RIGHT
+		lado = lado.normalized()
+		var cima := lado.cross(t).normalized()
+		if k > 0:
+			acc += p.distance_to(pts[k - 1])
+		for j in lados + 1:
+			var ang := TAU * j / lados
+			var dirv := lado * cos(ang) * achata.x + cima * sin(ang) * achata.y
+			st.set_normal((lado * cos(ang) + cima * sin(ang)).normalized())
+			st.set_uv(Vector2(float(j) / lados * 3.0, acc * uv_v))
+			st.add_vertex(p + dirv * float(raios[k]))
+	for k in n - 1:
+		for j in lados:
+			var a := k * (lados + 1) + j
+			var b := a + lados + 1
+			st.add_index(a)
+			st.add_index(a + 1)
+			st.add_index(b)
+			st.add_index(a + 1)
+			st.add_index(b + 1)
+			st.add_index(b)
+	st.set_material(mat)
+	return st.commit()
+
+
 static func _cyl(r0: float, r1: float, h: float, mat: Material, seg := 16) -> CylinderMesh:
 	var c := CylinderMesh.new()
 	c.bottom_radius = r0
@@ -141,25 +178,32 @@ static func arvore(w: Node3D, t: Dictionary, root: Node3D) -> Dictionary:
 	var gold := _mat(Color(1.0, 0.85, 0.45), 0.5, 3.0)
 	var H := 84.0
 	var r_at := func(y: float) -> float: return lerpf(11.0, 5.5, clampf(y / H, 0.0, 1.0))
-	_mesh(root, _cyl(11.0, 5.5, H, bark, 20), Vector3(0, g + H * 0.5 - 1.0, 0))
+	# tronco com base alargada (sapopemas) e raízes contínuas que descem até o chão, sem emendas (20/11)
+	var perfil_p: Array = []
+	var perfil_r: Array = []
+	for k in 13:
+		var f := k / 12.0
+		var y := -2.0 + f * (H + 2.0)
+		perfil_p.append(Vector3(0, g + y, 0))
+		perfil_r.append(lerpf(11.0, 5.5, clampf(y / H, 0.0, 1.0)) + 6.5 * pow(maxf(0.0, 1.0 - y / 14.0), 2.0))
+	_mesh(root, _tubo(perfil_p, perfil_r, 28, bark, 0.06), Vector3.ZERO)
 	w.block(cx, cz, 12.0)
-	# raízes enormes em arco
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 77
 	for i in 9:
-		var a := TAU * i / 9.0 + 0.2
-		var prev := Vector3(sin(a) * 9.0, g + 10.0, cos(a) * 9.0)
-		for k in 5:
-			var rr := 9.0 + (k + 1) * 5.2
-			var yy := g + 10.0 * (1.0 - pow((k + 1) / 5.0, 0.7)) - 0.5
-			var nxt := Vector3(sin(a + k * 0.05) * rr, yy, cos(a + k * 0.05) * rr)
-			var mid := (prev + nxt) * 0.5
-			var dir := (nxt - prev)
-			var len := dir.length()
-			var up := dir.normalized()
-			var bas := Basis.looking_at(up, Vector3.UP if absf(up.y) < 0.95 else Vector3.FORWARD) * Basis(Vector3.RIGHT, PI * 0.5)
-			_mesh(root, _cyl(2.6 - k * 0.38, 2.2 - k * 0.38, len + 1.0, bark, 10), mid, bas)
-			prev = nxt
+		var a := TAU * i / 9.0 + 0.2 + rng.randf_range(-0.08, 0.08)
+		var curva := rng.randf_range(-0.18, 0.18)
+		var alcance := rng.randf_range(30.0, 38.0)
+		var pts: Array = []
+		var rs: Array = []
+		for k in 16:
+			var f := k / 15.0
+			var rr := 7.5 + f * alcance
+			var aa := a + curva * f * f
+			var yy := g + 12.0 * pow(1.0 - f, 1.6) - 1.4 * f
+			pts.append(Vector3(sin(aa) * rr, yy, cos(aa) * rr))
+			rs.append(lerpf(3.1, 0.35, pow(f, 0.8)))
+		_mesh(root, _tubo(pts, rs, 12, bark, 0.12, Vector2(1.0, 0.72)), Vector3.ZERO)
 	# copa: nuvem de folhas e luzes penduradas
 	for i in 22:
 		var a := TAU * i / 22.0 + rng.randf() * 0.3
@@ -263,18 +307,6 @@ static func arvore(w: Node3D, t: Dictionary, root: Node3D) -> Dictionary:
 	w.place(root, "n_tree_light_1", lights, 9.0, true, 600.0)
 	_motes(root, Vector3(0, g + 30.0, 0), Vector3(36, 30, 36), Color(0.75, 1.0, 0.7), 140)
 	_light(root, Vector3(0, g + 60.0, 0), Color(0.6, 1.0, 0.75), 3.0, 60.0)
-	var plate := Label3D.new()
-	plate.text = "Sylvar · Árvore-Mãe"
-	plate.font = load("res://assets/cinzel.ttf")
-	plate.font_size = 96
-	plate.pixel_size = 0.02
-	plate.outline_size = 18
-	plate.modulate = Color(0.8, 1.0, 0.8)
-	plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	plate.position = Vector3(0, g + H + 40.0, 0)
-	plate.visibility_range_begin = 80.0
-	plate.visibility_range_end = 900.0
-	root.add_child(plate)
 	return {"forja": Vector2(-50, -22), "pousada": Vector2(24, 52), "estabulo": Vector2(56, 20)}
 
 
