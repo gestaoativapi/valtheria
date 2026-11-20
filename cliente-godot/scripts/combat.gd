@@ -98,6 +98,7 @@ func recalc() -> void:
 		"matk": (float(R.matk[t]) + float(ws.get("matk", 0.0)) * wm + float(a.get("matk", 0.0))) * f * rm * (1.0 + float(a.get("matkPct", 0.0))) * _buff("matk"),
 		"pdef": (float(R.pdef) + float(a.get("pdef", 0.0))) * f * _buff("pdef"),
 		"speed": 6.2 * float(R.spd) * _buff("speed"),
+		"arco": str(w.get("kind", "")) == "arco",
 		"range": float(wk.get("range", 2.2)),
 		"interval": float(wk.get("spd", 1.0)) / _buff("atkspd"),
 		"magic": bool(wk.get("magic", false)) or str(arch.get("atk", "p")) == "m",
@@ -786,7 +787,10 @@ func use_skill(i: int) -> void:
 	var fx_el := str(s.get("fx", ""))
 	if fx_el == "":
 		fx_el = my_elem if (st.magic or not offensive) else ""
-	main.player.action("Spell_Simple_Shoot" if (st.magic or not offensive) else "Sword_Attack")
+	if st.get("arco", false) and offensive and not st.magic:
+		main.player.disparar_arco()  # habilidade de arqueiro: o mesmo tiro completo
+	else:
+		main.player.action("Spell_Simple_Shoot" if (st.magic or not offensive) else "Sword_Attack")
 	main.player.busy_until = t + 0.55
 	if offensive:
 		auto = true
@@ -891,10 +895,18 @@ func _physics_process(dt: float) -> void:
 				next_atk = t + float(st.interval) * 1.15
 				_face(target)
 				swing += 1
-				main.player.action("Spell_Simple_Shoot" if st.magic else ["Sword_Regular_A", "Sword_Regular_B", "Sword_Regular_C"][swing % 3])
-				main.player.busy_until = t + 0.5
 				var r := _damage(1.0)
-				pending.append({"t": t + 0.3, "mob": target, "dmg": r.dmg, "crit": r.crit, "fx": my_elem if st.magic else "", "size": 0.55})
+				if st.get("arco", false) and not st.magic:
+					# arco: ergue, puxa a corda até a boca e solta; a flecha sai na hora da soltura e voa até o alvo
+					main.player.disparar_arco()
+					var de := _chest() + Vector3(0, 0.25, 0)
+					var ate := _center(target)
+					get_tree().create_timer(0.62).timeout.connect(func(): FX.flecha(self, de, ate, clampf(de.distance_to(ate) / 40.0, 0.12, 0.6)))
+					pending.append({"t": t + 0.62 + clampf(de.distance_to(ate) / 40.0, 0.12, 0.6), "mob": target, "dmg": r.dmg, "crit": r.crit, "fx": "", "size": 0.55})
+				else:
+					main.player.action("Spell_Simple_Shoot" if st.magic else ["Sword_Regular_A", "Sword_Regular_B", "Sword_Regular_C"][swing % 3])
+					main.player.busy_until = t + 0.5
+					pending.append({"t": t + 0.3, "mob": target, "dmg": r.dmg, "crit": r.crit, "fx": my_elem if st.magic else "", "size": 0.55})
 				if st.magic:
 					FX.bolt(self, _chest(), _center(target), my_elem)
 	else:

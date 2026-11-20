@@ -46,7 +46,7 @@ func _init() -> void:
 	var alt := 0.0
 	for i in itens.size():
 		var p := itens[i].split(":")
-		var o := {"armadura_teste": p[4] if p.size() > 4 else "", "race": p[0], "gender": p[2] if p.size() > 2 else "m", "skin": 0, "hair": 1, "hair_color": 1, "equipment": {"armadura": p[4] if p.size() > 4 else "nenhuma", "arma": p[3] if p.size() > 3 else ""}}
+		var o := {"armadura_teste": p[4] if p.size() > 4 else "", "race": p[0], "gender": p[2] if p.size() > 2 else "m", "skin": 0, "hair": 1, "hair_color": 1, "equipment": {"armadura": p[4] if p.size() > 4 else "nenhuma", "arma": p[3] if p.size() > 3 else "", "elmo": p[6] if p.size() > 6 else ""}}
 		if p.size() > 1 and p[1] != "":
 			o["subtipo"] = p[1]
 		var c: Node3D = Character.create(o)
@@ -55,6 +55,10 @@ func _init() -> void:
 		c.rotation.y = ang
 		if c.has_method("play"):
 			c.play("Idle")
+		if OS.get_environment("ARCO_T") != "" and c.get("arqueria") != null:
+			c.arqueria.disparar()
+			c.arqueria.t = float(OS.get_environment("ARCO_T"))
+			Engine.time_scale = 0.0001  # congela no instante pedido do tiro
 		if p.size() > 5 and p[5] != "":  # 6º campo: roupa de ofício (ferreiro, estalajadeiro...)
 			c.oficio(p[5], p[4] == "nenhuma")
 			if p[3] != "":

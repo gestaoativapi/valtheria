@@ -73,6 +73,10 @@ var ik: SkeletonModifier3D  # braço esquerdo até o cabo (arma de duas mãos)
 var ik_r: SkeletonModifier3D  # braço direito até a guarda, na postura parada
 var guard: Node3D  # arma de duas mãos segura à frente do corpo, com as duas mãos
 var guard_on := false
+var arqueria: Node3D  # arco: pose e tiro por IK (arqueria.gd)
+var cabelos: Array = []  # malhas de cabelo (somem debaixo de elmo, capuz e chapéu)
+var cabeca_no: Node3D  # "cabeça unitária" medida no crânio da raça (cabeca.gd)
+var arco_costas := Transform3D.IDENTITY
 var fist: Node  # Punho: fecha os dedos no cabo
 var fist_hands := ["r"]
 var offhand: Node3D  # segunda adaga (armas duplas), só aparece em combate
@@ -366,6 +370,11 @@ func _setup_medido(o: Dictionary) -> void:
 		_weapon(kind, lerpf(1.0, height_m / 1.8, 0.85), str(eq.get("escudo", "")) != "", wid, str(eq.get("escudo", "")))
 		var en: Dictionary = o.get("enchant") if o.get("enchant") is Dictionary else {}
 		brilho_encanto(int(en.get(wid, 0)))
+	var elmo_id := str(eq.get("elmo", ""))
+	if elmo_id != "":
+		var it: Array = load("res://scripts/cabeca.gd").item(elmo_id)
+		if it[0] != null:
+			vestir_cabeca(it[0], bool(it[1]))
 	if bool(o.get("heroi", false)):
 		aura_heroi(true)
 	play("Idle")
@@ -1464,13 +1473,16 @@ func _vestir_v3(male: bool, outfit: String, hair_col: Color, com_cabelo := true)
 	if male:
 		for m in _attach_v3("ca_curto_01"):
 			_tint(m, hc)
+			cabelos.append(m)
 	else:
 		for m in _attach_v3("ca_tranca_longa"):
 			_tint(m, hc)
+			cabelos.append(m)
 			m.visibility_range_end = 12.0
 			m.visibility_range_end_margin = 1.0
 		for m in _attach_v3("ca_tranca_longa_lod1"):
 			_tint(m, hc)
+			cabelos.append(m)
 			m.visibility_range_begin = 12.0
 			m.visibility_range_begin_margin = 1.0
 
@@ -1504,6 +1516,14 @@ func _attach(file: String, tint := Color(0, 0, 0, 0)) -> void:
 		m.owner = null
 		skel.add_child(m)
 		(m as MeshInstance3D).skeleton = NodePath("..")
+		if String(m.name).contains("Hood"):
+			# o capuz deixou de fazer parte da roupa: virou item de cabeça (Cabeca.capuz, slot "elmo"),
+			# para não atrapalhar elmos, coroas e acessórios. No lugar fica uma gola de pano dobrada (capuz abaixado)
+			m.queue_free()
+			_gola(Color(0.2, 0.33, 0.16) if file.contains("ranger") else Color(0.35, 0.3, 0.25))
+			continue
+		if file.begins_with("hair_"):
+			cabelos.append(m)
 		if tint.a > 0.0:
 			_tint(m as MeshInstance3D, tint)
 	src.free()
@@ -1641,8 +1661,7 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	var at := float(g.at) * s if float(g.at) >= 0.0 else -1.0
 	wnode = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
 	if kind == "arco":
-		# arco em pé na mão esquerda (corda para dentro), não deitado na horizontal
-		wnode.transform = Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3.ZERO) * wnode.transform
+		arco_costas = wnode.transform
 	elif float(g.get("two", 0.0)) <= 0.0:
 		var um: Array = _pegada().uma_mao
 		wnode.transform = Transform3D(Basis.from_euler(Vector3(float(um[0]), 0.0, float(um[1]))), Vector3.ZERO) * wnode.transform
@@ -1681,6 +1700,12 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	if has_shield and two <= 0.0 and side == "r":
 		_make_shield(s, shield_id)
 	_make_sheath(bool(g.get("back", false)), kind in ["adaga", "punhal"])
+	if kind == "arco":
+		# arco segurado por IK num suporte próprio: a mão vai até o arco (serve para todas as raças)
+		arqueria = load("res://scripts/arqueria.gd").new()
+		add_child(arqueria)
+		arqueria.montar(self, wnode, s)
+		fist_hands = ["l", "r"]
 	armed = false
 	set_battle(true)
 
@@ -1794,7 +1819,16 @@ func set_battle(on: bool) -> void:
 		for h in ["r", "l"]:
 			fist.amount[h] = 1.0 if on and h in fist_hands else 0.0
 	wnode.get_parent().remove_child(wnode)
-	(grip_node if on else sheath).add_child(wnode)
+	if arqueria != null:
+		(arqueria.mira if on else sheath).add_child(wnode)
+		if not on:
+			wnode.transform = arco_costas
+		else:
+			arqueria.mira.remove_child(wnode)
+			arqueria.montar_arco(wnode)
+		arqueria.ligar(on)
+	else:
+		(grip_node if on else sheath).add_child(wnode)
 	if guard != null:
 		guard_on = false
 		if on:
@@ -1845,6 +1879,67 @@ func action(n: String) -> float:
 	var len := anim.get_animation(n).length
 	busy_until = Time.get_ticks_msec() * 0.001 + len * 0.9
 	return len
+
+
+# gola dobrada no pescoço (o capuz abaixado da roupa de patrulheiro); cobre a borda da roupa no pescoço
+func _gola(cor: Color) -> void:
+	var nb := skel.find_bone("neck_01")
+	if nb < 0:
+		return
+	var att := BoneAttachment3D.new()
+	att.bone_name = "neck_01"
+	skel.add_child(att)
+	var rest := skel.get_bone_global_rest(nb)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = cor
+	mat.roughness = 0.95
+	# camisa de baixo: sem o capuz, a pele do peito aparecia no decote da túnica. Uma casca tirada do próprio
+	# corpo (do peito até a base do pescoço) veste esse vão e acompanha a respiração e os movimentos
+	var sb := skel.find_bone("spine_03")
+	if sb >= 0 and skel.find_child("corpo", false, false) != null:
+		var sp3 := skel.get_bone_global_rest(sb).origin
+		var ua := skel.get_bone_global_rest(skel.find_bone("upperarm_l")).origin
+		var ub := skel.get_bone_global_rest(skel.find_bone("upperarm_r")).origin
+		var camisa := mat.duplicate() as StandardMaterial3D
+		camisa.albedo_color = cor.lightened(0.12)
+		_casca_ajustada(camisa, 0.004, sp3.y - 0.02, rest.origin.y + 0.025, -1.0, absf(ua.x - ub.x) * 0.5, false, "corpo", "CamisaGola")
+	for k in 1:  # uma volta de pano justa na base do pescoço
+		var tm := TorusMesh.new()
+		tm.inner_radius = 0.052
+		tm.outer_radius = 0.085
+		tm.rings = 22
+		tm.ring_segments = 8
+		tm.material = mat
+		var mi := MeshInstance3D.new()
+		mi.mesh = tm
+		att.add_child(mi)
+		mi.transform = rest.affine_inverse() * Transform3D(Basis.from_scale(Vector3(1.1, 0.5, 1.0)), rest.origin + Vector3(0, -0.035, -0.01))
+
+
+# põe na cabeça um item modelado na "cabeça unitária" (elmo, capuz, chapéu, coroa ou acessório novo): o encaixe
+# é medido no crânio desta raça, então o mesmo item serve em todas. Passe null para tirar.
+func vestir_cabeca(item: Node3D, esconde_cabelo := false) -> void:
+	if cabeca_no == null:
+		cabeca_no = load("res://scripts/cabeca.gd").encaixe(self)
+		if cabeca_no == null:
+			return
+	for ch in cabeca_no.get_children():
+		ch.queue_free()
+	for m in cabelos:
+		if is_instance_valid(m):
+			(m as Node3D).visible = item == null or not esconde_cabelo
+	if item != null:
+		cabeca_no.add_child(item)
+
+
+# tiro com arco (movimento humano completo: erguer, puxar a corda até a boca, soltar e baixar)
+func disparar_arco() -> float:
+	if arqueria == null:
+		return action("Sword_Attack")
+	play("Idle")
+	var d: float = arqueria.disparar()
+	busy_until = Time.get_ticks_msec() * 0.001 + d * 0.9
+	return d
 
 
 func is_busy() -> bool:

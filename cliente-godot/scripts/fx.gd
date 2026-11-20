@@ -191,6 +191,30 @@ static func bolt(parent: Node, from: Vector3, to: Vector3, elem: String, time :=
 	tw.tween_callback(root.queue_free)
 
 
+# flecha de verdade voando em arco leve até o alvo (arqueiros)
+static func flecha(parent: Node, from: Vector3, to: Vector3, time := 0.32) -> void:
+	var root := Node3D.new()
+	parent.add_child(root)
+	root.global_position = from
+	var haste := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.008
+	cm.bottom_radius = 0.008
+	cm.height = 0.8
+	var mt := StandardMaterial3D.new()
+	mt.albedo_color = Color(0.55, 0.42, 0.28)
+	cm.material = mt
+	haste.mesh = cm
+	haste.rotation = Vector3(PI * 0.5, 0, 0)  # haste ao longo de -Z (frente do look_at)
+	root.add_child(haste)
+	var d := to - from
+	if d.length() > 0.1:
+		root.look_at(to, Vector3.UP)
+	var tw := parent.create_tween()
+	tw.tween_property(root, "global_position", to, time)
+	tw.tween_callback(root.queue_free)
+
+
 # aura em volta do personagem (proteção, bônus)
 static func aura(target: Node3D, elem: String, seconds: float) -> void:
 	var c := colors(elem)
