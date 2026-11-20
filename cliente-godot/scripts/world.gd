@@ -83,9 +83,13 @@ void fragment() {
 	col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 0.72) * vec3(1.03, 0.97, 0.88);
 	vec3 d = texture(dirt, uv * 0.9).rgb * vec3(0.72, 0.78, 0.8);
 	col = mix(col, mix(vec3(0.45, 0.38, 0.3), d, near), sp.r);
+	// neve: o tom claro do mapa vira neve de verdade (não o cinza escurecido da grama), com cristais finos que brilham
+	float neve = smoothstep(0.74, 0.84, min(tn.r, min(tn.g, tn.b)));
+	vec3 nv = tn * mix(0.93, 1.0, texture(grass, uv * 0.37).g) * mix(1.0, clamp(lr, 0.85, 1.08), near * 0.6);
+	col = mix(col, nv * vec3(0.97, 0.99, 1.03), neve);
 	ALBEDO = col;
-	ROUGHNESS = 0.96;
-	SPECULAR = 0.15;
+	ROUGHNESS = mix(0.96, 0.55, neve);
+	SPECULAR = mix(0.15, 0.4, neve);
 }
 """
 
