@@ -1,0 +1,5 @@
+Armas gratuitas com licença CC0 1.0 (domínio público, uso comercial livre, sem atribuição obrigatória)
+- rgpoly/: "[Free] Medieval Weapons - Small Low Poly Pack" de RG Poly (https://rg-poly.itch.io/medieval-weapons-small-low-poly-pack),
+  página do pacote: "CC0 Licensed. Free for personal and commercial use, no attribution required." Baixado em 20/11/2026.
+- quaternius/: "Fantasy Props MegaKit" (versão Standard gratuita) de Quaternius (https://quaternius.itch.io/fantasy-props-megakit),
+  License_Standard.txt: CC0 1.0 Universal. Baixado em 20/11/2026.
