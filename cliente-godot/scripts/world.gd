@@ -154,9 +154,31 @@ void fragment() {
 
 
 
+# os nomes vêm dos dados compartilhados com a versão web no masculino ("Espada Rústico");
+# aqui o adjetivo do grau concorda com a peça ("Espada Rústica", "Botas Rubras", "Punhos Rústicos")
+const _FEM := ["Égide", "Espada", "Lança", "Túnica", "Armadura", "Adaga", "Luvas", "Sandálias", "Grevas", "Garras", "Botas", "Manoplas", "Adagas", "Espadas"]
+const _PLURAL := ["Luvas", "Sandálias", "Grevas", "Garras", "Botas", "Manoplas", "Adagas", "Espadas", "Punhos"]
+
+static func concordar_nomes(items: Dictionary) -> void:
+	for id in items:
+		var nm := str(items[id].get("name", ""))
+		var w := nm.split(" ")
+		if w.size() < 2:
+			continue
+		var adj := w[w.size() - 1]
+		if not adj in ["Rústico", "Rubro"]:
+			continue
+		var fem := w[0] in _FEM
+		var pl := w[0] in _PLURAL
+		var raiz := adj.trim_suffix("o")
+		w[w.size() - 1] = raiz + ("a" if fem else "o") + ("s" if pl else "")
+		items[id].name = " ".join(w)
+
+
 func _init() -> void:
 	rng.seed = 12345
 	info = JSON.parse_string(FileAccess.get_file_as_string("res://data/world.json"))
+	concordar_nomes(info.items)
 	if FileAccess.file_exists("res://data/mapa.json"):
 		mapa = JSON.parse_string(FileAccess.get_file_as_string("res://data/mapa.json"))
 	size = info.size

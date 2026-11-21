@@ -356,6 +356,8 @@ func _setup_medido(o: Dictionary) -> void:
 			if bi >= 0:
 				skel.set_bone_pose_scale(bi, Vector3.ONE * float(shape.bones[bn]))
 		height_m = (1.8 + (0.12 if race == "anao" else 0.0)) * k - float(shape.drop) * k
+	if not dragon and not o.get("sem_roupa", false):
+		_cor_grau_roupa(eq)
 	var chave_postura: String = "goblin" if str(o.get("subtipo", "")) == "goblin" else race
 	if POSTURAS.has(chave_postura):
 		var pr: Dictionary = POSTURAS[chave_postura]
@@ -1594,6 +1596,70 @@ static func _malha_barba() -> ArrayMesh:
 
 
 # V3: aldeão = túnica (formas corretivas + RBF), calça e botas novas; outras armaduras usam a roupa oficial no corpo novo
+# ---------- cor do grau (pedido de Robson 21/11: peças de graus diferentes não podem parecer iguais) ----------
+# NG fica como sempre foi; D bronze, C aço claro, B azurita, A rubro, S celestial (ouro claro).
+const COR_GRAU := {"d": Color(0.8, 0.52, 0.28), "c": Color(0.86, 0.88, 0.92), "b": Color(0.45, 0.62, 0.95), "a": Color(0.82, 0.26, 0.22), "s": Color(1.0, 0.9, 0.66)}
+const FORCA_GRAU := {"d": 0.7, "c": 0.35, "b": 0.75, "a": 0.72, "s": 0.6}
+
+static func grau_do_item(id: String) -> String:
+	var g := id.get_slice("_", id.get_slice_count("_") - 1)
+	return g if g in ["ng", "d", "c", "b", "a", "s"] else ""
+
+
+# armas e escudos: só as partes de metal (cor pouco saturada e clara) mudam; madeira e couro ficam
+static func cor_grau_metal(raiz: Node, grau: String) -> void:
+	if raiz == null or not COR_GRAU.has(grau):
+		return
+	var alvo: Color = COR_GRAU[grau]
+	for m in raiz.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for k in mi.mesh.get_surface_count():
+			var mt = mi.get_active_material(k)
+			if not (mt is BaseMaterial3D):
+				continue
+			var c: Color = mt.albedo_color
+			if c.s > 0.22 or c.v < 0.42:
+				continue  # madeira, couro, pano escuro
+			var d := (mt as BaseMaterial3D).duplicate() as BaseMaterial3D
+			d.albedo_color = Color(alvo.r * c.v * 1.15, alvo.g * c.v * 1.15, alvo.b * c.v * 1.15)
+			d.metallic = maxf(d.metallic, 0.7)
+			d.roughness = minf(d.roughness, 0.38)
+			mi.set_surface_override_material(k, d)
+
+
+# roupa: a cor do grau por cima da textura (mais forte nas placas, mais leve no couro e no tecido);
+# luvas e botas pintam as mãos e os pés com o grau delas
+func _cor_grau_roupa(eq: Dictionary) -> void:
+	var armor := str(eq.get("armadura", ""))
+	var g_corpo := grau_do_item(armor)
+	var g_maos := grau_do_item(str(eq.get("luvas", "")))
+	var g_pes := grau_do_item(str(eq.get("botas", "")))
+	var leve := 0.55 if (armor.begins_with("leve") or armor.begins_with("robe")) else 1.0
+	for m in skel.find_children("*", "MeshInstance3D", false, false):
+		var mi := m as MeshInstance3D
+		var nm := String(mi.name).to_lower()
+		if mi.mesh == null or not (nm.contains("knight") or nm.contains("ranger") or nm.contains("wizard") or nm.contains("peasant") or nm.contains("rp_")):
+			continue
+		var g := g_corpo
+		if nm.contains("feet") or nm.contains("boot") or nm.contains("botas"):
+			g = g_pes if g_pes != "" else g_corpo
+		elif nm.contains("bracer") or nm.contains("glove") or nm.contains("hand"):
+			g = g_maos if g_maos != "" else g_corpo
+		if not COR_GRAU.has(g):
+			continue
+		var f: float = FORCA_GRAU[g] * leve
+		var tinta: Color = Color(1, 1, 1).lerp(COR_GRAU[g] * 1.18, f)
+		for k in mi.mesh.get_surface_count():
+			var mt = mi.get_active_material(k)
+			if not (mt is BaseMaterial3D) or String(mt.resource_name).begins_with("MI_Regular"):
+				continue  # pele dos braços fica como está
+			var d := (mt as BaseMaterial3D).duplicate() as BaseMaterial3D
+			d.albedo_color = Color(tinta.r, tinta.g, tinta.b, 1.0)
+			mi.set_surface_override_material(k, d)
+
+
 func _vestir_v3(male: bool, outfit: String, hair_col: Color, com_cabelo := true) -> void:
 	var g := "m" if male else "f"
 	if outfit == "peasant":
@@ -1802,6 +1868,7 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 		return
 	var at := float(g.at) * s if float(g.at) >= 0.0 else -1.0
 	wnode = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
+	cor_grau_metal(wnode, grau_do_item(item_id))
 	if kind == "arco":
 		arco_costas = wnode.transform
 	elif float(g.get("two", 0.0)) <= 0.0:
@@ -1918,6 +1985,7 @@ func _make_shield(s: float, shield_id := "") -> void:
 			sfile = ARMAS + f + ".glb"
 			break
 	shield = cena(sfile).instantiate()
+	cor_grau_metal(shield, grau_do_item(shield_id))
 	var bb := AABB()
 	var first := true
 	for m in shield.find_children("*", "MeshInstance3D", true, false):

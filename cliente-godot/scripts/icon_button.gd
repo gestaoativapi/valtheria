@@ -18,6 +18,10 @@ var dim := 0.0:  # 0 a 1: parte escurecida de baixo para cima (recarga)
 var rim := Color(0.55, 0.42, 0.2)
 var rim_w := 1
 var flat_look := false  # sem base: só o desenho (ícones pequenos de status)
+var textura: Texture2D:  # foto do item (assets/icones/itens): mostrada no lugar do desenho vetorial
+	set(v):
+		textura = v
+		queue_redraw()
 
 const ELEM := {"fire": Color(1.0, 0.5, 0.2), "fogo": Color(1.0, 0.5, 0.2), "ice": Color(0.6, 0.86, 1.0), "gelo": Color(0.6, 0.86, 1.0), "water": Color(0.35, 0.62, 1.0), "agua": Color(0.35, 0.62, 1.0),
 	"wind": Color(0.7, 0.95, 0.8), "vento": Color(0.7, 0.95, 0.8), "earth": Color(0.72, 0.56, 0.36), "terra": Color(0.72, 0.56, 0.36), "holy": Color(1.0, 0.92, 0.6), "luz": Color(1.0, 0.92, 0.6),
@@ -70,7 +74,11 @@ func _draw() -> void:
 	var c := area * 0.5 + off
 	var u := minf(area.x, area.y) / 46.0
 	var col := tint if not disabled else Color(0.42, 0.42, 0.45)
-	if kind != "":
+	if textura != null:
+		var lado := minf(area.x, area.y) - 6.0
+		var r := Rect2(c - Vector2(lado, lado) * 0.5, Vector2(lado, lado))
+		draw_texture_rect(textura, r, false, Color(1, 1, 1) if not disabled else Color(0.5, 0.5, 0.55))
+	elif kind != "":
 		# desenho esculpido: sombra deslocada, luz deslocada e a cor por cima
 		_glyph(c + Vector2(1.3, 1.7) * u, u, Color(0, 0, 0, 0.75), true)
 		_glyph(c - Vector2(0.9, 0.9) * u, u, Color(1, 1, 1, 0.22), true)

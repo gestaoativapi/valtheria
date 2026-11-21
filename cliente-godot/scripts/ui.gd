@@ -1294,12 +1294,18 @@ func _item_card(title: String, g: int, lines: Array, price: String, action: Stri
 	head.add_theme_constant_override("separation", 8)
 	var item_id := str(args.get("p_item", args.get("_icon", "")))
 	if item_id != "":
-		var ic := _item_icon(item_id, 48)
+		var ic := _item_icon(item_id, 64)
 		ic.mouse_filter = Control.MOUSE_FILTER_PASS
 		head.add_child(ic)
 	head.add_child(t)
 	v.add_child(head)
 	v.add_child(_label("Grau %s" % GRADES[g], 12, Color(0.7, 0.72, 0.78)))
+	if item_id != "":
+		var ap := aparencia(item_id, info.items.get(item_id, {}))
+		if ap != "":
+			var al := _label(ap, 12, Color(0.78, 0.74, 0.62))
+			al.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			v.add_child(al)
 	for ln in lines:
 		var l := _label(str(ln), 13)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1666,11 +1672,67 @@ func _detail(title: String, g: int, lines: Array, extra_line: String, acts: Arra
 
 
 # ícone de item com moldura na cor do grau e o nome e descrição ao passar o mouse
+# aparência de cada peça (para a loja e a bolsa mostrarem como ela é, além do ícone)
+const _METAL := ["ferro batido, de acabamento rústico", "bronze polido com rebites de cobre", "aço temperado com detalhes gravados",
+	"aço azulado (azurita) com filetes prateados", "metal rubro de bordas escurecidas e detalhes em ouro velho", "liga celestial clara com filetes dourados e brilho suave"]
+const _TECIDO := ["linho cru", "lã tingida em tons de terra", "linho fino cinza com bordado", "seda azul-marinho com bordas prateadas",
+	"veludo vinho com bordados dourados", "tecido branco-perolado com runas douradas"]
+const _COURO := ["couro cru", "couro curtido com placas de bronze", "couro escuro reforçado com aço", "couro azulado com placas de azurita",
+	"couro vinho com fivelas douradas", "couro claro com placas celestiais"]
+const _MADEIRA := ["madeira simples", "freixo com anéis de bronze", "carvalho com ponteira de aço", "madeira escura com cristal azul",
+	"madeira avermelhada com ouro velho", "madeira clara com cristal celestial"]
+const _FORMA_ARMA := {"espada": "Espada de uma mão: lâmina reta e guarda em cruz", "espadao": "Espadão de duas mãos: lâmina longa e larga",
+	"adaga": "Adaga curta de lâmina estreita, para golpes rápidos", "punhal": "Punhal leve de ponta fina", "duplas": "Par de lâminas, uma em cada mão",
+	"arco": "Arco longo de braços curvados; a corda só aparece ao atirar", "cajado": "Cajado longo de duas mãos, com cabeça de foco mágico",
+	"cetro": "Cetro de uma mão com cabeça ornamentada", "lanca": "Lança de haste reta e ponta larga", "machado": "Machado de lâmina curva e cabo firme",
+	"martelo": "Martelo de guerra de cabeça pesada", "punhos": "Par de soqueiras para luta corpo a corpo", "garras": "Garras presas ao punho, com três lâminas curvas"}
+const _FORMA_ROUPA := {
+	"armadura": {"pesada": "Armadura de placas que cobre peito, ombros e cintura", "leve": "Gibão justo ao corpo, com ombreiras leves", "robe": "Túnica longa de mago, com capa leve"},
+	"elmo": {"pesada": "Elmo de placas que protege a cabeça e a nuca", "leve": "Proteção de cabeça leve, que não atrapalha a visão", "robe": "Capuz ou chapéu de tecido"},
+	"luvas": {"pesada": "Manoplas de placas articuladas", "leve": "Luvas de couro de cano curto", "robe": "Luvas de tecido fino"},
+	"botas": {"pesada": "Grevas de metal até o joelho", "leve": "Botas de couro de cano alto", "robe": "Botas leves ou sandálias de tecido"}}
+const _QUEM := {"pesada": "Para guerreiros e cavaleiros", "leve": "Para arqueiros e lâminas ágeis", "robe": "Para magos e sacerdotes"}
+
+static func aparencia(id: String, it: Dictionary) -> String:
+	if it.has("desc") and str(it.desc) != "":
+		return str(it.desc)
+	var g := clampi(int(it.get("grade", 0)), 0, 5)
+	var sl := str(it.get("slot", ""))
+	var k := str(it.get("kind", ""))
+	if sl == "arma":
+		var mat: String = _MADEIRA[g] if k in ["arco", "cajado", "cetro"] else _METAL[g]
+		return "%s, em %s." % [_FORMA_ARMA.get(k, "Arma"), mat]
+	if sl == "escudo":
+		return ("Égide mágica de braço, em %s." if k == "egide" or id.begins_with("egide") else "Escudo de braço, em %s.") % _METAL[g]
+	if _FORMA_ROUPA.has(sl):
+		var tipo := "pesada" if "pesada" in id else ("leve" if "leve" in id else ("robe" if "robe" in id else k))
+		if not _QUEM.has(tipo):
+			return ""
+		var mat: String = _METAL[g] if tipo == "pesada" else (_COURO[g] if tipo == "leve" else _TECIDO[g])
+		return "%s, em %s. %s." % [_FORMA_ROUPA[sl].get(tipo, ""), mat, _QUEM[tipo]]
+	return ""
+
+
+static var _fotos := {}
+
+# foto 3D do item, gerada por teste/estudio_icones.gd (uma por arma e por peça de roupa)
+static func foto_item(id: String) -> Texture2D:
+	if _fotos.has(id):
+		return _fotos[id]
+	var cam := "res://assets/icones/itens/%s.png" % id
+	var t: Texture2D = load(cam) if ResourceLoader.exists(cam) else null
+	_fotos[id] = t
+	return t
+
+
 func _item_icon(id: String, size: float, selected := false) -> Button:
 	var it: Dictionary = info.items.get(id, {})
 	var g := grade_of(id)
 	var look: Array = IconButton.item_look(id, it)
 	var b := _icon(look[0], "", size)
+	b.textura = foto_item(id)
+	var ap := aparencia(id, it)
+	b.tooltip_text = str(it.get("name", id)) + ("\n" + ap if ap != "" else "")
 	b.tint = (look[1] as Color).lerp(GRADE_COL[g], 0.3 if g >= 3 else 0.0)
 	b.rim = Color(1, 1, 1) if selected else GRADE_COL[g]
 	b.rim_w = 2
