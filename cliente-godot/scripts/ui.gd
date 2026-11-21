@@ -92,6 +92,11 @@ var win_title: Label
 var win_list: VBoxContainer
 var win_name := ""
 var chat_log: RichTextLabel
+var chat_linhas: Array = []  # [canal, bbcode] — guardadas para filtrar por aba
+var chat_aba := "todos"
+var chat_abas := {}
+var hot_linhas := 3  # linhas visíveis da barra de atalhos (1 a 3)
+const CANAIS := [["todos", "Todos"], ["geral", "Geral"], ["grupo", "Grupo"], ["cla", "Clã"], ["sistema", "Sistema"]]
 var chat_edit: LineEdit
 var assist: Array = []
 var assist_ids: Array = []
@@ -426,7 +431,7 @@ func _build_hud() -> void:
 	hot_panel.anchor_bottom = 1.0
 	hot_panel.offset_left = -226
 	hot_panel.offset_right = 226
-	hot_panel.offset_top = -148
+	hot_panel.offset_top = -196
 	hot_panel.offset_bottom = -40
 	hud.add_child(hot_panel)
 	var grid := GridContainer.new()
@@ -436,11 +441,12 @@ func _build_hud() -> void:
 	hot_panel.add_child(grid)
 	var cfh := ConfigFile.new()
 	cfh.load("user://interface.cfg")
+	hot_linhas = int(cfh.get_value("atalhos", "linhas", 3))
 	var saved = cfh.get_value("atalhos", "acoes", {})
 	if saved is Dictionary:
 		for k in saved:
 			hot_custom[int(k)] = str(saved[k])
-	for i in 9:
+	for i in 18:
 		var b := _icon("vazio", "", 44)
 		b.pressed.connect(func(): press_slot(i))
 		b.gui_input.connect(func(ev):
@@ -460,6 +466,23 @@ func _build_hud() -> void:
 		b.pressed.connect(func(): use_assist(i))
 		grid.add_child(b)
 		assist.append(b)
+	# botão pequeno para mostrar 1, 2 ou 3 linhas da barra
+	var hv := hot_panel.get_child(0)
+	hot_panel.remove_child(hv)
+	var hh := HBoxContainer.new()
+	hh.add_theme_constant_override("separation", 4)
+	hot_panel.add_child(hh)
+	hh.add_child(hv)
+	var lin := _button("≡")
+	lin.custom_minimum_size = Vector2(22, 0)
+	lin.add_theme_font_size_override("font_size", 14)
+	lin.tooltip_text = "Linhas da barra: 1, 2 ou 3\n1ª linha: teclas 1 a 9   ·   2ª: Shift + 1 a 9   ·   3ª: itens F1 a F9"
+	lin.pressed.connect(func():
+		hot_linhas = hot_linhas % 3 + 1
+		_aplicar_linhas()
+		_save_layout())
+	hh.add_child(lin)
+	_aplicar_linhas()
 
 	# barra de efeitos: reforços, penalidades e recargas em quadros pequenos, até 9 por linha
 	fx_panel = PanelContainer.new()
@@ -561,22 +584,54 @@ func _build_hud() -> void:
 	dh.add_child(gm_btn)
 	_movable(dock, "doca")
 
-	# bate-papo
+	# bate-papo: fundo translúcido, abas por canal (Todos, Geral, Grupo, Clã, Sistema)
+	var cpn := PanelContainer.new()
+	var cst := _panel_style(0.32)
+	cst.set_content_margin_all(6)
+	cst.shadow_size = 0
+	cpn.add_theme_stylebox_override("panel", cst)
+	chat_panel = cpn
+	cpn.anchor_top = 1.0
+	cpn.anchor_bottom = 1.0
+	cpn.offset_left = 16
+	cpn.offset_right = 436
+	cpn.offset_top = -280
+	cpn.offset_bottom = -44
+	hud.add_child(cpn)
 	var cb := VBoxContainer.new()
-	chat_panel = cb
-	cb.anchor_top = 1.0
-	cb.anchor_bottom = 1.0
-	cb.offset_left = 16
-	cb.offset_right = 420
-	cb.offset_top = -250
-	cb.offset_bottom = -48
-	hud.add_child(cb)
+	cb.add_theme_constant_override("separation", 4)
+	cpn.add_child(cb)
+	var abas := HBoxContainer.new()
+	abas.add_theme_constant_override("separation", 2)
+	cb.add_child(abas)
+	for c in CANAIS:
+		var ab := Button.new()
+		ab.text = c[1]
+		ab.toggle_mode = true
+		ab.focus_mode = Control.FOCUS_NONE
+		ab.add_theme_font_size_override("font_size", 12)
+		ab.custom_minimum_size = Vector2(0, 24)
+		ab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for st in ["normal", "hover", "pressed", "hover_pressed"]:
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = Color(0.85, 0.66, 0.3, 0.55) if st.contains("pressed") else Color(0.05, 0.06, 0.09, 0.45 if st == "normal" else 0.7)
+			sb.set_corner_radius_all(4)
+			sb.content_margin_left = 4
+			sb.content_margin_right = 4
+			ab.add_theme_stylebox_override(st, sb)
+		ab.add_theme_color_override("font_pressed_color", Color(0.08, 0.06, 0.03))
+		ab.add_theme_color_override("font_hover_pressed_color", Color(0.08, 0.06, 0.03))
+		var canal: String = c[0]
+		ab.pressed.connect(func(): chat_filtrar(canal))
+		abas.add_child(ab)
+		chat_abas[canal] = ab
 	chat_log = RichTextLabel.new()
 	chat_log.bbcode_enabled = true
 	chat_log.scroll_following = true
 	chat_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	chat_log.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chat_log.add_theme_font_size_override("normal_font_size", 14)
+	chat_log.add_theme_font_size_override("italics_font_size", 14)
 	chat_log.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	chat_log.add_theme_constant_override("outline_size", 5)
 	cb.add_child(chat_log)
@@ -589,6 +644,8 @@ func _build_hud() -> void:
 		chat_edit.release_focus()
 		want_chat.emit(t))
 	cb.add_child(chat_edit)
+	_movable(cpn, "chat")
+	chat_filtrar("todos")
 
 	toast = _label("", 22, Color(1, 0.93, 0.7), true)
 	toast.anchor_left = 0.0
@@ -651,7 +708,7 @@ func _build_hud() -> void:
 	bs.pressed.connect(func(): bs.text = cycle_scale())
 	v.add_child(bs)
 
-	var help := _label("W A S D ou clique: andar   ·   clique no monstro: alvo (2º clique ou F: atacar)   ·   Tab: próximo alvo   ·   1 a 9: habilidades   ·   F1 a F9: itens   ·   arraste os painéis para mover", 14, Color(0.9, 0.9, 0.92))
+	var help := _label("W A S D ou clique: andar   ·   clique no monstro: alvo (2º clique ou F: atacar)   ·   Tab: próximo alvo   ·   1 a 9 e Shift+1 a 9: habilidades   ·   F1 a F9: itens   ·   arraste os painéis para mover", 14, Color(0.9, 0.9, 0.92))
 	help.anchor_top = 1.0
 	help.anchor_bottom = 1.0
 	help.anchor_right = 1.0
@@ -740,6 +797,10 @@ func set_skills(list: Array) -> void:
 	_refresh_hot()
 
 
+func _tecla(i: int) -> String:
+	return str(i + 1) if i < 9 else "⇧%d" % (i - 8)
+
+
 func _refresh_hot() -> void:
 	for i in hot.size():
 		var b = hot[i]
@@ -749,18 +810,18 @@ func _refresh_hot() -> void:
 		if not a.is_empty():
 			b.kind = a[1]
 			b.tint = Color(0.8, 0.9, 1.0)
-			b.label = str(i + 1)
-			b.tooltip_text = "%s  (tecla %d)\n%s\nBotão direito tira daqui" % [a[2], i + 1, a[3]]
+			b.label = _tecla(i)
+			b.tooltip_text = "%s  (tecla %s)\n%s\nBotão direito tira daqui" % [a[2], _tecla(i), a[3]]
 		elif i < skill_list.size():
 			var s: Dictionary = skill_list[i]
 			var look: Array = IconButton.skill_look(s)
 			b.kind = look[0]
 			b.tint = look[1]
-			b.label = str(i + 1)
-			b.tooltip_text = "%s  (tecla %d)\nMana %d   ·   recarga %ds" % [s.name, i + 1, int(s.mp), int(s.cd)]
+			b.label = _tecla(i)
+			b.tooltip_text = "%s  (tecla %s)\nMana %d   ·   recarga %ds" % [s.name, _tecla(i), int(s.mp), int(s.cd)]
 		else:
 			b.kind = "vazio"
-			b.label = str(i + 1)
+			b.label = _tecla(i)
 			b.tooltip_text = "Vazio: novas habilidades chegam com o nível e a classe.\nArraste uma ação da janela de Ações para cá."
 
 
@@ -770,7 +831,7 @@ func set_cooldowns(cds: Array, now: float) -> void:
 			var left: float = float(cds[i]) - now
 			var b = hot[i]
 			b.dim = clampf(left / maxf(float(skill_list[i].cd), 0.1), 0.0, 1.0) if left > 0.0 else 0.0
-			b.label = ("%d\n%d" % [i + 1, int(ceilf(left))]) if left > 0.0 else str(i + 1)
+			b.label = ("%s\n%d" % [_tecla(i), int(ceilf(left))]) if left > 0.0 else _tecla(i)
 
 
 # list: [{"kind", "col", "tip", "left"}] — reforços, penalidades e recargas ativos
@@ -864,6 +925,7 @@ func _save_layout() -> void:
 	cf.set_value("janela", "tamanho", win.size)
 	cf.set_value("janela", "escala", ui_scale)
 	cf.set_value("atalhos", "acoes", hot_custom)
+	cf.set_value("atalhos", "linhas", hot_linhas)
 	cf.save("user://interface.cfg")
 
 
@@ -905,12 +967,48 @@ func typing() -> bool:
 
 func chat_line(who_name: String, msg: String, kind := "chat") -> void:
 	var safe := msg.replace("[", "[lb]")
-	if kind == "chat":
-		chat_log.append_text("[color=#ffd98a]%s:[/color] %s\n" % [who_name.replace("[", "[lb]"), safe])
-	elif kind == "npc":
-		chat_log.append_text("[color=#b8f0b0]%s:[/color] [i]%s[/i]\n" % [who_name.replace("[", "[lb]"), safe])
-	else:
-		chat_log.append_text("[color=#9fd0ff]%s[/color]\n" % safe)
+	var nome := who_name.replace("[", "[lb]")
+	var canal := "geral"
+	var linha := ""
+	match kind:
+		"chat":
+			linha = "[color=#ffd98a]%s:[/color] %s" % [nome, safe]
+		"npc":
+			linha = "[color=#b8f0b0]%s:[/color] [i]%s[/i]" % [nome, safe]
+		"grupo":
+			canal = "grupo"
+			linha = "[color=#7fd8ff]#%s:[/color] [color=#c8eeff]%s[/color]" % [nome, safe]
+		"cla":
+			canal = "cla"
+			linha = "[color=#c9a0ff]@%s:[/color] [color=#e6d6ff]%s[/color]" % [nome, safe]
+		_:
+			canal = "sistema"
+			linha = "[color=#9fd0ff]%s[/color]" % safe
+	chat_linhas.append([canal, linha])
+	if chat_linhas.size() > 200:
+		chat_linhas.pop_front()
+	if chat_aba == "todos" or chat_aba == canal:
+		chat_log.append_text(linha + "\n")
+
+
+func chat_filtrar(canal: String) -> void:
+	chat_aba = canal
+	for k in chat_abas:
+		chat_abas[k].set_pressed_no_signal(k == canal)
+	chat_log.clear()
+	for l in chat_linhas:
+		if canal == "todos" or l[0] == canal:
+			chat_log.append_text(str(l[1]) + "\n")
+	if chat_edit != null:
+		chat_edit.placeholder_text = "Enter para conversar" if canal in ["todos", "geral", "sistema"] else "Enter para conversar (canal %s em breve)" % ("do grupo" if canal == "grupo" else "do clã")
+
+
+func _aplicar_linhas() -> void:
+	for i in hot.size():
+		hot[i].visible = i < 9 or hot_linhas >= 2
+	for b in assist:
+		b.visible = hot_linhas >= 3
+	hot_panel.reset_size()
 
 
 func close_window() -> void:

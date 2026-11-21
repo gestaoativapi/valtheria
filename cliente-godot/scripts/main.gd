@@ -837,7 +837,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 				else:
 					_to_login()
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
-				ui.press_slot(ev.keycode - KEY_1)
+				ui.press_slot(ev.keycode - KEY_1 + (9 if ev.shift_pressed else 0))
 			KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9:
 				ui.use_assist(ev.keycode - KEY_F1)
 			KEY_SPACE:
