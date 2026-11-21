@@ -1598,8 +1598,8 @@ static func _malha_barba() -> ArrayMesh:
 # V3: aldeão = túnica (formas corretivas + RBF), calça e botas novas; outras armaduras usam a roupa oficial no corpo novo
 # ---------- cor do grau (pedido de Robson 21/11: peças de graus diferentes não podem parecer iguais) ----------
 # NG fica como sempre foi; D bronze, C aço claro, B azurita, A rubro, S celestial (ouro claro).
-const COR_GRAU := {"d": Color(0.8, 0.52, 0.28), "c": Color(0.86, 0.88, 0.92), "b": Color(0.45, 0.62, 0.95), "a": Color(0.82, 0.26, 0.22), "s": Color(1.0, 0.9, 0.66)}
-const FORCA_GRAU := {"d": 0.7, "c": 0.35, "b": 0.75, "a": 0.72, "s": 0.6}
+const COR_GRAU := {"d": Color(0.8, 0.52, 0.28), "c": Color(1.0, 1.0, 1.0), "b": Color(0.45, 0.62, 0.95), "a": Color(0.82, 0.26, 0.22), "s": Color(1.0, 0.8, 0.42)}
+const FORCA_GRAU := {"d": 0.7, "c": 0.5, "b": 0.75, "a": 0.72, "s": 0.78}
 
 static func grau_do_item(id: String) -> String:
 	var g := id.get_slice("_", id.get_slice_count("_") - 1)
