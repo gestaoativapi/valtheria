@@ -162,6 +162,7 @@ var postura: Node
 var ciclo_raca := 1.0
 var subtipo := ""
 var race_id := "humano"
+var male_flag := true
 
 
 const SHAPE := {
@@ -217,6 +218,7 @@ func _setup_medido(o: Dictionary) -> void:
 		subtipo = "lobo" if str(o.get("gender", "m")) != "f" else "ursa"
 		o["subtipo"] = subtipo
 	var male := str(o.get("gender", "m")) != "f"
+	male_flag = male
 	var rd: Dictionary = RACES.get(race, {})
 	var look: Dictionary = o.get("look") if o.get("look") is Dictionary else {}
 	var eq: Dictionary = o.get("equipment") if o.get("equipment") is Dictionary else {}
@@ -2318,6 +2320,23 @@ func play(n: String, speed := 1.0) -> void:
 	current = n
 	anim.play(n, -1, 1.0)
 	anim.speed_scale = speed
+
+
+# gesto mágico da habilidade (por cima da animação, depois da pegada da arma para os braços aparecerem)
+var gesto: SkeletonModifier3D
+const GestoMagico := preload("res://scripts/gesto_magico.gd")
+
+func tocar_gesto(nome: String, dur := 0.9) -> float:
+	if skel == null:
+		return 0.0
+	if gesto == null:
+		gesto = GestoMagico.new()
+		gesto.name = "GestoMagico"
+		gesto.raca = race_id if race_id != "" else "humano"
+		gesto.feminino = not male_flag
+		skel.add_child(gesto)
+	skel.move_child(gesto, -1)
+	return gesto.tocar(nome, dur)
 
 
 func action(n: String) -> float:

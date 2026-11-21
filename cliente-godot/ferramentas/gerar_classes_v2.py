@@ -176,6 +176,56 @@ RACIAL = {  # passivas de raça (aprendidas no nível 1, crescem até o 80)
 }
 
 
+# ---------- movimento, reação, mana e conjuração por tipo de habilidade ----------
+GESTO = {"ataque": "empurrar", "area": "erguer", "critico": "golpe", "atordoar": "cravar", "avanco": "investir", "puxar": "apontar", "provocar": "rugir",
+         "aura": "abrir", "buff": "abrir", "alternar": "abrir", "invocar": "erguer", "cura": "prece", "cura_area": "prece", "reviver": "erguer", "purificar": "prece",
+         "dreno": "apontar", "prender": "apontar", "debuff": "apontar", "elemental": "empurrar"}
+GESTO_GOLPE = {"ataque": "golpe", "area": "girar", "elemental": "golpe"}
+CLIPE = {"magia": "Spell_Simple_Shoot", "golpe": "Sword_Regular_A", "reforco": "Spell_Simple_Shoot", "enfraquecer": "Spell_Simple_Shoot", "alternar": "Spell_Simple_Idle"}
+REACAO = {  # o que acontece em quem solta e em quem recebe
+    "fogo": ["brasas acendem nas mãos e sobem pelo corpo", "chamas no corpo e queimadura por alguns segundos"],
+    "gelo": ["névoa fria e cristais nas mãos", "cristais de gelo nos pés, névoa e lentidão"],
+    "vento": ["rajada circular em volta do corpo", "redemoinho que empurra e desequilibra"],
+    "terra": ["poeira e pedrinhas sobem do chão", "o chão estilhaça e pedras saltam em volta"],
+    "raio": ["faíscas estalando nas mãos", "choque elétrico com raio caindo do alto"],
+    "agua": ["gotas e espuma girando nas mãos", "respingo forte e corpo encharcado"],
+    "luz": ["brilho dourado nas mãos e aura clara", "clarão e partículas de luz"],
+    "sombra": ["névoa escura escorrendo dos braços", "névoa negra escorre pelo corpo"],
+}
+CONJURACAO = {"ataque": 1.8, "area": 3.0, "elemental": 1.4, "critico": 0.8, "atordoar": 0.9, "avanco": 0.4, "puxar": 1.0, "provocar": 0.5, "aura": 1.0,
+              "buff": 2.0, "alternar": 0.0, "invocar": 4.0, "cura": 1.5, "cura_area": 2.5, "reviver": 6.0, "purificar": 1.2, "dreno": 2.0, "prender": 1.8, "debuff": 1.6}
+MANA_TIPO = {"area": 1.45, "cura_area": 1.35, "invocar": 1.6, "reviver": 2.0, "buff": 1.2, "aura": 0.0, "alternar": 0.0, "avanco": 0.7, "provocar": 0.6}
+
+# ---------- status por arquétipo (atributos base) e ajustes por elemento ----------
+STATUS_ARQ = {  # FOR, DES, CON, INT, SAB, ESP
+    "tanque": [40, 24, 43, 20, 22, 25], "guerreiro": [44, 30, 36, 20, 20, 22], "arqueiro": [36, 40, 32, 21, 22, 23], "adaga": [36, 42, 30, 20, 22, 24],
+    "monge": [42, 36, 36, 18, 20, 22], "artesao": [40, 26, 40, 22, 22, 24], "mago": [22, 22, 26, 41, 36, 33], "curandeiro": [22, 22, 27, 34, 30, 41],
+    "xama": [26, 24, 30, 36, 32, 36], "invocador": [22, 22, 27, 38, 32, 37],
+}
+ATRIB_RACA = {"humano": [0, 0, 0, 0, 0, 0], "elfo": [-2, 3, -2, 1, 1, 0], "sombrio": [2, 1, -2, 2, 0, -1], "orc": [3, -2, 3, -2, -1, 1],
+              "anao": [2, -1, 3, -1, 0, 1], "beastman": [3, 2, 1, -3, -1, 0], "draconato": [2, 0, 2, 0, -1, 0], "gigante": [4, -3, 4, -2, -2, 1]}
+ELEM_STATUS = {  # bônus da classe pelo elemento (percentual)
+    "fogo": {"p_atq": 6, "critico": 4}, "gelo": {"m_def": 6, "controle": 6}, "vento": {"vel_ataque": 6, "esquiva": 5}, "terra": {"p_def": 7, "hp": 5},
+    "raio": {"vel_conjuracao": 7, "critico_magico": 4}, "agua": {"mp": 7, "cura": 6}, "luz": {"cura": 6, "m_def": 4}, "sombra": {"critico": 5, "dreno": 5},
+}
+MAGOS = ("mago", "curandeiro", "xama", "invocador")
+
+
+def status_classe(arq, raca, el, rank):
+    b = [a + r for a, r in zip(STATUS_ARQ.get(arq, STATUS_ARQ["guerreiro"]), ATRIB_RACA[raca])]
+    FOR, DES, CON, INT, SAB, ESP = b
+    mago = arq in MAGOS
+    k = 1 + 0.08 * rank  # cada classe nova fortalece o crescimento
+    st = {"FOR": FOR, "DES": DES, "CON": CON, "INT": INT, "SAB": SAB, "ESP": ESP,
+          "p_atq": round(FOR * 1.1 * k), "m_atq": round(INT * 1.15 * k), "p_def": round(CON * (1.15 if arq == "tanque" else 0.9) * k), "m_def": round(ESP * 1.0 * k),
+          "vel_ataque": 260 + DES * 3 + (40 if arq in ("adaga", "monge") else 0), "vel_conjuracao": 260 + SAB * 4 + (60 if mago else 0),
+          "critico": round(4 + DES * 0.12, 1), "esquiva": round(DES * 0.6), "precisao": round(DES * 0.8 + 20),
+          "hp_por_nivel": round(CON * (0.55 if not mago else 0.38) * k, 1), "mp_por_nivel": round(ESP * (0.18 if not mago else 0.42) * k, 1)}
+    for kk, v in ELEM_STATUS.get(el, {}).items():
+        st["bonus_" + kk] = v
+    return st
+
+
 def nome_elem(t, e):
     return t.replace("{E}", ELEM[e][1]).replace("  ", " ").strip()
 
@@ -211,8 +261,21 @@ def habilidade(sid, nome, cat, tipo, poder, nmax, rec, livro, elem, rank, l0, lf
             "poder": round(poder * (1 + (0.045 if passiva else 0.06) * (n - 1)), 3),
             "mana": 0 if passiva else int(round((6 + 4 * rank + rec * 0.4) * (1 + 0.05 * (n - 1)))),
         })
-    h = {"id": sid, "nome": nome, "categoria": cat, "tipo": tipo, "ativa": not passiva, "elemento": elem if ("{E}" in "") else elem,
-         "rank": rank, "nivel_max": nmax, "recarga": rec, "livro": bool(livro), "tabela": tabela}
+    h = {"id": sid, "nome": nome, "categoria": cat, "tipo": tipo, "ativa": not passiva, "elemento": elem,
+         "rank": rank, "nivel_max": nmax, "recarga": rec, "livro": bool(livro), "tabela": tabela, "icone": f"{tipo if not passiva else cat}_{elem}"}
+    if not passiva:
+        fisica = cat == "golpe"
+        h["movimento"] = {"gesto": (GESTO_GOLPE.get(tipo) if fisica else None) or GESTO.get(tipo, "empurrar"), "clipe": CLIPE.get(cat, "Spell_Simple_Shoot"),
+                          "variacao": "amplitude e ritmo da raça; versão feminina mais leve e curva"}
+        r = REACAO.get(elem, ["", ""])
+        h["reacao"] = {"conjurador": r[0], "alvo": r[1] if tipo not in ("buff", "aura", "cura", "cura_area", "reviver", "purificar", "alternar") else "aura do elemento no aliado"}
+        h["conjuracao"] = {"base": CONJURACAO.get(tipo, 1.5), "por": "vel_ataque" if fisica else "vel_conjuracao",
+                           "formula": "tempo = base × 333 ÷ velocidade (vel. de ataque para golpes, vel. de conjuração para magias)"}
+        mt = MANA_TIPO.get(tipo, 1.0)
+        for t in tabela:
+            t["mana"] = int(round(t["mana"] * (mt if mt > 0 else 0.25)))
+        if tipo in ("alternar", "aura"):
+            h["mana_por_segundo"] = round(0.6 + 0.25 * rank, 2)
     if rank == 3 and not passiva:
         h["aprimoramento"] = {"max": 15, "ramos": {"poder": "+1,5% de poder por nível", "custo": "−1,2% de mana por nível", "efeito": "+1% de chance/duração do efeito por nível"},
                               "chance": [max(30, 82 - 4 * (k - 1)) for k in range(1, 16)], "falha": "volta ao nível máximo normal, sem aprimoramento"}
@@ -226,7 +289,7 @@ def gerar():
         for cid, c in ANTIGAS.items():
             if cid.split("_")[0] != pre:
                 continue
-            classes[cid] = {"nome": c["name"], "rank": c["rank"], "pai": c["parent"], "arquetipo": c["arch"], "raca": raca,
+            classes[cid] = {"nome": c["name"], "rank": c["rank"], "pai": c["parent"], "arquetipo": c["arch"] if c["arch"] in R1 else "guerreiro", "raca": raca,
                             "elemento": el_raca, "nivel": NIVEL_RANK[c["rank"]], "caminho": "A", "exclusiva": c.get("excl", False)}
         for cid in list(classes):
             c = classes[cid]
@@ -236,6 +299,8 @@ def gerar():
             b2, b3 = cid[:-2] + "_2b", cid[:-2] + "_3b"
             classes[b2] = {"nome": n2, "rank": 2, "pai": cid, "arquetipo": arq, "raca": raca, "elemento": el, "nivel": 40, "caminho": "B", "exclusiva": c["exclusiva"]}
             classes[b3] = {"nome": n3, "rank": 3, "pai": b2, "arquetipo": arq, "raca": raca, "elemento": el, "nivel": 76, "caminho": "B", "exclusiva": c["exclusiva"]}
+    for cid, c in classes.items():
+        c["status"] = status_classe(c["arquetipo"], c["raca"], c["elemento"], c["rank"])
     # habilidades
     for cid, c in classes.items():
         raca, r, arq, el = c["raca"], c["rank"], c["arquetipo"], c["elemento"]

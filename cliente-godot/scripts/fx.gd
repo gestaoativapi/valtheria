@@ -634,3 +634,75 @@ static func flecha_brilho(parent: Node, de: Vector3, ate: Vector3, elem: String,
 		burst(parent, ate, elem if elem != "" else "wind", 0.7))
 	tw.tween_interval(0.5)
 	tw.tween_callback(raiz.queue_free)
+
+
+# ---------- reação elemental (pedido de Robson 21/11) ----------
+# Quem solta a habilidade mostra o elemento nas mãos e no corpo; quem recebe reage ao elemento:
+# fogo queima, gelo cria cristais e névoa, raio dá choques, vento gira em rajada, terra estilhaça o chão,
+# luz brilha, sombra escorre em névoa escura, água respinga; golpe sem elemento solta faíscas.
+static func _efeito_temp(no: Node, dur: float) -> void:
+	no.get_tree().create_timer(dur).timeout.connect(func(): if is_instance_valid(no): no.queue_free())
+
+
+static func _particulas(alvo: Node3D, pos: Vector3, elem: String, qtd: int, vida: float, tam: float, dur: float, cfg: Dictionary) -> CPUParticles3D:
+	var c := colors(elem)
+	var p := emitter(qtd, vida, true, tam, c[0], c[1])
+	p.emission_shape = int(cfg.get("forma", CPUParticles3D.EMISSION_SHAPE_SPHERE))
+	p.emission_sphere_radius = float(cfg.get("raio", 0.35))
+	p.emission_box_extents = cfg.get("caixa", Vector3(0.3, 0.6, 0.3))
+	p.emission_ring_radius = float(cfg.get("raio", 0.5))
+	p.emission_ring_inner_radius = float(cfg.get("raio", 0.5)) * 0.8
+	p.emission_ring_height = 0.05
+	p.emission_ring_axis = Vector3.UP
+	p.direction = cfg.get("dir", Vector3.UP)
+	p.spread = float(cfg.get("spread", 30.0))
+	p.initial_velocity_min = float(cfg.get("vel", 0.6)) * 0.5
+	p.initial_velocity_max = float(cfg.get("vel", 0.6))
+	p.gravity = cfg.get("grav", Vector3.ZERO)
+	p.orbit_velocity_min = float(cfg.get("orbita", 0.0))
+	p.orbit_velocity_max = float(cfg.get("orbita", 0.0))
+	p.tangential_accel_min = float(cfg.get("tang", 0.0))
+	p.tangential_accel_max = float(cfg.get("tang", 0.0))
+	p.position = pos
+	alvo.add_child(p)
+	p.emitting = true
+	alvo.get_tree().create_timer(dur).timeout.connect(func(): if is_instance_valid(p): p.emitting = false)
+	_efeito_temp(p, dur + vida + 0.2)
+	return p
+
+
+static func reacao(alvo: Node3D, elem: String, papel: String, altura := 1.8, forca := 1.0) -> void:
+	if alvo == null or not is_instance_valid(alvo) or not alvo.is_inside_tree():
+		return
+	var h := altura
+	var k := clampf(forca, 0.6, 2.0)
+	if papel == "conjurador":
+		# o elemento acende em volta das mãos e sobe pelo corpo
+		if elem == "":
+			return
+		_particulas(alvo, Vector3(0, h * 0.55, 0.25), elem, int(18 * k), 0.5, 0.07, 0.35, {"raio": 0.25, "vel": 0.8, "spread": 60.0})
+		_particulas(alvo, Vector3(0, 0.05, 0), elem, int(16 * k), 0.8, 0.06, 0.3, {"forma": CPUParticles3D.EMISSION_SHAPE_RING, "raio": 0.55, "vel": 1.4, "spread": 8.0})
+		return
+	match elem:
+		"fogo", "fire":
+			_particulas(alvo, Vector3(0, h * 0.45, 0), "fogo", int(30 * k), 0.6, 0.12, 1.2, {"forma": CPUParticles3D.EMISSION_SHAPE_BOX, "caixa": Vector3(0.22, h * 0.35, 0.22), "vel": 1.2, "grav": Vector3(0, 2.0, 0)})
+		"gelo", "ice":
+			_particulas(alvo, Vector3(0, 0.15, 0), "gelo", int(22 * k), 1.2, 0.09, 0.4, {"forma": CPUParticles3D.EMISSION_SHAPE_RING, "raio": 0.45, "vel": 0.2, "spread": 5.0})
+			_particulas(alvo, Vector3(0, h * 0.5, 0), "gelo", int(14 * k), 1.0, 0.18, 0.8, {"raio": 0.4, "vel": 0.15, "grav": Vector3(0, -0.3, 0)})
+		"raio":
+			_particulas(alvo, Vector3(0, h * 0.5, 0), "raio", int(26 * k), 0.15, 0.06, 0.6, {"raio": 0.45, "vel": 3.0, "spread": 180.0})
+			var topo := alvo.global_position + Vector3(0, h + 0.4, 0)
+			relampago(alvo.get_parent(), topo, alvo.global_position + Vector3(0, h * 0.4, 0), colors("raio")[0])
+		"vento", "wind":
+			_particulas(alvo, Vector3(0, h * 0.4, 0), "vento", int(30 * k), 0.7, 0.08, 0.7, {"forma": CPUParticles3D.EMISSION_SHAPE_RING, "raio": 0.6, "vel": 1.2, "orbita": 1.4, "spread": 10.0})
+		"terra", "earth":
+			_particulas(alvo, Vector3(0, 0.1, 0), "terra", int(20 * k), 0.7, 0.14, 0.15, {"forma": CPUParticles3D.EMISSION_SHAPE_RING, "raio": 0.5, "vel": 3.2, "spread": 25.0, "grav": Vector3(0, -9.0, 0)})
+		"luz", "holy":
+			_particulas(alvo, Vector3(0, h * 0.5, 0), "luz", int(24 * k), 0.6, 0.1, 0.4, {"raio": 0.5, "vel": 0.9, "spread": 180.0})
+			flare(alvo.get_parent(), alvo.global_position + Vector3(0, h * 0.6, 0), colors("luz")[0], 0.9 * k, 0.35)
+		"sombra", "dark":
+			_particulas(alvo, Vector3(0, h * 0.7, 0), "sombra", int(24 * k), 1.0, 0.22, 0.9, {"forma": CPUParticles3D.EMISSION_SHAPE_BOX, "caixa": Vector3(0.25, 0.2, 0.25), "vel": 0.3, "grav": Vector3(0, -1.2, 0)})
+		"agua":
+			_particulas(alvo, Vector3(0, h * 0.6, 0), "agua", int(26 * k), 0.8, 0.08, 0.2, {"raio": 0.3, "vel": 2.5, "spread": 70.0, "grav": Vector3(0, -8.0, 0)})
+		_:
+			_particulas(alvo, Vector3(0, h * 0.55, 0.15), "", int(14 * k), 0.25, 0.05, 0.12, {"raio": 0.12, "vel": 3.0, "spread": 90.0, "dir": Vector3(0, 0.3, 1)})

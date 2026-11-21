@@ -826,6 +826,27 @@ func use_skill(i: int) -> void:
 	# rastro duplo, S projétil duplo e raio de luz, SS tudo maior.
 	var gw := _grau_arma()
 	var kg := 1.0 + 0.12 * gw
+	# gesto do corpo conforme o tipo da habilidade (muda com a raça e o sexo) e o elemento nas mãos de quem solta
+	var gesto := "golpe"
+	if ty == "heal":
+		gesto = "prece"
+	elif ty in ["buff", "shield"]:
+		gesto = "abrir"
+	elif ty == "taunt":
+		gesto = "rugir"
+	elif ty == "dash":
+		gesto = "investir"
+	elif ty == "debuff":
+		gesto = "apontar"
+	elif st.magic:
+		gesto = "erguer" if (float(s.get("aoe", 0.0)) > 0.0 or ty == "zone") else "empurrar"
+	elif ty in ["multi", "chain"] or float(s.get("aoe", 0.0)) > 0.0:
+		gesto = "girar"
+	elif float(s.get("stun", 0.0)) > 0.0:
+		gesto = "cravar"
+	if not arqueiro:
+		main.player.tocar_gesto(gesto, 0.75 if not st.magic else 0.95)
+	FX.reacao(main.player, fx_el, "conjurador", main.player.height_m, kg)
 	var cor_el: Color = FX.colors(fx_el if fx_el != "" else "holy")[1]
 	if st.magic or not offensive:
 		var el_c := fx_el if fx_el != "" else "arcane"
@@ -968,6 +989,8 @@ func _physics_process(dt: float) -> void:
 			_hit_mob(pending[i].mob, pending[i].dmg, pending[i].crit)
 			if is_instance_valid(pending[i].mob.node):
 				FX.burst(self, _center(pending[i].mob), str(pending[i].get("fx", "")), float(pending[i].get("size", 0.6)))
+				var mn: Node3D = pending[i].mob.node
+				FX.reacao(mn, str(pending[i].get("fx", "")), "alvo", maxf(1.0, (_center(pending[i].mob).y - mn.global_position.y) * 1.8), float(pending[i].get("size", 1.0)))
 				if pending[i].crit or float(pending[i].get("size", 0.6)) >= 1.0:  # golpe forte: clarão no impacto
 					FX.flare(self, _center(pending[i].mob), FX.colors(str(pending[i].get("fx", "")))[0], 1.2 if pending[i].crit else 0.9, 0.3)
 			pending.remove_at(i)

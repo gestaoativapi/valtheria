@@ -1535,7 +1535,7 @@ func _janela_habilidades(me: Dictionary) -> void:
 	var cadeia := cadeia_classe(cid)
 	var cl: Dictionary = cv.classes.get(cid, {})
 	win_title.text = "◆ Habilidades   ·   %s   ·   nível %d" % [str(cl.get("nome", "-")), lvl]
-	_tabs([["ativas", "Ativas"], ["passivas", "Passivas"], ["aprender", "Aprender"], ["arvore", "Árvore de classes"]], hab_tab, func(k):
+	_tabs([["ativas", "Ativas"], ["passivas", "Passivas"], ["aprender", "Aprender"], ["status", "Status"], ["arvore", "Árvore de classes"]], hab_tab, func(k):
 		hab_tab = k
 		open_window("habilidades", w_me, w_inv, w_extra))
 	if not me.get("habilidades") is Dictionary:
@@ -1546,6 +1546,9 @@ func _janela_habilidades(me: Dictionary) -> void:
 			todas.append(cv.habilidades[sid])
 	if hab_tab == "arvore":
 		_arvore_classes(cv, cid, lvl)
+		return
+	if hab_tab == "status":
+		_status_classe(cv, cid, lvl)
 		return
 	if hab_tab == "aprender":
 		var n := 0
@@ -1586,6 +1589,9 @@ func _janela_habilidades(me: Dictionary) -> void:
 			b.tint = IconButton.ELEM.get(str(h.elemento), GOLD) if cat in ["magia", "golpe"] else (GOLD if int(h.rank) < 3 else Color(1.0, 0.85, 0.45))
 			b.label = ("%d" % nv) if nv > 0 else ""
 			b.disabled = nv == 0
+			var img := "res://assets/icones/habilidades/%s.png" % str(h.get("icone", ""))
+			if ResourceLoader.exists(img):
+				b.textura = load(img)
 			b.rim = Color(1.0, 0.8, 0.35) if int(h.rank) == 3 else Color(0.55, 0.42, 0.2)
 			b.rim_w = 2 if int(h.rank) == 3 else 1
 			b.tooltip_text = _dica_hab(h, nv, lvl, cv)
@@ -1602,6 +1608,18 @@ func _dica_hab(h: Dictionary, nv: int, lvl: int, cv: Dictionary) -> String:
 	if nv < int(h.nivel_max):
 		var p: Dictionary = h.tabela[nv]
 		linhas.append("Próximo nível no nível %d   (%d PH, %d aurum)" % [int(p.nivel_personagem), int(p.ph), int(p.aurum)])
+	if h.has("conjuracao") and float(h.conjuracao.base) > 0.0:
+		var vel := 333.0
+		var st: Dictionary = cv.classes.get(str(w_me.get("class_id", "")), {}).get("status", {})
+		vel = float(st.get(str(h.conjuracao.por), 333.0))
+		linhas.append("Conjuração %.1fs   (base %.1fs pela %s)" % [float(h.conjuracao.base) * 333.0 / maxf(vel, 1.0), float(h.conjuracao.base), "vel. de ataque" if h.conjuracao.por == "vel_ataque" else "vel. de conjuração"])
+	if h.has("mana_por_segundo"):
+		linhas.append("Mantida ligada: %.2f de mana por segundo" % float(h.mana_por_segundo))
+	if h.has("movimento"):
+		linhas.append("Movimento: %s (muda com a raça e o sexo)" % {"empurrar": "mãos à frente", "apontar": "braço estendido", "erguer": "mãos ao céu", "abrir": "peito aberto", "prece": "mãos unidas", "cravar": "golpe no chão", "girar": "giro com a arma", "investir": "avanço", "rugir": "grito de guerra", "golpe": "golpe forte"}.get(str(h.movimento.gesto), str(h.movimento.gesto)))
+	if h.has("reacao"):
+		linhas.append("Em você: %s" % str(h.reacao.conjurador))
+		linhas.append("No alvo: %s" % str(h.reacao.alvo))
 	if h.get("livro", false):
 		linhas.append("Exige um Tomo de Técnica para aprender")
 	if h.has("aprimoramento"):
@@ -1609,6 +1627,36 @@ func _dica_hab(h: Dictionary, nv: int, lvl: int, cv: Dictionary) -> String:
 	if nv == 0:
 		linhas.append("Ainda não disponível")
 	return "\n".join(linhas)
+
+
+func _status_classe(cv: Dictionary, cid: String, lvl: int) -> void:
+	var c: Dictionary = cv.classes.get(cid, {})
+	var st: Dictionary = c.get("status", {})
+	_note("Status base da classe %s (%s, elemento %s). Guerreiros crescem em força e defesa; magos em magia, conjuração e mana. O elemento da classe soma bônus próprios." % [c.get("nome", ""), str(c.get("arquetipo", "")).capitalize(), cv.elementos.get(str(c.get("elemento", "")), "")])
+	var grade := GridContainer.new()
+	grade.columns = 4
+	grade.add_theme_constant_override("h_separation", 28)
+	grade.add_theme_constant_override("v_separation", 6)
+	win_list.add_child(grade)
+	var nomes := {"FOR": "Força", "DES": "Destreza", "CON": "Constituição", "INT": "Inteligência", "SAB": "Sabedoria", "ESP": "Espírito",
+		"p_atq": "Ataque físico", "m_atq": "Ataque mágico", "p_def": "Defesa física", "m_def": "Defesa mágica", "vel_ataque": "Vel. de ataque",
+		"vel_conjuracao": "Vel. de conjuração", "critico": "Crítico (%)", "esquiva": "Esquiva", "precisao": "Precisão", "hp_por_nivel": "Vida por nível", "mp_por_nivel": "Mana por nível"}
+	for k in nomes:
+		if st.has(k):
+			grade.add_child(_label(nomes[k], 14, Color(0.75, 0.77, 0.83)))
+			var v := float(st[k])
+			grade.add_child(_label(str(int(v)) if is_equal_approx(v, roundf(v)) else "%.1f" % v, 15, GOLD, true))
+	var bonus: Array = []
+	for k in st:
+		if str(k).begins_with("bonus_"):
+			bonus.append("%s +%d%%" % [str(k).trim_prefix("bonus_").replace("_", " "), int(st[k])])
+	if not bonus.is_empty():
+		var lb := _label("Bônus do elemento: " + ",  ".join(bonus), 14, Color(0.6, 0.9, 0.7))
+		lb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		win_list.add_child(lb)
+	var lv := _label("Vantagem elemental: +25% de dano e +8% de crítico contra o elemento que o seu vence; −20% contra o que vence o seu. Contra jogadores, a resistência elemental do alvo reduz o bônus.", 13, Color(0.8, 0.8, 0.85))
+	lv.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	win_list.add_child(lv)
 
 
 func _arvore_classes(cv: Dictionary, cid: String, lvl: int) -> void:
