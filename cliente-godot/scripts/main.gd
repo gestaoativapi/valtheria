@@ -1078,11 +1078,23 @@ func _checar_zona() -> void:
 		ui.say("Você entrou numa zona de paz")
 
 var _rot_t := 0.0
+var abertura: CanvasLayer  # cena 3D da história na tela de login (abertura.gd)
 
 
 func _process(dt: float) -> void:
 	Character.recolher()
 	world.recolher()
+	# abertura: só na tela de login; enquanto ela aparece o mundo do jogo não é desenhado (economia de placa)
+	var na_abertura := not playing and not showing and not creating and OS.get_environment("SEM_ABERTURA") == ""
+	var nova := false
+	if abertura == null and na_abertura:
+		abertura = load("res://scripts/abertura.gd").new()
+		add_child(abertura)
+		nova = true
+	if abertura != null and (nova or abertura.visible != na_abertura):
+		abertura.mostrar(na_abertura)
+		get_viewport().disable_3d = na_abertura
+		ui.modo_abertura(na_abertura)
 	if not playing:  # telas de entrada: mantém o cenário sem textos flutuantes (NPCs que nascem depois também)
 		_rot_t -= dt
 		if _rot_t <= 0.0:

@@ -40,6 +40,17 @@ var font: Font
 var root: Control
 var login_box: Control
 var painel_entrada: PanelContainer
+var logo_painel: TextureRect
+var logo_grande: TextureRect
+var _historia: Label
+var _hist_i := 0
+const HISTORIA := [
+	"No tronco da Árvore dos Mil Mundos fica Valtheria, o único mundo que toca todos os outros.",
+	"Lúmen, a lua de prata, dá vida às florestas. Nyx, a lua de ônix, guarda os sonhos dos mortos.",
+	"Há mil anos, Malachar partiu a Coroa Celeste em seis fragmentos. Desde então o Eclipse volta, cada vez mais longo.",
+	"Sete povos juraram o Pacto do Véu. Hoje o Véu racha, e as sombras voltam pelas Fendas.",
+	"Reúna os povos. Encontre os seis fragmentos. Renove o Pacto antes do último Eclipse.",
+]
 var tela_carga: Control  # tela de carregamento ao entrar no mundo
 var _carga_barra: ProgressBar
 var _carga_texto: Label
@@ -277,15 +288,18 @@ func _build_login() -> void:
 	# o painel cresce só até o conteúdo (sem a área vazia embaixo); a posição muda por tela em _posicionar_painel
 	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	painel_entrada = panel
+	panel.minimum_size_changed.connect(func(): call_deferred("_ajustar_painel"))
 	login_box.add_child(panel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 12)
 	panel.add_child(v)
-	var title := _label("VALTHERIA", 56, GOLD, true)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-	title.add_theme_constant_override("shadow_offset_y", 3)
-	v.add_child(title)
+	# marca do jogo: a Árvore em forma de V, com o eclipse das duas luas, os mundos-fruto e os seis fragmentos
+	logo_painel = TextureRect.new()
+	logo_painel.texture = load("res://assets/marca/logo.png")
+	logo_painel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	logo_painel.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	logo_painel.custom_minimum_size = Vector2(400, 132)
+	v.add_child(logo_painel)
 	var sub := _label("Cliente nativo · protótipo %s" % ProjectSettings.get_setting("application/config/version"), 15, Color(0.75, 0.76, 0.8))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(sub)
@@ -1442,22 +1456,45 @@ func _posicionar_painel(modo: String) -> void:
 	if painel_entrada == null:
 		return
 	if modo == "login":
-		painel_entrada.anchor_left = 0.5
-		painel_entrada.anchor_right = 0.5
-		painel_entrada.anchor_top = 0.58
-		painel_entrada.anchor_bottom = 0.58
-		painel_entrada.offset_left = -215
-		painel_entrada.offset_right = 215
+		# canto inferior direito: a Árvore da abertura fica livre no centro da tela
+		painel_entrada.anchor_left = 0.97
+		painel_entrada.anchor_right = 0.97
+		painel_entrada.anchor_top = 0.9
+		painel_entrada.anchor_bottom = 0.9
+		painel_entrada.offset_left = -400
+		painel_entrada.offset_right = 0
+		painel_entrada.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		painel_entrada.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		painel_entrada.custom_minimum_size = Vector2(400, 0)
 	else:
+		painel_entrada.grow_vertical = Control.GROW_DIRECTION_BOTH
+		painel_entrada.grow_horizontal = Control.GROW_DIRECTION_END
+		painel_entrada.custom_minimum_size = Vector2(430, 0)
 		painel_entrada.anchor_left = 0.05
 		painel_entrada.anchor_right = 0.05
 		painel_entrada.anchor_top = 0.5
 		painel_entrada.anchor_bottom = 0.5
 		painel_entrada.offset_left = 0
 		painel_entrada.offset_right = 430
-	painel_entrada.offset_top = 0
-	painel_entrada.offset_bottom = 0
-	painel_entrada.reset_size()
+	_modo_painel = modo
+	_ajustar_painel()
+	call_deferred("_ajustar_painel")  # de novo depois que as partes escondidas saem do cálculo
+
+
+# altura do painel = altura do conteúdo (o Godot não encolhe sozinho quando partes somem)
+var _modo_painel := "login"
+
+
+func _ajustar_painel() -> void:
+	if painel_entrada == null:
+		return
+	var m := painel_entrada.get_combined_minimum_size()
+	if _modo_painel == "login":
+		painel_entrada.offset_top = -m.y
+		painel_entrada.offset_bottom = 0
+	else:
+		painel_entrada.offset_top = -m.y * 0.5
+		painel_entrada.offset_bottom = m.y * 0.5
 
 
 # tela de carregamento: cobre a montagem do mundo e o preparo dos efeitos, para não aparecer nada pela metade
@@ -1490,16 +1527,17 @@ func tela_carregando(on: bool, texto := "", frac := 0.0) -> void:
 		var v := VBoxContainer.new()
 		v.anchor_left = 0.5
 		v.anchor_right = 0.5
-		v.anchor_top = 0.36
-		v.anchor_bottom = 0.36
+		v.anchor_top = 0.3
+		v.anchor_bottom = 0.3
 		v.offset_left = -330
 		v.offset_right = 330
 		v.add_theme_constant_override("separation", 18)
 		tela_carga.add_child(v)
-		var t := _label("VALTHERIA", 72, GOLD, true)
-		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		t.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-		t.add_theme_constant_override("shadow_offset_y", 4)
+		var t := TextureRect.new()
+		t.texture = load("res://assets/marca/logo.png")
+		t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		t.custom_minimum_size = Vector2(660, 218)
 		v.add_child(t)
 		_carga_texto = _label("", 18, Color(0.85, 0.82, 0.74))
 		_carga_texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1539,6 +1577,68 @@ func esconder_carregando() -> void:
 	tw.tween_callback(func(): tela_carga.visible = false)
 
 
+# tela de login sobre a cena da abertura: logotipo grande no alto, painel sem o logotipo pequeno
+# e a história contada em frases que se alternam embaixo
+func modo_abertura(on: bool) -> void:
+	if logo_grande == null:
+		logo_grande = TextureRect.new()
+		logo_grande.texture = load("res://assets/marca/logo.png")
+		logo_grande.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		logo_grande.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		logo_grande.anchor_left = 0.5
+		logo_grande.anchor_right = 0.5
+		logo_grande.anchor_top = 0.03
+		logo_grande.anchor_bottom = 0.03
+		logo_grande.offset_left = -390
+		logo_grande.offset_right = 390
+		logo_grande.offset_bottom = 257
+		logo_grande.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		login_box.add_child(logo_grande)
+		_historia = _label("", 19, Color(0.9, 0.86, 0.74))
+		_historia.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		_historia.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_historia.anchor_left = 0.03
+		_historia.anchor_right = 0.03
+		_historia.anchor_top = 1.0
+		_historia.anchor_bottom = 1.0
+		_historia.offset_left = 0
+		_historia.offset_right = 560
+		_historia.offset_top = -170
+		_historia.offset_bottom = -76
+		_historia.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+		_historia.add_theme_constant_override("shadow_offset_y", 2)
+		_historia.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		login_box.add_child(_historia)
+		var tm := Timer.new()
+		tm.wait_time = 7.0
+		tm.autostart = true
+		tm.timeout.connect(_proxima_historia)
+		add_child(tm)
+		_historia.text = HISTORIA[0]
+	logo_grande.visible = on
+	_historia.visible = on
+	logo_painel.visible = not on
+	call_deferred("_ajustar_painel")
+	var sombra := login_box.get_child(0) as CanvasItem  # escurecimento das bordas: mais leve sobre a abertura
+	if sombra:
+		sombra.modulate.a = 0.55 if on else 1.0
+
+
+func _dbg_painel() -> void:
+	if OS.get_environment("DBG_PAINEL") != "":
+		print("PAINEL ", painel_entrada.get_rect(), " min=", painel_entrada.get_combined_minimum_size(), " ofs=", painel_entrada.offset_top, ",", painel_entrada.offset_bottom, " grow=", painel_entrada.grow_vertical)
+
+
+func _proxima_historia() -> void:
+	if _historia == null or not _historia.visible:
+		return
+	_hist_i = (_hist_i + 1) % HISTORIA.size()
+	var tw := _historia.create_tween()
+	tw.tween_property(_historia, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(func(): _historia.text = HISTORIA[_hist_i])
+	tw.tween_property(_historia, "modulate:a", 1.0, 0.8)
+
+
 func show_login() -> void:
 	_posicionar_painel("login")
 	login_box.visible = true
@@ -1572,6 +1672,8 @@ func busy(b: bool) -> void:
 func show_chars(list: Array, account: String) -> void:
 	busy(false)
 	_posicionar_painel("lista")
+	get_tree().create_timer(2.0).timeout.connect(_dbg_painel)
+	call_deferred("_ajustar_painel")
 	last_chars = list
 	last_account = account
 	create_box.visible = false
