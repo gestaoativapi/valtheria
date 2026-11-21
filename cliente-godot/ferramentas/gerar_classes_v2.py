@@ -7,7 +7,9 @@ Os ids das classes que já existem no jogo ficam iguais (personagens criados nã
 abrir DOIS caminhos de 2ª classe (o caminho que já existia = A, o novo = B), e cada 2ª classe tem a sua 3ª.
 uso: python3 ferramentas/gerar_classes_v2.py
 """
-import json, math, os
+import json
+import math, os
+from motivos import motivo
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(AQUI, "..", "data")
@@ -194,6 +196,7 @@ REACAO = {  # o que acontece em quem solta e em quem recebe
 }
 CONJURACAO = {"ataque": 1.8, "area": 3.0, "elemental": 1.4, "critico": 0.8, "atordoar": 0.9, "avanco": 0.4, "puxar": 1.0, "provocar": 0.5, "aura": 1.0,
               "buff": 2.0, "alternar": 0.0, "invocar": 4.0, "cura": 1.5, "cura_area": 2.5, "reviver": 6.0, "purificar": 1.2, "dreno": 2.0, "prender": 1.8, "debuff": 1.6}
+CONJ_GOLPE = {"ataque": 0.8, "area": 1.2, "critico": 0.6, "atordoar": 0.7, "avanco": 0.3, "puxar": 0.8, "provocar": 0.4, "dreno": 0.9, "prender": 0.9, "debuff": 0.8}  # golpes físicos: carga curta
 MANA_TIPO = {"area": 1.45, "cura_area": 1.35, "invocar": 1.6, "reviver": 2.0, "buff": 1.2, "aura": 0.0, "alternar": 0.0, "avanco": 0.7, "provocar": 0.6}
 
 # ---------- status por arquétipo (atributos base) e ajustes por elemento ----------
@@ -250,7 +253,7 @@ def custo_ph(lv_char, rank, passiva):
     return int(round(base * (0.8 if passiva else 1.0), -1))
 
 
-def habilidade(sid, nome, cat, tipo, poder, nmax, rec, livro, elem, rank, l0, lfim):
+def habilidade(sid, nome, cat, tipo, poder, nmax, rec, livro, elem, rank, l0, lfim, arq=""):
     passiva = tipo == "passiva" or cat in ("equipamento", "habilidade", "raca", "oficio")
     lv = niveis(l0, nmax, lfim)
     tabela = []
@@ -262,14 +265,14 @@ def habilidade(sid, nome, cat, tipo, poder, nmax, rec, livro, elem, rank, l0, lf
             "mana": 0 if passiva else int(round((6 + 4 * rank + rec * 0.4) * (1 + 0.05 * (n - 1)))),
         })
     h = {"id": sid, "nome": nome, "categoria": cat, "tipo": tipo, "ativa": not passiva, "elemento": elem,
-         "rank": rank, "nivel_max": nmax, "recarga": rec, "livro": bool(livro), "tabela": tabela, "icone": f"{tipo if not passiva else cat}_{elem}"}
+         "rank": rank, "nivel_max": nmax, "recarga": rec, "livro": bool(livro), "tabela": tabela, "icone": f"{motivo(nome, tipo, arq)}_{elem}"}
     if not passiva:
         fisica = cat == "golpe"
         h["movimento"] = {"gesto": (GESTO_GOLPE.get(tipo) if fisica else None) or GESTO.get(tipo, "empurrar"), "clipe": CLIPE.get(cat, "Spell_Simple_Shoot"),
                           "variacao": "amplitude e ritmo da raça; versão feminina mais leve e curva"}
         r = REACAO.get(elem, ["", ""])
         h["reacao"] = {"conjurador": r[0], "alvo": r[1] if tipo not in ("buff", "aura", "cura", "cura_area", "reviver", "purificar", "alternar") else "aura do elemento no aliado"}
-        h["conjuracao"] = {"base": CONJURACAO.get(tipo, 1.5), "por": "vel_ataque" if fisica else "vel_conjuracao",
+        h["conjuracao"] = {"base": CONJ_GOLPE.get(tipo, 0.8) if fisica else CONJURACAO.get(tipo, 1.5), "por": "vel_ataque" if fisica else "vel_conjuracao",
                            "formula": "tempo = base × 333 ÷ velocidade (vel. de ataque para golpes, vel. de conjuração para magias)"}
         mt = MANA_TIPO.get(tipo, 1.0)
         for t in tabela:
@@ -309,11 +312,11 @@ def gerar():
             tipo_base = "mistico" if arq in ("mago", "xama", "curandeiro") else "combatente"
             for slot, nm, cat, tp, pw, nmax, rec, lb in BASE[tipo_base]:
                 sid = f"{cid}_{slot}"
-                skills[sid] = habilidade(sid, nome_elem(nm, el), cat, tp, pw, nmax, rec, lb, el, 0, 1 + (int(slot[1]) - 1) * 3, 39)
+                skills[sid] = habilidade(sid, nome_elem(nm, el), cat, tp, pw, nmax, rec, lb, el, 0, 1 + (int(slot[1]) - 1) * 3, 39, arq)
                 lista.append(sid)
             for k, (nm, pw) in enumerate(RACIAL[raca]):
                 sid = f"{cid}_raca{k + 1}"
-                skills[sid] = habilidade(sid, nm, "raca", "passiva", pw, 16, 0, 0, el, 0, 1 + k * 4, 80)
+                skills[sid] = habilidade(sid, nm, "raca", "passiva", pw, 16, 0, 0, el, 0, 1 + k * 4, 80, arq)
                 lista.append(sid)
         else:
             tab = {1: R1, 2: R2, 3: R3}[r][arq if arq in R1 else "guerreiro"]
@@ -325,15 +328,63 @@ def gerar():
                 nome = nome_elem(b if (b and c["caminho"] == "B") else a, el)
                 sid = f"{cid}_s{k + 1}"
                 l0 = NIVEL_RANK[r] + min(k * 2, 12 if r < 3 else 3)
-                skills[sid] = habilidade(sid, nome, cat, tp, pw, nmax, rec, lb, el, r, l0, lfim)
+                skills[sid] = habilidade(sid, nome, cat, tp, pw, nmax, rec, lb, el, r, l0, lfim, arq)
                 lista.append(sid)
         por_classe[cid] = lista
     return {"versao": 1, "niveis_classe": NIVEL_RANK, "elementos": {k: v[0] for k, v in ELEM.items()}, "roda_elemental": RODA,
             "regra_elemental": REGRA_ELEM, "vantagem": {a: {d: vantagem(a, d) for d in ELEM} for a in ELEM},
             "racas": {p: {"id": r, "nome": NOME_RACA[r], "elemento": W["race_elem"][r]} for p, r in RACAS.items()},
-            "classes": classes, "habilidades": skills, "habilidades_da_classe": por_classe,
+            "classes": classes, "habilidades": skills, "habilidades_da_classe": por_classe, "passivas_equipamento": passivas_equipamento(),
             "pontos_habilidade": "PH: ganhos ao derrotar monstros (independente da experiência), proporcionais ao nível do monstro; usados para aprender e subir habilidades",
             "categorias": {"ativas": ["magia", "golpe", "reforco", "enfraquecer", "alternar"], "passivas": ["equipamento", "habilidade", "raca", "oficio"]}}
+
+
+# ---------------------------------------------------------------- passivas de equipamento, buff e acessório
+# Iguais para todos: aparecem na aba Passivas (seção Equipamento) enquanto a condição valer e somem ao tirar a peça.
+# "bonus" é o valor no grau NG; cada grau acima soma +15% (D, C, B, A, S).
+EQUIP = [
+    # id, nome, condição, motivo, elemento, bônus, descrição
+    ("eq_espada", "Domínio da Espada", {"arma": "espada"}, "espada", "luz", {"atq_fis": 0.04, "precisao": 3}, "Golpes de espada mais firmes e certeiros."),
+    ("eq_espadao", "Peso do Espadão", {"arma": "espadao"}, "espada", "fogo", {"atq_fis": 0.07, "vel_atq": -0.03}, "Mais dano por golpe, ataque um pouco mais lento."),
+    ("eq_adaga", "Mão Ligeira", {"arma": "adaga"}, "adaga", "sombra", {"critico": 0.03, "vel_atq": 0.04}, "Mais crítico e ataques mais rápidos."),
+    ("eq_punhal", "Ponta Fina", {"arma": "punhal"}, "adaga", "vento", {"critico": 0.04}, "Acertos críticos mais frequentes."),
+    ("eq_duplas", "Dança das Duas Lâminas", {"arma": "duplas"}, "armas", "vento", {"vel_atq": 0.06, "atq_fis": 0.02}, "Golpes em sequência com as duas mãos."),
+    ("eq_arco", "Olho do Arqueiro", {"arma": "arco"}, "arco", "vento", {"precisao": 5, "alcance": 2}, "Mais precisão e alcance."),
+    ("eq_cajado", "Foco do Cajado", {"arma": "cajado"}, "orbe", "raio", {"atq_mag": 0.06, "vel_conj": 0.03}, "Magia mais forte e conjuração mais rápida."),
+    ("eq_cetro", "Cetro Consagrado", {"arma": "cetro"}, "cruz", "luz", {"atq_mag": 0.03, "cura": 0.06}, "Curas mais fortes."),
+    ("eq_lanca", "Alcance da Lança", {"arma": "lanca"}, "lanca", "terra", {"atq_fis": 0.03, "alcance": 1}, "Golpes de mais longe."),
+    ("eq_machado", "Corte Brutal", {"arma": "machado"}, "machado", "fogo", {"atq_fis": 0.05, "critico": 0.01}, "Golpes pesados que rasgam armadura."),
+    ("eq_martelo", "Impacto do Martelo", {"arma": "martelo"}, "martelo", "terra", {"atq_fis": 0.04, "atordoar": 0.03}, "Chance de atordoar ao bater."),
+    ("eq_punhos", "Punhos de Ferro", {"arma": "punhos"}, "punho", "terra", {"vel_atq": 0.05, "def_fis": 0.02}, "Socos rápidos e guarda firme."),
+    ("eq_garras", "Instinto das Garras", {"arma": "garras"}, "garra", "sombra", {"critico": 0.03, "dreno": 0.02}, "Rasga e recupera um pouco de vida."),
+    ("eq_escudo", "Guarda do Escudo", {"escudo": "escudo"}, "escudo", "terra", {"def_fis": 0.08, "bloqueio": 0.06}, "Chance de bloquear golpes."),
+    ("eq_egide", "Égide Arcana", {"escudo": "egide"}, "cupula", "agua", {"def_mag": 0.08, "mp": 0.05}, "Protege contra magia."),
+    ("eq_pesada", "Conjunto de Placas", {"conjunto": "pesada", "pecas": 4}, "escudo", "luz", {"def_fis": 0.10, "hp": 0.06, "vel_mov": -0.04}, "As 4 peças de placas: muita defesa, passo mais pesado."),
+    ("eq_leve", "Conjunto de Couro", {"conjunto": "leve", "pecas": 4}, "bota", "vento", {"esquiva": 4, "vel_atq": 0.04, "vel_mov": 0.03}, "As 4 peças de couro: leveza e esquiva."),
+    ("eq_robe", "Conjunto do Sábio", {"conjunto": "robe", "pecas": 4}, "manto", "agua", {"mp": 0.10, "vel_conj": 0.06, "regen_mp": 0.08}, "As 4 peças de tecido: mais mana e conjuração rápida."),
+    ("eq_grau_a", "Presença Heroica", {"conjunto_grau": 4, "pecas": 4}, "coroa", "fogo", {"atq_fis": 0.03, "atq_mag": 0.03, "def_fis": 0.03}, "Conjunto completo grau A ou maior."),
+    ("eq_grau_s", "Aura Lendária", {"conjunto_grau": 5, "pecas": 4}, "asas", "luz", {"atq_fis": 0.04, "atq_mag": 0.04, "def_mag": 0.04}, "Conjunto completo grau S: aura de lenda."),
+    ("eq_enc7", "Lâmina Desperta", {"encanto_arma": 7}, "gema", "raio", {"atq_fis": 0.03, "atq_mag": 0.03}, "Arma encantada +7 ou mais."),
+    ("eq_enc12", "Lâmina Ancestral", {"encanto_arma": 12}, "gema", "fogo", {"critico": 0.03, "atq_fis": 0.03, "atq_mag": 0.03}, "Arma encantada +12 ou mais."),
+    ("eq_asas", "Voo Planado", {"item": "asas"}, "asas", "vento", {"vel_mov": 0.05}, "Asas equipadas: passo mais leve."),
+    ("eq_montaria", "Laço do Cavaleiro", {"montaria": True}, "bota", "terra", {"vel_mov": 0.12}, "Montado: deslocamento rápido."),
+    ("eq_pet", "Elo com o Companheiro", {"pet": True}, "coracao", "agua", {"regen_hp": 0.05}, "Companheiro ao lado: vida volta mais rápido."),
+    ("eq_anel", "Anel de Proteção", {"acessorio": "anel"}, "gema", "agua", {"def_mag": 0.04}, "Anéis equipados (a cada anel)."),
+    ("eq_brinco", "Brinco da Vigília", {"acessorio": "brinco"}, "gema", "luz", {"resist_atordoar": 0.05, "mp": 0.03}, "Brincos equipados."),
+    ("eq_colar", "Colar do Juramento", {"acessorio": "colar"}, "gema", "sombra", {"hp": 0.04, "def_mag": 0.03}, "Colar equipado."),
+    ("bf_grupo", "Formação de Grupo", {"grupo": 3}, "armas", "luz", {"atq_fis": 0.02, "atq_mag": 0.02, "def_fis": 0.02}, "Em grupo de 3 ou mais por perto."),
+    ("bf_pocao", "Vigor da Poção", {"buff": "pocao"}, "gota", "fogo", {"regen_hp": 0.10}, "Enquanto a poção faz efeito."),
+    ("bf_pergaminho", "Graça do Pergaminho", {"buff": "pergaminho"}, "livro", "luz", {"atq_fis": 0.03, "atq_mag": 0.03}, "Enquanto o pergaminho de bênção faz efeito."),
+    ("bf_noite", "Caçador da Noite", {"buff": "noite", "raca": ["sombrio"]}, "lua", "sombra", {"critico": 0.02, "esquiva": 2}, "Raças da noite ficam mais ágeis à noite."),
+]
+
+
+def passivas_equipamento():
+    out = {}
+    for pid, nome, cond, mot, el, bonus, desc in EQUIP:
+        out[pid] = {"id": pid, "nome": nome, "categoria": "equipamento", "tipo": "passiva", "ativa": False, "elemento": el,
+                    "condicao": cond, "bonus": bonus, "por_grau": 0.15, "descricao": desc, "icone": f"{mot}_{el}", "nivel_max": 1}
+    return out
 
 
 if __name__ == "__main__":

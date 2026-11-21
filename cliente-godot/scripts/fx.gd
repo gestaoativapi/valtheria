@@ -706,3 +706,107 @@ static func reacao(alvo: Node3D, elem: String, papel: String, altura := 1.8, for
 			_particulas(alvo, Vector3(0, h * 0.6, 0), "agua", int(26 * k), 0.8, 0.08, 0.2, {"raio": 0.3, "vel": 2.5, "spread": 70.0, "grav": Vector3(0, -8.0, 0)})
 		_:
 			_particulas(alvo, Vector3(0, h * 0.55, 0.15), "", int(14 * k), 0.25, 0.05, 0.12, {"raio": 0.12, "vel": 3.0, "spread": 90.0, "dir": Vector3(0, 0.3, 1)})
+
+
+# ---------- formas de ataque por tipo de habilidade ----------
+static func _mat_add(cor: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = cor
+	m.disable_fog = true
+	m.no_depth_test = false
+	return m
+
+
+# onda de choque: anel do elemento que se abre rente ao chão (atordoar, grito, impacto no chão)
+static func onda_choque(parent: Node, pos: Vector3, elem: String, raio := 4.0, dur := 0.5) -> void:
+	var c := colors(elem if elem != "" else "terra")
+	for k in 2:
+		var mi := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = 0.86
+		tm.outer_radius = 1.0
+		tm.rings = 32
+		tm.ring_segments = 6
+		mi.mesh = tm
+		var m := _mat_add(c[k].lerp(Color.WHITE, 0.2 if k == 0 else 0.0))
+		mi.material_override = m
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		parent.add_child(mi)
+		mi.global_position = pos + Vector3(0, 0.15 + 0.1 * k, 0)
+		mi.scale = Vector3(0.3, 0.5, 0.3)
+		var tw := mi.create_tween()
+		tw.tween_interval(0.08 * k)
+		tw.tween_property(mi, "scale", Vector3(raio, 0.25, raio), dur).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(m, "albedo_color:a", 0.0, dur)
+		tw.tween_callback(mi.queue_free)
+	burst(parent, pos + Vector3(0, 0.2, 0), elem, raio * 0.25)
+
+
+# chuva do elemento: projéteis caindo do céu em pontos da área (magias em área: meteoros, granizo, raios, flechas)
+static func chuva(parent: Node, centro: Vector3, elem: String, raio := 4.0, qtd := 7, dur := 0.9) -> void:
+	if not parent.is_inside_tree():
+		return
+	for i in qtd:
+		var a := randf() * TAU
+		var r := sqrt(randf()) * raio
+		var alvo := centro + Vector3(cos(a) * r, 0.1, sin(a) * r)
+		var de := alvo + Vector3(randf_range(-1.5, 1.5), 9.0 + randf() * 3.0, randf_range(-1.5, 1.5))
+		var atraso := dur * float(i) / qtd
+		parent.get_tree().create_timer(atraso).timeout.connect(func():
+			if not is_instance_valid(parent):
+				return
+			if elem == "raio":
+				relampago(parent, de, alvo, colors(elem)[0])
+			else:
+				magia(parent, de, alvo, elem, 0.22)
+			parent.get_tree().create_timer(0.22).timeout.connect(func():
+				if is_instance_valid(parent):
+					burst(parent, alvo + Vector3(0, 0.2, 0), elem, 0.7)))
+
+
+# espinhos que brotam do chão em volta do alvo e o prendem (gelo vira cristais, terra vira rocha, sombra vira garras)
+static func espinhos(parent: Node, pos: Vector3, elem: String, raio := 1.1, qtd := 7, dur := 1.6) -> void:
+	var c := colors(elem if elem != "" else "terra")
+	var raiz := Node3D.new()
+	parent.add_child(raiz)
+	raiz.global_position = pos
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c[1].darkened(0.1)
+	m.emission_enabled = true
+	m.emission = c[0]
+	m.emission_energy_multiplier = 1.2
+	m.metallic = 0.2
+	m.roughness = 0.35
+	for i in qtd:
+		var a := TAU * float(i) / qtd + randf() * 0.3
+		var mi := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.0
+		cm.bottom_radius = 0.16 + randf() * 0.08
+		cm.height = 1.0 + randf() * 0.7
+		cm.radial_segments = 5
+		cm.rings = 1
+		mi.mesh = cm
+		mi.material_override = m
+		raiz.add_child(mi)
+		mi.position = Vector3(cos(a) * raio, -cm.height * 0.5, sin(a) * raio)
+		mi.rotation = Vector3(-sin(a) * 0.45, 0, cos(a) * 0.45)
+		var tw := mi.create_tween()
+		tw.tween_interval(0.03 * i)
+		tw.tween_property(mi, "position:y", cm.height * 0.45, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	burst(parent, pos + Vector3(0, 0.3, 0), elem, 0.8)
+	var t2 := raiz.create_tween()
+	t2.tween_interval(dur)
+	t2.tween_property(raiz, "scale", Vector3(1, 0.01, 1), 0.25)
+	t2.tween_callback(raiz.queue_free)
+
+
+# corte em X (crítico): duas meias-luas cruzadas e clarão
+static func corte_x(dono: Node3D, cor: Color, raio := 1.7) -> void:
+	corte(dono, cor.lerp(Color.WHITE, 0.35), raio, 1.15, 0.85, 0.22)
+	dono.get_tree().create_timer(0.09).timeout.connect(func():
+		if is_instance_valid(dono):
+			corte(dono, cor, raio * 1.05, 1.15, -0.85, 0.22))

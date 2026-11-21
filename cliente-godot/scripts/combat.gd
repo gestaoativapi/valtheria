@@ -39,6 +39,9 @@ var swing := 0
 var my_elem := ""
 var debuffs := {}  # efeitos dos chefes no jogador: tipo -> [valor, até]
 var boss_next := {}  # ponto de caça -> hora em que o chefe pode voltar
+var pb := {}  # bônus das passivas de equipamento, buff e grupo (Passivas)
+var casting := {}  # conjuração em andamento: {"i", "ini", "fim", "pos", "alvo"}
+var vel_cl := {"vel_ataque": 333.0, "vel_conjuracao": 333.0}  # velocidades da classe (classes_v2)
 
 
 func setup(m: Node3D) -> void:
@@ -112,12 +115,136 @@ func recalc() -> void:
 		"class": str(cl.get("name", "")),
 	}
 	my_elem = str(info.get("race_elem", {}).get(str(c.get("race", "")), ""))
-	skills = []
-	for s in arch.skills:
-		if int(s.lvl) <= L and skills.size() < 9:
-			skills.append(s)
+	# passivas de equipamento (arma, conjunto, encanto, acessórios, buffs, grupo): iguais para todos
+	var ctx := _ctx_passivas()
+	if main.ui != null:
+		main.ui.ctx_passivas = ctx
+	pb = Passivas.bonus(Passivas.ativas(c, info.items, ctx))
+	st.patk *= 1.0 + float(pb.get("atq_fis", 0.0))
+	st.matk *= 1.0 + float(pb.get("atq_mag", 0.0))
+	st.pdef *= 1.0 + float(pb.get("def_fis", 0.0))
+	st.maxHp = roundf(st.maxHp * (1.0 + float(pb.get("hp", 0.0))))
+	st.maxMp = roundf(st.maxMp * (1.0 + float(pb.get("mp", 0.0))))
+	st.speed *= 1.0 + float(pb.get("vel_mov", 0.0))
+	st.interval /= maxf(0.5, 1.0 + float(pb.get("vel_atq", 0.0)))
+	st.range += float(pb.get("alcance", 0.0))
+	st["crit"] = 0.06 + float(pb.get("critico", 0.0))
+	var antes := skills.size()
+	skills = _skills_v2(c, L)
+	if skills.is_empty():  # sem banco novo: habilidades antigas do arquétipo
+		for s in arch.skills:
+			if int(s.lvl) <= L and skills.size() < 9:
+				skills.append(s)
 	while cds.size() < skills.size():
 		cds.append(0.0)
+	if antes != skills.size() and main.ui != null and active:
+		main.ui.set_skills(skills)
+
+
+# grupo por perto, buffs com marca e noite: decidem as passivas de efeito
+func _ctx_passivas() -> Dictionary:
+	var n := 1
+	var g = main.get("grupo")
+	if g != null and g.has_method("em_grupo") and g.em_grupo():
+		n = maxi(1, g.membros.size())
+	var bl: Array = []
+	for b in buffs:
+		if b.has("tag") and b.until > now():
+			bl.append(b.tag)
+	return {"grupo": n, "buffs": bl, "montado": bool(main.me.get("montado", false)), "pet": bool(main.me.get("pet_ativo", false))}
+
+
+# habilidades ativas da classe (banco v2), acumuladas da base até a classe atual, no nível que o personagem tem
+const V2_TIPO := {"ataque": "hit", "elemental": "hit", "critico": "hit", "atordoar": "hit", "prender": "hit", "puxar": "hit", "dreno": "hit",
+	"area": "zone", "avanco": "dash", "provocar": "taunt", "debuff": "debuff", "buff": "buff", "aura": "buff", "alternar": "buff", "invocar": "buff",
+	"cura": "heal", "cura_area": "heal", "reviver": "heal", "purificar": "heal"}
+
+func _skills_v2(c: Dictionary, L: int) -> Array:
+	var UI = load("res://scripts/ui.gd")
+	var cv: Dictionary = UI.classes_v2()
+	if cv.is_empty():
+		return []
+	var cid := str(c.get("class_id", ""))
+	if not cv.classes.has(cid):
+		cid = ""
+		for k in cv.classes:
+			if int(cv.classes[k].rank) == 0 and str(cv.classes[k].raca) == str(c.get("race", "humano")):
+				cid = k
+				break
+	if cid == "":
+		return []
+	var stc: Dictionary = cv.classes[cid].get("status", {})
+	vel_cl = {"vel_ataque": float(stc.get("vel_ataque", 333)), "vel_conjuracao": float(stc.get("vel_conjuracao", 333))}
+	var out: Array = []
+	for cc in UI.cadeia_classe(cid):
+		for sid in cv.habilidades_da_classe.get(cc, []):
+			var h: Dictionary = cv.habilidades[sid]
+			if not h.ativa:
+				continue
+			var nv: int = UI.nivel_hab(h, c, L)
+			if nv <= 0:
+				continue
+			out.append(_converter_v2(h, nv))
+	if out.size() > 27:
+		out = out.slice(out.size() - 27)  # as mais novas (ficam as da classe atual)
+	return out
+
+
+func _converter_v2(h: Dictionary, nv: int) -> Dictionary:
+	var t: Dictionary = h.tabela[nv - 1]
+	var tp := str(h.tipo)
+	var pw := float(t.poder)
+	var s := {"name": "%s %d" % [h.nome, nv], "type": V2_TIPO.get(tp, "hit"), "mp": int(t.mana), "cd": maxf(float(h.recarga), 1.0), "mult": 0.0, "aoe": 0.0,
+		"stun": 0.0, "pct": 0.0, "dur": 0.0, "buff": null, "fx": str(h.elemento), "icone": str(h.icone), "v2": tp, "id": str(h.id), "nivel": nv,
+		"gesto": str(h.get("movimento", {}).get("gesto", "")), "por": str(h.get("conjuracao", {}).get("por", "vel_conjuracao")),
+		"base": float(h.get("conjuracao", {}).get("base", 0.0)), "fisica": str(h.categoria) == "golpe"}
+	match tp:
+		"ataque", "elemental", "dreno", "puxar":
+			s.mult = pw
+		"critico":
+			s.mult = pw
+			s["crit_extra"] = 0.25
+		"atordoar":
+			s.mult = pw
+			s.stun = 1.6
+		"prender":
+			s.mult = maxf(pw, 0.6)
+			s.stun = 2.6
+		"area":
+			s.mult = pw
+			s.aoe = 5.0
+		"avanco":
+			s.mult = maxf(pw, 1.0)
+		"provocar", "debuff":
+			s.aoe = 8.0
+			s.dur = 12.0
+		"cura", "cura_area", "reviver", "purificar":
+			s.pct = clampf(pw, 0.08, 0.6)
+		"buff", "aura", "alternar", "invocar":
+			var chave := "patk"
+			if str(h.icone).begins_with("escudo") or str(h.icone).begins_with("cupula") or str(h.icone).begins_with("escamas") or str(h.icone).begins_with("manto"):
+				chave = "pdef"
+			elif str(h.icone).begins_with("bota") or str(h.icone).begins_with("tornado"):
+				chave = "atkspd"
+			elif not s.fisica and str(h.categoria) != "golpe" and str(h.icone).get_slice("_", 0) in ["orbe", "livro", "gema", "olho", "lua", "totem", "golem", "asas"]:
+				chave = "matk"
+			var v := pw if tp != "invocar" else 0.12 + 0.05 * float(h.rank)
+			s.buff = {chave: v}
+			s.dur = 60.0 if tp in ["aura", "alternar"] else 30.0
+	return s
+
+
+# tempo de conjuração: base × 333 ÷ velocidade (vel. de ataque nos golpes, vel. de conjuração nas magias), com buffs e passivas
+func tempo_conj(s: Dictionary) -> float:
+	var base := float(s.get("base", 0.0))
+	if base <= 0.0:
+		return 0.0
+	var por := str(s.get("por", "vel_conjuracao"))
+	var vel := float(vel_cl.get(por, 333.0))
+	var extra := 1.0 + float(pb.get("vel_atq" if por == "vel_ataque" else "vel_conj", 0.0))
+	if por == "vel_ataque":
+		extra *= _buff("atkspd")
+	return base * 333.0 / maxf(vel * extra, 1.0)
 
 
 func start() -> void:
@@ -609,6 +736,9 @@ func _hurt_player(dmg: float) -> void:
 	if main.world.zona(main.player.position.x, main.player.position.z).paz:
 		return  # zona de paz (cidades e áreas de missão): ninguém morre
 	combat_until = now() + 6.0
+	if rng.randf() < float(pb.get("bloqueio", 0.0)) + float(pb.get("esquiva", 0.0)) * 0.004:
+		_float_text(main.player.position + Vector3(0, main.player.height_m, 0), "Bloqueio", Color(0.75, 0.85, 1.0))
+		return
 	if shield > 0.0 and now() < shield_until:
 		var ab := minf(shield, dmg)
 		shield -= ab
@@ -735,12 +865,23 @@ func _reward(m: Dictionary) -> void:
 			main.ui.chat_line("", "Você já pode evoluir de classe: fale com o Mestre de Classes na cidade (tecla K).", "sistema")
 
 
-func _damage(mult: float) -> Dictionary:
-	var atk: float = st.matk if st.magic else st.patk
+func _damage(mult: float, el := "", crit_extra := 0.0, fisica := -1) -> Dictionary:
+	var magica: bool = st.magic if fisica < 0 else fisica == 0
+	var atk: float = st.matk if magica else st.patk
 	var def: float = float(target.def) if target else 0.0
-	var crit := rng.randf() < 0.06
-	var dmg := atk * mult * atk / (atk + def * 0.5) * rng.randf_range(0.92, 1.08) * (2.0 if crit else 1.0)
-	return {"dmg": dmg, "crit": crit}
+	# vantagem elemental (só contra monstros; em jogador vale a resistência do alvo): mais dano e mais crítico
+	var vm := 1.0
+	var vc := 0.0
+	if el != "" and target and target.has("fam"):
+		var cv: Dictionary = load("res://scripts/ui.gd").classes_v2()
+		var fe := str(target.fam.get("elem", ""))
+		if not cv.is_empty() and cv.vantagem.has(el) and cv.vantagem[el].has(fe):
+			var r: Dictionary = cv.regra_elemental[["desvantagem", "neutro", "vantagem"][int(cv.vantagem[el][fe]) + 1]]
+			vm = float(r.dano)
+			vc = float(r.critico)
+	var crit := rng.randf() < float(st.get("crit", 0.06)) + vc + crit_extra
+	var dmg := atk * mult * vm * atk / (atk + def * 0.5) * rng.randf_range(0.92, 1.08) * (2.0 if crit else 1.0)
+	return {"dmg": dmg, "crit": crit, "vant": vm}
 
 
 # ---------- ações do jogador ----------
@@ -790,6 +931,9 @@ func stop_auto() -> void:
 func use_skill(i: int) -> void:
 	if dead or i < 0 or i >= skills.size() or _debuff_ativo("atordoamento"):
 		return
+	if not casting.is_empty():
+		message.emit("Já está conjurando")
+		return
 	var s: Dictionary = skills[i]
 	var t := now()
 	if t < float(cds[i]):
@@ -805,21 +949,90 @@ func use_skill(i: int) -> void:
 		if target == null:
 			message.emit("Escolha um alvo")
 			return
-		var reach: float = float(st.range) + (10.0 if st.magic or ty in ["dash", "leap"] else 1.2)
+		var mg0: bool = (not bool(s.get("fisica", false))) if s.has("v2") else st.magic
+		var reach: float = float(st.range) + (10.0 if mg0 or ty in ["dash", "leap"] else 1.2)
 		if (target.node as Node3D).position.distance_to(main.player.position) > reach:
 			auto = true
 			message.emit("Longe demais: aproximando")
 			return
+	var conj := tempo_conj(s)
+	if conj >= 0.2:
+		_iniciar_conj(i, s, conj)
+		return
+	_executar(i)
+
+
+# início da conjuração: gesto do corpo, círculo e elemento nas mãos; andar ou ser atordoado interrompe
+func _iniciar_conj(i: int, s: Dictionary, conj: float) -> void:
+	var t := now()
+	casting = {"i": i, "ini": t, "fim": t + conj, "pos": main.player.position, "alvo": target, "nome": str(s.name)}
+	if target:
+		_face(target)
+	var mg: bool = (not bool(s.get("fisica", false))) if s.has("v2") else st.magic
+	var el := str(s.get("fx", ""))
+	var kg := 1.0 + 0.12 * _grau_arma()
+	var g := str(s.get("gesto", ""))
+	if g == "":
+		g = "erguer" if mg else "golpe"
+	main.player.tocar_gesto(g, conj + 0.35)
+	if mg:
+		main.player.action("Spell_Simple_Shoot")
+		FX.circulo_magico(main.player, el if el != "" else "arcane", conj + 0.25, 1.0 * kg)
+	FX.reacao(main.player, el, "conjurador", main.player.height_m, 0.6 + 0.1 * _grau_arma())
+	main.player.busy_until = t + conj
+	if main.ui.has_method("cast_bar"):
+		main.ui.cast_bar(str(s.name), 0.0, conj)
+
+
+func _conj_tick(t: float) -> void:
+	if casting.is_empty():
+		return
+	var ci: Dictionary = casting
+	var mexeu: bool = main.player.position.distance_to(ci.pos) > 0.35
+	var sem_alvo: bool = ci.alvo != null and ci.alvo.dead
+	if dead or mexeu or _debuff_ativo("atordoamento") or sem_alvo:
+		casting = {}
+		main.player.busy_until = t
+		if main.ui.has_method("cast_bar"):
+			main.ui.cast_bar("", -1.0, 0.0)
+		message.emit("Conjuração interrompida" if not sem_alvo else "Alvo perdido")
+		return
+	if t >= float(ci.fim):
+		casting = {}
+		if main.ui.has_method("cast_bar"):
+			main.ui.cast_bar("", -1.0, 0.0)
+		_executar(int(ci.i))
+		return
+	if main.ui.has_method("cast_bar"):
+		main.ui.cast_bar(str(ci.nome), (t - float(ci.ini)) / maxf(float(ci.fim) - float(ci.ini), 0.01), float(ci.fim) - t)
+
+
+func _executar(i: int) -> void:
+	if i >= skills.size():
+		return
+	var s: Dictionary = skills[i]
+	var t := now()
+	var ty := str(s.type)
+	var offensive := ty in ["hit", "multi", "chain", "zone", "trap", "dash", "leap"]
+	if offensive and (target == null or target.dead):
+		next_target()
+		if target == null:
+			return
+	if mp < float(s.mp):
+		message.emit("Mana insuficiente")
+		return
+	var v2 := s.has("v2")
+	var mg: bool = (not bool(s.get("fisica", false))) if v2 else st.magic
 	mp -= float(s.mp)
 	cds[i] = t + float(s.cd)
 	var fx_el := str(s.get("fx", ""))
 	if fx_el == "":
-		fx_el = my_elem if (st.magic or not offensive) else ""
-	var arqueiro: bool = st.get("arco", false) and offensive and not st.magic
+		fx_el = my_elem if (mg or not offensive) else ""
+	var arqueiro: bool = st.get("arco", false) and offensive and not mg
 	if arqueiro:
 		main.player.disparar_arco()  # habilidade de arqueiro: o mesmo tiro completo
 	else:
-		main.player.action("Spell_Simple_Shoot" if (st.magic or not offensive) else "Sword_Attack")
+		main.player.action("Spell_Simple_Shoot" if (mg or not offensive) else "Sword_Attack")
 	# efeitos por tipo de habilidade: círculo de conjuração para magias, meia-lua de luz para golpes de arma.
 	# O grau da arma aumenta o tamanho e acrescenta camadas (pedido de Robson 21/11: do NG ao SS a forma de
 	# jogar a magia e a força elemental ficam bem destacadas): B clarão nas mãos, A segundo círculo e
@@ -838,17 +1051,19 @@ func use_skill(i: int) -> void:
 		gesto = "investir"
 	elif ty == "debuff":
 		gesto = "apontar"
-	elif st.magic:
+	elif mg:
 		gesto = "erguer" if (float(s.get("aoe", 0.0)) > 0.0 or ty == "zone") else "empurrar"
 	elif ty in ["multi", "chain"] or float(s.get("aoe", 0.0)) > 0.0:
 		gesto = "girar"
 	elif float(s.get("stun", 0.0)) > 0.0:
 		gesto = "cravar"
+	if v2 and str(s.get("gesto", "")) != "":
+		gesto = str(s.gesto)
 	if not arqueiro:
-		main.player.tocar_gesto(gesto, 0.75 if not st.magic else 0.95)
+		main.player.tocar_gesto(gesto, 0.75 if not mg else 0.95)
 	FX.reacao(main.player, fx_el, "conjurador", main.player.height_m, kg)
 	var cor_el: Color = FX.colors(fx_el if fx_el != "" else "holy")[1]
-	if st.magic or not offensive:
+	if mg or not offensive:
 		var el_c := fx_el if fx_el != "" else "arcane"
 		FX.circulo_magico(main.player, el_c, 0.85, (1.1 + 0.25 * float(s.get("aoe", 0.0) > 0.0)) * kg)
 		if gw >= 4:
@@ -871,7 +1086,31 @@ func use_skill(i: int) -> void:
 		_face(target)
 		var mult := float(s.mult) if float(s.mult) > 0.0 else 1.2
 		var list: Array = [target]
-		if st.magic:
+		# forma do ataque pelo tipo da habilidade (banco v2)
+		var tpos: Vector3 = (target.node as Node3D).global_position
+		match str(s.get("v2", "")):
+			"area":
+				if mg:  # magia em área: o elemento cai do céu sobre a zona
+					FX.chuva(self, tpos, fx_el, 3.2 * kg, 5 + gw, 0.6)
+				else:  # golpe em área: giro com dois cortes e onda no chão em volta de quem golpeia
+					FX.onda_choque(self, main.player.global_position, fx_el, 3.0 * kg, 0.4)
+					FX.corte(main.player, cor_el, 2.2 * kg, 0.9, 0.05, 0.3)
+			"atordoar":
+				FX.onda_choque(self, tpos, fx_el, 2.4 * kg, 0.45)
+			"prender":
+				FX.espinhos(self, tpos, fx_el, maxf(0.9, float(target.height) * 0.45), 7, float(s.stun))
+			"critico":
+				FX.corte_x(main.player, cor_el, 1.8 * kg)
+			"puxar":
+				FX.relampago(self, _chest(), _center(target), FX.colors(fx_el)[0])
+			"dreno":
+				var alvo_d = target
+				get_tree().create_timer(0.35).timeout.connect(func():
+					if alvo_d != null and is_instance_valid(alvo_d.node):
+						FX.magia(self, _center(alvo_d), _chest(), fx_el, 0.35))
+			"avanco":
+				FX.onda_choque(self, main.player.global_position, "vento", 1.6, 0.3)
+		if mg:
 			FX.magia(self, _chest() + Vector3(0, 0.3, 0), _center(target), fx_el)
 			if gw >= 5:  # projétil duplo e raio de luz até o alvo
 				var alvo_m = target
@@ -889,8 +1128,16 @@ func use_skill(i: int) -> void:
 		for m in list:
 			var keep = target
 			target = m
-			var r := _damage(mult)
+			var r := _damage(mult, fx_el if v2 else "", float(s.get("crit_extra", 0.0)), (0 if mg else 1) if v2 else -1)
 			target = keep
+			if r.get("vant", 1.0) > 1.01 and m == list[0]:
+				_float_text(_center(m) + Vector3(0, 0.6, 0), "Vantagem!", FX.colors(fx_el)[0], 0.8)
+			if str(s.get("v2", "")) == "dreno" or float(pb.get("dreno", 0.0)) > 0.0:
+				hp = minf(st.maxHp, hp + r.dmg * (0.3 if str(s.get("v2", "")) == "dreno" else 0.0) + r.dmg * float(pb.get("dreno", 0.0)))
+			if str(s.get("v2", "")) == "puxar" and m == list[0]:
+				var alvo_n: Node3D = m.node
+				var frente: Vector3 = main.player.position + (alvo_n.position - main.player.position).normalized() * 1.8
+				create_tween().tween_property(alvo_n, "position", Vector3(frente.x, alvo_n.position.y, frente.z), 0.3)
 			pending.append({"t": t + 0.35, "mob": m, "dmg": r.dmg, "crit": r.crit, "fx": fx_el, "size": kg})
 			if float(s.stun) > 0.0:
 				m.stun = t + float(s.stun)
@@ -899,6 +1146,10 @@ func use_skill(i: int) -> void:
 		hp = minf(st.maxHp, hp + amount)
 		_float_text(main.player.position + Vector3(0, main.player.height_m, 0), "+%d" % int(amount), Color(0.5, 1.0, 0.6))
 		FX.coluna(self, main.player.global_position, fx_el if fx_el != "" else "holy", 5.0 * kg, 0.9 * kg, 1.0)
+		if str(s.get("v2", "")) in ["cura_area", "reviver"]:
+			FX.onda_choque(self, main.player.global_position, fx_el if fx_el != "" else "luz", 5.0, 0.8)
+		if str(s.get("v2", "")) == "purificar":
+			debuffs.clear()
 		FX.burst(self, _chest(), fx_el if fx_el != "" else "holy", 1.1)
 	elif ty == "shield":
 		shield = st.maxHp * maxf(float(s.pct), 0.15)
@@ -911,6 +1162,7 @@ func use_skill(i: int) -> void:
 		FX.aura(main.player, fx_el if fx_el != "" else "holy", maxf(float(s.dur), 8.0))
 	elif ty in ["debuff", "taunt"]:
 		FX.burst(self, main.player.position + Vector3(0, 0.3, 0), fx_el if fx_el != "" else "dark", 2.2)
+		FX.onda_choque(self, main.player.global_position, fx_el if fx_el != "" else "sombra", maxf(float(s.aoe), 6.0), 0.6)
 		for m in mobs:
 			if not m.dead and (m.node as Node3D).position.distance_to(main.player.position) < maxf(float(s.aoe), 8.0):
 				m.aggro = true
@@ -995,6 +1247,7 @@ func _physics_process(dt: float) -> void:
 					FX.flare(self, _center(pending[i].mob), FX.colors(str(pending[i].get("fx", "")))[0], 1.2 if pending[i].crit else 0.9, 0.3)
 			pending.remove_at(i)
 	_debuffs_tick(dt)
+	_conj_tick(t)
 	if dead:
 		debuffs.clear()
 		if t - dead_t > 4.0 and dead_t > 0.0:
@@ -1011,7 +1264,7 @@ func _physics_process(dt: float) -> void:
 	if target and target.dead:
 		target = null
 		auto = false
-	if auto and target:
+	if auto and target and casting.is_empty():
 		var tp: Vector3 = (target.node as Node3D).position
 		var d := Vector2(tp.x - main.player.position.x, tp.z - main.player.position.z).length()
 		var reach: float = float(st.range) + float(target.height) * 0.3 + (9.0 if st.magic else 0.0)

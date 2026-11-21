@@ -1009,6 +1009,7 @@ func _refresh_hot() -> void:
 		var a := _action_def(str(hot_custom.get(i, "")))
 		if not a.is_empty():
 			b.kind = a[1]
+			b.textura = null
 			b.tint = Color(0.8, 0.9, 1.0)
 			b.label = _tecla(i)
 			b.tooltip_text = "%s  (tecla %s)\n%s\nBotão direito tira daqui" % [a[2], _tecla(i), a[3]]
@@ -1018,9 +1019,15 @@ func _refresh_hot() -> void:
 			b.kind = look[0]
 			b.tint = look[1]
 			b.label = _tecla(i)
-			b.tooltip_text = "%s  (tecla %s)\nMana %d   ·   recarga %ds" % [s.name, _tecla(i), int(s.mp), int(s.cd)]
+			b.textura = null
+			var img := "res://assets/icones/habilidades/%s.png" % str(s.get("icone", ""))
+			if s.has("icone") and ResourceLoader.exists(img):
+				b.textura = load(img)
+			var conj := float(s.get("conj", 0.0))
+			b.tooltip_text = "%s  (tecla %s)\nMana %d   ·   recarga %ds%s" % [s.name, _tecla(i), int(s.mp), int(s.cd), ("   ·   conjuração %.1fs" % conj) if conj > 0.05 else ""]
 		else:
 			b.kind = "vazio"
+			b.textura = null
 			b.label = _tecla(i)
 			b.tooltip_text = "Vazio: novas habilidades chegam com o nível e a classe.\nArraste uma ação da janela de Ações para cá."
 
@@ -1484,6 +1491,7 @@ func _mercado_anunciar(inv: Dictionary) -> void:
 
 # ---------- habilidades por classe (data/classes_v2.json, gerado por ferramentas/gerar_classes_v2.py) ----------
 static var _cv2: Dictionary = {}
+var ctx_passivas := {}  # grupo, montaria, pet, buffs ativos (main atualiza)
 var hab_tab := "ativas"
 const CAT_NOME := {"magia": "Magias", "golpe": "Golpes", "reforco": "Reforço", "enfraquecer": "Enfraquecimento", "alternar": "Alternância",
 	"equipamento": "Equipamento", "habilidade": "Habilidade", "raca": "Raça", "oficio": "Ofício"}
@@ -1568,6 +1576,27 @@ func _janela_habilidades(me: Dictionary) -> void:
 		return
 	var ativas := hab_tab == "ativas"
 	var cats: Array = cv.categorias.ativas if ativas else cv.categorias.passivas
+	if not ativas:  # passivas que vêm da arma, da roupa, do conjunto, do encanto, de acessórios, buffs e grupo (iguais para todos)
+		var eqp := Passivas.ativas(me, info.items, ctx_passivas)
+		win_list.add_child(_label("▬ Equipamento e efeitos", 15, GOLD, true))
+		if eqp.is_empty():
+			_note("Nenhuma passiva de equipamento agora. Elas aparecem ao vestir arma, escudo, conjunto completo, arma encantada +7, asas, acessórios, ao usar poção ou pergaminho e ao andar em grupo.")
+		else:
+			var ge := GridContainer.new()
+			ge.columns = 9
+			ge.add_theme_constant_override("h_separation", 6)
+			ge.add_theme_constant_override("v_separation", 6)
+			win_list.add_child(ge)
+			for e in eqp:
+				var b := _icon("escudo", "", 46)
+				var img := "res://assets/icones/habilidades/%s.png" % str(e.p.icone)
+				if ResourceLoader.exists(img):
+					b.textura = load(img)
+				b.rim = Color(0.45, 0.75, 0.95)
+				b.rim_w = 2
+				b.label = GRADES[clampi(int(e.grau), 0, 5)] if int(e.grau) > 0 else ""
+				b.tooltip_text = "%s\nPassiva de equipamento · igual para todos\n%s\n%s" % [e.p.nome, str(e.p.descricao), Passivas.texto_bonus(e.p, int(e.grau))]
+				ge.add_child(b)
 	for cat in cats:
 		var lista: Array = []
 		for h in todas:
@@ -2753,3 +2782,50 @@ func _gm_window() -> void:
 				hf.add_child(b)
 			win_list.add_child(hf)
 	_note("Tudo o que vai ao servidor fica registrado no histórico de GM.")
+
+
+# ---------- barra de conjuração (acima da barra de atalhos) ----------
+var _cast_panel: PanelContainer
+var _cast_fill: ColorRect
+var _cast_lbl: Label
+
+func cast_bar(nome: String, frac: float, resta: float) -> void:
+	if frac < 0.0:
+		if _cast_panel:
+			_cast_panel.visible = false
+		return
+	if _cast_panel == null:
+		_cast_panel = PanelContainer.new()
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.05, 0.04, 0.03, 0.82)
+		sb.border_color = Color(0.72, 0.56, 0.3)
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(4)
+		_cast_panel.add_theme_stylebox_override("panel", sb)
+		_cast_panel.custom_minimum_size = Vector2(320, 26)
+		_cast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var fundo := Control.new()
+		fundo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_cast_panel.add_child(fundo)
+		_cast_fill = ColorRect.new()
+		_cast_fill.color = Color(0.95, 0.72, 0.3)
+		_cast_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fundo.add_child(_cast_fill)
+		_cast_lbl = Label.new()
+		_cast_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_cast_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_cast_lbl.add_theme_font_size_override("font_size", 14)
+		_cast_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+		_cast_lbl.add_theme_constant_override("outline_size", 4)
+		_cast_panel.add_child(_cast_lbl)
+		add_child(_cast_panel)
+	_cast_panel.visible = true
+	var vp := get_viewport().get_visible_rect().size
+	var y := vp.y * 0.62
+	if hot_panel and hot_panel.visible:
+		y = hot_panel.global_position.y - 40.0
+	_cast_panel.position = Vector2((vp.x - 320.0) * 0.5, y)
+	_cast_fill.position = Vector2(2, 2)
+	_cast_fill.size = Vector2(312.0 * clampf(frac, 0.0, 1.0), 18)
+	_cast_fill.color = Color(0.95, 0.72, 0.3).lerp(Color(1.0, 0.95, 0.75), clampf(frac, 0.0, 1.0))
+	_cast_lbl.text = "%s   %.1fs" % [nome, maxf(resta, 0.0)]
