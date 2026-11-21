@@ -248,3 +248,386 @@ static func dust() -> CPUParticles3D:
 	p.emitting = false
 	p.position = Vector3(0, 0.1, 0)
 	return p
+
+
+# ================= efeitos de habilidade (fase de efeitos por classe) =================
+# Tudo com poucos nós e vida curta: um material por tipo, reaproveitado; nada de luz dinâmica nova.
+
+const SH_ESTRELA := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, fog_disabled;
+uniform vec3 cor : source_color = vec3(1.0);
+uniform float forca = 1.0;
+uniform float raios = 1.0;
+void vertex() {
+	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
+	float e = length(MODEL_MATRIX[0].xyz);
+	MODELVIEW_MATRIX[0] *= e; MODELVIEW_MATRIX[1] *= e; MODELVIEW_MATRIX[2] *= e;
+}
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	float d = length(p);
+	float g = TIME * 0.8;
+	mat2 r = mat2(vec2(cos(g), -sin(g)), vec2(sin(g), cos(g)));
+	vec2 q = r * p;
+	float nucleo = exp(-d * d * 22.0);
+	float halo = exp(-d * d * 4.0) * 0.45;
+	float cruz = (exp(-abs(q.x) * 55.0) + exp(-abs(q.y) * 55.0)) * (1.0 - smoothstep(0.0, 1.0, d)) * raios;
+	ALBEDO = mix(cor, vec3(1.0), nucleo * 0.6) * (nucleo * 1.5 + halo + cruz) * forca;
+}
+"""
+
+const SH_CIRCULO := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, fog_disabled;
+uniform vec3 cor : source_color = vec3(0.6, 0.8, 1.0);
+uniform float forca = 1.0;
+float anel(float d, float r, float w) { return smoothstep(w, 0.0, abs(d - r)); }
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	float d = length(p);
+	float a = atan(p.y, p.x);
+	float giro = TIME * 0.9;
+	float c = anel(d, 0.94, 0.025) + anel(d, 0.80, 0.015) + anel(d, 0.46, 0.012) * 0.8;
+	// runas: traços curtos entre os anéis externos, girando
+	float runa = step(0.55, fract((a + giro) * 24.0 / 6.2832)) * step(0.82, d) * step(d, 0.92);
+	runa *= step(0.3, fract(sin(floor((a + giro) * 24.0 / 6.2832) * 91.7) * 437.5));
+	// estrela de seis pontas (dois triângulos) girando ao contrário
+	float h = 0.0;
+	for (int k = 0; k < 6; k++) {
+		float ang = float(k) * 1.0472 - giro * 0.6;
+		vec2 n = vec2(cos(ang), sin(ang));
+		h += smoothstep(0.012, 0.0, abs(dot(p, n) - 0.40)) * step(d, 0.80);
+	}
+	float miolo = (1.0 - smoothstep(0.0, 0.5, d)) * 0.18;
+	float v = (c + runa * 0.9 + h * 0.7 + miolo) * step(d, 1.0);
+	ALBEDO = cor * v * forca;
+}
+"""
+
+const SH_CORTE := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, fog_disabled;
+uniform vec3 cor : source_color = vec3(1.0, 0.9, 0.6);
+uniform float prog = 0.0;
+void fragment() {
+	// UV.x ao longo do arco (0 = início, 1 = fim), UV.y da borda interna (0) para a externa (1)
+	float frente = smoothstep(prog - 0.55, prog, UV.x) * (1.0 - smoothstep(prog, prog + 0.02, UV.x));
+	float borda = pow(UV.y, 3.0);
+	float a = frente * borda * (1.0 - smoothstep(0.85, 1.0, prog));
+	ALBEDO = mix(cor, vec3(1.0), borda * 0.5) * a * 2.2;
+}
+"""
+
+const SH_COLUNA := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, fog_disabled;
+uniform vec3 cor : source_color = vec3(1.0, 0.9, 0.5);
+uniform float forca = 1.0;
+void fragment() {
+	// UV.y: 0 no topo, 1 na base. Brilho maior na base, some suave no alto; bordas macias (sem cara de tubo de vidro)
+	float frente = abs(dot(NORMAL, VIEW));
+	float macio = pow(frente, 1.6);
+	float v = pow(UV.y, 1.8) * smoothstep(1.0, 0.94, UV.y);
+	float riscos = 0.55 + 0.45 * sin(UV.x * 37.7 + UV.y * 9.0 - TIME * 7.0);
+	ALBEDO = cor * macio * v * riscos * forca * 0.9;
+}
+"""
+
+static var _sh := {}
+
+
+static func _shader(nome: String, codigo: String) -> Shader:
+	if not _sh.has(nome):
+		var s := Shader.new()
+		s.code = codigo
+		_sh[nome] = s
+	return _sh[nome]
+
+
+static func _sm(nome: String, codigo: String, params := {}) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = _shader(nome, codigo)
+	for k in params:
+		m.set_shader_parameter(k, params[k])
+	return m
+
+
+static func _quad() -> QuadMesh:
+	var q := QuadMesh.new()
+	q.size = Vector2.ONE
+	return q
+
+
+static func _cor3(c: Color) -> Color:
+	return Color(c.r, c.g, c.b)
+
+
+# clarão em forma de estrela (impacto, ponta de arma, conjuração)
+static func flare(parent: Node, pos: Vector3, cor: Color, tam := 1.0, dur := 0.35, raios := 1.0) -> void:
+	var m := _sm("estrela", SH_ESTRELA, {"cor": _cor3(cor), "forca": 1.4, "raios": raios})
+	var mi := MeshInstance3D.new()
+	mi.mesh = _quad()
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	mi.global_position = pos
+	mi.scale = Vector3.ONE * tam * 0.4
+	var tw := mi.create_tween()
+	tw.tween_property(mi, "scale", Vector3.ONE * tam * 1.3, dur * 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_method(func(v): m.set_shader_parameter("forca", v), 1.6, 0.0, dur).set_delay(dur * 0.2)
+	tw.tween_callback(mi.queue_free)
+
+
+# círculo mágico de conjuração no chão, girando, na cor do elemento
+static func circulo_magico(alvo: Node3D, elem: String, dur := 0.9, raio := 1.3) -> void:
+	var c := colors(elem)
+	var m := _sm("circulo", SH_CIRCULO, {"cor": _cor3(c[1]).lerp(_cor3(c[0]), 0.2), "forca": 0.0})
+	var mi := MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2.ONE * raio * 2.0
+	mi.mesh = pm
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = Vector3(0, 0.05, 0)
+	alvo.add_child(mi)
+	var tw := mi.create_tween()
+	tw.tween_method(func(v): m.set_shader_parameter("forca", v), 0.0, 1.4, dur * 0.25)
+	tw.parallel().tween_property(mi, "scale", Vector3.ONE, dur * 0.25).from(Vector3.ONE * 0.6)
+	tw.tween_interval(dur * 0.45)
+	tw.tween_method(func(v): m.set_shader_parameter("forca", v), 1.4, 0.0, dur * 0.3)
+	tw.tween_callback(mi.queue_free)
+	# faíscas subindo do círculo
+	var p := emitter(int(14 * maxf(amount, 0.4)), 0.8, true, 0.12, c[0], c[1])
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
+	p.emission_ring_axis = Vector3.UP
+	p.emission_ring_radius = raio * 0.85
+	p.emission_ring_inner_radius = raio * 0.6
+	p.emission_ring_height = 0.05
+	p.direction = Vector3.UP
+	p.spread = 6.0
+	p.initial_velocity_min = 1.2
+	p.initial_velocity_max = 2.4
+	p.one_shot = true
+	p.explosiveness = 0.3
+	alvo.add_child(p)
+	p.emitting = true
+	var t2 := p.create_tween()
+	t2.tween_interval(1.6)
+	t2.tween_callback(p.queue_free)
+
+
+static var _arco_mesh: ArrayMesh
+
+
+# malha do corte: meia-lua achatada (gerada uma vez)
+static func _malha_corte() -> ArrayMesh:
+	if _arco_mesh != null:
+		return _arco_mesh
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 24
+	for i in n + 1:
+		var t := float(i) / n
+		var a := lerpf(-1.25, 1.25, t)
+		var larg := sin(t * PI) * 0.45 + 0.05
+		var r_ext := 1.0
+		var r_int := 1.0 - larg
+		st.set_uv(Vector2(t, 1.0))
+		st.add_vertex(Vector3(sin(a) * r_ext, 0, -cos(a) * r_ext))
+		st.set_uv(Vector2(t, 0.0))
+		st.add_vertex(Vector3(sin(a) * r_int, 0, -cos(a) * r_int))
+	for i in n:
+		var k := i * 2
+		st.add_index(k)
+		st.add_index(k + 1)
+		st.add_index(k + 2)
+		st.add_index(k + 1)
+		st.add_index(k + 3)
+		st.add_index(k + 2)
+	_arco_mesh = st.commit()
+	return _arco_mesh
+
+
+# golpe de arma: meia-lua de luz que varre na frente do personagem (inclinação = tipo de golpe)
+static func corte(dono: Node3D, cor: Color, raio := 1.5, altura := 1.1, inclina := 0.35, dur := 0.28) -> void:
+	var m := _sm("corte", SH_CORTE, {"cor": _cor3(cor), "prog": 0.0})
+	var mi := MeshInstance3D.new()
+	mi.mesh = _malha_corte()
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	dono.add_child(mi)
+	mi.position = Vector3(0, altura, 0.25)
+	mi.rotation = Vector3(0, PI, inclina)  # a frente do personagem é +Z; a malha nasce virada para -Z
+	mi.scale = Vector3.ONE * raio
+	var tw := mi.create_tween()
+	tw.tween_method(func(v): m.set_shader_parameter("prog", v), 0.0, 1.0, dur)
+	tw.tween_callback(mi.queue_free)
+
+
+# coluna de luz (cura, bênção, magia sagrada caindo do céu)
+static func coluna(parent: Node, pos: Vector3, elem: String, altura := 5.0, raio := 0.8, dur := 0.9) -> void:
+	var c := colors(elem)
+	var m := _sm("coluna", SH_COLUNA, {"cor": _cor3(c[0]).lerp(_cor3(c[1]), 0.4), "forca": 0.0})
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = raio * 0.7
+	cm.bottom_radius = raio
+	cm.height = altura
+	cm.cap_top = false
+	cm.cap_bottom = false
+	cm.radial_segments = 20
+	cm.rings = 1
+	mi.mesh = cm
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	mi.global_position = pos + Vector3(0, altura * 0.5, 0)
+	var tw := mi.create_tween()
+	tw.tween_method(func(v): m.set_shader_parameter("forca", v), 0.0, 1.6, dur * 0.2)
+	tw.parallel().tween_property(mi, "scale", Vector3.ONE, dur * 0.2).from(Vector3(0.3, 1, 0.3))
+	tw.tween_method(func(v): m.set_shader_parameter("forca", v), 1.6, 0.0, dur * 0.8)
+	tw.parallel().tween_property(mi, "scale", Vector3(1.4, 1, 1.4), dur * 0.8)
+	tw.tween_callback(mi.queue_free)
+
+
+# raio elétrico em zigue-zague entre dois pontos, piscando
+static func relampago(parent: Node, de: Vector3, ate: Vector3, cor := Color(0.75, 0.8, 1.0)) -> void:
+	var raiz := Node3D.new()
+	parent.add_child(raiz)
+	var mt := StandardMaterial3D.new()
+	mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mt.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mt.albedo_color = cor.lerp(Color.WHITE, 0.5)
+	var mg := StandardMaterial3D.new()
+	mg.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mg.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mg.albedo_color = cor * 0.22
+	mg.disable_fog = true
+	mt.disable_fog = true
+	var pts: Array = [de]
+	var n := 7
+	var d := ate - de
+	var lado := d.cross(Vector3.UP).normalized()
+	if lado.length() < 0.1:
+		lado = Vector3.RIGHT
+	for i in range(1, n):
+		var t := float(i) / n
+		pts.append(de + d * t + lado * randf_range(-0.35, 0.35) + Vector3.UP * randf_range(-0.3, 0.3))
+	pts.append(ate)
+	for i in pts.size() - 1:
+		var a: Vector3 = pts[i]
+		var b: Vector3 = pts[i + 1]
+		for camada in [[0.05, mt], [0.12, mg]]:
+			var seg := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = camada[0]
+			cm.bottom_radius = camada[0]
+			cm.height = a.distance_to(b) + camada[0]
+			cm.radial_segments = 6
+			cm.rings = 1
+			cm.material = camada[1]
+			seg.mesh = cm
+			seg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			raiz.add_child(seg)
+			seg.global_position = (a + b) * 0.5
+			var dir := (b - a).normalized()
+			var eixo := Vector3.UP.cross(dir)
+			if eixo.length() > 0.001:
+				seg.global_basis = Basis(eixo.normalized(), Vector3.UP.angle_to(dir))
+	flare(parent, ate, cor, 1.4, 0.3)
+	flare(parent, de, cor, 0.7, 0.2, 0.0)
+	var tw := raiz.create_tween()
+	tw.tween_property(raiz, "visible", false, 0.05).set_delay(0.06)
+	tw.tween_property(raiz, "visible", true, 0.0).set_delay(0.04)
+	tw.tween_interval(0.1)
+	tw.tween_callback(raiz.queue_free)
+
+
+# área no chão: círculo do elemento que se abre e faíscas subindo (golpes em área, armadilhas)
+static func zona(parent: Node, pos: Vector3, elem: String, raio := 4.0, dur := 1.0) -> void:
+	var c := colors(elem)
+	var holder := Node3D.new()
+	parent.add_child(holder)
+	holder.global_position = pos
+	circulo_magico(holder, elem, dur, raio)
+	burst(parent, pos + Vector3(0, 0.3, 0), elem, raio * 0.35)
+	var tw := holder.create_tween()
+	tw.tween_interval(dur + 0.8)
+	tw.tween_callback(holder.queue_free)
+
+
+# projétil de magia com forma por elemento: núcleo em clarão, rastro do elemento e impacto forte
+static func magia(parent: Node, de: Vector3, ate: Vector3, elem: String, time := 0.3) -> void:
+	if elem == "raio":
+		relampago(parent, de, ate)
+		burst(parent, ate, elem, 0.8)
+		return
+	var c := colors(elem)
+	var raiz := Node3D.new()
+	parent.add_child(raiz)
+	raiz.global_position = de
+	var nucleo := MeshInstance3D.new()
+	nucleo.mesh = _quad()
+	nucleo.material_override = _sm("estrela", SH_ESTRELA, {"cor": _cor3(c[1]).lerp(_cor3(c[0]), 0.5), "forca": 1.3, "raios": 0.5})
+	nucleo.scale = Vector3.ONE * 0.9
+	nucleo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	raiz.add_child(nucleo)
+	if elem in ["ice", "gelo"]:  # lasca de gelo girando dentro do brilho
+		var lasca := MeshInstance3D.new()
+		var pm := PrismMesh.new()
+		pm.size = Vector3(0.18, 0.55, 0.18)
+		var lm := StandardMaterial3D.new()
+		lm.albedo_color = Color(0.8, 0.95, 1.0, 0.85)
+		lm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		lm.emission_enabled = true
+		lm.emission = Color(0.5, 0.8, 1.0)
+		lm.emission_energy_multiplier = 1.5
+		pm.material = lm
+		lasca.mesh = pm
+		lasca.rotation = Vector3(PI * 0.5, 0, 0)
+		raiz.add_child(lasca)
+	var rastro := emitter(26, 0.45, true, 0.42, c[0], c[1])
+	rastro.local_coords = false
+	rastro.spread = 180.0
+	rastro.initial_velocity_max = 0.5
+	if elem in ["fire", "fogo"]:
+		rastro.gravity = Vector3(0, 2.0, 0)
+		rastro.scale_amount_max = 1.6
+	raiz.add_child(rastro)
+	if ate.distance_to(de) > 0.1:
+		raiz.look_at(ate, Vector3.UP)
+	var tw := raiz.create_tween()
+	tw.tween_property(raiz, "global_position", ate, time)
+	tw.tween_callback(func():
+		rastro.emitting = false
+		nucleo.visible = false
+		for ch in raiz.get_children():
+			if ch is MeshInstance3D:
+				(ch as MeshInstance3D).visible = false
+		flare(parent, ate, c[1].lerp(c[0], 0.5), 1.6, 0.35)
+		burst(parent, ate, elem, 1.0))
+	tw.tween_interval(0.6)
+	tw.tween_callback(raiz.queue_free)
+
+
+# flecha de habilidade: flecha com rastro brilhante e clarão no impacto
+static func flecha_brilho(parent: Node, de: Vector3, ate: Vector3, elem: String, time := 0.3) -> void:
+	flecha(parent, de, ate, time)
+	var c := colors(elem if elem != "" else "wind")
+	var raiz := Node3D.new()
+	parent.add_child(raiz)
+	raiz.global_position = de
+	var rastro := emitter(24, 0.3, true, 0.22, c[0], c[1])
+	rastro.local_coords = false
+	rastro.spread = 10.0
+	rastro.initial_velocity_max = 0.2
+	raiz.add_child(rastro)
+	var tw := raiz.create_tween()
+	tw.tween_property(raiz, "global_position", ate, time)
+	tw.tween_callback(func():
+		rastro.emitting = false
+		flare(parent, ate, c[0], 1.2, 0.3)
+		burst(parent, ate, elem if elem != "" else "wind", 0.7))
+	tw.tween_interval(0.5)
+	tw.tween_callback(raiz.queue_free)
