@@ -699,8 +699,9 @@ func say(e: Dictionary, text: String) -> void:
 		b = Label3D.new()
 		b.name = "Fala"
 		b.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		b.pixel_size = 0.0028
-		b.font_size = 52
+		b.fixed_size = true  # balão de fala com tamanho fixo na tela
+		b.pixel_size = 0.0004
+		b.font_size = 40
 		b.outline_size = 12
 		b.width = 700.0
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -709,7 +710,7 @@ func say(e: Dictionary, text: String) -> void:
 		b.visibility_range_end = 30.0
 		c.add_child(b)
 	b.position = Vector3(0, float(c.height_m) + 0.75, 0)
-	b.scale = Vector3.ONE / maxf(c.scale.y, 0.01)
+	b.scale = Vector3.ONE
 	b.text = text
 	b.visible = true
 	b.set_meta("until", Time.get_ticks_msec() + 5500)

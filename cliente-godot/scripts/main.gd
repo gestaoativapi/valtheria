@@ -1124,6 +1124,15 @@ func _process(dt: float) -> void:
 			var floor_y: float = (world.height(want.x, want.z) if under_sea else maxf(world.height(want.x, want.z), 0.0)) + 0.35
 			if want.y < floor_y:
 				want.y = floor_y
+			# câmera não atravessa encostas, muralhas e casas: anda do personagem até a câmera e para antes do obstáculo
+			var passos := 12
+			var antes := focus
+			for k in range(1, passos + 1):
+				var pt: Vector3 = focus.lerp(want, float(k) / passos)
+				if world.height(pt.x, pt.z) + 0.3 > pt.y or world.dentro_de_predio(pt.x, pt.z):
+					want = focus.lerp(antes, 0.92) if k > 1 else focus + (want - focus).normalized() * 0.8
+					break
+				antes = pt
 		cam.position = cam.position.lerp(want, minf(1.0, dt * 14.0))
 		cam.look_at(focus)
 		if marker.visible:

@@ -304,17 +304,18 @@ func _spawn_medido(x: float, z: float, boss := false, boss_lvl := 0, spot := "",
 			inner.position.y += node.position.y - lo
 	var lb := Label3D.new()
 	lb.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	lb.pixel_size = 0.003
-	lb.font_size = 56
-	lb.outline_size = 12
+	# nome do monstro com tamanho fixo na tela (não vira um letreiro gigante de perto)
+	lb.fixed_size = true
+	lb.pixel_size = 0.00042
+	lb.font_size = 42
+	lb.outline_size = 10
 	lb.text = ("CHEFE  %s  Nv %d" if boss else "%s  Nv %d") % [fam.name, L]
-	if boss:
-		lb.font_size = 76
-		lb.visibility_range_end = 120.0
 	var diff := L - int(main.me.get("level", 1))
 	lb.modulate = Color(1, 0.35, 0.35) if diff >= 5 else (Color(1, 0.85, 0.35) if diff >= 2 else (Color.WHITE if diff >= -2 else Color(0.55, 0.8, 0.6)))
 	lb.position = Vector3(0, (float(md.height) + 0.35) / maxf(node.scale.y, 0.01), 0)
-	lb.visibility_range_end = 45.0
+	lb.visibility_range_end = 120.0 if boss else 45.0
+	if boss:
+		lb.font_size = 46
 	node.add_child(lb)
 	var m := {"fam": fam, "L": L, "hp": float(ms[0]), "maxHp": float(ms[0]), "atk": float(ms[1]), "def": float(ms[2]), "xp": float(ms[3]), "node": node, "kind": md.kind, "home": node.position,
 		"aggro": false, "next_atk": 0.0, "stun": 0.0, "wander": node.position, "wander_t": rng.randf() * 4.0, "dead": false, "dead_t": 0.0, "weak": 0.0, "anim": "", "height": md.height, "boss": boss, "spot": spot}
@@ -575,18 +576,22 @@ func _debuffs_tick(dt: float) -> void:
 
 
 # ---------- dano ----------
-func _float_text(pos: Vector3, text: String, col: Color) -> void:
+func _float_text(pos: Vector3, text: String, col: Color, esc := 1.0) -> void:
 	var l := Label3D.new()
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.no_depth_test = true
-	l.pixel_size = 0.004
-	l.font_size = 72
-	l.outline_size = 14
+	l.fixed_size = true  # números de dano do mesmo tamanho na tela, perto ou longe
+	l.pixel_size = 0.0006
+	l.font_size = 60
+	l.outline_size = 12
 	l.text = text
 	l.modulate = col
 	l.position = pos + Vector3(rng.randf_range(-0.3, 0.3), 0, 0)
 	add_child(l)
 	var tw := create_tween()
+	if esc > 1.0:  # salto: cresce rápido e volta ao tamanho
+		l.scale = Vector3.ONE * esc * 1.6
+		tw.tween_property(l, "scale", Vector3.ONE * esc, 0.12)
 	tw.tween_property(l, "position", l.position + Vector3(0, 1.3, 0), 0.9)
 	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.9)
 	tw.tween_callback(l.queue_free)
@@ -649,7 +654,12 @@ func _hit_mob(m: Dictionary, dmg: float, crit: bool) -> void:
 	m.hp = float(m.hp) - dmg
 	m.aggro = true
 	combat_until = now() + 6.0
-	_float_text((m.node as Node3D).position + Vector3(0, float(m.height), 0), ("%d!" if crit else "%d") % int(dmg), Color(1, 0.85, 0.3) if crit else Color.WHITE)
+	var cabeca := (m.node as Node3D).position + Vector3(0, float(m.height), 0)
+	if crit:  # crítico: número maior e a palavra em laranja acima, que "salta" e sobe
+		_float_text(cabeca + Vector3(0, 0.45, 0), "Crítico", Color(1.0, 0.55, 0.15), 1.25)
+		_float_text(cabeca, "%d" % int(dmg), Color(1, 0.88, 0.3), 1.5)
+	else:
+		_float_text(cabeca, "%d" % int(dmg), Color.WHITE)
 	if float(m.hp) <= 0.0:
 		m.dead = true
 		m.dead_t = now()
@@ -862,9 +872,53 @@ func _face(m) -> void:
 	main.player.rotation.y = main.facing
 
 
+# anel do alvo no chão: quem está selecionado fica com um círculo girando nos pés (como nos MMOs clássicos)
+var _anel: MeshInstance3D
+const ANEL_SHADER := """
+shader_type spatial;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, fog_disabled;
+uniform vec3 cor : source_color = vec3(1.0, 0.75, 0.2);
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	float d = length(p);
+	float a = atan(p.y, p.x);
+	float anel = smoothstep(0.80, 0.86, d) * (1.0 - smoothstep(0.92, 0.98, d));
+	float tracos = step(0.0, sin(a * 3.0 - TIME * 2.4)) * smoothstep(0.66, 0.70, d) * (1.0 - smoothstep(0.74, 0.78, d));
+	float miolo = (1.0 - smoothstep(0.0, 0.9, d)) * 0.08 * step(d, 1.0);
+	ALBEDO = cor * (anel * 1.3 + tracos * 0.9 + miolo) * (0.85 + 0.15 * sin(TIME * 4.0));
+}
+"""
+
+
+func _anel_alvo() -> void:
+	var ok: bool = target != null and not target.dead and is_instance_valid(target.node)
+	if not ok:
+		if _anel != null:
+			_anel.visible = false
+		return
+	if _anel == null:
+		_anel = MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2.ONE
+		_anel.mesh = pm
+		var mt := ShaderMaterial.new()
+		var sh := Shader.new()
+		sh.code = ANEL_SHADER
+		mt.shader = sh
+		_anel.material_override = mt
+		_anel.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_anel)
+	var n: Node3D = target.node
+	var r := clampf(float(target.get("height", 1.8)) * 0.36, 0.7, 3.0)
+	_anel.visible = true
+	_anel.global_position = n.global_position + Vector3(0, 0.06, 0)
+	_anel.scale = Vector3(r * 2.0, 1, r * 2.0)
+
+
 func _physics_process(dt: float) -> void:
 	if not active:
 		return
+	_anel_alvo()
 	var t := now()
 	_manage_spawns(dt)
 	for m in mobs:

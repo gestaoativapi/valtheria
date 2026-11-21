@@ -528,7 +528,7 @@ void fragment() {
 """
 const DISCO_HEROI_SHADER := """
 shader_type spatial;
-render_mode blend_add, unshaded, cull_disabled, depth_draw_never;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, fog_disabled;
 void fragment() {
 	vec2 p = UV * 2.0 - 1.0;
 	float d = length(p);
@@ -666,7 +666,7 @@ func brilho_encanto(nivel: int) -> void:
 # leve no celular) e uma estrela de luz pulsando na ponta. Efeito genérico de jogo de fantasia, desenhado aqui.
 const ESTRELA_SHADER := """
 shader_type spatial;
-render_mode blend_add, unshaded, cull_disabled, depth_draw_never, depth_test_disabled;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, depth_test_disabled, fog_disabled;
 uniform vec3 cor : source_color = vec3(1.0);
 uniform float forca = 1.0;
 uniform float raios = 1.0;
@@ -760,7 +760,7 @@ static func _arco() -> ArrayMesh:
 # rastro: some quando visto de lado, para não virar uma barra reta na tela
 const ARCO_SHADER := """
 shader_type spatial;
-render_mode blend_add, unshaded, cull_disabled, depth_draw_never;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, fog_disabled;
 uniform vec3 cor : source_color = vec3(1.0);
 varying float abre;
 void vertex() {
@@ -2336,9 +2336,11 @@ func set_tag(text: String, color := Color(1, 0.92, 0.7), perto := 0.0) -> void:
 		tag = Label3D.new()
 		tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		tag.position = Vector3(0, height_m + 0.25, 0)
-		tag.pixel_size = 0.003
-		tag.font_size = 64
-		tag.outline_size = 14
+		# nome com tamanho fixo na tela (pequeno e legível de perto ou de longe, como nos MMOs clássicos)
+		tag.fixed_size = true
+		tag.pixel_size = 0.00042
+		tag.font_size = 44
+		tag.outline_size = 10
 		tag.outline_modulate = Color(0, 0, 0, 0.85)
 		tag.no_depth_test = false
 		add_child(tag)
@@ -2350,8 +2352,6 @@ func set_tag(text: String, color := Color(1, 0.92, 0.7), perto := 0.0) -> void:
 		tag.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 
-# pés no chão: o pé que está apoiado (o mais baixo na animação) encosta no terreno embaixo dele.
-# Corrige o corpo flutuando em descidas e o pé afundando em subidas; suaviza para não tremer.
 # sem o "boneco em cruz" ao nascer (pedido de Robson 20/11): o personagem fica oculto nos primeiros quadros,
 # até a animação e a postura da arma estarem aplicadas no esqueleto; antes disso o motor mostraria a pose de repouso
 var _aparecer := 0
@@ -2366,6 +2366,8 @@ func _ready() -> void:
 		_aparecer = 3
 
 
+# pés no chão: o pé que está apoiado (o mais baixo na animação) encosta no terreno embaixo dele.
+# Corrige o corpo flutuando em descidas e o pé afundando em subidas; suaviza para não tremer.
 func _process(dt: float) -> void:
 	if _aparecer > 0:
 		_aparecer -= 1

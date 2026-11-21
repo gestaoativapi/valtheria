@@ -960,6 +960,20 @@ func resolve(p: Vector3, from: Vector3) -> Vector3:
 	return p
 
 
+# ponto dentro de uma construção grande (casa, muralha, torre): usado pela câmera; cercas e caixotes não contam
+func dentro_de_predio(x: float, z: float) -> bool:
+	for b in boxes.get(Vector2i(floori(x / 8.0), floori(z / 8.0)), []):
+		if float(b[4]) < 1.8 and float(b[5]) < 1.8:
+			continue
+		var dx := x - float(b[0])
+		var dz := z - float(b[1])
+		var lx := dx * float(b[2]) - dz * float(b[3])
+		var lz := dx * float(b[3]) + dz * float(b[2])
+		if absf(lx) < float(b[4]) and absf(lz) < float(b[5]):
+			return true
+	return false
+
+
 func _push_box(p: Vector3, b: Array) -> Vector3:
 	var dx := p.x - float(b[0])
 	var dz := p.z - float(b[1])
