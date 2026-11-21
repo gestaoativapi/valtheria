@@ -1482,6 +1482,163 @@ func _mercado_anunciar(inv: Dictionary) -> void:
 	dir.add_child(b)
 
 
+# ---------- habilidades por classe (data/classes_v2.json, gerado por ferramentas/gerar_classes_v2.py) ----------
+static var _cv2: Dictionary = {}
+var hab_tab := "ativas"
+const CAT_NOME := {"magia": "Magias", "golpe": "Golpes", "reforco": "Reforço", "enfraquecer": "Enfraquecimento", "alternar": "Alternância",
+	"equipamento": "Equipamento", "habilidade": "Habilidade", "raca": "Raça", "oficio": "Ofício"}
+const CAT_ICONE := {"golpe": "golpe", "reforco": "forca", "enfraquecer": "fraqueza", "alternar": "recarga", "equipamento": "escudo", "habilidade": "estrela", "raca": "coroa", "oficio": "kit"}
+const TIPO_ICONE := {"ataque": "espadao", "area": "machado", "critico": "garras", "atordoar": "escudo", "avanco": "pressa", "puxar": "lanca",
+	"provocar": "golpe", "aura": "coroa", "invocar": "pata", "cura": "cura", "cura_area": "cura", "reviver": "estrela", "purificar": "luz", "dreno": "sombra", "prender": "gelo", "debuff": "fraqueza"}
+const ELEM_ICONE := {"fogo": "fogo", "gelo": "gelo", "raio": "raio", "agua": "agua", "terra": "terra", "vento": "vento", "luz": "luz", "sombra": "sombra"}
+
+static func classes_v2() -> Dictionary:
+	if _cv2.is_empty() and FileAccess.file_exists("res://data/classes_v2.json"):
+		_cv2 = JSON.parse_string(FileAccess.get_file_as_string("res://data/classes_v2.json"))
+	return _cv2
+
+
+# caminho da classe atual até a base (as habilidades se acumulam ao subir de classe)
+static func cadeia_classe(cid: String) -> Array:
+	var cv := classes_v2()
+	var out: Array = []
+	while cid != "" and cv.classes.has(cid):
+		out.push_front(cid)
+		cid = str(cv.classes[cid].pai)
+	return out
+
+
+# nível de cada habilidade: o que o servidor mandar em me.habilidades; sem isso, o máximo que o nível do personagem permite
+static func nivel_hab(h: Dictionary, me: Dictionary, lvl: int) -> int:
+	var salvo: Dictionary = me.get("habilidades") if me.get("habilidades") is Dictionary else {}
+	if salvo.has(h.id):
+		return int(salvo[h.id])
+	var n := 0
+	for t in h.tabela:
+		if int(t.nivel_personagem) <= lvl:
+			n = int(t.nivel)
+	return n
+
+
+func _janela_habilidades(me: Dictionary) -> void:
+	var cv := classes_v2()
+	if cv.is_empty():
+		_note("Banco de habilidades não encontrado.")
+		return
+	var lvl := int(me.get("level", 1))
+	var cid := str(me.get("class_id", ""))
+	if not cv.classes.has(cid):
+		for k in cv.classes:  # sem classe conhecida: começa pela base da raça
+			if cv.classes[k].rank == 0 and cv.classes[k].raca == str(me.get("race", "humano")):
+				cid = k
+				break
+	var cadeia := cadeia_classe(cid)
+	var cl: Dictionary = cv.classes.get(cid, {})
+	win_title.text = "◆ Habilidades   ·   %s   ·   nível %d" % [str(cl.get("nome", "-")), lvl]
+	_tabs([["ativas", "Ativas"], ["passivas", "Passivas"], ["aprender", "Aprender"], ["arvore", "Árvore de classes"]], hab_tab, func(k):
+		hab_tab = k
+		open_window("habilidades", w_me, w_inv, w_extra))
+	if not me.get("habilidades") is Dictionary:
+		_note("Prévia: os níveis mostram o máximo que o seu nível permite. Aprender e subir habilidades com pontos de habilidade (PH) chega com o servidor de testes.")
+	var todas: Array = []
+	for c in cadeia:
+		for sid in cv.habilidades_da_classe.get(c, []):
+			todas.append(cv.habilidades[sid])
+	if hab_tab == "arvore":
+		_arvore_classes(cv, cid, lvl)
+		return
+	if hab_tab == "aprender":
+		var n := 0
+		for h in todas:
+			var atual := nivel_hab(h, me, lvl)
+			if atual >= int(h.nivel_max):
+				continue
+			var prox: Dictionary = h.tabela[atual]
+			var pode := int(prox.nivel_personagem) <= lvl
+			_row("%s   ·   nível %d → %d   ·   requer nível %d   ·   %d PH   ·   %d aurum" % [h.nome, atual, atual + 1, int(prox.nivel_personagem), int(prox.ph), int(prox.aurum)],
+				[], Color(0.88, 0.9, 0.94) if pode else Color(0.55, 0.56, 0.6))
+			n += 1
+			if n >= 40:
+				break
+		if n == 0:
+			_note("Todas as habilidades estão no máximo para esta classe.")
+		return
+	var ativas := hab_tab == "ativas"
+	var cats: Array = cv.categorias.ativas if ativas else cv.categorias.passivas
+	for cat in cats:
+		var lista: Array = []
+		for h in todas:
+			if str(h.categoria) == cat:
+				lista.append(h)
+		if lista.is_empty():
+			continue
+		win_list.add_child(_label("▬ " + str(CAT_NOME.get(cat, cat)), 15, GOLD, true))
+		var grade := GridContainer.new()
+		grade.columns = 9
+		grade.add_theme_constant_override("h_separation", 6)
+		grade.add_theme_constant_override("v_separation", 6)
+		win_list.add_child(grade)
+		for h in lista:
+			var nv := nivel_hab(h, me, lvl)
+			var tp := str(h.tipo)
+			var kind: String = ELEM_ICONE.get(str(h.elemento), "estrela") if (tp == "elemental" or (cat == "magia" and tp in ["ataque", "area"])) else str(TIPO_ICONE.get(tp, CAT_ICONE.get(cat, "estrela")))
+			var b := _icon(kind, "", 46)
+			b.tint = IconButton.ELEM.get(str(h.elemento), GOLD) if cat in ["magia", "golpe"] else (GOLD if int(h.rank) < 3 else Color(1.0, 0.85, 0.45))
+			b.label = ("%d" % nv) if nv > 0 else ""
+			b.disabled = nv == 0
+			b.rim = Color(1.0, 0.8, 0.35) if int(h.rank) == 3 else Color(0.55, 0.42, 0.2)
+			b.rim_w = 2 if int(h.rank) == 3 else 1
+			b.tooltip_text = _dica_hab(h, nv, lvl, cv)
+			grade.add_child(b)
+
+
+func _dica_hab(h: Dictionary, nv: int, lvl: int, cv: Dictionary) -> String:
+	var t: Dictionary = h.tabela[maxi(nv - 1, 0)]
+	var linhas := ["%s   (nível %d de %d)" % [h.nome, nv, int(h.nivel_max)], "%s · %s · elemento %s" % ["Ativa" if h.ativa else "Passiva", CAT_NOME.get(str(h.categoria), ""), cv.elementos.get(str(h.elemento), "")]]
+	if h.ativa:
+		linhas.append("Poder %d%%   ·   mana %d   ·   recarga %ds" % [int(float(t.poder) * 100.0), int(t.mana), int(h.recarga)])
+	else:
+		linhas.append("Bônus %+.1f%%" % (float(t.poder) * 100.0))
+	if nv < int(h.nivel_max):
+		var p: Dictionary = h.tabela[nv]
+		linhas.append("Próximo nível no nível %d   (%d PH, %d aurum)" % [int(p.nivel_personagem), int(p.ph), int(p.aurum)])
+	if h.get("livro", false):
+		linhas.append("Exige um Tomo de Técnica para aprender")
+	if h.has("aprimoramento"):
+		linhas.append("No máximo: aprimoramento +1 a +15 (poder, custo ou efeito)")
+	if nv == 0:
+		linhas.append("Ainda não disponível")
+	return "\n".join(linhas)
+
+
+func _arvore_classes(cv: Dictionary, cid: String, lvl: int) -> void:
+	var raca := str(cv.classes.get(cid, {}).get("raca", "humano"))
+	var cadeia := cadeia_classe(cid)
+	_note("Classes da raça: base (nível 1), 1ª classe (nível 20), 2ª (nível 40) e 3ª (nível 76). Cada 1ª classe abre dois caminhos.")
+	var filhos := {}
+	for k in cv.classes:
+		var c: Dictionary = cv.classes[k]
+		if c.raca == raca:
+			if not filhos.has(c.pai):
+				filhos[c.pai] = []
+			filhos[c.pai].append(k)
+	var pilha: Array = []
+	for k in filhos.get("", []):
+		pilha.append([k, 0])
+	while not pilha.is_empty():
+		var it: Array = pilha.pop_front()
+		var k: String = it[0]
+		var c: Dictionary = cv.classes[k]
+		var aqui := k in cadeia
+		var txt := "%s%s   ·   %s   ·   nível %d   ·   %s" % ["      ".repeat(int(it[1])), c.nome, str(c.arquetipo).capitalize(), int(c.nivel), cv.elementos.get(str(c.elemento), "")]
+		if k == cid:
+			txt += "   ◀ você"
+		_row(txt, [], GOLD if aqui else (Color(0.88, 0.9, 0.94) if int(c.nivel) <= lvl else Color(0.6, 0.62, 0.68)))
+		var fs: Array = filhos.get(k, [])
+		for i in range(fs.size() - 1, -1, -1):
+			pilha.push_front([fs[i], int(it[1]) + 1])
+
+
 # chance de sucesso do próximo nível (mesma regra do servidor)
 static func chance_encanto(n: int) -> float:
 	return 1.0 if n < ENC_SEGURO else maxf(0.08, 0.72 - (n - ENC_SEGURO) * 0.05)
@@ -1968,6 +2125,8 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 					continue
 				shown += 1
 				flow.add_child(_item_card("%s x%d" % [items.get(str(r.out), {}).get("name", r.out), int(r.qty)], grade_of(str(r.out)), parts, "", "Fabricar", "game_craft", {"p_recipe": r.id, "p_times": 1, "_icon": str(r.out)}, can))
+	elif name == "habilidades":
+		_janela_habilidades(me)
 	elif name == "classe":
 		var cur := str(me.get("class_id", ""))
 		var cl: Dictionary = info.classes.get(cur, {})

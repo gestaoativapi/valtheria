@@ -246,6 +246,11 @@ func _ready() -> void:
 					net.inventory[iid] = 1 + randi() % 5
 			me.equipment["elmo"] = "elmo_pesada_ng"
 			var wn := a.trim_prefix("--win=")
+			if wn.begins_with("habilidades"):  # prévia: guerreiro humano no caminho B, nível 56
+				me.level = int(OS.get_environment("HAB_NV")) if OS.get_environment("HAB_NV") != "" else 56
+				me.class_id = OS.get_environment("HAB_CLASSE") if OS.get_environment("HAB_CLASSE") != "" else "hum_gr_2b"
+				ui.hab_tab = wn.get_slice(":", 1) if ":" in wn else "ativas"
+				wn = "habilidades"
 			if wn.begins_with("encantar"):
 				me.enchant = {"espada_ng": int(wn.get_slice(":", 1)) if ":" in wn else 9, "pesada_ng": 2}
 				net.inventory["enc_arma_ng"] = 3
@@ -912,6 +917,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_H:
 				if not ui.typing():
 					_window("mercado")
+			KEY_P:
+				if not ui.typing():
+					_window("habilidades")
 			KEY_I:
 				_window("bolsa")
 			KEY_B:
