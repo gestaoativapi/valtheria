@@ -57,6 +57,7 @@ var quitting := false
 var combat: Node3D
 var chasing := false
 var social: Node3D
+var grupo: Node
 var atmos: Node3D
 var npcs: Node3D
 var dust: CPUParticles3D
@@ -154,6 +155,10 @@ func _ready() -> void:
 	social = Social.new()
 	add_child(social)
 	social.setup(self)
+	grupo = load("res://scripts/grupo.gd").new()
+	add_child(grupo)
+	grupo.setup(self)
+	ui.want_grupo.connect(_grupo_acao)
 	interiores = load("res://scripts/interiores.gd").new()
 	add_child(interiores)
 	interiores.setup(self)
@@ -239,12 +244,26 @@ func _ready() -> void:
 					net.inventory[iid] = 1 + randi() % 5
 			me.equipment["elmo"] = "elmo_pesada_ng"
 			var wn := a.trim_prefix("--win=")
+			if wn.begins_with("encantar"):
+				me.enchant = {"espada_ng": int(wn.get_slice(":", 1)) if ":" in wn else 9, "pesada_ng": 2}
+				net.inventory["enc_arma_ng"] = 3
+				net.inventory["enc_arm_ng"] = 1
+				me.equipment["armadura"] = "pesada_ng"
+				player.brilho_encanto(int(me.enchant.espada_ng))
+				wn = "encantar"
 			if ":" in wn:
 				ui.tab = wn.get_slice(":", 1)
 				wn = wn.get_slice(":", 0)
 			ui.open_window(wn, me, net.inventory, {})
 			ui.set_assist(net.inventory)
 			ui.chat_line("Lyra", "alguém para caçar javali?")
+		elif a == "--grupo-teste":  # teste: grupo com membros simulados e um convite na tela
+			grupo.simular()
+			ui.chat_line("Lyra", "vamos no javali rei?", "grupo")
+			ui.chat_line("Borin", "tô sem poção, alguém tem?", "grupo")
+			ui.chat_line("", "Kael entrou no grupo.", "sistema")
+			if OS.get_cmdline_user_args().has("--convite-teste"):
+				ui.mostrar_convite("Aldren")
 		elif a.begins_with("--hour="):
 			atmos.t_day = float(a.trim_prefix("--hour=")) / 24.0
 		elif a == "--rain":
@@ -678,6 +697,7 @@ func _to_login() -> void:
 	creating = false
 	combat.clear()
 	social.clear()
+	grupo.limpar_tudo()
 	ui.close_window()
 	me = {}
 	net.logout()
@@ -854,6 +874,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 					_window("gm")
 			KEY_J:
 				_window("acoes")
+			KEY_N:
+				if not ui.typing():
+					_window("encantar")
 			KEY_I:
 				_window("bolsa")
 			KEY_B:
@@ -1249,7 +1272,10 @@ func _target_info() -> Dictionary:
 			if o.is_empty():
 				sel = {}
 				return {}
-			return {"name": "%s   ·   Nv %d" % [str(o.name), int(o.lvl)], "hp": o.hp, "max": 100.0, "cp": o.cp, "maxcp": 100.0, "pct": true}
+			var ti := {"name": "%s   ·   Nv %d" % [str(o.name), int(o.lvl)], "hp": o.hp, "max": 100.0, "cp": o.cp, "maxcp": 100.0, "pct": true}
+			if not grupo.membros.has(str(sel.id)) and (not grupo.em_grupo() or grupo.sou_lider()):
+				ti.convidar = str(sel.id)
+			return ti
 		"npc":
 			if not is_instance_valid(sel.node):
 				sel = {}
@@ -1319,6 +1345,24 @@ func _do(id: String) -> void:
 
 
 # ---------- bolsa, loja, ofício, clã, bate-papo ----------
+func _grupo_acao(acao: String, id: String) -> void:
+	match acao:
+		"convidar": grupo.convidar(id)
+		"aceitar": grupo.aceitar()
+		"recusar": grupo.recusar()
+		"sair": grupo.sair()
+		"expulsar": grupo.expulsar(id)
+		"escolher":
+			if id == str(me.get("id", "")):
+				sel = {"kind": "self"}
+				combat.target = null
+			elif social.others.has(id):
+				sel = {"kind": "player", "id": id}
+				combat.target = null
+			else:
+				ui.say("Esse membro está longe daqui")
+
+
 func _online() -> bool:
 	return me.has("id") and net.token != ""
 
@@ -1351,7 +1395,10 @@ func _window(name: String) -> void:
 # pede a ação ao servidor, relê o personagem e redesenha o que mudou
 func _action(fn: String, args: Dictionary) -> void:
 	if not _online():
-		ui.say("Entre com uma conta para usar a bolsa, a loja e o ofício")
+		ui.say("Entre com uma conta para usar a bolsa, a loja, o ofício e o encantamento")
+		return
+	if fn == "game_enchant":
+		await _encantar(str(args.get("p_slot", "arma")))
 		return
 	if fn in ["game_use", "game_class_change"]:
 		await _save_now(true)
@@ -1365,6 +1412,42 @@ func _action(fn: String, args: Dictionary) -> void:
 		var keep: String = ui.win_name
 		ui.win_name = ""
 		await _window(keep)
+
+
+# encantar: o servidor sorteia; aqui só mostramos o resultado com efeito na cor do novo brilho
+var _encantando := false
+
+func _encantar(slot: String) -> void:
+	if _encantando:
+		return
+	_encantando = true
+	var eq: Dictionary = me.get("equipment") if me.get("equipment") is Dictionary else {}
+	var iid := str(eq.get(slot, ""))
+	var nome := str(world.info.items.get(iid, {}).get("name", iid))
+	var r: Dictionary = await net.rpc_call("game_enchant", {"p_char": net.char_id, "p_slot": slot})
+	_encantando = false
+	if not r.ok or not (r.data is Dictionary):
+		ui.say(str(r.get("erro", "Não foi possível encantar agora")))
+		return
+	var ok := bool(r.data.get("ok", false))
+	var nivel := int(r.data.get("level", 0))
+	await _refresh_char()
+	var pe: Vector3 = player.position
+	if ok:
+		var elem := "enc_ouro" if nivel >= 16 else ("enc_azul" if nivel >= 10 else "enc_branco")
+		FX.coluna(self, pe, elem, 4.5, 0.9, 1.1)
+		FX.circulo_magico(player, elem, 1.4, 1.3)
+		FX.flare(self, pe + Vector3(0, player.height_m * 0.55, 0), Character.cor_encanto(maxi(nivel, 4)), 1.6, 0.6)
+		ui.say("Sucesso! %s agora é +%d" % [nome, nivel])
+		ui.chat_line("", "Encantamento: %s +%d." % [nome, nivel], "sistema")
+	else:
+		FX.burst(self, pe + Vector3(0, 1.0, 0), "falha", 1.2)
+		ui.say("O encantamento falhou. %s voltou para +0" % nome)
+		ui.chat_line("", "Encantamento falhou: %s voltou para +0." % nome, "sistema")
+	if slot == "arma":
+		player.brilho_encanto(nivel)
+	ui.win_name = ""
+	ui.open_window("encantar", me, net.inventory, {})
 
 
 func _refresh_char() -> void:
@@ -1392,6 +1475,10 @@ var fn_heals := false
 
 
 func _chat(text: String) -> void:
+	# fala do grupo: aba Grupo aberta, ou mensagem começando com #
+	if text.begins_with("#") or (ui.chat_aba == "grupo" and not text.begins_with("/")):
+		grupo.falar(text.trim_prefix("#"))
+		return
 	if text.begins_with("/") and not text.begins_with("/cla "):
 		_command(text)
 		return
@@ -1514,10 +1601,19 @@ func _command(text: String) -> void:
 	var a := p.slice(1)
 	match c:
 		"ajuda":
-			ui.chat_line("", "Comandos: /onde" + (" | GM: /tp x z, /ir nome, /vel, /deus, /voar, /oculto, /curar, /hora h, /chuva, /limpo, /give item qtd [jogador], /aurum qtd [jogador], /nivel n [jogador], /karma n [jogador], /prof coleta|refino|forja n, /info j, /puxar j, /kick j, /ban j, /desban j, /anuncio texto, /matar, /matartodos [raio], /limpar [raio], /spawn família, /reset, /interior taverna|forja|igreja|casa|loja" if gm else ""), "sistema")
+			ui.chat_line("", "Comandos: /onde, /convidar nome, /sairgrupo, # mensagem (fala no grupo)" + (" | GM: /tp x z, /ir nome, /vel, /deus, /voar, /oculto, /curar, /hora h, /chuva, /limpo, /give item qtd [jogador], /aurum qtd [jogador], /nivel n [jogador], /karma n [jogador], /prof coleta|refino|forja n, /info j, /puxar j, /kick j, /ban j, /desban j, /anuncio texto, /matar, /matartodos [raio], /limpar [raio], /spawn família, /reset, /interior taverna|forja|igreja|casa|loja" if gm else ""), "sistema")
 			return
 		"onde":
 			ui.chat_line("", "Posição %d, %d" % [int(player.position.x), int(player.position.z)], "sistema")
+			return
+		"convidar", "grupo":
+			if a.is_empty():
+				ui.chat_line("", "Use: /convidar Nome (ou selecione o jogador e clique em Convidar ao grupo)", "sistema")
+			else:
+				grupo.convidar_nome(" ".join(a))
+			return
+		"sairgrupo":
+			grupo.sair()
 			return
 	if not gm:
 		ui.chat_line("", "Comando desconhecido. Use /ajuda", "sistema")

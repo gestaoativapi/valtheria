@@ -37,14 +37,14 @@ func _on_pos(p: Dictionary) -> void:
 	if id == "" or id == str(main.me.get("id", "")) or not main.playing:
 		return
 	var pos := Vector3(float(p.get("x", 0)), 0, float(p.get("z", 0)))
-	var sig := "%s|%s|%s|%s|%s|%s|%s" % [p.get("ra"), p.get("ge"), p.get("h"), p.get("hc"), p.get("sk"), p.get("w"), p.get("a")]
+	var sig := "%s|%s|%s|%s|%s|%s|%s|%s" % [p.get("ra"), p.get("ge"), p.get("h"), p.get("hc"), p.get("sk"), p.get("w"), p.get("a"), p.get("en")]
 	if others.has(id) and others[id].sig != sig:
 		_drop(id)
 	if not others.has(id):
 		if others.size() >= 40 or pos.distance_to(Vector3(main.player.position.x, 0, main.player.position.z)) > 220.0:
 			return
 		var node: Node3D = Character.create({"race": str(p.get("ra", "humano")), "gender": str(p.get("ge", "m")), "skin": int(p.get("sk", 0)), "hair": int(p.get("h", 0)), "hair_color": int(p.get("hc", 0)),
-			"look": p.get("lk") if p.get("lk") is Dictionary else {}, "equipment": {"arma": str(p.get("w", "")), "armadura": str(p.get("a", "pesada_ng"))}})
+			"look": p.get("lk") if p.get("lk") is Dictionary else {}, "equipment": {"arma": str(p.get("w", "")), "armadura": str(p.get("a", "pesada_ng"))}, "enchant": {str(p.get("w", "")): clampi(int(p.get("en", 0)), 0, 16)}})
 		add_child(node)
 		node.position = Vector3(pos.x, main.world.height(pos.x, pos.z), pos.z)
 		node.set_tag("%s  Nv %d" % [str(p.get("n", "?")), int(p.get("l", 1))], Color(0.75, 0.9, 1.0))
@@ -91,7 +91,8 @@ func _process_medido(dt: float) -> void:
 		var c: Dictionary = main.me
 		var eq: Dictionary = c.get("equipment") if c.get("equipment") is Dictionary else {}
 		main.net.rt_pos({"id": c.id, "n": c.get("name", ""), "x": snappedf(main.player.position.x, 0.01), "z": snappedf(main.player.position.z, 0.01), "r": snappedf(main.player.rotation.y, 0.01), "st": "run" if moved else "idle",
-			"ra": c.get("race"), "ge": c.get("gender"), "h": c.get("hair"), "hc": c.get("hair_color"), "sk": c.get("skin"), "lk": c.get("look"), "c": c.get("class_id"), "l": c.get("level"), "hp": int(main.combat.hp / maxf(float(main.combat.st.get("maxHp", 1.0)), 1.0) * 100.0), "cp": 100, "w": eq.get("arma", ""), "a": eq.get("armadura", "")})
+			"ra": c.get("race"), "ge": c.get("gender"), "h": c.get("hair"), "hc": c.get("hair_color"), "sk": c.get("skin"), "lk": c.get("look"), "c": c.get("class_id"), "l": c.get("level"), "hp": int(main.combat.hp / maxf(float(main.combat.st.get("maxHp", 1.0)), 1.0) * 100.0), "cp": 100, "w": eq.get("arma", ""), "a": eq.get("armadura", ""),
+			"en": int((c.get("enchant") if c.get("enchant") is Dictionary else {}).get(str(eq.get("arma", "")), 0))})
 	chat_t += dt
 	if chat_t > 4.0 and main.net.token != "":
 		chat_t = 0.0

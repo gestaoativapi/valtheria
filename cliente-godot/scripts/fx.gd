@@ -14,7 +14,10 @@ const ELEM := {
 	"nature": [Color(0.75, 1.0, 0.5), Color(0.2, 0.6, 0.2)], "natureza": [Color(0.75, 1.0, 0.5), Color(0.2, 0.6, 0.2)],
 	"poison": [Color(0.75, 1.0, 0.3), Color(0.35, 0.55, 0.05)],
 	"arcane": [Color(0.9, 0.7, 1.0), Color(0.5, 0.25, 1.0)], "spirit": [Color(0.7, 1.0, 0.95), Color(0.2, 0.7, 0.75)],
-	"blood": [Color(1.0, 0.4, 0.35), Color(0.55, 0.02, 0.05)], "": [Color(1.0, 0.95, 0.85), Color(0.8, 0.75, 0.6)],
+	"blood": [Color(1.0, 0.4, 0.35), Color(0.55, 0.02, 0.05)],
+	"enc_branco": [Color(1.0, 1.0, 1.0), Color(0.78, 0.84, 0.95)], "enc_azul": [Color(0.8, 0.93, 1.0), Color(0.2, 0.5, 1.0)],
+	"enc_ouro": [Color(1.0, 0.95, 0.72), Color(1.0, 0.68, 0.18)], "falha": [Color(0.62, 0.58, 0.58), Color(0.22, 0.18, 0.2)],
+	"": [Color(1.0, 0.95, 0.85), Color(0.8, 0.75, 0.6)],
 }
 static var amount := 1.0
 static var _mats := {}

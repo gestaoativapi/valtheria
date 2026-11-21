@@ -58,6 +58,7 @@ var ws_retry := 0.0  # segundos até a próxima tentativa
 var ws_backoff := 2.0  # espera cresce até 30 s entre tentativas
 signal remote_pos(p: Dictionary)
 signal remote_leave(id: String)
+signal remote_grupo(p: Dictionary)
 
 
 func _post(path: String, body: Dictionary, bearer := "") -> Dictionary:
@@ -216,6 +217,12 @@ func rt_pos(p: Dictionary) -> void:
 		_rt_send("realtime:mundo", "broadcast", {"type": "broadcast", "event": "p", "payload": p})
 
 
+# grupo (party): convites, lista e estado dos membros pelo mesmo canal, evento "g" (a versão web ignora)
+func rt_grupo(p: Dictionary) -> void:
+	if ws_joined:
+		_rt_send("realtime:mundo", "broadcast", {"type": "broadcast", "event": "g", "payload": p})
+
+
 func _process(dt: float) -> void:
 	if ws == null:
 		# conexão caiu: tenta de novo com espera crescente (2, 4, 8... até 30 s)
@@ -251,6 +258,8 @@ func _process(dt: float) -> void:
 		var pl: Variant = msg.get("payload")
 		if msg.get("event") == "broadcast" and pl is Dictionary and pl.get("event") == "p" and pl.get("payload") is Dictionary:
 			remote_pos.emit(pl.payload)
+		elif msg.get("event") == "broadcast" and pl is Dictionary and pl.get("event") == "g" and pl.get("payload") is Dictionary:
+			remote_grupo.emit(pl.payload)
 		elif msg.get("event") == "presence_diff" and pl is Dictionary and pl.get("leaves") is Dictionary:
 			for k in pl.leaves:
 				remote_leave.emit(str(k))

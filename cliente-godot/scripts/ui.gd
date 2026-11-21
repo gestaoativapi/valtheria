@@ -33,6 +33,7 @@ signal want_window(name: String)
 signal want_chat(text: String)
 signal want_do(id: String)
 signal want_self
+signal want_grupo(acao: String, id: String)  # convidar, aceitar, recusar, sair, expulsar, escolher
 
 const GOLD := Color(0.86, 0.72, 0.42)
 
@@ -80,6 +81,15 @@ var bar_mp: ProgressBar
 var bar_xp: ProgressBar
 var bar_txt := {}
 var tgt_box: PanelContainer
+var tgt_convidar: Button
+var grupo_panel: PanelContainer
+var grupo_lista: VBoxContainer
+var grupo_titulo: Label
+var grupo_sair: Button
+var grupo_sig := ""
+var grupo_linhas := {}  # id -> {"hp", "mp", "cp", "nome", "nv", "row"}
+var convite_box: PanelContainer
+var convite_txt: Label
 var tgt_name: Label
 var tgt_bar: ProgressBar
 var hot: Array = []
@@ -160,6 +170,10 @@ func _panel_style(alpha := 0.82) -> StyleBoxFlat:
 
 
 const GRADES := ["NG", "D", "C", "B", "A", "S", "SS"]
+const ENC_SEGURO := 3  # até o +3 não há risco (o mesmo do servidor)
+const ENC_MAX := 16
+var enc_slot := "arma"
+var enc_confirmar := false  # acima do seguro, o botão pede um segundo clique
 const GRADE_COL := [Color(0.62, 0.62, 0.62), Color(0.78, 0.58, 0.35), Color(0.84, 0.87, 0.9), Color(0.35, 0.66, 1.0), Color(1.0, 0.4, 0.38), Color(0.83, 0.55, 1.0), Color(1.0, 0.82, 0.3)]
 
 
@@ -420,6 +434,74 @@ func _build_hud() -> void:
 	tv.add_child(tgt_name)
 	tgt_cp = _bar(tv, Color(0.82, 0.6, 0.18), "tcp")
 	tgt_bar = _bar(tv, Color(0.78, 0.2, 0.18), "tgt")
+	tgt_convidar = _button("Convidar ao grupo")
+	tgt_convidar.custom_minimum_size = Vector2(0, 28)
+	tgt_convidar.add_theme_font_size_override("font_size", 13)
+	tgt_convidar.focus_mode = Control.FOCUS_NONE
+	tgt_convidar.visible = false
+	tgt_convidar.pressed.connect(func(): want_grupo.emit("convidar", str(tgt_convidar.get_meta("id", ""))))
+	tv.add_child(tgt_convidar)
+
+	# grupo (party): uma linha por membro, com nome, nível e barras de CP, vida e mana
+	grupo_panel = PanelContainer.new()
+	var gps := _panel_style(0.62)
+	gps.set_content_margin_all(8)
+	grupo_panel.add_theme_stylebox_override("panel", gps)
+	grupo_panel.position = Vector2(16, 222)
+	grupo_panel.visible = false
+	hud.add_child(grupo_panel)
+	var gv := VBoxContainer.new()
+	gv.add_theme_constant_override("separation", 6)
+	grupo_panel.add_child(gv)
+	var gh := HBoxContainer.new()
+	gv.add_child(gh)
+	grupo_titulo = _label("Grupo", 14, GOLD, true)
+	grupo_titulo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gh.add_child(grupo_titulo)
+	grupo_sair = _button("Sair")
+	grupo_sair.custom_minimum_size = Vector2(48, 22)
+	grupo_sair.add_theme_font_size_override("font_size", 12)
+	grupo_sair.focus_mode = Control.FOCUS_NONE
+	grupo_sair.tooltip_text = "Sair do grupo"
+	grupo_sair.pressed.connect(func(): want_grupo.emit("sair", ""))
+	gh.add_child(grupo_sair)
+	grupo_lista = VBoxContainer.new()
+	grupo_lista.add_theme_constant_override("separation", 5)
+	gv.add_child(grupo_lista)
+
+	# convite recebido: aparece no meio da tela, com Aceitar e Recusar
+	convite_box = PanelContainer.new()
+	var cvs := _panel_style(0.92)
+	cvs.set_content_margin_all(14)
+	cvs.border_color = GOLD
+	cvs.set_border_width_all(2)
+	convite_box.add_theme_stylebox_override("panel", cvs)
+	convite_box.anchor_left = 0.5
+	convite_box.anchor_right = 0.5
+	convite_box.anchor_top = 0.3
+	convite_box.anchor_bottom = 0.3
+	convite_box.offset_left = -190
+	convite_box.offset_right = 190
+	convite_box.visible = false
+	hud.add_child(convite_box)
+	var cvv := VBoxContainer.new()
+	cvv.add_theme_constant_override("separation", 10)
+	convite_box.add_child(cvv)
+	convite_txt = _label("", 16, Color(0.95, 0.92, 0.85))
+	convite_txt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	convite_txt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cvv.add_child(convite_txt)
+	var cvh := HBoxContainer.new()
+	cvh.alignment = BoxContainer.ALIGNMENT_CENTER
+	cvh.add_theme_constant_override("separation", 12)
+	cvv.add_child(cvh)
+	for d in [["Aceitar", "aceitar", true], ["Recusar", "recusar", false]]:
+		var b := _button(d[0], d[2])
+		b.custom_minimum_size = Vector2(130, 34)
+		b.focus_mode = Control.FOCUS_NONE
+		var ac: String = d[1]
+		b.pressed.connect(func(): want_grupo.emit(ac, ""))
+		cvh.add_child(b)
 
 	hot_panel = PanelContainer.new()
 	var hps := _panel_style(0.78)
@@ -555,17 +637,17 @@ func _build_hud() -> void:
 	dock.anchor_right = 1.0
 	dock.anchor_top = 1.0
 	dock.anchor_bottom = 1.0
-	dock.offset_left = -152
+	dock.offset_left = -196
 	dock.offset_right = -12
 	dock.offset_top = -176
 	dock.offset_bottom = -40
 	hud.add_child(dock)
 	var dh := GridContainer.new()
-	dh.columns = 3
+	dh.columns = 4
 	dh.add_theme_constant_override("h_separation", 4)
 	dh.add_theme_constant_override("v_separation", 4)
 	dock.add_child(dh)
-	for def in [["bolsa", "Personagem e bolsa (I)", "bolsa"], ["loja", "Loja (B)", "loja"], ["oficio", "Ofício (C)", "oficio"], ["classe", "Classe (K)", "classe"], ["cla", "Clã (G)", "cla"], ["acoes", "Ações do personagem (J)", "acoes"], ["config", "Configurações e desempenho", "#config"], ["tela", "Tela cheia (F11)", "#tela"], ["sair", "Voltar à entrada (Esc)", "#sair"]]:
+	for def in [["bolsa", "Personagem e bolsa (I)", "bolsa"], ["loja", "Loja (B)", "loja"], ["oficio", "Ofício (C)", "oficio"], ["encantar", "Encantamento (N)", "encantar"], ["classe", "Classe (K)", "classe"], ["cla", "Clã (G)", "cla"], ["acoes", "Ações do personagem (J)", "acoes"], ["config", "Configurações e desempenho", "#config"], ["tela", "Tela cheia (F11)", "#tela"], ["sair", "Voltar à entrada (Esc)", "#sair"]]:
 		var ib := _icon(def[0], def[1], 40)
 		var act: String = def[2]
 		ib.pressed.connect(func():
@@ -676,6 +758,7 @@ func _build_hud() -> void:
 	_movable(hot_panel, "barra")
 	_movable(plate, "status")
 	_movable(tgt_box, "alvo")
+	_movable(grupo_panel, "grupo")
 
 	var right := PanelContainer.new()
 	right.add_theme_stylebox_override("panel", ps)
@@ -759,6 +842,9 @@ func set_target(t: Dictionary) -> void:
 	if t.is_empty():
 		return
 	tgt_name.text = str(t.name)
+	tgt_convidar.visible = t.has("convidar")
+	if t.has("convidar"):
+		tgt_convidar.set_meta("id", str(t.convidar))
 	tgt_bar.visible = t.has("hp")
 	tgt_cp.visible = t.has("cp")
 	var pct: bool = t.get("pct", false)
@@ -770,6 +856,104 @@ func set_target(t: Dictionary) -> void:
 		tgt_cp.max_value = float(t.maxcp)
 		tgt_cp.value = float(t.cp)
 		bar_txt.tcp.text = ("CP %d%%" % int(t.cp)) if pct else "CP %d / %d" % [int(t.cp), int(t.maxcp)]
+
+
+# lista: [{"id", "name", "lvl", "cls", "hp", "mp", "cp" (em %), "eu", "lider", "longe"}]
+func set_grupo(lista: Array, lider: bool) -> void:
+	grupo_panel.visible = lista.size() > 1
+	if lista.size() <= 1:
+		grupo_sig = ""
+		return
+	grupo_titulo.text = "Grupo  %d/9" % lista.size()
+	var sig := str(lider)
+	for m in lista:
+		sig += "|%s%s%s" % [m.id, m.name, m.lider]
+	if sig != grupo_sig:
+		grupo_sig = sig
+		grupo_linhas.clear()
+		for c in grupo_lista.get_children():
+			c.queue_free()
+		for m in lista:
+			grupo_linhas[m.id] = _linha_grupo(m, lider)
+	for m in lista:
+		var l: Dictionary = grupo_linhas.get(m.id, {})
+		if l.is_empty():
+			continue
+		l.cp.value = float(m.cp)
+		l.hp.value = float(m.hp)
+		l.mp.value = float(m.mp)
+		l.nv.text = "Nv %d" % int(m.lvl)
+		l.row.modulate = Color(1, 1, 1, 0.45) if m.longe else Color(1, 1, 1, 1)
+		l.row.tooltip_text = "%s%s%s" % [m.name, ("  ·  " + str(m.cls)) if str(m.cls) != "" else "", "\nFora de alcance" if m.longe else ""]
+
+
+func _barrinha(parent: Control, col: Color, alto: float) -> ProgressBar:
+	var b := ProgressBar.new()
+	b.custom_minimum_size = Vector2(190, alto)
+	b.show_percentage = false
+	b.max_value = 100.0
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0, 0, 0, 0.55)
+	bg.set_corner_radius_all(2)
+	var fg := StyleBoxFlat.new()
+	fg.bg_color = col
+	fg.set_corner_radius_all(2)
+	b.add_theme_stylebox_override("background", bg)
+	b.add_theme_stylebox_override("fill", fg)
+	parent.add_child(b)
+	return b
+
+
+func _linha_grupo(m: Dictionary, lider: bool) -> Dictionary:
+	var row := PanelContainer.new()
+	var rs := StyleBoxFlat.new()
+	rs.bg_color = Color(1, 1, 1, 0.06) if m.eu else Color(0, 0, 0, 0)
+	rs.set_corner_radius_all(4)
+	rs.set_content_margin_all(3)
+	row.add_theme_stylebox_override("panel", rs)
+	row.mouse_filter = Control.MOUSE_FILTER_STOP
+	row.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	var id: String = m.id
+	row.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
+			want_grupo.emit("escolher", id))
+	grupo_lista.add_child(row)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(v)
+	var h := HBoxContainer.new()
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(h)
+	var nome := _label(("★ " if m.lider else "") + str(m.name), 13, Color(1.0, 0.86, 0.5) if m.lider else Color(0.9, 0.93, 0.97))
+	nome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nome.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nome.clip_text = true
+	h.add_child(nome)
+	var nv := _label("", 12, Color(0.75, 0.78, 0.84))
+	nv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(nv)
+	if lider and not m.eu:
+		var x := Button.new()
+		x.text = "✕"
+		x.flat = true
+		x.focus_mode = Control.FOCUS_NONE
+		x.add_theme_font_size_override("font_size", 11)
+		x.add_theme_color_override("font_color", Color(0.85, 0.5, 0.45))
+		x.tooltip_text = "Tirar do grupo"
+		x.pressed.connect(func(): want_grupo.emit("expulsar", id))
+		h.add_child(x)
+	var cp := _barrinha(v, Color(0.82, 0.6, 0.18), 4)
+	var hp := _barrinha(v, Color(0.78, 0.2, 0.18), 8)
+	var mp := _barrinha(v, Color(0.2, 0.42, 0.85), 5)
+	return {"row": row, "nv": nv, "cp": cp, "hp": hp, "mp": mp}
+
+
+func mostrar_convite(nome: String) -> void:
+	convite_box.visible = nome != ""
+	if nome != "":
+		convite_txt.text = "%s convidou você para um grupo.\n[ caça e exploração juntos ]" % nome
 
 
 func set_cp(cp: float, max_cp: float) -> void:
@@ -1000,7 +1184,7 @@ func chat_filtrar(canal: String) -> void:
 		if canal == "todos" or l[0] == canal:
 			chat_log.append_text(str(l[1]) + "\n")
 	if chat_edit != null:
-		chat_edit.placeholder_text = "Enter para conversar" if canal in ["todos", "geral", "sistema"] else "Enter para conversar (canal %s em breve)" % ("do grupo" if canal == "grupo" else "do clã")
+		chat_edit.placeholder_text = {"grupo": "Enter para falar com o grupo", "cla": "Canal do clã em breve: use Geral por enquanto"}.get(canal, "Enter para conversar   ·   # no início fala no grupo")
 
 
 func _aplicar_linhas() -> void:
@@ -1123,6 +1307,160 @@ func _item_card(title: String, g: int, lines: Array, price: String, action: Stri
 	b.pressed.connect(func(): want_action.emit(fn, send))
 	v.add_child(b)
 	return pc
+
+
+# chance de sucesso do próximo nível (mesma regra do servidor)
+static func chance_encanto(n: int) -> float:
+	return 1.0 if n < ENC_SEGURO else maxf(0.08, 0.72 - (n - ENC_SEGURO) * 0.05)
+
+
+static func mult_encanto(slot: String, n: float) -> float:
+	var a := [0.045, 0.03] if slot == "arma" else [0.035, 0.025]
+	return 1.0 + minf(n, 10.0) * a[0] + maxf(0.0, n - 10.0) * a[1]
+
+
+static func pergaminho_de(slot: String, g: int) -> String:
+	return ("enc_arma_" if slot == "arma" else "enc_arm_") + str(GRADES[clampi(g, 0, 5)]).to_lower()
+
+
+# janela de encantamento: escolhe a peça vestida, mostra o pergaminho, a chance, o risco e o brilho do próximo nível
+func _janela_encantar(me: Dictionary, inv: Dictionary) -> void:
+	var eq: Dictionary = me.get("equipment") if me.get("equipment") is Dictionary else {}
+	var en: Dictionary = me.get("enchant") if me.get("enchant") is Dictionary else {}
+	win_title.text = "◆ Encantamento"
+	var slots: Array = []
+	for sl in ["arma", "escudo", "elmo", "armadura", "luvas", "botas"]:
+		if str(eq.get(sl, "")) != "":
+			slots.append(sl)
+	if slots.is_empty():
+		_note("Vista uma arma ou uma peça de armadura para encantar.")
+		return
+	if not slots.has(enc_slot):
+		enc_slot = slots[0]
+	var nomes := {"arma": "Arma", "escudo": "Escudo", "elmo": "Elmo", "armadura": "Armadura", "luvas": "Luvas", "botas": "Botas"}
+	var defs: Array = []
+	for sl in slots:
+		defs.append([sl, "%s +%d" % [nomes[sl], int(en.get(str(eq[sl]), 0))]])
+	_tabs(defs, enc_slot, func(k):
+		enc_slot = k
+		enc_confirmar = false
+		open_window("encantar", w_me, w_inv, w_extra))
+	var iid := str(eq[enc_slot])
+	var it: Dictionary = info.items.get(iid, {})
+	var g := grade_of(iid)
+	var n := int(en.get(iid, 0))
+	var cor := Character.cor_encanto(maxi(n, 4)) if n >= 4 else Color(0.75, 0.78, 0.85)
+
+	var corpo := HBoxContainer.new()
+	corpo.add_theme_constant_override("separation", 18)
+	win_list.add_child(corpo)
+	# esquerda: a peça grande, com moldura na cor do brilho atual
+	var esq := VBoxContainer.new()
+	esq.add_theme_constant_override("separation", 6)
+	corpo.add_child(esq)
+	var moldura := PanelContainer.new()
+	var ms := _inset()
+	ms.border_color = cor if n >= 4 else GRADE_COL[g]
+	ms.set_border_width_all(3 if n >= 4 else 2)
+	ms.shadow_color = Color(cor, 0.55) if n >= 4 else Color(0, 0, 0, 0)
+	ms.shadow_size = 14 if n >= 4 else 0
+	moldura.add_theme_stylebox_override("panel", ms)
+	esq.add_child(moldura)
+	var ic := _item_icon(iid, 112)
+	ic.label = "+%d" % n if n > 0 else ""
+	ic.mouse_filter = Control.MOUSE_FILTER_PASS
+	moldura.add_child(ic)
+	var faixa_txt := "sem brilho" if n < 4 else ("brilho branco" if n < 10 else ("brilho azul" if n < 16 else "chama dourada"))
+	var fl := _label(faixa_txt, 12, cor if n >= 4 else Color(0.6, 0.62, 0.68))
+	fl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	esq.add_child(fl)
+
+	# direita: nome, trilha de níveis e números
+	var dir := VBoxContainer.new()
+	dir.add_theme_constant_override("separation", 7)
+	dir.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	corpo.add_child(dir)
+	var tl := _label(("+%d  " % n if n > 0 else "") + str(it.get("name", iid)), 18, GRADE_COL[g], true)
+	tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dir.add_child(tl)
+	dir.add_child(_label("Grau %s   ·   %s" % [GRADES[g], nomes[enc_slot]], 12, Color(0.7, 0.72, 0.78)))
+	# trilha de +1 a +16: branco até +9, azul até +15, ouro no +16; o próximo nível pisca em contorno
+	var trilha := HBoxContainer.new()
+	trilha.add_theme_constant_override("separation", 3)
+	dir.add_child(trilha)
+	for k in range(1, ENC_MAX + 1):
+		var pip := Panel.new()
+		pip.custom_minimum_size = Vector2(16, 16 if k < ENC_MAX else 20)
+		pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var ps := StyleBoxFlat.new()
+		var ck := Character.cor_encanto(k) if k >= 4 else Color(0.82, 0.84, 0.9)
+		ps.set_corner_radius_all(8 if k == ENC_MAX else 3)
+		if k <= n:
+			ps.bg_color = ck
+		else:
+			ps.bg_color = Color(0.08, 0.09, 0.12, 0.9)
+			ps.border_color = Color(ck, 0.95 if k == n + 1 else 0.3)
+			ps.set_border_width_all(2 if k == n + 1 else 1)
+		pip.add_theme_stylebox_override("panel", ps)
+		pip.tooltip_text = "+%d%s" % [k, "  (seguro)" if k <= ENC_SEGURO else ""]
+		trilha.add_child(pip)
+
+	var linhas := VBoxContainer.new()
+	linhas.add_theme_constant_override("separation", 4)
+	dir.add_child(linhas)
+	var st_nome := "Ataque" if enc_slot == "arma" else "Defesa"
+	var agora_m := mult_encanto(enc_slot, n)
+	var depois_m := mult_encanto(enc_slot, n + 1)
+	var maximo := n >= ENC_MAX
+	var perg := pergaminho_de(enc_slot, g)
+	var tem := int(inv.get(perg, 0))
+	var pit: Dictionary = info.items.get(perg, {})
+	if maximo:
+		linhas.add_child(_label("Esta peça já está no máximo (+%d)." % ENC_MAX, 15, GOLD, true))
+	else:
+		var ch := chance_encanto(n)
+		linhas.add_child(_label("%s: +%d%%  →  +%d%%" % [st_nome, int(roundf((agora_m - 1.0) * 1000.0) / 10.0), int(roundf((depois_m - 1.0) * 1000.0) / 10.0)], 15, Color(0.85, 0.95, 0.85)))
+		var cl := _label("Chance de sucesso: %d%%%s" % [int(roundf(ch * 100.0)), "   (sem risco até +%d)" % ENC_SEGURO if n < ENC_SEGURO else ""], 15, Color(0.6, 0.95, 0.65) if ch >= 0.99 else (GOLD if ch >= 0.5 else Color(1.0, 0.55, 0.45)), true)
+		linhas.add_child(cl)
+		if n >= ENC_SEGURO:
+			var risco := _label("Se falhar, a peça volta para +0 e o pergaminho é gasto.", 13, Color(1.0, 0.6, 0.5))
+			risco.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			linhas.add_child(risco)
+		if n + 1 == 10 or n + 1 == 16:
+			linhas.add_child(_label("No +%d o brilho muda para %s." % [n + 1, "azul" if n + 1 == 10 else "chama dourada"], 13, Character.cor_encanto(n + 1)))
+	# pergaminho necessário
+	var ph := HBoxContainer.new()
+	ph.add_theme_constant_override("separation", 8)
+	dir.add_child(ph)
+	if not pit.is_empty():
+		var pic := _item_icon(perg, 40)
+		pic.label = "x%d" % tem
+		pic.mouse_filter = Control.MOUSE_FILTER_PASS
+		ph.add_child(pic)
+	var pl := _label(("%s\nvocê tem %d" % [str(pit.get("name", perg)), tem]) if not pit.is_empty() else "Sem pergaminho para esse grau", 13, Color(0.85, 0.86, 0.92) if tem > 0 else Color(0.75, 0.6, 0.55))
+	ph.add_child(pl)
+	# botão: no risco, o primeiro clique só pede confirmação
+	var arriscado := n >= ENC_SEGURO
+	var pode := not maximo and tem > 0
+	var txt := "Encantar"
+	if not pode:
+		txt = "Sem pergaminho" if not maximo else "Máximo"
+	elif arriscado and enc_confirmar:
+		txt = "Confirmar: arriscar +%d" % (n + 1)
+	var b := _button(txt, pode)
+	b.custom_minimum_size = Vector2(0, 40)
+	b.disabled = not pode
+	b.focus_mode = Control.FOCUS_NONE
+	b.pressed.connect(func():
+		if arriscado and not enc_confirmar:
+			enc_confirmar = true
+			open_window("encantar", w_me, w_inv, w_extra)
+			return
+		enc_confirmar = false
+		want_action.emit("game_enchant", {"p_slot": enc_slot}))
+	dir.add_child(b)
+	if not pode and not maximo:
+		_note("Pergaminhos de encantamento caem de monstros e chefes do mesmo grau da peça.")
 
 
 # painel de detalhe do item escolhido
@@ -1377,6 +1715,8 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 			if cat != shop_cat:
 				continue
 			flow.add_child(_item_card(str(it.get("name", id)), grade_of(str(id)), _stat_lines(it), "%d aurum" % int(info.shop[id]), "Comprar", "game_shop_buy", {"p_item": id, "p_qty": 1}, aurum >= int(info.shop[id])))
+	elif name == "encantar":
+		_janela_encantar(me, inv)
 	elif name == "oficio":
 		win_title.text = "◆ Ferreiro   ·   ofício"
 		_note("\"Traga o material que eu mostro o que dá para fazer. O que você já pode fabricar aparece primeiro.\"")

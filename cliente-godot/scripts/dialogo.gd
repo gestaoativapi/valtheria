@@ -66,6 +66,8 @@ func abrir(npc: Dictionary, linha: String) -> void:
 		c.queue_free()
 	if w != "":
 		_botao(ROTULOS.get(w, "Abrir"), func(): fechar(); main._window(w))
+	if w in ["oficio", "ferraria"]:
+		_botao("Encantar equipamento", func(): fechar(); main._window("encantar"))
 	_botao("Conversar", func(): _outra())
 	_botao("Até logo", func(): fechar())
 	visible = true

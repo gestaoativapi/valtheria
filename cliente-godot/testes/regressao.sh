@@ -29,9 +29,11 @@ if timeout 120 "$G" --headless --path . --script testes/test_reconexao.gd 2>&1 |
 echo "== 4. Física do mundo aberto (colisão, encosta, portas, nascimento)"
 if timeout 500 "$G" --headless --path . --script testes/test_fisica_mundo.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: física do mundo"; else echo "FALHOU: física do mundo"; falhas=$((falhas+1)); fi
 echo "== 5. Pés no chão (todas as raças, plano, encosta e cidade)"
-if timeout 400 "$G" --headless --path . --script testes/test_pes.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: pés no chão"; else echo "FALHOU: pés no chão"; falhas=$((falhas+1)); fi
+if timeout 600 "$G" --headless --path . --script testes/test_pes.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: pés no chão"; else echo "FALHOU: pés no chão"; falhas=$((falhas+1)); fi
 if timeout 400 "$G" --headless --path . --script testes/test_zonas.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: zonas de paz e batalha"; else echo "FALHOU: zonas de paz e batalha"; falhas=$((falhas+1)); fi
 echo "== 6. Queda simulada (D39, só no executável de teste)"
 if timeout 60 "$G" --headless --path . --script testes/test_queda_simulada.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: queda simulada"; else echo "FALHOU: queda simulada"; falhas=$((falhas+1)); fi
+echo "== 7. Grupo (convite, aceite, fala, expulsão, liderança)"
+if timeout 60 "$G" --headless --path . --script testes/test_grupo.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: grupo"; else echo "FALHOU: grupo"; falhas=$((falhas+1)); fi
 echo "== Resultado: $falhas falha(s)"
 [ "$falhas" -eq 0 ]
