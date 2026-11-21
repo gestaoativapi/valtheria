@@ -535,7 +535,10 @@ func _list_chars() -> void:
 
 func _swap_player(o: Dictionary) -> void:
 	var pos := player.position
-	player.queue_free()
+	# o anterior fica alguns quadros até o novo aparecer (o novo nasce oculto até a pose estar aplicada)
+	var antigo := player
+	get_tree().create_timer(0.12).timeout.connect(func(): if is_instance_valid(antigo): antigo.queue_free())
+	antigo.set_process(false)
 	player = Character.create(o)
 	add_child(player)
 	dust = FX.dust()
@@ -555,8 +558,9 @@ func _show_char(c: Dictionary) -> void:
 	_place_player(home)
 	facing = 0.0
 	player.rotation.y = facing
-	player.set_battle(true)
-	player.set_tag("%s%s  Nv %d" % ["[GM] " if gm else "", str(c.get("name", "?")), int(c.get("level", 1))], Color(1.0, 0.82, 0.35) if gm else Color(0.9, 0.95, 1.0))
+	# na escolha o personagem fica na postura normal (ereto, arma baixa), sem o nome flutuando: o nome está no painel
+	player.set_battle(false)
+	_rotulos_mundo(false)
 
 
 func _new_char() -> void:
@@ -590,13 +594,26 @@ func _enter(c: Dictionary) -> void:
 			return
 		me = st
 	me.is_gm = gm
+	ui.tela_carregando(true, "Preparando o personagem...", 0.05)
+	ui.busy(false)
+	await get_tree().process_frame
 	_swap_player(me)
 	var pos := Vector3(float(me.get("x", home.x)), 0.0, float(me.get("z", home.z)))
 	_place_player(pos)
 	saved_pos = player.position
 	note("entrando no jogo em %d, %d" % [int(player.position.x), int(player.position.z)])
-	for i in 6:
-		world.stream(player.position, 8)
+	# monta o mundo em volta por trás da tela de carregamento (sem nada aparecendo pela metade)
+	var faltam := 999
+	var total := -1
+	var quadros := 0
+	while faltam > 0 and quadros < 240:
+		faltam = world.stream(player.position, 8)
+		if total < 0:
+			total = maxi(faltam, 1)
+		quadros += 1
+		ui.tela_carregando(true, "Montando o mundo...", 0.1 + 0.6 * (1.0 - float(faltam) / float(total)))
+		await get_tree().process_frame
+	_rotulos_mundo(true)
 	var nm := str(me.get("name", "Viajante"))
 	if gm:
 		player.set_tag("[GM] " + nm, Color(1.0, 0.8, 0.3))
@@ -617,6 +634,21 @@ func _enter(c: Dictionary) -> void:
 	combat.start()
 	net.rt_join(me)
 	ui.chat_line("", "Bem-vindo a Valtheria. Enter abre o bate-papo.", "sistema")
+	# aquecimento: alguns quadros com a câmera já no lugar para a placa preparar os efeitos antes de mostrar
+	for i in 45:
+		ui.tela_carregando(true, "Preparando os efeitos...", 0.72 + 0.28 * float(i) / 45.0)
+		await get_tree().process_frame
+	ui.esconder_carregando()
+
+
+# nomes e falas flutuantes do mundo: escondidos nas telas de entrada (o cenário fica limpo, sem textos soltos)
+func _rotulos_mundo(on: bool) -> void:
+	for l in world.find_children("*", "Label3D", true, false):
+		(l as Label3D).visible = on
+	for n in get_children():
+		if n is Node3D and n != player:
+			for l in n.find_children("*", "Label3D", true, false):
+				(l as Label3D).visible = on
 
 
 func _save_now(force := false) -> void:
@@ -1045,9 +1077,27 @@ func _checar_zona() -> void:
 	elif bool(z.paz) and not bool(antes.paz):
 		ui.say("Você entrou numa zona de paz")
 
+var _rot_t := 0.0
+
+
 func _process(dt: float) -> void:
 	Character.recolher()
 	world.recolher()
+	if not playing:  # telas de entrada: mantém o cenário sem textos flutuantes (NPCs que nascem depois também)
+		_rot_t -= dt
+		if _rot_t <= 0.0:
+			_rot_t = 0.3
+			_rotulos_mundo(false)
+			# escolha/criação: ninguém passa na frente da câmera ou cola no personagem mostrado
+			for n in get_tree().get_nodes_in_group("personagens"):
+				if n != player and n is Node3D:
+					var perto := (creating or showing) and ((n as Node3D).global_position.distance_to(cam.global_position) < 6.0 or (n as Node3D).global_position.distance_to(player.global_position) < 2.5)
+					(n as Node3D).set_meta("oculto_entrada", perto)
+					if perto:
+						(n as Node3D).visible = false
+					elif (n as Node3D).get_meta("oculto_antes", false):
+						(n as Node3D).visible = true
+					(n as Node3D).set_meta("oculto_antes", perto)
 	if interiores == null or interiores.inside.is_empty():
 		world.stream(player.position, 2)
 	log_t += dt

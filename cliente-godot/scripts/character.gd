@@ -2352,7 +2352,25 @@ func set_tag(text: String, color := Color(1, 0.92, 0.7), perto := 0.0) -> void:
 
 # pés no chão: o pé que está apoiado (o mais baixo na animação) encosta no terreno embaixo dele.
 # Corrige o corpo flutuando em descidas e o pé afundando em subidas; suaviza para não tremer.
+# sem o "boneco em cruz" ao nascer (pedido de Robson 20/11): o personagem fica oculto nos primeiros quadros,
+# até a animação e a postura da arma estarem aplicadas no esqueleto; antes disso o motor mostraria a pose de repouso
+var _aparecer := 0
+
+
+func _ready() -> void:
+	add_to_group("personagens")
+	if anim != null and anim.current_animation != "":
+		anim.advance(0.0)
+	if visible:
+		visible = false
+		_aparecer = 3
+
+
 func _process(dt: float) -> void:
+	if _aparecer > 0:
+		_aparecer -= 1
+		if _aparecer == 0:
+			visible = true
 	_empunho_passo(dt)
 	if world_ref == null or skel == null or body_node == null or not visible:
 		return

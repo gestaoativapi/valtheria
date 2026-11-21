@@ -39,6 +39,11 @@ const GOLD := Color(0.86, 0.72, 0.42)
 var font: Font
 var root: Control
 var login_box: Control
+var painel_entrada: PanelContainer
+var tela_carga: Control  # tela de carregamento ao entrar no mundo
+var _carga_barra: ProgressBar
+var _carga_texto: Label
+var _carga_dica: Label
 var char_box: VBoxContainer
 var hud: Control
 var user_edit: LineEdit
@@ -267,14 +272,11 @@ func _build_login() -> void:
 	login_box.add_child(shade)
 
 	var panel := PanelContainer.new()
+	panel.name = "PainelEntrada"
 	panel.add_theme_stylebox_override("panel", _panel_style())
-	panel.anchor_left = 0.06
-	panel.anchor_top = 0.5
-	panel.anchor_bottom = 0.5
-	panel.anchor_right = 0.06
-	panel.offset_right = 430
-	panel.offset_top = -330
-	panel.offset_bottom = 330
+	# o painel cresce só até o conteúdo (sem a área vazia embaixo); a posição muda por tela em _posicionar_painel
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	painel_entrada = panel
 	login_box.add_child(panel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 12)
@@ -319,6 +321,7 @@ func _build_login() -> void:
 	create_box.visible = false
 	v.add_child(create_box)
 	_build_create()
+	_posicionar_painel("login")
 
 	status = _label("", 15, Color(1.0, 0.8, 0.5))
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1424,6 +1427,7 @@ func _preview() -> void:
 
 
 func show_create() -> void:
+	_posicionar_painel("lista")
 	char_box.visible = false
 	login_box.find_child("Form", true, false).visible = false
 	create_box.visible = true
@@ -1432,7 +1436,111 @@ func show_create() -> void:
 	_preview()
 
 
+# login: painel no centro, abaixo do meio (como as telas de entrada de MMO); escolha e criação: à esquerda,
+# deixando o personagem no centro da cena
+func _posicionar_painel(modo: String) -> void:
+	if painel_entrada == null:
+		return
+	if modo == "login":
+		painel_entrada.anchor_left = 0.5
+		painel_entrada.anchor_right = 0.5
+		painel_entrada.anchor_top = 0.58
+		painel_entrada.anchor_bottom = 0.58
+		painel_entrada.offset_left = -215
+		painel_entrada.offset_right = 215
+	else:
+		painel_entrada.anchor_left = 0.05
+		painel_entrada.anchor_right = 0.05
+		painel_entrada.anchor_top = 0.5
+		painel_entrada.anchor_bottom = 0.5
+		painel_entrada.offset_left = 0
+		painel_entrada.offset_right = 430
+	painel_entrada.offset_top = 0
+	painel_entrada.offset_bottom = 0
+	painel_entrada.reset_size()
+
+
+# tela de carregamento: cobre a montagem do mundo e o preparo dos efeitos, para não aparecer nada pela metade
+const DICAS := [
+	"Dica: a tecla M abre o mapa do reino.",
+	"Dica: armas encantadas brilham mais a cada nível; no +16 ganham chama dourada.",
+	"Dica: dentro das cidades há paz; fora delas, cuidado com os monstros de nível alto.",
+	"Dica: arqueiros ficam mais firmes parados: mire antes de soltar a flecha.",
+	"Dica: Enter abre o bate-papo.",
+]
+
+
+func tela_carregando(on: bool, texto := "", frac := 0.0) -> void:
+	if tela_carga == null:
+		tela_carga = Control.new()
+		tela_carga.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tela_carga.mouse_filter = Control.MOUSE_FILTER_STOP
+		var camada := CanvasLayer.new()  # acima de tudo (minimapa e janelas)
+		camada.layer = 90
+		add_child(camada)
+		camada.add_child(tela_carga)
+		var fundo := ColorRect.new()
+		fundo.set_anchors_preset(Control.PRESET_FULL_RECT)
+		var sm := ShaderMaterial.new()
+		var sh := Shader.new()
+		sh.code = "shader_type canvas_item;\nvoid fragment(){ vec2 p = UV - vec2(0.5, 0.42); float d = length(p * vec2(1.6, 1.0)); vec3 c = mix(vec3(0.10, 0.08, 0.05), vec3(0.015, 0.02, 0.03), smoothstep(0.0, 0.9, d)); float raio = pow(max(0.0, 1.0 - abs(p.x * 2.2 + p.y * 0.4)), 8.0) * 0.06; COLOR = vec4(c + vec3(0.9, 0.7, 0.4) * raio, 1.0); }"
+		sm.shader = sh
+		fundo.material = sm
+		tela_carga.add_child(fundo)
+		var v := VBoxContainer.new()
+		v.anchor_left = 0.5
+		v.anchor_right = 0.5
+		v.anchor_top = 0.36
+		v.anchor_bottom = 0.36
+		v.offset_left = -330
+		v.offset_right = 330
+		v.add_theme_constant_override("separation", 18)
+		tela_carga.add_child(v)
+		var t := _label("VALTHERIA", 72, GOLD, true)
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		t.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+		t.add_theme_constant_override("shadow_offset_y", 4)
+		v.add_child(t)
+		_carga_texto = _label("", 18, Color(0.85, 0.82, 0.74))
+		_carga_texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(_carga_texto)
+		_carga_barra = ProgressBar.new()
+		_carga_barra.show_percentage = false
+		_carga_barra.custom_minimum_size = Vector2(0, 10)
+		var bg := StyleBoxFlat.new()
+		bg.bg_color = Color(0.05, 0.05, 0.06, 0.9)
+		bg.border_color = Color(0.55, 0.43, 0.2)
+		bg.set_border_width_all(1)
+		bg.set_corner_radius_all(5)
+		var fg := StyleBoxFlat.new()
+		fg.bg_color = GOLD
+		fg.set_corner_radius_all(5)
+		_carga_barra.add_theme_stylebox_override("background", bg)
+		_carga_barra.add_theme_stylebox_override("fill", fg)
+		v.add_child(_carga_barra)
+		_carga_dica = _label("", 15, Color(0.62, 0.64, 0.7))
+		_carga_dica.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_carga_dica.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(_carga_dica)
+	if on and not tela_carga.visible or (on and _carga_dica.text == ""):
+		_carga_dica.text = DICAS[randi() % DICAS.size()]
+	tela_carga.visible = on
+	tela_carga.modulate.a = 1.0
+	if on:
+		_carga_texto.text = texto
+		_carga_barra.value = clampf(frac, 0.0, 1.0) * 100.0
+
+
+func esconder_carregando() -> void:
+	if tela_carga == null or not tela_carga.visible:
+		return
+	var tw := tela_carga.create_tween()
+	tw.tween_property(tela_carga, "modulate:a", 0.0, 0.45)
+	tw.tween_callback(func(): tela_carga.visible = false)
+
+
 func show_login() -> void:
+	_posicionar_painel("login")
 	login_box.visible = true
 	hud.visible = false
 	char_box.visible = false
@@ -1463,6 +1571,7 @@ func busy(b: bool) -> void:
 
 func show_chars(list: Array, account: String) -> void:
 	busy(false)
+	_posicionar_painel("lista")
 	last_chars = list
 	last_account = account
 	create_box.visible = false

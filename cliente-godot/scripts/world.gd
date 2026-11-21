@@ -515,7 +515,7 @@ func _recolher_blocos() -> void:
 
 
 # carrega e descarta blocos em volta de um ponto; budget = quantos blocos novos por chamada
-func stream(center: Vector3, budget := 3) -> void:
+func stream(center: Vector3, budget := 3) -> int:
 	var cc := Vector2i(floori(center.x / CH), floori(center.z / CH))
 	var reach := ceili(far_r / CH)
 	var maxc := int(size / CH) - 1
@@ -558,6 +558,7 @@ func stream(center: Vector3, budget := 3) -> void:
 	_stream_grass(center)
 	if water:
 		water.position = Vector3(center.x, WATER_Y, center.z)
+	return todo.size() + _calc.size()
 
 
 func pending(center: Vector3) -> bool:
