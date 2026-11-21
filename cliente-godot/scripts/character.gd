@@ -56,6 +56,7 @@ static var V3_HUMANOS := true
 const V3_RACAS := ["humano", "elfo", "sombrio", "orc", "gigante", "anao", "beastman"]
 const DIR_V3 := "res://assets_v3/personagens/"
 const V3Ctrl := preload("res://scripts/v3_corretivas.gd")
+const Enfeites := preload("res://scripts/enfeites.gd")
 var v3 := false
 
 var skel: Skeleton3D
@@ -358,6 +359,8 @@ func _setup_medido(o: Dictionary) -> void:
 		height_m = (1.8 + (0.12 if race == "anao" else 0.0)) * k - float(shape.drop) * k
 	if not dragon and not o.get("sem_roupa", false):
 		_cor_grau_roupa(eq)
+		var arm := str(eq.get("armadura", ""))
+		Enfeites.roupa(self, skel, Enfeites.indice(arm), "pesada" if arm.begins_with("pesada") else ("leve" if arm.begins_with("leve") else ("robe" if arm.begins_with("robe") else "")))
 	var chave_postura: String = "goblin" if str(o.get("subtipo", "")) == "goblin" else race
 	if POSTURAS.has(chave_postura):
 		var pr: Dictionary = POSTURAS[chave_postura]
@@ -1869,6 +1872,7 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	var at := float(g.at) * s if float(g.at) >= 0.0 else -1.0
 	wnode = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
 	cor_grau_metal(wnode, grau_do_item(item_id))
+	Enfeites.arma(wnode, Enfeites.indice(item_id), kind)
 	if kind == "arco":
 		arco_costas = wnode.transform
 	elif float(g.get("two", 0.0)) <= 0.0:
@@ -1986,6 +1990,7 @@ func _make_shield(s: float, shield_id := "") -> void:
 			break
 	shield = cena(sfile).instantiate()
 	cor_grau_metal(shield, grau_do_item(shield_id))
+	Enfeites.arma(shield, Enfeites.indice(shield_id), "escudo")
 	var bb := AABB()
 	var first := true
 	for m in shield.find_children("*", "MeshInstance3D", true, false):

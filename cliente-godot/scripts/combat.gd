@@ -48,6 +48,12 @@ func setup(m: Node3D) -> void:
 	rng.randomize()
 
 
+# grau da arma na mão: 0 (NG) a 6 (SS), para dar força aos efeitos das habilidades
+func _grau_arma() -> int:
+	var eq: Dictionary = main.me.get("equipment") if main.me.get("equipment") is Dictionary else {}
+	return load("res://scripts/enfeites.gd").indice(str(eq.get("arma", "")))
+
+
 func now() -> float:
 	return Time.get_ticks_msec() * 0.001
 
@@ -814,16 +820,28 @@ func use_skill(i: int) -> void:
 		main.player.disparar_arco()  # habilidade de arqueiro: o mesmo tiro completo
 	else:
 		main.player.action("Spell_Simple_Shoot" if (st.magic or not offensive) else "Sword_Attack")
-	# efeitos por tipo de habilidade: círculo de conjuração para magias, meia-lua de luz para golpes de arma
+	# efeitos por tipo de habilidade: círculo de conjuração para magias, meia-lua de luz para golpes de arma.
+	# O grau da arma aumenta o tamanho e acrescenta camadas (pedido de Robson 21/11: do NG ao SS a forma de
+	# jogar a magia e a força elemental ficam bem destacadas): B clarão nas mãos, A segundo círculo e
+	# rastro duplo, S projétil duplo e raio de luz, SS tudo maior.
+	var gw := _grau_arma()
+	var kg := 1.0 + 0.12 * gw
 	var cor_el: Color = FX.colors(fx_el if fx_el != "" else "holy")[1]
 	if st.magic or not offensive:
-		FX.circulo_magico(main.player, fx_el if fx_el != "" else "arcane", 0.85, 1.1 + 0.25 * float(s.get("aoe", 0.0) > 0.0))
+		var el_c := fx_el if fx_el != "" else "arcane"
+		FX.circulo_magico(main.player, el_c, 0.85, (1.1 + 0.25 * float(s.get("aoe", 0.0) > 0.0)) * kg)
+		if gw >= 4:
+			get_tree().create_timer(0.12).timeout.connect(func(): if is_instance_valid(main.player): FX.circulo_magico(main.player, el_c, 0.7, 1.9 * kg))
+		if gw >= 3:
+			FX.flare(self, _chest() + Vector3(0, 0.25, 0), FX.colors(el_c)[0], 0.6 + 0.15 * gw, 0.4)
 	elif not arqueiro:
 		var golpes := 2 if ty in ["multi", "chain"] else 1
 		for g in golpes:
 			var inc := 0.35 if g == 0 else -0.45
 			if g == 0:
-				FX.corte(main.player, cor_el.lerp(Color(1, 0.95, 0.8), 0.4), 1.6, 1.15, inc)
+				FX.corte(main.player, cor_el.lerp(Color(1, 0.95, 0.8), 0.4), 1.6 * (1.0 + 0.07 * gw), 1.15, inc)
+				if gw >= 4:  # rastro duplo
+					FX.corte(main.player, cor_el, 1.9 * (1.0 + 0.07 * gw), 1.3, inc + 0.25)
 			else:
 				get_tree().create_timer(0.14).timeout.connect(func(): if is_instance_valid(main.player): FX.corte(main.player, cor_el, 1.7, 1.0, inc))
 	main.player.busy_until = t + 0.55
@@ -834,8 +852,14 @@ func use_skill(i: int) -> void:
 		var list: Array = [target]
 		if st.magic:
 			FX.magia(self, _chest() + Vector3(0, 0.3, 0), _center(target), fx_el)
+			if gw >= 5:  # projétil duplo e raio de luz até o alvo
+				var alvo_m = target
+				get_tree().create_timer(0.1).timeout.connect(func():
+					if alvo_m != null and is_instance_valid(alvo_m.node):
+						FX.magia(self, _chest() + Vector3(0.3, 0.5, 0), _center(alvo_m), fx_el)
+						FX.relampago(self, _chest() + Vector3(0, 0.4, 0), _center(alvo_m), FX.colors(fx_el if fx_el != "" else "raio")[0]))
 		if float(s.aoe) > 0.0 or ty == "zone":
-			FX.zona(self, (target.node as Node3D).global_position, fx_el if fx_el != "" else "arcane", clampf(maxf(float(s.aoe), 4.0), 3.0, 7.0), 1.0)
+			FX.zona(self, (target.node as Node3D).global_position, fx_el if fx_el != "" else "arcane", clampf(maxf(float(s.aoe), 4.0), 3.0, 7.0) * kg, 1.0)
 		if float(s.aoe) > 0.0 or ty in ["multi", "chain", "zone"]:
 			var rad := maxf(float(s.aoe), 5.0)
 			for m in mobs:
@@ -846,14 +870,14 @@ func use_skill(i: int) -> void:
 			target = m
 			var r := _damage(mult)
 			target = keep
-			pending.append({"t": t + 0.35, "mob": m, "dmg": r.dmg, "crit": r.crit, "fx": fx_el, "size": 1.0})
+			pending.append({"t": t + 0.35, "mob": m, "dmg": r.dmg, "crit": r.crit, "fx": fx_el, "size": kg})
 			if float(s.stun) > 0.0:
 				m.stun = t + float(s.stun)
 	elif ty == "heal":
 		var amount: float = st.maxHp * float(s.pct) if float(s.pct) > 0.0 else float(st.matk) * maxf(float(s.mult), 1.0) * 2.0
 		hp = minf(st.maxHp, hp + amount)
 		_float_text(main.player.position + Vector3(0, main.player.height_m, 0), "+%d" % int(amount), Color(0.5, 1.0, 0.6))
-		FX.coluna(self, main.player.global_position, fx_el if fx_el != "" else "holy", 5.0, 0.9, 1.0)
+		FX.coluna(self, main.player.global_position, fx_el if fx_el != "" else "holy", 5.0 * kg, 0.9 * kg, 1.0)
 		FX.burst(self, _chest(), fx_el if fx_el != "" else "holy", 1.1)
 	elif ty == "shield":
 		shield = st.maxHp * maxf(float(s.pct), 0.15)
