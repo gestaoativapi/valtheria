@@ -58,6 +58,7 @@ var combat: Node3D
 var chasing := false
 var social: Node3D
 var grupo: Node
+var loja_titulo := ""  # loja pessoal aberta (placa sobre o personagem)
 var atmos: Node3D
 var npcs: Node3D
 var dust: CPUParticles3D
@@ -159,6 +160,7 @@ func _ready() -> void:
 	add_child(grupo)
 	grupo.setup(self)
 	ui.want_grupo.connect(_grupo_acao)
+	ui.want_loja.connect(_loja)
 	interiores = load("res://scripts/interiores.gd").new()
 	add_child(interiores)
 	interiores.setup(self)
@@ -251,12 +253,42 @@ func _ready() -> void:
 				me.equipment["armadura"] = "pesada_ng"
 				player.brilho_encanto(int(me.enchant.espada_ng))
 				wn = "encantar"
+			var wextra := {}
+			if wn.begins_with("mercado"):  # ofertas simuladas, só para fotos
+				var lista: Array = []
+				var vend := ["Lyra", "Borin", "Selene", "Kael"]
+				var k := 0
+				for iid in ["espada_d", "arco_c", "pocao_hp", "enc_arma_ng", "elmo_pesada_d", "madeira_ng", "cajado_b", "pesada_c"]:
+					if world.info.items.has(iid):
+						lista.append({"id": k, "item": iid, "qty": 1 + k % 3, "price": 150 + k * 420, "seller": vend[k % 4], "mine": k == 5})
+						k += 1
+				var sub := wn.get_slice(":", 1) if ":" in wn else "comprar"
+				wextra = {"lista": lista, "minha_loja": "Poções baratas do Viajante" if sub == "minhas" else ""}
+				if sub == "loja":
+					wextra.vendedor = "Lyra"
+					wextra.placa = "Arcos e flechas da Lyra"
+				else:
+					ui.mkt_tab = sub
+				if sub == "anunciar":
+					ui.mkt_item = "madeira_ng"
+				wn = "mercado"
 			if ":" in wn:
 				ui.tab = wn.get_slice(":", 1)
 				wn = wn.get_slice(":", 0)
-			ui.open_window(wn, me, net.inventory, {})
+			ui.open_window(wn, me, net.inventory, wextra)
 			ui.set_assist(net.inventory)
 			ui.chat_line("Lyra", "alguém para caçar javali?")
+		elif a == "--loja-teste":  # teste: jogador simulado sentado com a placa da loja
+			var vend: Node3D = Character.create({"race": "elfo", "gender": "f", "equipment": {"arma": "arco_ng", "armadura": "leve_ng"}})
+			add_child(vend)
+			var camf := -get_viewport().get_camera_3d().global_basis.z
+			camf.y = 0.0
+			var vp := player.position + camf.normalized() * 3.2 + camf.normalized().cross(Vector3.UP) * 1.4
+			vend.position = Vector3(vp.x, world.height(vp.x, vp.z), vp.z)
+			vend.look_at(Vector3(player.position.x, vend.position.y, player.position.z), Vector3.UP, true)
+			vend.set_tag("Lyra  Nv 34", Color(0.75, 0.9, 1.0))
+			vend.set_placa("Arcos e flechas da Lyra")
+			vend.play("Sitting_Idle")
 		elif a == "--grupo-teste":  # teste: grupo com membros simulados e um convite na tela
 			grupo.simular()
 			ui.chat_line("Lyra", "vamos no javali rei?", "grupo")
@@ -877,6 +909,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_N:
 				if not ui.typing():
 					_window("encantar")
+			KEY_H:
+				if not ui.typing():
+					_window("mercado")
 			KEY_I:
 				_window("bolsa")
 			KEY_B:
@@ -1192,6 +1227,9 @@ func _process(dt: float) -> void:
 			player.current = ""
 		if Engine.get_frames_drawn() % 45 == 0:
 			ui.set_assist(net.inventory)
+		if loja_titulo != "" and emote != "Sitting_Idle":
+			loja_titulo = ""
+			ui.say("Você se levantou: loja fechada")
 		ui.set_cooldowns(combat.cds, combat.now())
 		save_t += dt
 		if save_t > 20.0:
@@ -1275,6 +1313,9 @@ func _target_info() -> Dictionary:
 			var ti := {"name": "%s   ·   Nv %d" % [str(o.name), int(o.lvl)], "hp": o.hp, "max": 100.0, "cp": o.cp, "maxcp": 100.0, "pct": true}
 			if not grupo.membros.has(str(sel.id)) and (not grupo.em_grupo() or grupo.sou_lider()):
 				ti.convidar = str(sel.id)
+			if str(o.get("loja", "")) != "":
+				ti.loja = str(o.name)
+				ti.placa = str(o.loja)
 			return ti
 		"npc":
 			if not is_instance_valid(sel.node):
@@ -1317,6 +1358,8 @@ func _do(id: String) -> void:
 				combat.next_target()
 			sel = {}
 			combat.engage(combat.target)
+		"loja_pessoal":
+			_loja("abrir", "")
 		"sentar":
 			has_target = false
 			emote = "Sitting_Idle"
@@ -1345,6 +1388,54 @@ func _do(id: String) -> void:
 
 
 # ---------- bolsa, loja, ofício, clã, bate-papo ----------
+# mercado entre jogadores e loja pessoal (as ofertas ficam no servidor; a placa vai pelo tempo real)
+func _abrir_mercado(vendedor: String, placa: String) -> void:
+	var extra := {"vendedor": vendedor, "placa": placa, "minha_loja": loja_titulo, "lista": []}
+	if not _online():
+		extra.erro = "Entre com uma conta para usar o mercado e a loja pessoal."
+	else:
+		await _refresh_char()
+		var r: Dictionary = await net.rpc_call("game_market_list", {})
+		if r.ok and r.data is Array:
+			extra.lista = r.data
+		else:
+			extra.erro = "O mercado não respondeu agora. Tente de novo em instantes."
+	ui.win_name = ""
+	ui.open_window("mercado", me, net.inventory, extra)
+
+
+func _loja(acao: String, nome: String) -> void:
+	match acao:
+		"abrir":
+			if not _online():
+				ui.say("Entre com uma conta para abrir sua loja")
+				return
+			if not world.nearest_town(player.position.x, player.position.z).in_safe:
+				ui.say("A loja pessoal só abre dentro de uma cidade")
+				return
+			if loja_titulo == "":
+				loja_titulo = "Loja de %s" % str(me.get("name", ""))
+			has_target = false
+			emote = "Sitting_Idle"
+			ui.say("Loja aberta. Andar fecha a loja.")
+			ui.chat_line("", "Sua loja está aberta: \"%s\". Use /loja título para mudar a placa." % loja_titulo, "sistema")
+			if ui.win.visible and ui.win_name == "mercado":
+				await _abrir_mercado("", "")
+		"fechar":
+			if loja_titulo != "":
+				loja_titulo = ""
+				emote = ""
+				ui.say("Loja fechada")
+			if ui.win.visible and ui.win_name == "mercado":
+				await _abrir_mercado("", "")
+		"ver":
+			var placa := ""
+			for id in social.others:
+				if str(social.others[id].name) == nome:
+					placa = str(social.others[id].get("loja", ""))
+			await _abrir_mercado(nome, placa)
+
+
 func _grupo_acao(acao: String, id: String) -> void:
 	match acao:
 		"convidar": grupo.convidar(id)
@@ -1382,6 +1473,9 @@ func _window(name: String) -> void:
 	if name == "loja" and not world.nearest_town(player.position.x, player.position.z).in_safe:
 		ui.say("A loja só abre dentro de uma cidade")
 		return
+	if name == "mercado":
+		await _abrir_mercado("", "")
+		return
 	if _online() and name != "cla":
 		await _refresh_char()
 	var extra := {}
@@ -1407,6 +1501,12 @@ func _action(fn: String, args: Dictionary) -> void:
 		ui.say(err)
 		return
 	fn_heals = fn == "game_use"
+	if fn.begins_with("game_market"):
+		ui.say({"game_market_buy": "Compra concluída", "game_market_sell": "Oferta anunciada", "game_market_cancel": "Oferta cancelada"}.get(fn, ""))
+		if fn == "game_market_sell":
+			ui.mkt_tab = "minhas"
+		await _abrir_mercado(str(ui.w_extra.get("vendedor", "")), str(ui.w_extra.get("placa", "")))
+		return
 	await _refresh_char()
 	if ui.win.visible:
 		var keep: String = ui.win_name
@@ -1601,7 +1701,7 @@ func _command(text: String) -> void:
 	var a := p.slice(1)
 	match c:
 		"ajuda":
-			ui.chat_line("", "Comandos: /onde, /convidar nome, /sairgrupo, # mensagem (fala no grupo)" + (" | GM: /tp x z, /ir nome, /vel, /deus, /voar, /oculto, /curar, /hora h, /chuva, /limpo, /give item qtd [jogador], /aurum qtd [jogador], /nivel n [jogador], /karma n [jogador], /prof coleta|refino|forja n, /info j, /puxar j, /kick j, /ban j, /desban j, /anuncio texto, /matar, /matartodos [raio], /limpar [raio], /spawn família, /reset, /interior taverna|forja|igreja|casa|loja" if gm else ""), "sistema")
+			ui.chat_line("", "Comandos: /onde, /convidar nome, /sairgrupo, # mensagem (fala no grupo), /loja título (abre sua loja)" + (" | GM: /tp x z, /ir nome, /vel, /deus, /voar, /oculto, /curar, /hora h, /chuva, /limpo, /give item qtd [jogador], /aurum qtd [jogador], /nivel n [jogador], /karma n [jogador], /prof coleta|refino|forja n, /info j, /puxar j, /kick j, /ban j, /desban j, /anuncio texto, /matar, /matartodos [raio], /limpar [raio], /spawn família, /reset, /interior taverna|forja|igreja|casa|loja" if gm else ""), "sistema")
 			return
 		"onde":
 			ui.chat_line("", "Posição %d, %d" % [int(player.position.x), int(player.position.z)], "sistema")
@@ -1614,6 +1714,11 @@ func _command(text: String) -> void:
 			return
 		"sairgrupo":
 			grupo.sair()
+			return
+		"loja":
+			if not a.is_empty():
+				loja_titulo = " ".join(a).strip_edges().left(32)
+			_loja("abrir", "")
 			return
 	if not gm:
 		ui.chat_line("", "Comando desconhecido. Use /ajuda", "sistema")

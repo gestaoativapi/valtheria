@@ -2352,6 +2352,29 @@ func set_tag(text: String, color := Color(1, 0.92, 0.7), perto := 0.0) -> void:
 		tag.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 
 
+# placa da loja pessoal sobre o nome (texto do dono, até 32 letras); "" tira a placa
+var placa: Label3D
+
+func set_placa(text: String) -> void:
+	if text == "":
+		if placa:
+			placa.queue_free()
+			placa = null
+		return
+	if not placa:
+		placa = Label3D.new()
+		placa.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		placa.position = Vector3(0, height_m + 0.62, 0)
+		placa.fixed_size = true
+		placa.pixel_size = 0.00045
+		placa.font_size = 46
+		placa.outline_size = 14
+		placa.outline_modulate = Color(0.16, 0.09, 0.02, 0.95)
+		placa.modulate = Color(1.0, 0.84, 0.42)
+		add_child(placa)
+	placa.text = "◆ %s ◆" % text
+
+
 # sem o "boneco em cruz" ao nascer (pedido de Robson 20/11): o personagem fica oculto nos primeiros quadros,
 # até a animação e a postura da arma estarem aplicadas no esqueleto; antes disso o motor mostraria a pose de repouso
 var _aparecer := 0

@@ -33,7 +33,8 @@ signal want_window(name: String)
 signal want_chat(text: String)
 signal want_do(id: String)
 signal want_self
-signal want_grupo(acao: String, id: String)  # convidar, aceitar, recusar, sair, expulsar, escolher
+signal want_grupo(acao: String, id: String)
+signal want_loja(acao: String, nome: String)  # abrir, fechar, ver (loja de outro jogador)  # convidar, aceitar, recusar, sair, expulsar, escolher
 
 const GOLD := Color(0.86, 0.72, 0.42)
 
@@ -140,7 +141,7 @@ var _detail_id := ""
 var gm_btn: Button
 var gm_view := {}  # estado mostrado no painel de GM (ligado/desligado, jogadores online)
 # ações do personagem: [id, ícone, nome, descrição]
-const ACTIONS := [["atacar", "atacar", "Atacar", "Ataca o alvo selecionado (tecla F)"], ["sentar", "sentar", "Sentar", "Senta no chão até você andar de novo"], ["pular", "pular", "Pular", "Dá um salto (barra de espaço)"],
+const ACTIONS := [["atacar", "atacar", "Atacar", "Ataca o alvo selecionado (tecla F)"], ["loja_pessoal", "loja", "Abrir loja", "Senta e mostra uma placa com sua loja (suas ofertas do mercado); andar fecha a loja"], ["sentar", "sentar", "Sentar", "Senta no chão até você andar de novo"], ["pular", "pular", "Pular", "Dá um salto (barra de espaço)"],
 	["dancar", "dancar", "Dançar", "Dança até você andar de novo"], ["sorrir", "sorrir", "Sorrir", "Mostra um sorriso sobre o personagem"], ["chorar", "chorar", "Chorar", "Mostra o choro sobre o personagem"],
 	["acenar", "acenar", "Acenar", "Faz um gesto de sim"], ["conversar", "conversar", "Conversar", "Gesticula como quem conversa"], ["escalar", "escalar", "Escalar", "Em breve: chega com os paredões escaláveis"]]
 
@@ -173,6 +174,10 @@ const GRADES := ["NG", "D", "C", "B", "A", "S", "SS"]
 const ENC_SEGURO := 3  # até o +3 não há risco (o mesmo do servidor)
 const ENC_MAX := 16
 var enc_slot := "arma"
+var mkt_tab := "comprar"
+var mkt_busca := ""
+var mkt_item := ""  # item escolhido para anunciar
+var tgt_loja: Button
 var enc_confirmar := false  # acima do seguro, o botão pede um segundo clique
 const GRADE_COL := [Color(0.62, 0.62, 0.62), Color(0.78, 0.58, 0.35), Color(0.84, 0.87, 0.9), Color(0.35, 0.66, 1.0), Color(1.0, 0.4, 0.38), Color(0.83, 0.55, 1.0), Color(1.0, 0.82, 0.3)]
 
@@ -441,6 +446,13 @@ func _build_hud() -> void:
 	tgt_convidar.visible = false
 	tgt_convidar.pressed.connect(func(): want_grupo.emit("convidar", str(tgt_convidar.get_meta("id", ""))))
 	tv.add_child(tgt_convidar)
+	tgt_loja = _button("Ver loja", true)
+	tgt_loja.custom_minimum_size = Vector2(0, 28)
+	tgt_loja.add_theme_font_size_override("font_size", 13)
+	tgt_loja.focus_mode = Control.FOCUS_NONE
+	tgt_loja.visible = false
+	tgt_loja.pressed.connect(func(): want_loja.emit("ver", str(tgt_loja.get_meta("nome", ""))))
+	tv.add_child(tgt_loja)
 
 	# grupo (party): uma linha por membro, com nome, nível e barras de CP, vida e mana
 	grupo_panel = PanelContainer.new()
@@ -647,7 +659,7 @@ func _build_hud() -> void:
 	dh.add_theme_constant_override("h_separation", 4)
 	dh.add_theme_constant_override("v_separation", 4)
 	dock.add_child(dh)
-	for def in [["bolsa", "Personagem e bolsa (I)", "bolsa"], ["loja", "Loja (B)", "loja"], ["oficio", "Ofício (C)", "oficio"], ["encantar", "Encantamento (N)", "encantar"], ["classe", "Classe (K)", "classe"], ["cla", "Clã (G)", "cla"], ["acoes", "Ações do personagem (J)", "acoes"], ["config", "Configurações e desempenho", "#config"], ["tela", "Tela cheia (F11)", "#tela"], ["sair", "Voltar à entrada (Esc)", "#sair"]]:
+	for def in [["bolsa", "Personagem e bolsa (I)", "bolsa"], ["loja", "Loja (B)", "loja"], ["barra", "Mercado e loja pessoal (H)", "mercado"], ["oficio", "Ofício (C)", "oficio"], ["encantar", "Encantamento (N)", "encantar"], ["classe", "Classe (K)", "classe"], ["cla", "Clã (G)", "cla"], ["acoes", "Ações do personagem (J)", "acoes"], ["config", "Configurações e desempenho", "#config"], ["tela", "Tela cheia (F11)", "#tela"], ["sair", "Voltar à entrada (Esc)", "#sair"]]:
 		var ib := _icon(def[0], def[1], 40)
 		var act: String = def[2]
 		ib.pressed.connect(func():
@@ -843,6 +855,10 @@ func set_target(t: Dictionary) -> void:
 		return
 	tgt_name.text = str(t.name)
 	tgt_convidar.visible = t.has("convidar")
+	tgt_loja.visible = t.has("loja")
+	if t.has("loja"):
+		tgt_loja.set_meta("nome", str(t.loja))
+		tgt_loja.text = "Ver loja: " + str(t.get("placa", "")).left(22)
 	if t.has("convidar"):
 		tgt_convidar.set_meta("id", str(t.convidar))
 	tgt_bar.visible = t.has("hp")
@@ -1309,6 +1325,157 @@ func _item_card(title: String, g: int, lines: Array, price: String, action: Stri
 	return pc
 
 
+# mercado entre jogadores: o servidor guarda as ofertas, cobra a taxa e faz a troca (game_market_*).
+# A loja pessoal é o mesmo mercado mostrado só com as ofertas de um vendedor.
+func _janela_mercado(me: Dictionary, inv: Dictionary, extra: Dictionary) -> void:
+	var aurum := int(me.get("aurum", 0))
+	var lista: Array = extra.get("lista") if extra.get("lista") is Array else []
+	var vendedor := str(extra.get("vendedor", ""))
+	var minha_loja := str(extra.get("minha_loja", ""))
+	if vendedor != "":
+		win_title.text = "◆ Loja de %s   ·   %d aurum" % [vendedor, aurum]
+		if str(extra.get("placa", "")) != "":
+			_note("\"%s\"" % str(extra.placa))
+	else:
+		win_title.text = "◆ Mercado   ·   %d aurum" % aurum
+		_tabs([["comprar", "Comprar"], ["anunciar", "Anunciar"], ["minhas", "Minhas ofertas"]], mkt_tab, func(k):
+			mkt_tab = k
+			mkt_item = ""
+			open_window("mercado", w_me, w_inv, w_extra))
+	if str(extra.get("erro", "")) != "":
+		_note(str(extra.erro))
+		return
+	if vendedor == "" and mkt_tab == "anunciar":
+		_mercado_anunciar(inv)
+		return
+	if vendedor == "" and mkt_tab == "minhas":
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 10)
+		win_list.add_child(hb)
+		var aberta := minha_loja != ""
+		var lb := _label("Sua loja está aberta: \"%s\"" % minha_loja if aberta else "Abra sua loja para os outros jogadores verem suas ofertas com uma placa sobre você.", 13, GOLD if aberta else Color(0.8, 0.82, 0.88))
+		lb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hb.add_child(lb)
+		var bl := _button("Fechar loja" if aberta else "Abrir minha loja", not aberta)
+		bl.custom_minimum_size = Vector2(170, 34)
+		bl.focus_mode = Control.FOCUS_NONE
+		bl.pressed.connect(func(): want_loja.emit("fechar" if aberta else "abrir", ""))
+		hb.add_child(bl)
+	elif vendedor == "":
+		var busca := _edit("Procurar item...")
+		busca.text = mkt_busca
+		busca.custom_minimum_size = Vector2(0, 32)
+		busca.text_submitted.connect(func(t):
+			mkt_busca = t.strip_edges()
+			open_window("mercado", w_me, w_inv, w_extra))
+		win_list.add_child(busca)
+	var flow := HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 10)
+	flow.add_theme_constant_override("v_separation", 10)
+	win_list.add_child(flow)
+	var n := 0
+	for o in lista:
+		if not (o is Dictionary):
+			continue
+		var mine := bool(o.get("mine", false))
+		var iid := str(o.get("item", ""))
+		var it: Dictionary = info.items.get(iid, {})
+		var nome := str(it.get("name", iid))
+		if vendedor != "":
+			if str(o.get("seller", "")) != vendedor:
+				continue
+		elif mkt_tab == "minhas" and not mine:
+			continue
+		elif mkt_tab == "comprar" and (mine or (mkt_busca != "" and not nome.to_lower().contains(mkt_busca.to_lower()))):
+			continue
+		var preco := int(o.get("price", 0))
+		var linhas := ["%d aurum cada  ·  %d unid." % [preco, int(o.get("qty", 1))]]
+		if vendedor == "" and not mine:
+			linhas.append("Vendedor: %s" % str(o.get("seller", "?")))
+		linhas.append_array(_stat_lines(it))
+		if mine:
+			flow.add_child(_item_card(nome + " x%d" % int(o.get("qty", 1)), grade_of(iid), linhas, "", "Cancelar oferta", "game_market_cancel", {"p_order": o.get("id"), "_icon": iid}, true))
+		else:
+			flow.add_child(_item_card(nome, grade_of(iid), linhas, "%d aurum" % preco, "Comprar 1", "game_market_buy", {"p_order": o.get("id"), "p_qty": 1, "_icon": iid}, aurum >= preco))
+		n += 1
+		if n >= 60:
+			break
+	if n == 0:
+		_note("Nenhuma oferta%s." % (" nesta loja agora" if vendedor != "" else (" sua" if mkt_tab == "minhas" else "")))
+
+
+func _mercado_anunciar(inv: Dictionary) -> void:
+	_note("Escolha um item da bolsa, a quantidade e o preço de cada um. O mercado cobra 4% da venda.")
+	var corpo := HBoxContainer.new()
+	corpo.add_theme_constant_override("separation", 16)
+	win_list.add_child(corpo)
+	var grid := GridContainer.new()
+	grid.columns = 6
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
+	corpo.add_child(grid)
+	for iid in inv:
+		if not info.items.has(str(iid)) or int(inv[iid]) <= 0:
+			continue
+		var ic := _item_icon(str(iid), 52, str(iid) == mkt_item)
+		ic.label = "x%d" % int(inv[iid])
+		ic.tooltip_text = str(info.items[iid].get("name", iid))
+		var id := str(iid)
+		ic.pressed.connect(func():
+			mkt_item = id
+			open_window("mercado", w_me, w_inv, w_extra))
+		grid.add_child(ic)
+	var dir := VBoxContainer.new()
+	dir.add_theme_constant_override("separation", 8)
+	dir.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	corpo.add_child(dir)
+	if mkt_item == "" or not inv.has(mkt_item):
+		dir.add_child(_label("← escolha um item", 14, Color(0.7, 0.72, 0.78)))
+		return
+	var it: Dictionary = info.items.get(mkt_item, {})
+	dir.add_child(_label(str(it.get("name", mkt_item)), 17, GRADE_COL[grade_of(mkt_item)], true))
+	var tem := int(inv[mkt_item])
+	var ref := maxi(1, int(it.get("sell", 10)))
+	var qh := HBoxContainer.new()
+	dir.add_child(qh)
+	qh.add_child(_label("Quantidade", 14))
+	var q := SpinBox.new()
+	q.min_value = 1
+	q.max_value = tem
+	q.value = 1
+	q.custom_minimum_size = Vector2(120, 0)
+	qh.add_child(q)
+	var ph := HBoxContainer.new()
+	dir.add_child(ph)
+	ph.add_child(_label("Preço de cada", 14))
+	var pr := SpinBox.new()
+	pr.min_value = 1
+	pr.max_value = 999999999
+	pr.value = ref * 2
+	pr.suffix = "aurum"
+	pr.custom_minimum_size = Vector2(170, 0)
+	ph.add_child(pr)
+	var res := _label("", 13, Color(0.75, 0.9, 0.75))
+	res.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	res.custom_minimum_size = Vector2(280, 0)
+	dir.add_child(res)
+	var calc := func(_v = 0.0):
+		var total := int(q.value) * int(pr.value)
+		res.text = "Você recebe %d aurum (total %d − taxa %d)\nO mercador da cidade paga %d cada" % [total - int(floor(total * 0.04)), total, int(floor(total * 0.04)), ref]
+	q.value_changed.connect(calc)
+	pr.value_changed.connect(calc)
+	calc.call()
+	var b := _button("Anunciar", true)
+	b.custom_minimum_size = Vector2(0, 38)
+	b.focus_mode = Control.FOCUS_NONE
+	var item := mkt_item
+	b.pressed.connect(func():
+		mkt_item = ""
+		want_action.emit("game_market_sell", {"p_item": item, "p_qty": int(q.value), "p_price": int(pr.value)}))
+	dir.add_child(b)
+
+
 # chance de sucesso do próximo nível (mesma regra do servidor)
 static func chance_encanto(n: int) -> float:
 	return 1.0 if n < ENC_SEGURO else maxf(0.08, 0.72 - (n - ENC_SEGURO) * 0.05)
@@ -1717,6 +1884,8 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 			flow.add_child(_item_card(str(it.get("name", id)), grade_of(str(id)), _stat_lines(it), "%d aurum" % int(info.shop[id]), "Comprar", "game_shop_buy", {"p_item": id, "p_qty": 1}, aurum >= int(info.shop[id])))
 	elif name == "encantar":
 		_janela_encantar(me, inv)
+	elif name == "mercado":
+		_janela_mercado(me, inv, extra)
 	elif name == "oficio":
 		win_title.text = "◆ Ferreiro   ·   ofício"
 		_note("\"Traga o material que eu mostro o que dá para fazer. O que você já pode fabricar aparece primeiro.\"")

@@ -56,6 +56,10 @@ func _on_pos(p: Dictionary) -> void:
 	others[id].pos = pos
 	others[id].rot = float(p.get("r", 0.0))
 	others[id].seen = Time.get_ticks_msec() * 0.001
+	var lj := str(p.get("lj", "")).strip_edges().left(32)
+	if lj != str(others[id].get("loja", "")):
+		others[id].loja = lj
+		others[id].node.set_placa(lj)
 
 
 func _process(dt: float) -> void:
@@ -79,7 +83,7 @@ func _process_medido(dt: float) -> void:
 		var np := cur.lerp(o.pos, minf(1.0, dt * 6.0)) if d < 12.0 else (o.pos as Vector3)
 		node.position = Vector3(np.x, main.world.height(np.x, np.z), np.z)
 		node.rotation.y = lerp_angle(node.rotation.y, float(o.rot), minf(1.0, dt * 8.0))
-		node.play("Jog_Fwd" if d > 0.35 else "Idle")
+		node.play("Jog_Fwd" if d > 0.35 else ("Sitting_Idle" if str(o.get("loja", "")) != "" else "Idle"))
 	# envia a própria posição: 5 vezes por segundo andando, a cada 3 s parado
 	send_t += dt
 	var moved: bool = main.player.position.distance_to(last_sent) > 0.05
@@ -92,7 +96,7 @@ func _process_medido(dt: float) -> void:
 		var eq: Dictionary = c.get("equipment") if c.get("equipment") is Dictionary else {}
 		main.net.rt_pos({"id": c.id, "n": c.get("name", ""), "x": snappedf(main.player.position.x, 0.01), "z": snappedf(main.player.position.z, 0.01), "r": snappedf(main.player.rotation.y, 0.01), "st": "run" if moved else "idle",
 			"ra": c.get("race"), "ge": c.get("gender"), "h": c.get("hair"), "hc": c.get("hair_color"), "sk": c.get("skin"), "lk": c.get("look"), "c": c.get("class_id"), "l": c.get("level"), "hp": int(main.combat.hp / maxf(float(main.combat.st.get("maxHp", 1.0)), 1.0) * 100.0), "cp": 100, "w": eq.get("arma", ""), "a": eq.get("armadura", ""),
-			"en": int((c.get("enchant") if c.get("enchant") is Dictionary else {}).get(str(eq.get("arma", "")), 0))})
+			"en": int((c.get("enchant") if c.get("enchant") is Dictionary else {}).get(str(eq.get("arma", "")), 0)), "lj": main.loja_titulo})
 	chat_t += dt
 	if chat_t > 4.0 and main.net.token != "":
 		chat_t = 0.0
