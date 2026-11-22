@@ -367,7 +367,7 @@ func _setup_medido(o: Dictionary) -> void:
 		Enfeites.roupa(self, skel, Enfeites.indice(arm), "pesada" if arm.begins_with("pesada") else ("leve" if arm.begins_with("leve") else ("robe" if arm.begins_with("robe") else "")))
 		if not o.get("sem_brasao", false) and arm != "" and arm != "nenhuma" and not (male and arm.begins_with("pesada")):
 			# medalhão com o brasão da raça (item 4 de realismo): fica por cima da roupa, mais à frente na armadura pesada
-			load("res://scripts/inscricoes.gd").peito(skel, race, 0.15 if arm.begins_with("pesada") else (0.11 if arm.begins_with("robe") else 0.105))
+			load("res://scripts/inscricoes.gd").peito(skel, race, 0.13 if arm.begins_with("pesada") else (0.1 if arm.begins_with("robe") else 0.095))
 	var chave_postura: String = "goblin" if str(o.get("subtipo", "")) == "goblin" else race
 	if POSTURAS.has(chave_postura):
 		var pr: Dictionary = POSTURAS[chave_postura]
@@ -380,7 +380,8 @@ func _setup_medido(o: Dictionary) -> void:
 		ciclo_raca = float(pr.ciclo)
 		skel.add_child(postura)
 	if race == "gigante" and not dragon:  # metade humano, metade golem de gelo (pedido de Robson 21/11)
-		load("res://scripts/gelo_golem.gd").montar(skel)
+		# armadura de grau B para cima mostra cor e brilho por cima do gelo (decisão de Robson 22/11)
+		load("res://scripts/gelo_golem.gd").montar(skel, grau_do_item(str(eq.get("armadura", ""))) in ["b", "a", "s"])
 	# postura parada ereta (guerreiro reto; mago reto e formal; mulher com jeito feminino), depois da postura da raça
 	var ereta = load("res://scripts/postura_ereta.gd").new()
 	ereta.name = "PosturaEreta"

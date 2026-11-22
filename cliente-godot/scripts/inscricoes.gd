@@ -135,11 +135,12 @@ static func peito(skel: Skeleton3D, raca: String, frente: float) -> void:
 	att.name = "Brasao"
 	skel.add_child(att)
 	var rest := skel.get_bone_global_rest(i)
-	var centro := rest.origin + Vector3(0.0, 0.15, frente)
+	# broche pequeno no lado esquerdo do peito (decisão de Robson 22/11); +X é a esquerda do personagem
+	var centro := rest.origin + Vector3(0.085, 0.17, frente)
 	var disco := CylinderMesh.new()
-	disco.top_radius = 0.042
-	disco.bottom_radius = 0.046
-	disco.height = 0.008
+	disco.top_radius = 0.025
+	disco.bottom_radius = 0.028
+	disco.height = 0.006
 	disco.radial_segments = 20
 	var md := MeshInstance3D.new()
 	md.mesh = disco
@@ -147,9 +148,9 @@ static func peito(skel: Skeleton3D, raca: String, frente: float) -> void:
 	att.add_child(md)
 	md.transform = rest.affine_inverse() * Transform3D(Basis(Vector3.RIGHT, PI * 0.5), centro)
 	var q := QuadMesh.new()
-	q.size = Vector2(0.07, 0.07)
+	q.size = Vector2(0.042, 0.042)
 	var mq := MeshInstance3D.new()
 	mq.mesh = q
 	mq.material_override = _mat_brasao[raca]
 	att.add_child(mq)
-	mq.transform = rest.affine_inverse() * Transform3D(Basis.IDENTITY, centro + Vector3(0, 0, 0.0045))
+	mq.transform = rest.affine_inverse() * Transform3D(Basis.IDENTITY, centro + Vector3(0, 0, 0.0035))

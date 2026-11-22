@@ -6,8 +6,8 @@ extends RefCounted
 # largo de ombros e peito, o anão atarracado, o elfo esguio. Esqueleto, animações, rosto e mãos não mudam.
 # Malhas novas ficam em cache por (malha, raça, gênero): NPCs iguais não recalculam.
 
-const FORCA := {"anao": 1.0, "orc": 1.0, "gigante": 1.0, "beastman": 1.0, "draconato": 1.0, "elfo": 1.0, "sombrio": 1.0}
-const LIMITE := 0.07       # nenhum vértice anda mais que 7 cm
+const FORCA := {"anao": 1.6, "orc": 1.9, "gigante": 1.0, "beastman": 1.0, "draconato": 1.0, "elfo": 1.0, "sombrio": 1.0}
+const LIMITE := 0.09       # nenhum vértice anda mais que 7 cm
 const CEL := 0.05          # grade de busca (5 cm)
 const PULA := ["corpo", "olhos", "sobrancelha", "cilios", "cabelo", "barba"]
 

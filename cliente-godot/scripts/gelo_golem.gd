@@ -128,7 +128,7 @@ static func marcar_cabeca(skel: Skeleton3D, mi: MeshInstance3D, pesos := {}) -> 
 
 
 # corpo de carne vira gelo, menos o rosto; roupas viram gelo inteiras (a silhueta do equipamento continua)
-static func _congelar_corpo(skel: Skeleton3D) -> void:
+static func _congelar_corpo(skel: Skeleton3D, mostra_armadura := false) -> void:
 	var pesos := _peso_cabeca(skel)
 	for ch in skel.get_children():
 		if not (ch is MeshInstance3D):
@@ -138,7 +138,8 @@ static func _congelar_corpo(skel: Skeleton3D) -> void:
 		if nome in ["olhos", "sobrancelha", "cilios", "cabelo"] or nome.begins_with("ca_") or nome.contains("hair") or nome.contains("eye"):
 			continue
 		if nome != "corpo":
-			mi.material_override = _mat_corpo(null)
+			if not mostra_armadura:
+				mi.material_override = _mat_corpo(null)
 			continue
 		var novo := marcar_cabeca(skel, mi, pesos)
 		if novo == null:
@@ -275,8 +276,8 @@ static func _membro(skel: Skeleton3D, osso: String, filho: String, r0: float, r1
 		_peca(skel, osso, _rocha_n(rng.randi()), mats[0], p0 + d * t + lasca, d, Vector3(r, comp, r * 0.92), rng.randf() * TAU)
 
 
-static func montar(skel: Skeleton3D) -> void:
-	_congelar_corpo(skel)
+static func montar(skel: Skeleton3D, mostra_armadura := false) -> void:
+	_congelar_corpo(skel, mostra_armadura)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4242
 	var mats := materiais()
