@@ -75,6 +75,10 @@ RACAS = {
     "anao": dict(musc=0.9, peso=0.75, alt=0.0, prop=0.2, locais={
         "torso/measure-shoulder-dist-incr": 0.9, "torso/torso-scale-horiz-incr": 0.6, "head/head-scale-horiz-incr": 0.35,
         "neck/measure-neck-height-decr": 0.7, **ambos("legs/*-upperleg-scale-vert-decr", 0.5), **ambos("legs/*-lowerleg-scale-vert-decr", 0.5)}),
+    "beastman": dict(musc=0.85, peso=0.5, alt=0.6, prop=0.5, locais={
+        "torso/measure-shoulder-dist-incr": 0.5, "neck/measure-neck-circ-incr": 0.6}),
+    "draconato": dict(musc=0.75, peso=0.45, alt=0.7, prop=0.7, locais={
+        "torso/measure-shoulder-dist-incr": 0.4}),
     "gigante": dict(musc=1.0, peso=0.55, alt=1.0, prop=0.6, locais={
         "torso/measure-shoulder-dist-incr": 0.6, "head/head-rectangular": 0.5}),
 }

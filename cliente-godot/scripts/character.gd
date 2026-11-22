@@ -400,6 +400,9 @@ func _setup_medido(o: Dictionary) -> void:
 	skel.add_child(pes_ik)
 	_materiais_reais()
 	_tabardo_brasao()
+	# forma do corpo da raça nas roupas (Fase 2): orc largo, anão atarracado, elfo esguio
+	if OS.get_environment("FORMA_RACA") != "0" and not o.get("sem_roupa", false):
+		FormaRaca.aplicar(skel, race, male)
 	if dragon:  # o modelo da dragonita é mais alto que o humano de referência (medido: 1,96 m e 1,84 m)
 		height_m = 1.96 if male else 1.84
 	anim = AnimationPlayer.new()
