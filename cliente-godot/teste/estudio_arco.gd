@@ -54,6 +54,9 @@ func _process(_d: float) -> bool:
 			c.set_battle(t_fix > -2.0)
 			if t_fix >= 0.0:
 				c.disparar_arco()
+	if q >= 8 and OS.get_environment("ANDAR") == "1":
+		for c in bonecos:
+			c.play("Walk")
 	if q > 8 and t_fix >= 0.0:
 		for c in bonecos:
 			if c.arqueria != null:

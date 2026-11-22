@@ -94,6 +94,39 @@ static func _peso_cabeca(skel: Skeleton3D) -> Dictionary:
 	return out
 
 
+# copia a malha do corpo gravando na cor do vértice (R) quanto ele pertence à cabeça: 1 no rosto, 0 no resto.
+# Serve para shaders que trocam o corpo (gelo, lava) e precisam deixar o rosto à mostra.
+static func marcar_cabeca(skel: Skeleton3D, mi: MeshInstance3D, pesos := {}) -> ArrayMesh:
+	if pesos.is_empty():
+		pesos = _peso_cabeca(skel)
+	var orig := mi.mesh as ArrayMesh
+	if orig == null:
+		return null
+	var novo := ArrayMesh.new()
+	for si in orig.get_surface_count():
+		var arr := orig.surface_get_arrays(si)
+		var fmt := orig.surface_get_format(si)
+		var ossos: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+		var w: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+		var nv: int = (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+		var por := 8 if (fmt & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS) != 0 else 4
+		var cores := PackedColorArray()
+		cores.resize(nv)
+		for vi in nv:
+			var f := 0.0
+			for k in por:
+				var bi: int = ossos[vi * por + k]
+				if mi.skin != null and bi < mi.skin.get_bind_count():
+					var bb := mi.skin.get_bind_bone(bi)
+					bi = bb if bb >= 0 else skel.find_bone(mi.skin.get_bind_name(bi))
+				f += float(pesos.get(bi, 0.0)) * w[vi * por + k]
+			cores[vi] = Color(f, f, f)
+		arr[Mesh.ARRAY_COLOR] = cores
+		novo.add_surface_from_arrays(orig.surface_get_primitive_type(si), arr, [], {}, fmt & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS)
+		novo.surface_set_material(si, orig.surface_get_material(si))
+	return novo
+
+
 # corpo de carne vira gelo, menos o rosto; roupas viram gelo inteiras (a silhueta do equipamento continua)
 static func _congelar_corpo(skel: Skeleton3D) -> void:
 	var pesos := _peso_cabeca(skel)
@@ -107,30 +140,10 @@ static func _congelar_corpo(skel: Skeleton3D) -> void:
 		if nome != "corpo":
 			mi.material_override = _mat_corpo(null)
 			continue
-		var orig := mi.mesh as ArrayMesh
-		if orig == null:
+		var novo := marcar_cabeca(skel, mi, pesos)
+		if novo == null:
 			continue
-		var novo := ArrayMesh.new()
-		for si in orig.get_surface_count():
-			var arr := orig.surface_get_arrays(si)
-			var fmt := orig.surface_get_format(si)
-			var ossos: PackedInt32Array = arr[Mesh.ARRAY_BONES]
-			var w: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
-			var nv: int = (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
-			var por := 8 if (fmt & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS) != 0 else 4
-			var cores := PackedColorArray()
-			cores.resize(nv)
-			for vi in nv:
-				var f := 0.0
-				for k in por:
-					var bi: int = ossos[vi * por + k]
-					if mi.skin != null and bi < mi.skin.get_bind_count():
-						var bb := mi.skin.get_bind_bone(bi)
-						bi = bb if bb >= 0 else skel.find_bone(mi.skin.get_bind_name(bi))
-					f += float(pesos.get(bi, 0.0)) * w[vi * por + k]
-				cores[vi] = Color(f, f, f)
-			arr[Mesh.ARRAY_COLOR] = cores
-			novo.add_surface_from_arrays(orig.surface_get_primitive_type(si), arr, [], {}, fmt & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS)
+		for si in novo.get_surface_count():
 			novo.surface_set_material(si, _mat_corpo(mi.get_active_material(si) as BaseMaterial3D))
 		mi.mesh = novo
 		for si in novo.get_surface_count():
@@ -276,12 +289,12 @@ static func montar(skel: Skeleton3D) -> void:
 		_peca(skel, "upperarm" + ld, _rocha_n(3), mats[1], po + Vector3(0.09 * sx, 0.11, -0.03), Vector3(0.7 * sx, 1, -0.2), Vector3(0.07, 0.09, 0.06), 1.1)
 		# braço, antebraço grosso perto do punho e o punho de gelo
 		_membro(skel, "upperarm" + ld, "lowerarm" + ld, 0.07, 0.065, 1, rng)
-		_membro(skel, "lowerarm" + ld, "hand" + ld, 0.07, 0.09, 2, rng)
+		_membro(skel, "lowerarm" + ld, "hand" + ld, 0.08, 0.11, 2, rng)
 		var ph := _pos(skel, "hand" + ld)
 		var pm := _pos(skel, "middle_01" + ld)
 		if pm == Vector3.ZERO:
 			pm = ph + (ph - _pos(skel, "lowerarm" + ld)).normalized() * 0.1
-		_peca(skel, "hand" + ld, _rocha_n(4), mats[0], ph.lerp(pm, 0.55), pm - ph, Vector3(0.085, 0.075, 0.075), 0.3)
+		_peca(skel, "hand" + ld, _rocha_n(4), mats[0], ph.lerp(pm, 0.55), pm - ph, Vector3(0.11, 0.095, 0.095), 0.3)
 		# perna: coxa e canela em rocha, pé em laje
 		_membro(skel, "thigh" + ld, "calf" + ld, 0.095, 0.08, 1, rng)
 		_membro(skel, "calf" + ld, "foot" + ld, 0.075, 0.085, 1, rng)
@@ -296,6 +309,11 @@ static func montar(skel: Skeleton3D) -> void:
 		_peca(skel, "pelvis", _rocha_n(1), mats[0], pp + Vector3(0.11 * sx, -0.03, 0.0), Vector3(0.3 * sx, 1, 0), Vector3(0.09, 0.07, 0.09), 0.7)
 	# barriga e lombar
 	var p1 := _pos(skel, "spine_01")
+	# peitoral largo e lajes do abdome: tronco de golem (mais largo em cima, como um bloco)
+	var pp3 := _pos(skel, "spine_03")
+	var pp2 := _pos(skel, "spine_02")
+	_peca(skel, "spine_03", _rocha_n(4), mats[0], pp3 + Vector3(0, 0.1, 0.07), Vector3(0, 1, 0.15), Vector3(0.2, 0.08, 0.075), 0.0)
+	_peca(skel, "spine_02", _rocha_n(1), mats[0], pp2 + Vector3(0, 0.02, 0.07), Vector3(0, 1, 0.1), Vector3(0.13, 0.07, 0.06), 0.4)
 	# cristais nascendo das costas e dos ombros
 	var p3c := _pos(skel, "spine_03")
 	for k in 4:
@@ -309,11 +327,11 @@ static func montar(skel: Skeleton3D) -> void:
 		_peca(skel, "spine_03", cm, mats[1], p3c + Vector3(lado * (0.05 + 0.03 * k), 0.08 - 0.05 * k, -0.17), Vector3(lado * 0.35, 1, -0.8), Vector3.ONE, k * 0.7)
 	# núcleo brilhando no meio do peito, entre as placas
 	var nuc := SphereMesh.new()
-	nuc.radius = 0.04
-	nuc.height = 0.08
+	nuc.radius = 0.028
+	nuc.height = 0.056
 	nuc.radial_segments = 8
 	nuc.rings = 4
-	_peca(skel, "spine_03", nuc, mats[2], p3c + Vector3(0, 0.06, 0.14), Vector3.UP, Vector3.ONE)
+	_peca(skel, "spine_03", nuc, mats[2], p3c + Vector3(0, 0.1, 0.148), Vector3.UP, Vector3.ONE)
 	# rosto humano à mostra: testa de gelo e coroa de cristais (nada cobre olhos, nariz ou boca)
 	var pc := _pos(skel, "Head")
 	_peca(skel, "Head", _rocha_n(2), mats[1], pc + Vector3(0, 0.12, 0.05), Vector3(0, 1, 0.5), Vector3(0.085, 0.035, 0.05), 0.0)

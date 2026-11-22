@@ -363,6 +363,9 @@ func _setup_medido(o: Dictionary) -> void:
 		_cor_grau_roupa(eq)
 		var arm := str(eq.get("armadura", ""))
 		Enfeites.roupa(self, skel, Enfeites.indice(arm), "pesada" if arm.begins_with("pesada") else ("leve" if arm.begins_with("leve") else ("robe" if arm.begins_with("robe") else "")))
+		if not o.get("sem_brasao", false) and arm != "" and arm != "nenhuma":
+			# medalhão com o brasão da raça (item 4 de realismo): fica por cima da roupa, mais à frente na armadura pesada
+			load("res://scripts/inscricoes.gd").peito(skel, race, 0.155 if arm.begins_with("pesada") else (0.13 if arm.begins_with("robe") else 0.14))
 	var chave_postura: String = "goblin" if str(o.get("subtipo", "")) == "goblin" else race
 	if POSTURAS.has(chave_postura):
 		var pr: Dictionary = POSTURAS[chave_postura]
@@ -1617,10 +1620,10 @@ static func _malha_barba() -> ArrayMesh:
 		for k in 6:
 			var t0 := float(k) / 6.0
 			var t1 := float(k + 1) / 6.0
-			var p0 := Vector3(lado * (0.006 + t0 * 0.045), 1.652 - t0 * t0 * 0.035, 0.093 - t0 * 0.02)
-			var p1 := Vector3(lado * (0.006 + t1 * 0.045), 1.652 - t1 * t1 * 0.035, 0.093 - t1 * 0.02)
-			var w0 := 0.008 * (1.0 - t0 * 0.7)
-			var w1 := 0.008 * (1.0 - t1 * 0.7)
+			var p0 := Vector3(lado * (0.006 + t0 * 0.05), 1.638 - t0 * t0 * 0.03, 0.104 - t0 * 0.03)
+			var p1 := Vector3(lado * (0.006 + t1 * 0.05), 1.638 - t1 * t1 * 0.03, 0.104 - t1 * 0.03)
+			var w0 := 0.011 * (1.0 - t0 * 0.6)
+			var w1 := 0.011 * (1.0 - t1 * 0.6)
 			var c2 := Color(0.95, 0.95, 0.95)
 			for q in [p0 + Vector3(0, w0, 0), p0 - Vector3(0, w0, 0), p1 + Vector3(0, w1, 0), p1 + Vector3(0, w1, 0), p0 - Vector3(0, w0, 0), p1 - Vector3(0, w1, 0)]:
 				st.set_color(c2)
@@ -1867,6 +1870,17 @@ static func _model(item_id: String, kind: String, file: String, length: float, a
 			var holder := Node3D.new()
 			holder.add_child(w)
 			w.scale = Vector3.ONE * s
+			# o espadão do pacote vem com a lâmina vermelha: troca por aço (o grau pinta por cima depois)
+			for m in w.find_children("*", "MeshInstance3D", true, false):
+				var mi := m as MeshInstance3D
+				for si in mi.mesh.get_surface_count():
+					var mt := mi.mesh.surface_get_material(si)
+					if mt != null and String(mt.resource_name).contains("Red"):
+						var aco := StandardMaterial3D.new()
+						aco.albedo_color = Color(0.6, 0.61, 0.63) if String(mt.resource_name) == "LightRed" else Color(0.5, 0.5, 0.52)
+						aco.metallic = 0.85
+						aco.roughness = 0.32
+						mi.set_surface_override_material(si, aco)
 			return holder
 	return _place(file, length, at)
 
@@ -1909,6 +1923,7 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	wnode = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
 	cor_grau_metal(wnode, grau_do_item(item_id))
 	Enfeites.arma(wnode, Enfeites.indice(item_id), kind)
+	load("res://scripts/inscricoes.gd").lamina(wnode, kind)
 	if kind == "arco":
 		arco_costas = wnode.transform
 	elif float(g.get("two", 0.0)) <= 0.0:
@@ -1956,6 +1971,7 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 		var g2 := _hand_grip("l")
 		if g2 != null:
 			offhand = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
+			load("res://scripts/inscricoes.gd").lamina(offhand, kind)
 			offhand.transform = _alinhar_lamina(offhand.transform, offhand)
 			g2.add_child(offhand)
 			offhand.visible = false

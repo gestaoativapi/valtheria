@@ -143,11 +143,10 @@ static func aplicar(id: String, modelo: String, c: Node3D, boss: bool, cor_famil
 			chifres(skel, Color(0.85, 0.8, 0.65), 1.2)
 			olhos(skel, Color(1.0, 0.7, 0.1))
 		_:
-			if id in ["demonio", "senhor_dem"]:
-				chifres(skel, Color(0.15, 0.08, 0.06), 1.4)
-				olhos(skel, Color(1.0, 0.3, 0.1))
-			elif id in ["esqueleto", "caido"]:
-				olhos(skel, Color(0.4, 0.7, 1.0))
+			# demônio, esqueleto, espectro e caído ganham rosto próprio em CorpoChefe (olhos no lugar dos olhos,
+			# crânio anatômico, chifres curvos); as bolas acesas genéricas ficavam nas bochechas e pareciam máscara
+			if id in ["demonio", "senhor_dem", "esqueleto", "espectro", "caido"]:
+				pass
 			elif id == "bandido":
 				olhos(skel, Color(1.0, 0.8, 0.3)) if boss else null
 	if boss:

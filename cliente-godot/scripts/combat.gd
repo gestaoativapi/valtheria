@@ -299,7 +299,7 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 		"fera_chefe":
 			kind = "char"
 			var sub := "javali" if id.contains("javali") else "lobo"
-			var o := {"race": "beastman", "subtipo": sub, "gender": "m", "skin": 0, "sem_roupa": true, "armadura_mutante": "pesada_d",
+			var o := {"race": "beastman", "subtipo": sub, "gender": "m", "skin": 0, "sem_roupa": true, "sem_brasao": true, "armadura_mutante": "pesada_d",
 				"equipment": {"armadura": "nenhuma", "arma": "martelo_ng" if str(fam.get("role", "")) != "mago" else "cajado_ng", "escudo": "egide_ng" if str(fam.get("role", "")) != "mago" else ""}}
 			node = Character.create(o)
 			node.scale = Vector3.ONE * sc * 0.9
@@ -325,6 +325,7 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 				o = {"race": "gigante", "gender": "m", "hair": 0, "skin_color": "#4f6233", "equipment": {"armadura": "leve_ng"}}
 			elif str(fam.model) == "dragon":
 				o = {"race": "draconato", "gender": "m", "skin": 4}
+			o.sem_brasao = true   # monstro não usa o brasão das raças
 			if bool(fam.boss):
 				# chefe: sem roupa humana; corpo na cor da criatura e armadura mutante por cima
 				o.sem_roupa = true
