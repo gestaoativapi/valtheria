@@ -56,17 +56,17 @@ E0=$(estado); info "estado inicial: $E0"; info "campos do personagem: $(jq -c '.
 # 2. Movimento legítimo até a pradaria e abate válido
 c=$(rpc game_save2 "{\"p_char\":\"$CH\",\"p_x\":1250,\"p_z\":2250,\"p_hp\":100,\"p_mp\":100}"); info "primeiro salvamento de posição ($c $(head -c 120 /tmp/r.json))"
 sleep 6
-c=$(rpc game_kill4 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":1255,\"p_z\":2252}")
+c=$(rpc game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":1255,\"p_z\":2252}")
 [ "$c" = 200 ] && ok "abate válido de lobo aceito" || erro "abate válido recusado ($c $(head -c 200 /tmp/r.json))"
 E1=$(estado); info "depois do abate: $E1"
 [ "$(echo "$E1" | jq .xp)" != "$(echo "$E0" | jq .xp)" ] || [ "$(echo "$E1" | jq .lvl)" != "$(echo "$E0" | jq .lvl)" ] && ok "experiência calculada pelo servidor mudou" || erro "experiência não mudou após abate válido"
 
 # 3. Tentativas de trapaça (todas devem ser recusadas)
 sleep 6
-recusa "abate longe da posição" game_kill4 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":2800,\"p_z\":400}"
-recusa "monstro fora da região (dragão na pradaria)" game_kill4 "{\"p_char\":\"$CH\",\"p_fam\":\"dragao\",\"p_x\":1255,\"p_z\":2252}"
-recusa "chefe sem ponto de caça" game_kill4 "{\"p_char\":\"$CH\",\"p_fam\":\"rei_javali\",\"p_x\":1255,\"p_z\":2252}"
-recusa "monstro inexistente" game_kill4 "{\"p_char\":\"$CH\",\"p_fam\":\"xp_infinito\",\"p_x\":1255,\"p_z\":2252}"
+recusa "abate longe da posição" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":2800,\"p_z\":400}"
+recusa "monstro fora da região (dragão na pradaria)" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"dragao\",\"p_x\":1255,\"p_z\":2252}"
+recusa "chefe sem ponto de caça" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"rei_javali\",\"p_x\":1255,\"p_z\":2252}"
+recusa "monstro inexistente" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"xp_infinito\",\"p_x\":1255,\"p_z\":2252}"
 recusa "teleporte" game_save2 "{\"p_char\":\"$CH\",\"p_x\":2900,\"p_z\":300,\"p_hp\":100,\"p_mp\":100}"
 rpc game_save2 "{\"p_char\":\"$CH\",\"p_x\":1252,\"p_z\":2251,\"p_hp\":999999,\"p_mp\":999999}" >/dev/null
 H=$(rpc game_state "{\"p_char\":\"$CH\"}" >/dev/null; jq -r '.char.hp' /tmp/r.json)
@@ -76,13 +76,13 @@ recusa "missão concluída sem abates" game_quest_done2 "{\"p_char\":\"$CH\",\"p
 c=$(curl -sS -o /tmp/r.json -w '%{http_code}' -X PATCH "$TESTE_URL/rest/v1/characters?id=eq.$CH" -H "apikey: $TESTE_KEY" -H "Authorization: Bearer $TOK" -H 'Content-Profile: game' -H 'Content-Type: application/json' -H 'Prefer: return=representation' -d '{"xp":99999999,"gold":99999999}')
 rows=$(jq 'if type=="array" then length else 0 end' /tmp/r.json 2>/dev/null || echo 0)
 [ "$rows" = 0 ] && ok "escrita direta na tabela de personagens bloqueada ($c)" || erro "escrita direta alterou $rows linha(s)"
-c=$(rpc game_kill3 "{\"p_char\":\"$CH\",\"p_lvl\":80,\"p_boss\":true,\"p_fam\":\"dragao\"}")
+c=$(rpc game_kill3 "{\"p_char\":\"$CH\",\"p_mob_level\":80,\"p_boss\":true,\"p_fam\":\"dragao\"}")
 [ "$c" != 200 ] && ok "função interna de recompensa não pode ser chamada direto ($c)" || erro "função interna game_kill3 aceitou chamada direta do cliente (vulnerabilidade)"
 
 # 4. Pedidos repetidos rápidos (sem espera entre eles)
 sleep 6; aceitos=0; XA=$(estado | jq .xp)
 for i in 1 2 3 4 5; do
-  c=$(rpc game_kill4 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":1255,\"p_z\":2252}")
+  c=$(rpc game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":1255,\"p_z\":2252}")
   r=$(jq -rc 'if type=="object" then (.recusado // (if has("xp") or has("gain") then "ganhou" else (keys|join(",")) end)) else . end' /tmp/r.json 2>/dev/null)
   info "abate rápido $i: $c $r ($(date +%s.%N | cut -c1-14))"
   [ "$c" = 200 ] && [ "$(jq -r 'if type=="object" then has("recusado")|tostring else "false" end' /tmp/r.json)" = "false" ] && aceitos=$((aceitos+1))
@@ -90,13 +90,30 @@ done
 XB=$(estado | jq .xp); info "experiência antes/depois da rajada: $XA -> $XB"
 [ "$aceitos" -le 1 ] && ok "5 abates seguidos: $aceitos aplicado(s)" || erro "5 abates seguidos: $aceitos aplicados (limite de ritmo ausente)"
 
+# 4b. PEDIDO 004: área legítima (abates espaçados 1,0 s pelo cliente) e pedidos simultâneos
+sleep 2; ac=0
+for i in 1 2 3; do
+  c=$(rpc game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":1255,\"p_z\":2252}")
+  [ "$c" = 200 ] && [ "$(jq -r 'if type=="object" then has("recusado")|tostring else "false" end' /tmp/r.json)" = "false" ] && ac=$((ac+1))
+  sleep 1.0
+done
+[ "$ac" = 3 ] && ok "área legítima: 3 abates espaçados 1,0 s, 3 aplicados" || erro "área legítima: só $ac de 3 aplicados"
+sleep 2; XC=$(estado | jq .xp); rm -f /tmp/conc_*.json
+for i in 1 2 3 4 5 6; do
+  curl -sS -o /tmp/conc_$i.json -X POST "$TESTE_URL/rest/v1/rpc/game_kill5" -H "apikey: $TESTE_KEY" -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":1255,\"p_z\":2252}" &
+done; wait
+conc=0; for i in 1 2 3 4 5 6; do jq -e 'type=="object" and (has("recusado")|not) and has("xp")' /tmp/conc_$i.json >/dev/null 2>&1 && conc=$((conc+1)); cp /tmp/conc_$i.json "$EV/conc_$i.json"; done
+XD=$(estado | jq .xp); info "experiência antes/depois dos 6 simultâneos: $XC -> $XD"
+[ "$conc" -le 1 ] && ok "6 pedidos simultâneos: $conc aplicado(s)" || erro "6 pedidos simultâneos: $conc aplicados (corrida)"
+echo "$CH" > "$EV/personagem.txt"
+
 # 5. Chefe no ponto certo e repetição
 sleep 14
 rpc game_save2 "{\"p_char\":\"$CH\",\"p_x\":1246,\"p_z\":2450,\"p_hp\":100,\"p_mp\":100}" >/dev/null; sleep 6
-c=$(rpc game_kill4 "{\"p_char\":\"$CH\",\"p_fam\":\"rei_javali\",\"p_x\":1246,\"p_z\":2458,\"p_spot\":\"aurora:Campos do Amanhecer\"}")
+c=$(rpc game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"rei_javali\",\"p_x\":1246,\"p_z\":2458,\"p_spot\":\"aurora:Campos do Amanhecer\"}")
 [ "$c" = 200 ] && ok "chefe no ponto de caça aceito (drops: $(jq -c '.drops // [] | length' /tmp/r.json))" || erro "chefe no ponto recusado ($c $(head -c 200 /tmp/r.json))"
 sleep 6
-recusa "chefe repetido antes de voltar" game_kill4 "{\"p_char\":\"$CH\",\"p_fam\":\"rei_javali\",\"p_x\":1246,\"p_z\":2458,\"p_spot\":\"aurora:Campos do Amanhecer\"}"
+recusa "chefe repetido antes de voltar" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"rei_javali\",\"p_x\":1246,\"p_z\":2458,\"p_spot\":\"aurora:Campos do Amanhecer\"}"
 
 # 6. Salvar, sair e voltar após 10 s e 60 s (sessão nova)
 EA=$(estado); info "antes de sair: $EA"

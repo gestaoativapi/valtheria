@@ -877,6 +877,8 @@ func _segura(seg: float) -> void:
 		_segurando = false)
 
 
+var _prox_abate := 0.0  # PEDIDO 004: próximo horário livre para avisar um abate ao servidor de testes
+
 func _reward(m: Dictionary) -> void:
 	var c: Dictionary = main.me
 	var lvl := int(c.get("level", 1))
@@ -889,6 +891,14 @@ func _reward(m: Dictionary) -> void:
 		# game_kill4: o servidor decide nível, chefe e recompensa pela posição; o cliente só diz quem caiu e onde
 		var mp3: Vector3 = (m.node as Node3D).position
 		var fn_abate := "game_kill5" if main.net.ambiente_teste() else "game_kill4"  # testes: PH e divisão no grupo
+		if main.net.ambiente_teste():
+			# PEDIDO 004: o servidor de testes aceita 1 abate a cada 0,8 s (no máximo 70 por minuto).
+			# Abates juntos (habilidade em área) entram em fila, 1 aviso por segundo; nenhum se perde.
+			var agora := Time.get_ticks_msec() * 0.001
+			var espera := _prox_abate - agora
+			_prox_abate = maxf(agora, _prox_abate) + 1.0
+			if espera > 0.0:
+				await get_tree().create_timer(espera).timeout
 		var r: Dictionary = await main.net.rpc_call(fn_abate, {"p_char": main.net.char_id, "p_fam": str(m.fam.id), "p_x": mp3.x, "p_z": mp3.z, "p_spot": str(m.spot) if m.boss else null})
 		if not r.ok or not (r.data is Dictionary):
 			message.emit(r.erro if r.erro != "" else "O servidor não registrou a vitória")
