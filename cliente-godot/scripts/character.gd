@@ -87,6 +87,7 @@ var cabeca_no: Node3D  # "cabeça unitária" medida no crânio da raça (cabeca.
 var arco_costas := Transform3D.IDENTITY
 var fist: Node  # Punho: fecha os dedos no cabo
 var fist_hands := ["r"]
+var tabardo_brasao := false
 var offhand: Node3D  # segunda adaga (armas duplas), só aparece em combate
 var shield: Node3D
 var shield_arm: Node3D
@@ -363,7 +364,7 @@ func _setup_medido(o: Dictionary) -> void:
 		_cor_grau_roupa(eq)
 		var arm := str(eq.get("armadura", ""))
 		Enfeites.roupa(self, skel, Enfeites.indice(arm), "pesada" if arm.begins_with("pesada") else ("leve" if arm.begins_with("leve") else ("robe" if arm.begins_with("robe") else "")))
-		if not o.get("sem_brasao", false) and arm != "" and arm != "nenhuma":
+		if not o.get("sem_brasao", false) and arm != "" and arm != "nenhuma" and not (male and arm.begins_with("pesada")):
 			# medalhão com o brasão da raça (item 4 de realismo): fica por cima da roupa, mais à frente na armadura pesada
 			load("res://scripts/inscricoes.gd").peito(skel, race, 0.155 if arm.begins_with("pesada") else (0.13 if arm.begins_with("robe") else 0.14))
 	var chave_postura: String = "goblin" if str(o.get("subtipo", "")) == "goblin" else race
@@ -392,6 +393,7 @@ func _setup_medido(o: Dictionary) -> void:
 	maos.dono = self
 	skel.add_child(maos)
 	_materiais_reais()
+	_tabardo_brasao()
 	if dragon:  # o modelo da dragonita é mais alto que o humano de referência (medido: 1,96 m e 1,84 m)
 		height_m = 1.96 if male else 1.84
 	anim = AnimationPlayer.new()
@@ -1752,6 +1754,29 @@ func _attach_v3(file: String) -> Array:
 		out.append(m)
 	src.free()
 	return out
+
+
+# a sobreveste do cavaleiro vinha com uma cruz bordada para todas as raças: troca pela textura com o escudo
+# e o brasão da raça (sol, folha, olho, presas, bigorna, garras, chama, floco de neve)
+func _tabardo_brasao() -> void:
+	var f := "res://assets/chars/knight_brasao_%s.webp" % race_id
+	if not ResourceLoader.exists(f):
+		return
+	var tex: Texture2D = null
+	for m in skel.get_children():
+		if not (m is MeshInstance3D) or (m as MeshInstance3D).mesh == null:
+			continue
+		var mi := m as MeshInstance3D
+		for si in mi.mesh.get_surface_count():
+			var base := mi.get_active_material(si) as BaseMaterial3D
+			if base == null or base.albedo_texture == null or not base.albedo_texture.resource_path.contains("T_Knight_BaseColor"):
+				continue
+			if tex == null:
+				tex = load(f)
+			var d := base.duplicate() as BaseMaterial3D
+			d.albedo_texture = tex
+			mi.set_surface_override_material(si, d)
+			tabardo_brasao = true
 
 
 # pele, olhos e cabelo com resposta de luz mais real (22/11): pele fosca com leve translucidez (orelhas e
