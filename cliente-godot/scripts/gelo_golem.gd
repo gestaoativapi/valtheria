@@ -299,7 +299,7 @@ static func montar(skel: Skeleton3D) -> void:
 		_membro(skel, "thigh" + ld, "calf" + ld, 0.095, 0.08, 1, rng)
 		_membro(skel, "calf" + ld, "foot" + ld, 0.075, 0.085, 1, rng)
 		var pf := _pos(skel, "foot" + ld)
-		_peca(skel, "foot" + ld, _rocha_n(5), mats[0], pf + Vector3(0, -0.05, 0.08), Vector3(0, 0.25, 1), Vector3(0.07, 0.12, 0.05), 0.0)
+		_peca(skel, "foot" + ld, _rocha_n(5), mats[0], pf + Vector3(0, -0.005, 0.08), Vector3(0, 0.25, 1), Vector3(0.07, 0.12, 0.05), 0.0)
 		# peito em duas placas e costas largas
 		var p2 := _pos(skel, "spine_02")
 		var p3 := _pos(skel, "spine_03")

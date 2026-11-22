@@ -2668,7 +2668,9 @@ func _process(dt: float) -> void:
 			if absf(chao - root_y) > 0.9:
 				chao = root_y  # sem chão do mundo por perto (interior de casa, ponte alta): o piso é o da própria raiz
 			gap = minf(gap, ((p as Vector3).y - ankle) - chao)
-	var want := clampf(foot_off - gap, -0.35, 0.25)
+	# o limite de subida acompanha a altura: o gigante (2,15 m, passada larga) na encosta precisava de mais de
+	# 25 cm e ficava com a sola 4 cm enterrada
+	var want := clampf(foot_off - gap, -0.35, 0.25 * maxf(height_m / 1.8, 1.0) + (0.08 if height_m > 2.05 else 0.0))
 	foot_off = lerpf(foot_off, want, clampf(dt * 10.0, 0.0, 1.0))
 	body_node.position.y = body_base_y + foot_off / maxf(scale.y, 0.01)
 
