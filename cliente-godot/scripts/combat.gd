@@ -131,7 +131,7 @@ func recalc() -> void:
 	st["crit"] = 0.06 + float(pb.get("critico", 0.0))
 	var antes := skills.size()
 	skills = _skills_v2(c, L)
-	if skills.is_empty():  # sem banco novo: habilidades antigas do arquétipo
+	if skills.is_empty() and not c.get("skills") is Dictionary:  # sem banco novo (servidor oficial): habilidades antigas do arquétipo
 		for s in arch.skills:
 			if int(s.lvl) <= L and skills.size() < 9:
 				skills.append(s)
@@ -818,7 +818,8 @@ func _reward(m: Dictionary) -> void:
 		# online: experiência, dinheiro e itens vêm do servidor
 		# game_kill4: o servidor decide nível, chefe e recompensa pela posição; o cliente só diz quem caiu e onde
 		var mp3: Vector3 = (m.node as Node3D).position
-		var r: Dictionary = await main.net.rpc_call("game_kill4", {"p_char": main.net.char_id, "p_fam": str(m.fam.id), "p_x": mp3.x, "p_z": mp3.z, "p_spot": str(m.spot) if m.boss else null})
+		var fn_abate := "game_kill5" if main.net.ambiente_teste() else "game_kill4"  # testes: PH e divisão no grupo
+		var r: Dictionary = await main.net.rpc_call(fn_abate, {"p_char": main.net.char_id, "p_fam": str(m.fam.id), "p_x": mp3.x, "p_z": mp3.z, "p_spot": str(m.spot) if m.boss else null})
 		if not r.ok or not (r.data is Dictionary):
 			message.emit(r.erro if r.erro != "" else "O servidor não registrou a vitória")
 			return
@@ -839,6 +840,19 @@ func _reward(m: Dictionary) -> void:
 				main.net.inventory[k] = int(main.net.inventory.get(k, 0)) + int(d.drops[k])
 		if d.get("unique") != null:
 			got.append("ITEM ÚNICO: %s" % info.items.get(str(d.unique), {}).get("name", d.unique))
+		if d.has("ph"):
+			c["ph"] = int(c.get("ph", 0)) + int(d.ph)
+			got.append("%d PH" % int(d.ph))
+		if d.get("grupo") is Array and (d.grupo as Array).size() > 1:
+			var partes: Array = []
+			for g in d.grupo:
+				partes.append("%s %d XP" % [str(g.nome), int(g.xp)])
+			main.ui.chat_line("", "Grupo dividiu: " + ", ".join(partes), "grupo")
+		if d.has("itens_para") and str(d.itens_para) != str(c.get("id", "")):
+			main.ui.chat_line("", "Itens deste abate foram para %s (rodízio)." % str(d.get("itens_para_nome", "outro membro")), "grupo")
+			if d.get("drops") is Dictionary:
+				for k in d.drops:
+					main.net.inventory[k] = maxi(0, int(main.net.inventory.get(k, 0)) - int(d.drops[k]))
 		if not got.is_empty():
 			main.ui.chat_line("", "Você recebeu: " + ", ".join(got), "sistema")
 	else:

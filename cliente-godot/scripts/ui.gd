@@ -1518,7 +1518,9 @@ static func cadeia_classe(cid: String) -> Array:
 
 # nível de cada habilidade: o que o servidor mandar em me.habilidades; sem isso, o máximo que o nível do personagem permite
 static func nivel_hab(h: Dictionary, me: Dictionary, lvl: int) -> int:
-	var salvo: Dictionary = me.get("habilidades") if me.get("habilidades") is Dictionary else {}
+	var salvo: Dictionary = me.get("skills") if me.get("skills") is Dictionary else (me.get("habilidades") if me.get("habilidades") is Dictionary else {})
+	if me.get("skills") is Dictionary:  # servidor de testes: só vale o que foi aprendido com PH
+		return int(salvo.get(h.id, 0))
 	if salvo.has(h.id):
 		return int(salvo[h.id])
 	var n := 0
@@ -1546,7 +1548,9 @@ func _janela_habilidades(me: Dictionary) -> void:
 	_tabs([["ativas", "Ativas"], ["passivas", "Passivas"], ["aprender", "Aprender"], ["status", "Status"], ["arvore", "Árvore de classes"]], hab_tab, func(k):
 		hab_tab = k
 		open_window("habilidades", w_me, w_inv, w_extra))
-	if not me.get("habilidades") is Dictionary:
+	if me.get("skills") is Dictionary:
+		_note("Pontos de habilidade (PH): %d   ·   aurum: %d   ·   aprenda e suba habilidades na aba Aprender." % [int(me.get("ph", 0)), int(me.get("aurum", 0))])
+	elif not me.get("habilidades") is Dictionary:
 		_note("Prévia: os níveis mostram o máximo que o seu nível permite. Aprender e subir habilidades com pontos de habilidade (PH) chega com o servidor de testes.")
 	var todas: Array = []
 	for c in cadeia:
@@ -1566,8 +1570,10 @@ func _janela_habilidades(me: Dictionary) -> void:
 				continue
 			var prox: Dictionary = h.tabela[atual]
 			var pode := int(prox.nivel_personagem) <= lvl
+			var servidor: bool = me.get("skills") is Dictionary
+			var acao: Array = [["Aprender" if atual == 0 else "Subir", "game_skill_learn", {"p_skill": str(h.id)}]] if (servidor and pode and int(me.get("ph", 0)) >= int(prox.ph) and int(me.get("aurum", 0)) >= int(prox.aurum)) else []
 			_row("%s   ·   nível %d → %d   ·   requer nível %d   ·   %d PH   ·   %d aurum" % [h.nome, atual, atual + 1, int(prox.nivel_personagem), int(prox.ph), int(prox.aurum)],
-				[], Color(0.88, 0.9, 0.94) if pode else Color(0.55, 0.56, 0.6))
+				acao, Color(0.88, 0.9, 0.94) if pode else Color(0.55, 0.56, 0.6))
 			n += 1
 			if n >= 40:
 				break
@@ -2204,6 +2210,8 @@ func open_window(name: String, me: Dictionary, inv: Dictionary, extra := {}) -> 
 				flow.add_child(_item_card("%s x%d" % [items.get(str(r.out), {}).get("name", r.out), int(r.qty)], grade_of(str(r.out)), parts, "", "Fabricar", "game_craft", {"p_recipe": r.id, "p_times": 1, "_icon": str(r.out)}, can))
 	elif name == "habilidades":
 		_janela_habilidades(me)
+	elif name == "classe" and me.get("skills") is Dictionary:
+		_janela_classe_v2(me)
 	elif name == "classe":
 		var cur := str(me.get("class_id", ""))
 		var cl: Dictionary = info.classes.get(cur, {})
@@ -2829,3 +2837,29 @@ func cast_bar(nome: String, frac: float, resta: float) -> void:
 	_cast_fill.size = Vector2(312.0 * clampf(frac, 0.0, 1.0), 18)
 	_cast_fill.color = Color(0.95, 0.72, 0.3).lerp(Color(1.0, 0.95, 0.75), clampf(frac, 0.0, 1.0))
 	_cast_lbl.text = "%s   %.1fs" % [nome, maxf(resta, 0.0)]
+
+
+# servidor de testes: troca de classe pelo banco novo, com os dois caminhos (A e B) a cada classe
+func _janela_classe_v2(me: Dictionary) -> void:
+	var cv := classes_v2()
+	var lvl := int(me.get("level", 1))
+	var cur := str(me.get("class_id", ""))
+	if not cv.classes.has(cur):
+		for k in cv.classes:
+			if int(cv.classes[k].rank) == 0 and str(cv.classes[k].raca) == str(me.get("race", "humano")):
+				cur = k
+				break
+	var cl: Dictionary = cv.classes.get(cur, {})
+	win_title.text = "Classe: %s   ·   nível %d" % [str(cl.get("nome", "-")), lvl]
+	var achou := false
+	for k in cv.classes:
+		var nc: Dictionary = cv.classes[k]
+		if str(nc.pai) != cur:
+			continue
+		achou = true
+		var need := int(nc.nivel)
+		var txt := "%s   ·   caminho %s   ·   %s   ·   elemento %s   ·   requer nível %d" % [nc.nome, str(nc.caminho), str(nc.arquetipo).capitalize(), cv.elementos.get(str(nc.elemento), ""), need]
+		_row(txt, [["Evoluir", "game_class_change2", {"p_class": k}]] if lvl >= need else [], Color(0.88, 0.89, 0.93) if lvl >= need else Color(0.55, 0.56, 0.6))
+	if not achou:
+		_row("Você já está na classe final desta linha.", [])
+	_row("A evolução só pode ser feita dentro de uma cidade. As habilidades da classe anterior continuam.", [], Color(0.6, 0.62, 0.68))

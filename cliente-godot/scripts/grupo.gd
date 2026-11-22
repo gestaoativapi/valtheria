@@ -3,8 +3,8 @@ extends Node
 # Combinado pelo canal de tempo real "mundo" (evento "g"): convite, aceite, lista de membros, estado
 # (vida, mana, CP, nível, posição) e fala do grupo. Nada é gravado no servidor.
 # Quem manda na lista é o líder: mudanças de membros só valem quando vêm dele.
-# Limite conhecido: o canal não confirma quem enviou; divisão de experiência e de itens
-# precisa ser feita no servidor (fase própria, no Supabase de testes).
+# No executável de TESTES o grupo também é gravado no servidor (game_party_*), que divide experiência,
+# PH, aurum e itens a cada abate (game_kill5). No oficial continua só pelo canal.
 
 const MAX := 9
 const ESPERA_CONVITE := 20.0  # segundos para aceitar
@@ -54,6 +54,20 @@ func _sistema(t: String) -> void:
 	main.ui.chat_line("", t, "sistema")
 
 
+# ---------- servidor de testes: o grupo também fica gravado lá (divisão de experiência, PH, aurum e itens) ----------
+func _no_servidor() -> bool:
+	return not teste and main.net.has_method("ambiente_teste") and main.net.ambiente_teste() and main._online()
+
+
+func _srv(fn: String, args: Dictionary) -> Dictionary:
+	var a := args.duplicate()
+	a.p_char = main.net.char_id
+	var r: Dictionary = await main.net.rpc_call(fn, a)
+	if not r.ok:
+		main.ui.say(str(r.erro))
+	return r
+
+
 # ---------- ações do jogador ----------
 func convidar(id: String) -> void:
 	if not main._online() and not teste:
@@ -76,6 +90,8 @@ func convidar(id: String) -> void:
 	enviados[id] = {"gid": g, "ate": _agora() + ESPERA_CONVITE}
 	_tx({"t": "convite", "para": id, "gid": g})
 	_sistema("Convite de grupo enviado a %s." % nome)
+	if _no_servidor():
+		_srv("game_party_invite", {"p_name": nome})
 
 
 func convidar_nome(nome: String) -> void:
@@ -97,6 +113,13 @@ func aceitar() -> void:
 	_tx({"t": "aceitar", "para": c.de, "gid": c.gid})
 	if not em_grupo():
 		_sistema("Você aceitou o convite de %s." % str(c.nome))
+	if _no_servidor():  # o convite do servidor chega pelo nome de quem convidou
+		var info: Dictionary = await _srv("game_party_info", {})
+		if info.ok and info.data is Dictionary:
+			for cv in info.data.get("convites", []):
+				if str(cv.de) == str(c.nome):
+					_srv("game_party_answer", {"p_party": str(cv.grupo), "p_accept": true})
+					break
 
 
 func recusar() -> void:
@@ -123,6 +146,8 @@ func sair() -> void:
 		_tx({"t": "sair", "gid": gid})
 	_sistema("Você saiu do grupo.")
 	_limpar()
+	if _no_servidor():
+		_srv("game_party_leave", {})
 
 
 func expulsar(id: String) -> void:
@@ -133,6 +158,8 @@ func expulsar(id: String) -> void:
 	ordem.erase(id)
 	_tx({"t": "expulso", "para": id, "gid": gid})
 	_depois_de_mudar()
+	if _no_servidor():
+		_srv("game_party_kick", {"p_target": id})
 
 
 func falar(msg: String) -> void:

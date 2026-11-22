@@ -251,6 +251,14 @@ func _ready() -> void:
 				me.class_id = OS.get_environment("HAB_CLASSE") if OS.get_environment("HAB_CLASSE") != "" else "hum_gr_2b"
 				ui.hab_tab = wn.get_slice(":", 1) if ":" in wn else "ativas"
 				wn = "habilidades"
+				if OS.get_environment("HAB_SERVIDOR") != "":  # teste: como no servidor de testes (aprendidas com PH)
+					me.skills = {"hum_l_b1": 9, "hum_l_b2": 5, "hum_gr_1_s1": 12, "hum_gr_2b_s1": 4}
+					me.ph = 48210
+					me.aurum = 152000
+			if wn == "classe" and OS.get_environment("HAB_SERVIDOR") != "":  # teste: troca de classe do servidor de testes
+				me.level = int(OS.get_environment("HAB_NV")) if OS.get_environment("HAB_NV") != "" else 42
+				me.class_id = OS.get_environment("HAB_CLASSE") if OS.get_environment("HAB_CLASSE") != "" else "hum_gr_1"
+				me.skills = {}
 			if wn.begins_with("encantar"):
 				me.enchant = {"espada_ng": int(wn.get_slice(":", 1)) if ":" in wn else 9, "pesada_ng": 2}
 				net.inventory["enc_arma_ng"] = 3
@@ -1506,13 +1514,17 @@ func _action(fn: String, args: Dictionary) -> void:
 	if fn == "game_enchant":
 		await _encantar(str(args.get("p_slot", "arma")))
 		return
-	if fn in ["game_use", "game_class_change"]:
+	if fn in ["game_use", "game_class_change", "game_class_change2"]:
 		await _save_now(true)
 	var err: String = await net.act(fn, args)
 	if err != "":
 		ui.say(err)
 		return
 	fn_heals = fn == "game_use"
+	if fn == "game_skill_learn":
+		ui.say("Habilidade aprendida")
+	elif fn == "game_class_change2":
+		ui.say("Nova classe! As habilidades dela aparecem na aba Aprender (P)")
 	if fn.begins_with("game_market"):
 		ui.say({"game_market_buy": "Compra concluída", "game_market_sell": "Oferta anunciada", "game_market_cancel": "Oferta cancelada"}.get(fn, ""))
 		if fn == "game_market_sell":
