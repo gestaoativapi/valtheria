@@ -63,10 +63,10 @@ E1=$(estado); info "depois do abate: $E1"
 
 # 3. Tentativas de trapaça (todas devem ser recusadas)
 sleep 6
-recusa "abate longe da posição" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":2800,\"p_z\":400}"
-recusa "monstro fora da região (dragão na pradaria)" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"dragao\",\"p_x\":1255,\"p_z\":2252}"
-recusa "chefe sem ponto de caça" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"rei_javali\",\"p_x\":1255,\"p_z\":2252}"
-recusa "monstro inexistente" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"xp_infinito\",\"p_x\":1255,\"p_z\":2252}"
+sleep 1; recusa "abate longe da posição" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"lobo\",\"p_x\":2800,\"p_z\":400}"
+sleep 1; recusa "monstro fora da região (dragão na pradaria)" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"dragao\",\"p_x\":1255,\"p_z\":2252}"
+sleep 1; recusa "chefe sem ponto de caça" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"rei_javali\",\"p_x\":1255,\"p_z\":2252}"
+sleep 1; recusa "monstro inexistente" game_kill5 "{\"p_char\":\"$CH\",\"p_fam\":\"xp_infinito\",\"p_x\":1255,\"p_z\":2252}"
 recusa "teleporte" game_save2 "{\"p_char\":\"$CH\",\"p_x\":2900,\"p_z\":300,\"p_hp\":100,\"p_mp\":100}"
 rpc game_save2 "{\"p_char\":\"$CH\",\"p_x\":1252,\"p_z\":2251,\"p_hp\":999999,\"p_mp\":999999}" >/dev/null
 H=$(rpc game_state "{\"p_char\":\"$CH\"}" >/dev/null; jq -r '.char.hp' /tmp/r.json)
