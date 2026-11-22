@@ -1061,8 +1061,9 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 	if tr.get("barba", false) and male:
 		# barba cheia de anão: uma casca que nasce na linha do queixo, desce até o peito e afina na ponta
 		var pelo := StandardMaterial3D.new()
-		pelo.albedo_color = cor_cabelo
-		pelo.roughness = 1.0
+		# mesma cor aparente do cabelo V3 (textura escura multiplicada): sem isso a barba saía branca com o cabelo loiro
+		pelo.albedo_color = Color(minf(cor_cabelo.r * 1.0, 1.0), minf(cor_cabelo.g * 0.84, 1.0), minf(cor_cabelo.b * 0.5, 1.0))
+		pelo.roughness = 0.9
 		pelo.vertex_color_use_as_albedo = true
 		pelo.cull_mode = BaseMaterial3D.CULL_DISABLED
 		var mi := MeshInstance3D.new()
@@ -1566,7 +1567,9 @@ static func _malha_barba() -> ArrayMesh:
 		return _barba
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var nu := 22
+	# volume fechado (anel completo em cada altura): a parte de trás fica dentro do pescoço e some; de lado a barba
+	# tem espessura de verdade, encosta no queixo e se apoia no peito, em vez de uma folha pendurada na frente do rosto
+	var nu := 28
 	var nv := 14
 	var pts := []
 	for vi in nv + 1:
@@ -1574,25 +1577,41 @@ static func _malha_barba() -> ArrayMesh:
 		var linha := []
 		for ui in nu + 1:
 			var u := float(ui) / nu * 2.0 - 1.0
-			var ang := u * deg_to_rad(105.0)
-			var afina := 1.0 - 0.75 * pow(v, 1.6)
-			var rx := 0.074 * afina
-			var rz := 0.088 * (1.0 - 0.35 * v) + 0.02 * sin(v * PI)
-			var y := 1.648 - v * 0.235 - 0.03 * (1.0 - cos(u * PI * 0.5)) * (1.0 - v)
-			var mecha := 0.004 * sin(u * 31.0 + v * 7.0)
-			linha.append(Vector3(sin(ang) * (rx + mecha), y, -0.004 + cos(ang) * (rz + mecha)))
+			var ang := u * PI
+			var afina := 1.0 - 0.72 * pow(v, 1.7)
+			var rx := (0.07 + 0.012 * sin(v * PI)) * afina
+			var rz := (0.055 + 0.01 * sin(v * PI)) * afina
+			var cz := 0.045 + 0.06 * v - 0.02 * v * v   # desce do queixo e avança sobre o peito
+			var y := 1.618 - v * 0.24 + 0.03 * (1.0 - cos(ang)) * 0.5 * (1.0 - v)   # nos lados sobe pela mandíbula
+			var mecha := (0.005 * sin(u * 37.0 + v * 6.0) + 0.002 * sin(u * 91.0)) * (0.4 + 0.6 * v)
+			linha.append(Vector3(sin(ang) * (rx + mecha), y, cz + cos(ang) * (rz + mecha)))
 		pts.append(linha)
+	# ponta: fecha o fundo da barba num bico
+	var ponta := Vector3(0.0, 1.618 - 0.275, 0.045 + 0.06 - 0.02 + 0.006)
+	for ui in nu:
+		st.set_color(Color(0.95, 0.95, 0.95))
+		st.add_vertex(pts[nv][ui])
+		st.set_color(Color(0.95, 0.95, 0.95))
+		st.add_vertex(ponta)
+		st.set_color(Color(0.95, 0.95, 0.95))
+		st.add_vertex(pts[nv][ui + 1])
+	# tom por vértice (não por quadrado, que formava xadrez): fios verticais suaves, raiz mais escura, ponta mais clara
+	var tons := []
+	for vi in nv + 1:
+		var lt := []
+		for ui in nu + 1:
+			var u := float(ui) / nu
+			var v := float(vi) / nv
+			var fio := 0.5 + 0.5 * sin(u * 57.0 + sin(v * 5.0) * 1.3)
+			lt.append(clampf(0.58 + 0.3 * fio + 0.12 * v, 0.0, 1.0))
+		tons.append(lt)
 	for vi in nv:
 		for ui in nu:
-			var tom := 0.85 + 0.15 * float((ui * 7 + vi * 3) % 5) / 4.0
-			var c := Color(tom, tom, tom)
-			var a: Vector3 = pts[vi][ui]
-			var b: Vector3 = pts[vi][ui + 1]
-			var d: Vector3 = pts[vi + 1][ui]
-			var e: Vector3 = pts[vi + 1][ui + 1]
-			for q in [a, d, b, b, d, e]:
-				st.set_color(c)
-				st.add_vertex(q)
+			var ids := [[vi, ui], [vi + 1, ui], [vi, ui + 1], [vi, ui + 1], [vi + 1, ui], [vi + 1, ui + 1]]
+			for k in ids:
+				var tm: float = tons[k[0]][k[1]]
+				st.set_color(Color(tm, tm, tm))
+				st.add_vertex(pts[k[0]][k[1]])
 	# bigode: duas mechas curvas sobre a boca
 	for lado in [-1.0, 1.0]:
 		for k in 6:
@@ -1606,6 +1625,7 @@ static func _malha_barba() -> ArrayMesh:
 			for q in [p0 + Vector3(0, w0, 0), p0 - Vector3(0, w0, 0), p1 + Vector3(0, w1, 0), p1 + Vector3(0, w1, 0), p0 - Vector3(0, w0, 0), p1 - Vector3(0, w1, 0)]:
 				st.set_color(c2)
 				st.add_vertex(q)
+	st.index()
 	st.generate_normals()
 	_barba = st.commit()
 	return _barba
