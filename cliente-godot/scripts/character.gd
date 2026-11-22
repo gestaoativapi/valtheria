@@ -386,6 +386,12 @@ func _setup_medido(o: Dictionary) -> void:
 	ereta.feminino = not male
 	ereta.mago = str(o.get("type", "")) == "m" or str(eq.get("arma", "")).begins_with("cajado") or str(eq.get("arma", "")).begins_with("cetro")
 	skel.add_child(ereta)
+	# mãos livres relaxadas (dedos em cascata) em vez de soco fechado ou dedo duro
+	var maos = load("res://scripts/maos_naturais.gd").new()
+	maos.name = "MaosNaturais"
+	maos.dono = self
+	skel.add_child(maos)
+	_materiais_reais()
 	if dragon:  # o modelo da dragonita é mais alto que o humano de referência (medido: 1,96 m e 1,84 m)
 		height_m = 1.96 if male else 1.84
 	anim = AnimationPlayer.new()
@@ -1748,6 +1754,57 @@ func _attach_v3(file: String) -> Array:
 	return out
 
 
+# pele, olhos e cabelo com resposta de luz mais real (22/11): pele fosca com leve translucidez (orelhas e
+# nariz avermelham contra a luz no PC), olho úmido com brilho nítido, cabelo sem aspecto de plástico
+func _materiais_reais() -> void:
+	for m in skel.get_children():
+		if not (m is MeshInstance3D):
+			continue
+		var mi := m as MeshInstance3D
+		if mi.material_override != null or mi.mesh == null:
+			continue
+		var nome := String(mi.name).to_lower()
+		var tipo := ""
+		if nome == "corpo" or nome.contains("body_skin") or nome.contains("head"):
+			tipo = "pele"
+		elif nome == "olhos" or nome.contains("eye"):
+			tipo = "olho"
+		elif nome == "cabelo" or nome.begins_with("ca_") or nome.contains("hair"):
+			tipo = "cabelo"
+		if tipo == "":
+			continue
+		for si in mi.mesh.get_surface_count():
+			var base := mi.get_active_material(si) as BaseMaterial3D
+			if base == null:
+				continue
+			var d := base.duplicate() as BaseMaterial3D
+			match tipo:
+				"pele":
+					d.roughness = 0.58
+					d.metallic = 0.0
+					d.metallic_specular = 0.42
+					d.rim_enabled = true
+					d.rim = 0.12
+					d.rim_tint = 0.8
+					d.subsurf_scatter_enabled = true
+					d.subsurf_scatter_strength = 0.22
+					d.subsurf_scatter_skin_mode = true
+				"olho":
+					d.roughness = 0.04
+					d.metallic_specular = 0.9
+					d.clearcoat_enabled = true
+					d.clearcoat = 1.0
+					d.clearcoat_roughness = 0.02
+				"cabelo":
+					d.roughness = maxf(d.roughness, 0.62)
+					d.metallic = 0.0
+					d.metallic_specular = 0.3
+					d.rim_enabled = true
+					d.rim = 0.2
+					d.rim_tint = 0.6
+			mi.set_surface_override_material(si, d)
+
+
 func _tint(mi: MeshInstance3D, col: Color) -> void:
 	for i in mi.mesh.get_surface_count():
 		var m := mi.mesh.surface_get_material(i)
@@ -2113,7 +2170,10 @@ const POSE_ARMA := {
 	"normal_dupla": {"mao": Vector3(-0.22, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.38, -0.84, 0.39), "polo": Vector3(-0.4, -0.3, -0.85)},
 	"combate": {"mao": Vector3(-0.08, -0.8, 0.6), "k": 0.88, "lamina": Vector3(-0.22, 0.5, 0.84), "polo": Vector3(-0.7, -0.7, -0.2)},
 	# arco (21/11): segurado pelo meio, em pé ao lado do corpo (as duas pontas longe das costas), ponta de cima um pouco à frente
-	"normal_arco": {"mao": Vector3(-0.18, -0.95, 0.16), "k": 0.93, "lamina": Vector3(-0.12, -0.96, -0.22), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal_arco": {"mao": Vector3(-0.2, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.08, -0.99, -0.1), "polo": Vector3(-0.3, -0.35, -0.9)},
+	# arco no peito (22/11): mão no centro da empunhadura na frente do peito, arco em pé colado ao corpo, barriga
+	# do arco para a frente; o outro braço fica solto para baixo
+	"normal_arco_peito": {"mao": Vector3(0.4, -0.55, 0.74), "k": 0.8, "lamina": Vector3(0.0, -0.94, -0.34), "polo": Vector3(-0.5, -0.8, -0.2)},
 	"combate_dupla": {"mao": Vector3(0.02, -0.6, 0.8), "k": 0.86, "lamina": Vector3(-0.12, 0.34, 0.93), "polo": Vector3(-0.7, -0.7, -0.2)},
 	"combate_dupla_l": {"mao": Vector3(-0.05, -0.78, 0.6), "k": 0.88, "lamina": Vector3(-0.28, 0.12, 0.95), "polo": Vector3(-0.7, -0.6, -0.3)},
 }
@@ -2222,7 +2282,7 @@ func _montar_empunho_arco(grip_l: Node3D) -> void:
 	empunho = load("res://scripts/empunhar.gd").new()
 	empunho.name = "Empunhar"
 	skel.add_child(empunho)
-	var qn := _quadro_pose("l", "normal_arco")
+	var qn := _quadro_pose("l", _estilo_arco())
 	var alvo := Node3D.new()
 	alvo.transform = qn[0]
 	add_child(alvo)
@@ -2237,13 +2297,24 @@ func _montar_empunho_arco(grip_l: Node3D) -> void:
 	empunho.peso["l"] = 1.0  # já nasce segurando (sem transição da animação no primeiro quadro)
 
 
+# como cada raça carrega o arco parada (pedido de Robson 22/11): ao lado do corpo, pela empunhadura, com a ponta
+# de baixo apontada para o chão; ou encostado no peito, seguro pelo centro, com o outro braço solto
+const ARCO_PEITO := ["elfo", "sombrio", "beastman", "draconato"]
+
+
+func _estilo_arco() -> String:
+	return "normal_arco_peito" if race_id in ARCO_PEITO else "normal_arco"
+
+
 # arco parado na mão (pedido de Robson 20/11): a mão fecha no centro da empunhadura, a corda fica por dentro
 # (voltada para o corpo, junto do braço) e o desenho do arco para fora; o arco fica baixo, apontado para o chão.
 # Modelo do arco: comprimento em Z, corda em +X (x = 0,16), empunhadura em -X (x = -0,09).
 func _arco_na_mao() -> Transform3D:
 	var qn: Array = _pose_mao["l"].normal
 	var quadro: Basis = (qn[0] as Transform3D).basis
-	var dentro := quadro.inverse() * Vector3(0.35, -1.0, 0.0).normalized()  # (medido) eixo X do modelo para baixo: corda junto do braço, pontas e barriga do arco para o chão
+	# no peito a corda fica do lado do corpo (atrás) e a barriga do arco para a frente
+	var lado_corda := Vector3(0.0, 0.0, -1.0) if _estilo_arco() == "normal_arco_peito" else Vector3(0.35, -1.0, 0.0).normalized()
+	var dentro := quadro.inverse() * lado_corda  # (medido) eixo X do modelo para baixo: corda junto do braço, pontas e barriga do arco para o chão
 	var zg := Vector3(0, 0, 1)
 	var xg := (dentro - zg * dentro.dot(zg)).normalized()
 	var b := Basis(xg, zg.cross(xg), zg)

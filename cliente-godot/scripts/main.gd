@@ -70,6 +70,8 @@ var showing := false  # tela de entrada mostrando o personagem escolhido
 var gm := false  # conta de GM
 var gm_god := false
 var gm_speed := false
+var vel_atual := 0.0      # velocidade suavizada do jogador (arranque)
+var inclina_lado := 0.0   # inclinação nas curvas
 var gm_fly := false
 var gm_hide := false
 var fly_y := 0.0
@@ -822,6 +824,10 @@ func _set_quality(q: int) -> void:
 	e.adjustment_enabled = q >= 2
 	e.volumetric_fog_enabled = q >= 3 and forward
 	e.ssil_enabled = q >= 4 and forward
+	# reflexos na água e no metal molhado, e bordas mais lisas (cabelo, cercas, folhas) a partir do médio
+	e.ssr_enabled = q >= 3 and forward
+	vp.use_taa = q >= 3 and forward
+	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if q == 2 else Viewport.SCREEN_SPACE_AA_DISABLED
 	e.sdfgi_enabled = q >= 4 and forward
 	world.set_detail(q)
 	cam.far = world.far_r + 400.0
@@ -1087,6 +1093,9 @@ func _physics_process(dt: float) -> void:
 		var speed: float = (WALK if walk else float(combat.st.get("speed", RUN)) * folego.passo(dt, sprint, true, swimming)) * combat.mult_movimento()
 		if gm_speed:
 			speed *= 3.0
+		# arranque e troca de ritmo suaves (22/11, mobilidade): a velocidade sobe em ~0,15 s em vez de pular de 0 ao máximo
+		vel_atual = move_toward(vel_atual, speed, maxf(speed, 1.0) * 7.0 * dt)
+		speed = vel_atual
 		var step := speed * dt
 		if has_target:  # nunca passa do destino
 			var left := Vector2(target.x - player.position.x, target.z - player.position.z).length()
@@ -1101,8 +1110,14 @@ func _physics_process(dt: float) -> void:
 			if str(zo.get("kind", "")) == "submarina" and world.zone_at(p.x, p.z).is_empty():
 				p = player.position  # a bolha de ar de Abissália: não dá para sair a pé
 			player.position = Vector3(p.x, player.position.y if (jumping or gm_fly) else folego.altura(dt, _ground_at(p.x, p.z)), p.z)
+		var antes := facing
 		facing = lerp_angle(facing, atan2(move.x, move.z), minf(1.0, dt * 12.0))
 		player.rotation.y = facing
+		# inclina o corpo para dentro da curva e um pouco para a frente na corrida (peso do corpo na mudança de direção)
+		var curva := clampf(wrapf(facing - antes, -PI, PI) / maxf(dt, 0.001), -6.0, 6.0)
+		inclina_lado = lerpf(inclina_lado, -curva * 0.012 * clampf(speed / 5.2, 0.0, 1.4), minf(1.0, dt * 8.0))
+		player.rotation.z = inclina_lado
+		player.rotation.x = lerpf(player.rotation.x, 0.035 * clampf(speed / 6.0, 0.0, 1.3) if not walk else 0.0, minf(1.0, dt * 6.0))
 		player.play("Walk" if walk or swimming else "Jog_Fwd", 0.7 if swimming else (1.1 if walk else speed / 5.2))
 		emote = ""
 	elif not player.is_busy() and not combat.dead:
@@ -1110,6 +1125,10 @@ func _physics_process(dt: float) -> void:
 			emote = ""
 		player.play(emote if emote != "" else "Idle")
 	if move == Vector3.ZERO:
+		vel_atual = 0.0
+		inclina_lado = lerpf(inclina_lado, 0.0, minf(1.0, dt * 8.0))
+		player.rotation.z = inclina_lado
+		player.rotation.x = lerpf(player.rotation.x, 0.0, minf(1.0, dt * 8.0))
 		folego.passo(dt, false, false, swimming)
 		if not jumping and not gm_fly and interiores.inside.is_empty() and folego.no_ar:
 			player.position.y = folego.altura(dt, _ground_at(player.position.x, player.position.z))

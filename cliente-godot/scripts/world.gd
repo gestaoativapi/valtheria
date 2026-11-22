@@ -1834,7 +1834,8 @@ func _build_sky() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.9
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	# AgX: cores e luz mais próximas de foto (sem o laranja estourado do filmic nas luzes fortes)
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.tonemap_white = 1.3
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.58, 0.68, 0.8)
@@ -1850,8 +1851,8 @@ func _build_sky() -> void:
 	env.volumetric_fog_albedo = Color(0.9, 0.93, 1.0)
 	env.volumetric_fog_length = 160.0
 	env.adjustment_enabled = true
-	env.adjustment_saturation = 1.0
-	env.adjustment_contrast = 1.04
+	env.adjustment_saturation = 1.06
+	env.adjustment_contrast = 1.08
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
