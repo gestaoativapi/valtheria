@@ -71,6 +71,7 @@ var gm := false  # conta de GM
 var gm_god := false
 var gm_speed := false
 var vel_atual := 0.0      # velocidade suavizada do jogador (arranque)
+var tremor := 0.0         # tremor da câmera (golpe forte, dano recebido); some sozinho
 var inclina_lado := 0.0   # inclinação nas curvas
 var gm_fly := false
 var gm_hide := false
@@ -1180,7 +1181,31 @@ var _rot_t := 0.0
 var abertura: CanvasLayer  # cena 3D da história na tela de login (abertura.gd)
 
 
+# câmera treme um pouco no impacto (crítico, golpe pesado, dano recebido); decai em ~0,25 s
+func tremer(forca: float) -> void:
+	if not Config_get_tremor():
+		return
+	tremor = maxf(tremor, forca)
+
+
+func Config_get_tremor() -> bool:
+	return OS.get_environment("SEM_TREMOR") != "1"
+
+
+func _tremor_passo(dt: float) -> void:
+	if cam == null:
+		return
+	if tremor <= 0.001:
+		if cam.v_offset != 0.0:
+			cam.v_offset = 0.0
+		return
+	var t := Time.get_ticks_msec() * 0.001
+	cam.v_offset = sin(t * 61.0) * tremor * 0.6 + sin(t * 37.0) * tremor * 0.4
+	tremor = move_toward(tremor, 0.0, dt * 0.35)
+
+
 func _process(dt: float) -> void:
+	_tremor_passo(dt)
 	Character.recolher()
 	world.recolher()
 	# abertura: só na tela de login; enquanto ela aparece o mundo do jogo não é desenhado (economia de placa)

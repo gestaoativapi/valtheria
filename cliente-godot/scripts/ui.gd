@@ -39,6 +39,8 @@ signal want_loja(acao: String, nome: String)  # abrir, fechar, ver (loja de outr
 const GOLD := Color("#C9A25A")  # ouro da interface (paleta aprovada)
 
 var font: Font
+var vinheta: ColorRect
+var _vinheta_tw: Tween
 var root: Control
 var login_box: Control
 var painel_entrada: PanelContainer
@@ -392,12 +394,36 @@ func _build_login() -> void:
 	h.add_child(quit)
 
 
+func flash_dano(forca: float) -> void:
+	if vinheta == null:
+		return
+	var m := vinheta.material as ShaderMaterial
+	vinheta.visible = true
+	m.set_shader_parameter("a", clampf(forca, 0.0, 0.85))
+	if _vinheta_tw != null and _vinheta_tw.is_valid():
+		_vinheta_tw.kill()
+	_vinheta_tw = create_tween()
+	_vinheta_tw.tween_method(func(v: float): m.set_shader_parameter("a", v), clampf(forca, 0.0, 0.85), 0.0, 0.42)
+	_vinheta_tw.tween_callback(func(): vinheta.visible = false)
+
+
 func _build_hud() -> void:
 	hud = Control.new()
 	hud.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.visible = false
 	root.add_child(hud)
+	# borda vermelha ao receber dano (some em ~0,4 s); fica atrás de todos os painéis
+	vinheta = ColorRect.new()
+	vinheta.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vinheta.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var vsh := Shader.new()
+	vsh.code = "shader_type canvas_item;\nuniform float a = 0.0;\nvoid fragment(){ float d = distance(UV, vec2(0.5)); COLOR = vec4(0.5, 0.02, 0.0, a * smoothstep(0.32, 0.78, d)); }"
+	var vm := ShaderMaterial.new()
+	vm.shader = vsh
+	vinheta.material = vm
+	vinheta.visible = false
+	hud.add_child(vinheta)
 
 	var plate := PanelContainer.new()
 	var ps := _panel_style(0.7)

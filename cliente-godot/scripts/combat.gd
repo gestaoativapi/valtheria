@@ -459,6 +459,8 @@ func _spawn_medido(x: float, z: float, boss := false, boss_lvl := 0, spot := "",
 
 
 func _mob_anim(m: Dictionary, what: String) -> void:
+	if not what in ["hit", "death"] and now() < float(m.get("hit_ate", 0.0)):
+		return  # ainda reagindo ao golpe recebido
 	if m.kind == "criatura":  # ataque e golpe se repetem a cada vez; o resto só quando muda
 		if m.anim != what or what in ["attack", "hit"]:
 			m.anim = what
@@ -746,6 +748,11 @@ func _hurt_player(dmg: float) -> void:
 		dmg -= ab
 	hp -= dmg
 	_float_text(main.player.position + Vector3(0, main.player.height_m, 0), "-%d" % int(dmg), Color(1, 0.4, 0.35))
+	# dano recebido: borda da tela avermelha e a câmera treme na proporção do golpe
+	var frac := clampf(dmg / maxf(float(st.get("maxHp", 100.0)), 1.0), 0.0, 1.0)
+	main.tremer(0.015 + frac * 0.12)
+	if main.ui.has_method("flash_dano"):
+		main.ui.flash_dano(0.25 + frac * 1.6)
 	if hp <= 0.0:
 		hp = 0.0
 		_die()
@@ -797,6 +804,7 @@ func _hit_mob(m: Dictionary, dmg: float, crit: bool) -> void:
 		_float_text(cabeca, "%d" % int(dmg), Color(1, 0.88, 0.3), 1.5)
 	else:
 		_float_text(cabeca, "%d" % int(dmg), Color.WHITE)
+	_impacto(m, dmg, crit)
 	if float(m.hp) <= 0.0:
 		m.dead = true
 		m.dead_t = now()
@@ -806,6 +814,67 @@ func _hit_mob(m: Dictionary, dmg: float, crit: bool) -> void:
 			target = null
 			auto = false
 		_reward(m)
+
+
+# impacto do golpe (fase de combate, 22/11): o monstro pisca claro, recua um passo, faz a reação de dor e solta
+# faíscas no ponto do golpe; no crítico o jogo "segura" 60 ms e a câmera treme um pouco. Golpes que tiram muita
+# vida pesam mais. Nada disso muda dano ou regra: é só leitura do golpe.
+var _mat_pisca: StandardMaterial3D
+
+
+func _impacto(m: Dictionary, dmg: float, crit: bool) -> void:
+	var no := m.node as Node3D
+	if no == null or not is_instance_valid(no):
+		return
+	var peso := clampf(dmg / maxf(float(m.get("maxHp", 100.0)), 1.0) * 4.0, 0.0, 1.0)
+	var forte := crit or peso > 0.45
+	# recuo para longe de quem bateu
+	var de: Vector3 = main.player.position
+	var dir := no.position - de
+	dir.y = 0.0
+	if dir.length() > 0.01 and not bool(m.boss):
+		var passo := (0.32 if forte else 0.14) / maxf(float(m.get("height", 1.8)) / 1.8, 0.6)
+		var tw := no.create_tween()
+		tw.tween_property(no, "position", no.position + dir.normalized() * passo, 0.09).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# reação de dor (não em todo golpe, para não travar o monstro)
+	if float(m.hp) > 0.0 and (forte or rng.randf() < 0.45):
+		m.hit_ate = now() + 0.35
+		m.anim = ""
+		_mob_anim(m, "hit")
+	# pisca claro
+	if _mat_pisca == null:
+		_mat_pisca = StandardMaterial3D.new()
+		_mat_pisca.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_mat_pisca.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_mat_pisca.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		_mat_pisca.albedo_color = Color(1.0, 0.92, 0.8, 0.55)
+	var malhas := no.find_children("*", "MeshInstance3D", true, false)
+	for mi in malhas:
+		(mi as MeshInstance3D).material_overlay = _mat_pisca
+	var t := get_tree().create_timer(0.09 if not forte else 0.13, true, false, true)
+	t.timeout.connect(func():
+		for mi in malhas:
+			if is_instance_valid(mi) and (mi as MeshInstance3D).material_overlay == _mat_pisca:
+				(mi as MeshInstance3D).material_overlay = null)
+	# faíscas no ponto do golpe (altura do peito, do lado de quem bateu)
+	var ponto := no.position + Vector3(0, float(m.get("height", 1.8)) * 0.62, 0) - dir.normalized() * 0.3
+	FX.flare(main, ponto, Color(1.0, 0.85, 0.55) if not crit else Color(1.0, 0.6, 0.2), 0.55 if not forte else 0.95, 0.16, 1.2)
+	if forte:
+		main.tremer(0.06 if crit else 0.04)
+		_segura(0.06)
+
+
+# hitstop: o tempo do jogo quase para por um instante no golpe forte (o relógio real continua)
+var _segurando := false
+func _segura(seg: float) -> void:
+	if _segurando or Engine.time_scale < 0.99:
+		return
+	_segurando = true
+	Engine.time_scale = 0.06
+	var t := get_tree().create_timer(seg, true, false, true)
+	t.timeout.connect(func():
+		Engine.time_scale = 1.0
+		_segurando = false)
 
 
 func _reward(m: Dictionary) -> void:
