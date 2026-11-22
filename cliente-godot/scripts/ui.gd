@@ -36,7 +36,7 @@ signal want_self
 signal want_grupo(acao: String, id: String)
 signal want_loja(acao: String, nome: String)  # abrir, fechar, ver (loja de outro jogador)  # convidar, aceitar, recusar, sair, expulsar, escolher
 
-const GOLD := Color(0.86, 0.72, 0.42)
+const GOLD := Color("#C9A25A")  # ouro da interface (paleta aprovada)
 
 var font: Font
 var root: Control

@@ -119,8 +119,9 @@ func _process_medido(dt: float) -> void:
 	sun.light_energy = lerpf(0.42, 1.45, day) * (1.0 - 0.45 * wet)
 	var night := 1.0 - day
 	var gray := Color(0.42, 0.46, 0.52)
-	var top := Color(0.015, 0.025, 0.07).lerp(Color(0.18, 0.36, 0.68), day).lerp(gray * (0.3 + 0.7 * day), wet * 0.85)
-	var hor := Color(0.05, 0.07, 0.13).lerp(Color(0.72, 0.8, 0.88).lerp(Color(0.98, 0.6, 0.34), dusk), day).lerp(gray * (0.35 + 0.75 * day), wet * 0.85)
+	# paleta aprovada: céu de dia mais contido (azul acinzentado do céu nublado), horizonte na névoa úmida
+	var top := Color(0.015, 0.025, 0.07).lerp(Color(0.26, 0.38, 0.55).lerp(Paleta.CEU_NUBLADO, 0.25), day).lerp(gray * (0.3 + 0.7 * day), wet * 0.85)
+	var hor := Color(0.05, 0.07, 0.13).lerp(Paleta.NEVOA_UMIDA.lerp(Color(0.66, 0.74, 0.82), 0.4).lerp(Paleta.BRASA.lerp(Color(0.98, 0.7, 0.45), 0.4), dusk), day).lerp(gray * (0.35 + 0.75 * day), wet * 0.85)
 	var sky: ShaderMaterial = world.sky_shader
 	sky.set_shader_parameter("top_color", top)
 	sky.set_shader_parameter("horizon_color", hor)

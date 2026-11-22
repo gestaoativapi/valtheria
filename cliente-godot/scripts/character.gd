@@ -88,6 +88,7 @@ var arco_costas := Transform3D.IDENTITY
 var fist: Node  # Punho: fecha os dedos no cabo
 var fist_hands := ["r"]
 var tabardo_brasao := false
+var pes_ik: SkeletonModifier3D = null
 var offhand: Node3D  # segunda adaga (armas duplas), só aparece em combate
 var shield: Node3D
 var shield_arm: Node3D
@@ -118,7 +119,7 @@ const PROPORCOES := {
 	"goblin:m": {"altura": 1.15, "pelve": 0.95, "coluna": 0.86, "peito": 0.9, "pescoco": 0.9, "cabeca": 1.3, "ombros": 0.95, "braco": 1.18, "antebraco": 1.18, "mao": 1.2, "coxa": 0.78, "canela": 0.8, "pe": 1.15},
 	"goblin:f": {"altura": 1.08, "pelve": 0.98, "coluna": 0.86, "peito": 0.88, "pescoco": 0.9, "cabeca": 1.28, "ombros": 0.9, "braco": 1.15, "antebraco": 1.15, "mao": 1.15, "coxa": 0.8, "canela": 0.8, "pe": 1.1},
 	"orc:f": {"altura": 1.87, "pelve": 1.08, "coluna": 1.05, "peito": 1.12, "pescoco": 1.08, "cabeca": 1.05, "ombros": 1.12, "braco": 1.10, "antebraco": 1.10, "mao": 1.08, "coxa": 1.07, "canela": 1.07, "pe": 1.06},
-	"anao:m": {"altura": 1.42, "pelve": 1.08, "coluna": 0.88, "peito": 1.18, "pescoco": 0.9, "cabeca": 1.08, "ombros": 1.18, "braco": 1.1, "antebraco": 1.1, "mao": 1.1, "coxa": 0.78, "canela": 0.78, "pe": 0.9},
+	"anao:m": {"altura": 1.42, "pelve": 1.12, "coluna": 0.88, "peito": 1.3, "pescoco": 0.86, "cabeca": 1.14, "ombros": 1.3, "braco": 1.14, "antebraco": 1.14, "mao": 1.16, "coxa": 0.78, "canela": 0.78, "pe": 0.9},
 	"anao:f": {"altura": 1.35, "pelve": 1.08, "coluna": 0.86, "peito": 1.08, "pescoco": 0.9, "cabeca": 1.06, "ombros": 1.08, "braco": 1.08, "antebraco": 1.08, "mao": 1.06, "coxa": 0.78, "canela": 0.78, "pe": 0.9},
 	"beastman:m": {"altura": 1.90, "pelve": 1.04, "coluna": 1.04, "peito": 1.12, "pescoco": 1.08, "cabeca": 0.92, "ombros": 1.12, "braco": 1.08, "antebraco": 1.08, "mao": 1.06, "coxa": 1.06, "canela": 1.06, "pe": 1.04},
 	"beastman:f": {"altura": 1.78, "pelve": 1.06, "coluna": 1.02, "peito": 1.04, "pescoco": 1.02, "cabeca": 0.92, "ombros": 1.04, "braco": 1.04, "antebraco": 1.04, "mao": 1.02, "coxa": 1.04, "canela": 1.04, "pe": 1.02},
@@ -366,7 +367,7 @@ func _setup_medido(o: Dictionary) -> void:
 		Enfeites.roupa(self, skel, Enfeites.indice(arm), "pesada" if arm.begins_with("pesada") else ("leve" if arm.begins_with("leve") else ("robe" if arm.begins_with("robe") else "")))
 		if not o.get("sem_brasao", false) and arm != "" and arm != "nenhuma" and not (male and arm.begins_with("pesada")):
 			# medalhão com o brasão da raça (item 4 de realismo): fica por cima da roupa, mais à frente na armadura pesada
-			load("res://scripts/inscricoes.gd").peito(skel, race, 0.155 if arm.begins_with("pesada") else (0.13 if arm.begins_with("robe") else 0.14))
+			load("res://scripts/inscricoes.gd").peito(skel, race, 0.15 if arm.begins_with("pesada") else (0.11 if arm.begins_with("robe") else 0.105))
 	var chave_postura: String = "goblin" if str(o.get("subtipo", "")) == "goblin" else race
 	if POSTURAS.has(chave_postura):
 		var pr: Dictionary = POSTURAS[chave_postura]
@@ -392,6 +393,11 @@ func _setup_medido(o: Dictionary) -> void:
 	maos.name = "MaosNaturais"
 	maos.dono = self
 	skel.add_child(maos)
+	# cada pé no piso de baixo dele (encosta, calçada, ponte, escada): IK das pernas
+	pes_ik = load("res://scripts/pes_chao.gd").new()
+	pes_ik.name = "PesChao"
+	pes_ik.dono = self
+	skel.add_child(pes_ik)
 	_materiais_reais()
 	_tabardo_brasao()
 	if dragon:  # o modelo da dragonita é mais alto que o humano de referência (medido: 1,96 m e 1,84 m)
@@ -1073,7 +1079,7 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 		# barba cheia de anão: uma casca que nasce na linha do queixo, desce até o peito e afina na ponta
 		var pelo := StandardMaterial3D.new()
 		# mesma cor aparente do cabelo V3 (textura escura multiplicada): sem isso a barba saía branca com o cabelo loiro
-		pelo.albedo_color = Color(minf(cor_cabelo.r * 1.0, 1.0), minf(cor_cabelo.g * 0.84, 1.0), minf(cor_cabelo.b * 0.5, 1.0))
+		pelo.albedo_color = Color(minf(cor_cabelo.r * 0.95, 1.0), minf(cor_cabelo.g * 0.76, 1.0), minf(cor_cabelo.b * 0.46, 1.0))
 		pelo.roughness = 0.9
 		pelo.vertex_color_use_as_albedo = true
 		pelo.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -1589,22 +1595,24 @@ static func _malha_barba() -> ArrayMesh:
 		for ui in nu + 1:
 			var u := float(ui) / nu * 2.0 - 1.0
 			var ang := u * PI
-			var afina := 1.0 - 0.72 * pow(v, 1.7)
-			var rx := (0.07 + 0.012 * sin(v * PI)) * afina
-			var rz := (0.055 + 0.01 * sin(v * PI)) * afina
-			var cz := 0.045 + 0.06 * v - 0.02 * v * v   # desce do queixo e avança sobre o peito
-			var y := 1.618 - v * 0.24 + 0.03 * (1.0 - cos(ang)) * 0.5 * (1.0 - v)   # nos lados sobe pela mandíbula
+			var afina := 1.0 - 0.6 * pow(v, 1.4)
+			# em cima abraça a mandíbula inteira (de orelha a orelha) e desce estreitando: barba do tamanho do rosto
+			var rx := (0.08 + 0.006 * sin(v * PI)) * afina
+			var rz := (0.068 + 0.006 * sin(v * PI)) * afina
+			var cz := 0.022 + 0.055 * v - 0.012 * v * v   # desce do queixo e encosta no peito
+			var lateral := sin(ang) * sin(ang)
+			var y := 1.606 - v * 0.17 + 0.04 * lateral * (1.0 - v) * (1.0 - v)   # nos lados sobe até as costeletas
 			var mecha := (0.005 * sin(u * 37.0 + v * 6.0) + 0.002 * sin(u * 91.0)) * (0.4 + 0.6 * v)
 			linha.append(Vector3(sin(ang) * (rx + mecha), y, cz + cos(ang) * (rz + mecha)))
 		pts.append(linha)
 	# ponta: fecha o fundo da barba num bico
-	var ponta := Vector3(0.0, 1.618 - 0.275, 0.045 + 0.06 - 0.02 + 0.006)
+	var ponta := Vector3(0.0, 1.606 - 0.19, 0.022 + 0.055 - 0.012 + 0.004)
 	for ui in nu:
-		st.set_color(Color(0.95, 0.95, 0.95))
+		st.set_color(Color(0.86, 0.86, 0.86))
 		st.add_vertex(pts[nv][ui])
-		st.set_color(Color(0.95, 0.95, 0.95))
+		st.set_color(Color(0.86, 0.86, 0.86))
 		st.add_vertex(ponta)
-		st.set_color(Color(0.95, 0.95, 0.95))
+		st.set_color(Color(0.86, 0.86, 0.86))
 		st.add_vertex(pts[nv][ui + 1])
 	# tom por vértice (não por quadrado, que formava xadrez): fios verticais suaves, raiz mais escura, ponta mais clara
 	var tons := []
@@ -1614,7 +1622,7 @@ static func _malha_barba() -> ArrayMesh:
 			var u := float(ui) / nu
 			var v := float(vi) / nv
 			var fio := 0.5 + 0.5 * sin(u * 57.0 + sin(v * 5.0) * 1.3)
-			lt.append(clampf(0.58 + 0.3 * fio + 0.12 * v, 0.0, 1.0))
+			lt.append(clampf(0.7 + 0.22 * fio + 0.08 * v, 0.0, 1.0))
 		tons.append(lt)
 	for vi in nv:
 		for ui in nu:
@@ -1645,7 +1653,8 @@ static func _malha_barba() -> ArrayMesh:
 # V3: aldeão = túnica (formas corretivas + RBF), calça e botas novas; outras armaduras usam a roupa oficial no corpo novo
 # ---------- cor do grau (pedido de Robson 21/11: peças de graus diferentes não podem parecer iguais) ----------
 # NG fica como sempre foi; D bronze, C aço claro, B azurita, A rubro, S celestial (ouro claro).
-const COR_GRAU := {"d": Color(0.8, 0.52, 0.28), "c": Color(1.0, 1.0, 1.0), "b": Color(0.45, 0.62, 0.95), "a": Color(0.82, 0.26, 0.22), "s": Color(1.0, 0.8, 0.42)}
+# metais por grau na paleta aprovada: D bronze velho, C aço fosco, B aço azulado, A aço avermelhado, S ouro envelhecido
+const COR_GRAU := {"d": Color(0.82, 0.64, 0.42), "c": Color(0.86, 0.88, 0.9), "b": Color(0.6, 0.7, 0.84), "a": Color(0.72, 0.42, 0.36), "s": Color(0.92, 0.78, 0.52)}
 const FORCA_GRAU := {"d": 0.7, "c": 0.5, "b": 0.75, "a": 0.72, "s": 0.78}
 
 static func grau_do_item(id: String) -> String:
@@ -1959,9 +1968,10 @@ static func _model(item_id: String, kind: String, file: String, length: float, a
 					var mt := mi.mesh.surface_get_material(si)
 					if mt != null and String(mt.resource_name).contains("Red"):
 						var aco := StandardMaterial3D.new()
-						aco.albedo_color = Color(0.6, 0.61, 0.63) if String(mt.resource_name) == "LightRed" else Color(0.5, 0.5, 0.52)
-						aco.metallic = 0.85
-						aco.roughness = 0.32
+						# aço fosco da paleta; fio (LightRed) mais claro que o miolo
+						aco.albedo_color = Paleta.ACO_FOSCO.lightened(0.12) if String(mt.resource_name) == "LightRed" else Paleta.ACO_FOSCO.darkened(0.08)
+						aco.metallic = 0.55
+						aco.roughness = 0.36
 						mi.set_surface_override_material(si, aco)
 			return holder
 	return _place(file, length, at)
@@ -2189,7 +2199,7 @@ func _make_sheath(back: bool, small: bool) -> void:
 # polo = para onde vai o cotovelo. Medidas pelo braço de cada raça, então valem para todas.
 const POSE_ARMA := {
 	"normal": {"mao": Vector3(-0.14, -0.95, 0.22), "k": 0.93, "lamina": Vector3(-0.26, -0.78, 0.57), "polo": Vector3(-0.3, -0.35, -0.9)},
-	"normal_duas": {"mao": Vector3(-0.16, -0.95, 0.2), "k": 0.93, "lamina": Vector3(-0.22, -0.5, 0.84), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal_duas": {"mao": Vector3(-0.16, -0.95, 0.2), "k": 0.93, "lamina": Vector3(-0.2, -0.9, 0.38), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# cajado (21/11): postura formal de mago, cajado em pé ao lado do corpo, mão na altura da cintura
 	"normal_cajado": {"mao": Vector3(-0.3, -0.72, 0.62), "k": 0.8, "lamina": Vector3(-0.04, 1.0, 0.1), "polo": Vector3(-0.4, -0.5, -0.75)},
 	"normal_dupla": {"mao": Vector3(-0.22, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.38, -0.84, 0.39), "polo": Vector3(-0.4, -0.3, -0.85)},
@@ -2662,12 +2672,18 @@ func _process(dt: float) -> void:
 		locs.append(p)
 		best = minf(best, p.y - root_y)
 	var gap := 1e9
+	var gap_alto := -1e9
 	for p in locs:
 		if (p as Vector3).y - root_y <= best + 0.06:
 			var chao := float(world_ref.floor_y(p.x, p.z, root_y + 0.5))
 			if absf(chao - root_y) > 0.9:
 				chao = root_y  # sem chão do mundo por perto (interior de casa, ponte alta): o piso é o da própria raiz
-			gap = minf(gap, ((p as Vector3).y - ankle) - chao)
+			var gp := ((p as Vector3).y - ankle) - chao
+			gap = minf(gap, gp)
+			gap_alto = maxf(gap_alto, gp)
+	# com IK nas pernas o corpo desce até o pé de baixo da encosta e o joelho de cima dobra (até 35 cm de desnível)
+	if pes_ik != null and gap_alto > -1e8:
+		gap = minf(gap_alto, gap + 0.35)
 	# o limite de subida acompanha a altura: o gigante (2,15 m, passada larga) na encosta precisava de mais de
 	# 25 cm e ficava com a sola 4 cm enterrada
 	var want := clampf(foot_off - gap, -0.35, 0.25 * maxf(height_m / 1.8, 1.0) + (0.08 if height_m > 2.05 else 0.0))
@@ -2688,8 +2704,8 @@ const OFICIOS := {
 
 
 # túnica tingida (moradores): linho cru, castanho, oliva, ferrugem, anil, ocre e ameixa — cores de tintura natural
-const TINGIMENTOS := [Color(1, 1, 1), Color(0.8, 0.68, 0.52), Color(0.58, 0.64, 0.46), Color(0.74, 0.47, 0.4),
-	Color(0.52, 0.58, 0.72), Color(0.82, 0.72, 0.46), Color(0.62, 0.52, 0.62), Color(0.45, 0.4, 0.36)]
+const TINGIMENTOS := [Color(1, 1, 1), Color(1.05, 0.98, 0.84), Color(0.68, 0.78, 0.58), Color(0.92, 0.52, 0.42),
+	Color(0.92, 0.7, 0.5), Color(0.72, 0.74, 0.78), Color(0.84, 0.72, 0.5), Color(0.6, 0.48, 0.4)]   # paleta: linho, verde-musgo, tijolo, couro, ardósia, bronze, couro escuro
 
 
 func tingir_roupa(semente: int) -> void:

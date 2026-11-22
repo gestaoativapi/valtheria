@@ -19,7 +19,7 @@ static func _runas() -> StandardMaterial3D:
 		_mat_runas.albedo_texture = load("res://assets/emblemas/runas.png")
 		_mat_runas.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_mat_runas.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_mat_runas.albedo_color = Color(0.75, 0.88, 1.0, 0.85)
+		_mat_runas.albedo_color = Color(0.62, 0.74, 0.86, 0.5)   # gravura discreta, brilho frio fraco
 		_mat_runas.cull_mode = BaseMaterial3D.CULL_DISABLED
 	return _mat_runas
 
@@ -43,22 +43,49 @@ static func lamina(w: Node3D, kind: String) -> void:
 	var ord := [0, 1, 2]
 	ord.sort_custom(func(a, b): return tam[a] > tam[b])
 	var lg: int = ord[0]
-	var md: int = ord[1]
-	var fn: int = ord[2]
-	var c := bb.get_center()
-	var sinal := 1.0 if c[lg] >= 0.0 else -1.0
+	var c0 := bb.get_center()
+	var sinal := 1.0 if c0[lg] >= 0.0 else -1.0
+	var L: float = tam[lg]
+	var ini: float = bb.position[lg] if sinal > 0.0 else bb.end[lg]
+	# mede só o trecho da lâmina (50% a 80% do comprimento): a guarda larga do espadão enganava a medida e as
+	# runas ficavam flutuando fora do fio
+	var lb := AABB()
+	var tem := false
+	for m in w.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var xf := _rel(w, mi)
+		for si in mi.mesh.get_surface_count():
+			var vs: PackedVector3Array = mi.mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]
+			for v in vs:
+				var p: Vector3 = xf * v
+				var t: float = (p[lg] - ini) * sinal / L
+				if t < 0.5 or t > 0.8:
+					continue
+				if not tem:
+					lb = AABB(p, Vector3.ZERO)
+					tem = true
+				else:
+					lb = lb.expand(p)
+	if not tem:
+		return
+	var tl := lb.size
+	var resto := [0, 1, 2]
+	resto.erase(lg)
+	var md: int = resto[0] if tl[resto[0]] >= tl[resto[1]] else resto[1]
+	var fn: int = resto[1] if md == resto[0] else resto[0]
+	var c := lb.get_center()
 	var eixo := Vector3.ZERO
 	eixo[lg] = sinal
 	var lado := Vector3.ZERO
 	lado[md] = 1.0
 	var face := Vector3.ZERO
 	face[fn] = 1.0
-	var L: float = tam[lg]
-	# a lâmina ocupa a parte longe da mão: as runas vão de 40% a 85% do comprimento
-	var ini: float = bb.position[lg] if sinal > 0.0 else bb.end[lg]
 	var meio := ini + sinal * L * 0.62
+	tam = tl
 	var q := QuadMesh.new()
-	q.size = Vector2(L * 0.42, maxf(tam[md] * 0.3, 0.012))
+	q.size = Vector2(L * 0.36, clampf(tam[md] * 0.32, 0.008, 0.02))
 	for s in [1.0, -1.0]:
 		var mi := MeshInstance3D.new()
 		mi.name = "Runas"

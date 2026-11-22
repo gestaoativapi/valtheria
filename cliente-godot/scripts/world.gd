@@ -81,8 +81,14 @@ void fragment() {
 	float big = mix(0.9, 1.1, texture(grass, uv * 0.03).g * 1.6);
 	vec3 col = tn * 0.62 * detail * big;
 	col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 0.72) * vec3(1.03, 0.97, 0.88);
+	// paleta aprovada (22/11): a vegetação puxa para lama escura -> musgo sombreado -> folha oliva conforme a luz,
+	// mantendo o tom de cada região por baixo; terra e trilhas em terra molhada
+	float lum = dot(col, vec3(0.299, 0.587, 0.114));
+	vec3 pal = mix(mix(vec3(0.239, 0.196, 0.161), vec3(0.306, 0.357, 0.227), smoothstep(0.05, 0.16, lum)), vec3(0.435, 0.478, 0.294), smoothstep(0.16, 0.34, lum));
+	col = mix(col, pal * (0.75 + 0.5 * clamp(detail * big - 0.5, 0.0, 1.0)), 0.42 * (1.0 - sp.b));
 	vec3 d = texture(dirt, uv * 0.9).rgb * vec3(0.72, 0.78, 0.8);
-	col = mix(col, mix(vec3(0.45, 0.38, 0.3), d, near), sp.r);
+	col = mix(col, mix(vec3(0.357, 0.29, 0.22), d * vec3(0.92, 0.86, 0.8), near), sp.r);
+	col = mix(col, col * vec3(0.541, 0.522, 0.471) / 0.5, sp.b * 0.35);
 	// neve: o tom claro do mapa vira neve de verdade (não o cinza escurecido da grama), com cristais finos que brilham
 	float neve = smoothstep(0.74, 0.84, min(tn.r, min(tn.g, tn.b)));
 	vec3 nv = tn * mix(0.93, 1.0, texture(grass, uv * 0.37).g) * mix(1.0, clamp(lr, 0.85, 1.08), near * 0.6);
@@ -1838,7 +1844,7 @@ func _build_sky() -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.tonemap_white = 1.3
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.58, 0.68, 0.8)
+	env.fog_light_color = Paleta.NEVOA_UMIDA
 	env.fog_density = 0.0016
 	env.fog_aerial_perspective = 0.55  # o que está longe ganha a cor do céu: sensação de distância
 	env.fog_sky_affect = 0.12
