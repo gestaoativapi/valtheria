@@ -374,6 +374,15 @@ func _setup_medido(o: Dictionary) -> void:
 		postura.ereto = 0.75
 		ciclo_raca = float(pr.ciclo)
 		skel.add_child(postura)
+	if race == "gigante" and not dragon:  # metade humano, metade golem de gelo (pedido de Robson 21/11)
+		load("res://scripts/gelo_golem.gd").montar(skel)
+	# postura parada ereta (guerreiro reto; mago reto e formal; mulher com jeito feminino), depois da postura da raça
+	var ereta = load("res://scripts/postura_ereta.gd").new()
+	ereta.name = "PosturaEreta"
+	ereta.dono = self
+	ereta.feminino = not male
+	ereta.mago = str(o.get("type", "")) == "m" or str(eq.get("arma", "")).begins_with("cajado") or str(eq.get("arma", "")).begins_with("cetro")
+	skel.add_child(ereta)
 	if dragon:  # o modelo da dragonita é mais alto que o humano de referência (medido: 1,96 m e 1,84 m)
 		height_m = 1.96 if male else 1.84
 	anim = AnimationPlayer.new()
@@ -387,8 +396,10 @@ func _setup_medido(o: Dictionary) -> void:
 		_weapon(kind, lerpf(1.0, height_m / 1.8, 0.85), str(eq.get("escudo", "")) != "", wid, str(eq.get("escudo", "")))
 		var en: Dictionary = o.get("enchant") if o.get("enchant") is Dictionary else {}
 		brilho_encanto(int(en.get(wid, 0)))
+	# o elmo do conjunto conta nos atributos, mas não aparece na cabeça (pedido de Robson 21/11):
+	# na cabeça só aparecem os acessórios de cabeça (ids "aces_")
 	var elmo_id := str(eq.get("elmo", ""))
-	if elmo_id != "":
+	if elmo_id.begins_with("aces_"):
 		var it: Array = load("res://scripts/cabeca.gd").item(elmo_id)
 		if it[0] != null:
 			vestir_cabeca(it[0], bool(it[1]))
@@ -1679,7 +1690,8 @@ func _vestir_v3(male: bool, outfit: String, hair_col: Color, com_cabelo := true)
 	else:
 		_attach("outfit_%s_%s" % ["male" if male else "female", outfit])
 	# a textura do cabelo V3 é quase preta (fios escuros): a cor escolhida é multiplicada para aparecer
-	var hc := Color(hair_col.r, hair_col.g, hair_col.b) * (7.0 if male else 14.0)
+	# (a textura feminina estourava em fios dourados com 14x: parecia um enfeite na cabeça)
+	var hc := Color(hair_col.r, hair_col.g, hair_col.b) * (7.0 if male else 6.5)
 	hc.a = 1.0
 	if not com_cabelo:
 		return
@@ -1827,6 +1839,8 @@ const ARMAS := "res://assets/armas/"
 
 
 static func _model(item_id: String, kind: String, file: String, length: float, at: float, s: float) -> Node3D:
+	if kind in ["cajado", "cetro"]:  # cajado de verdade (antes era a lança)
+		return load("res://scripts/armas_proc.gd").cajado(length, at, kind == "cetro")
 	for f in [item_id, kind + "_ng"]:
 		if ResourceLoader.exists(ARMAS + f + ".glb"):
 			var w: Node3D = cena(ARMAS + f + ".glb").instantiate()
@@ -2058,10 +2072,12 @@ func _make_sheath(back: bool, small: bool) -> void:
 const POSE_ARMA := {
 	"normal": {"mao": Vector3(-0.14, -0.95, 0.22), "k": 0.93, "lamina": Vector3(-0.26, -0.78, 0.57), "polo": Vector3(-0.3, -0.35, -0.9)},
 	"normal_duas": {"mao": Vector3(-0.16, -0.95, 0.2), "k": 0.93, "lamina": Vector3(-0.22, -0.5, 0.84), "polo": Vector3(-0.3, -0.35, -0.9)},
-	"normal_cajado": {"mao": Vector3(-0.2, -0.93, 0.26), "k": 0.92, "lamina": Vector3(-0.26, -0.8, 0.54), "polo": Vector3(-0.3, -0.35, -0.9)},
+	# cajado (21/11): postura formal de mago, cajado em pé ao lado do corpo, mão na altura da cintura
+	"normal_cajado": {"mao": Vector3(-0.3, -0.72, 0.62), "k": 0.8, "lamina": Vector3(-0.04, 1.0, 0.1), "polo": Vector3(-0.4, -0.5, -0.75)},
 	"normal_dupla": {"mao": Vector3(-0.22, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.38, -0.84, 0.39), "polo": Vector3(-0.4, -0.3, -0.85)},
 	"combate": {"mao": Vector3(-0.08, -0.8, 0.6), "k": 0.88, "lamina": Vector3(-0.22, 0.5, 0.84), "polo": Vector3(-0.7, -0.7, -0.2)},
-	"normal_arco": {"mao": Vector3(-0.2, -0.95, 0.12), "k": 0.93, "lamina": Vector3(-0.08, 0.0, 1.0), "reto": true, "polo": Vector3(-0.3, -0.35, -0.9)},
+	# arco (21/11): segurado pelo meio, em pé ao lado do corpo (as duas pontas longe das costas), ponta de cima um pouco à frente
+	"normal_arco": {"mao": Vector3(-0.18, -0.95, 0.16), "k": 0.93, "lamina": Vector3(-0.12, -0.96, -0.22), "polo": Vector3(-0.3, -0.35, -0.9)},
 	"combate_dupla": {"mao": Vector3(0.02, -0.6, 0.8), "k": 0.86, "lamina": Vector3(-0.12, 0.34, 0.93), "polo": Vector3(-0.7, -0.7, -0.2)},
 	"combate_dupla_l": {"mao": Vector3(-0.05, -0.78, 0.6), "k": 0.88, "lamina": Vector3(-0.28, 0.12, 0.95), "polo": Vector3(-0.7, -0.6, -0.3)},
 }

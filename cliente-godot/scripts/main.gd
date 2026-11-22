@@ -341,6 +341,8 @@ func _ready() -> void:
 				me.class_id = OS.get_environment("HAB_CLASSE")
 				me.level = int(OS.get_environment("HAB_NV")) if OS.get_environment("HAB_NV") != "" else 56
 				me.race = str(load("res://scripts/ui.gd").classes_v2().classes.get(me.class_id, {}).get("raca", me.get("race", "humano")))
+			if OS.get_environment("ARMA_TESTE") != "":  # teste: luta com outra arma (ex.: arco_ng)
+				me.equipment = {"arma": OS.get_environment("ARMA_TESTE"), "armadura": "leve_ng"}
 		elif a == "--armed":  # teste: postura de combate parado, sem monstro
 			combat.combat_until = 1e9
 		elif a.begins_with("--racas-todas="):  # teste: as 8 raças lado a lado, só um sexo (m ou f), roupa simples
