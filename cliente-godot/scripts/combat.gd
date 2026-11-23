@@ -733,6 +733,18 @@ func _float_text(pos: Vector3, text: String, col: Color, esc := 1.0) -> void:
 	tw.tween_callback(l.queue_free)
 
 
+# golpe de habilidade corpo a corpo (UAL2): alterna o golpe de sempre com o avanço (com lâmina ou com escudo); sem arma, gancho e direto
+var _hab_i := 0
+func _golpe_habilidade() -> String:
+	_hab_i += 1
+	var p = main.player
+	if p.shield != null:
+		return "Shield_Dash" if _hab_i % 2 == 0 else "Sword_Attack"
+	if not p.armed:
+		return "Melee_Hook" if _hab_i % 2 == 0 else "Punch_Cross"
+	return ["Sword_Attack", "Sword_Dash"][_hab_i % 2]
+
+
 func _hurt_player(dmg: float) -> void:
 	if dead or main.gm_god:
 		return
@@ -751,6 +763,9 @@ func _hurt_player(dmg: float) -> void:
 	# dano recebido: borda da tela avermelha e a câmera treme na proporção do golpe
 	var frac := clampf(dmg / maxf(float(st.get("maxHp", 100.0)), 1.0), 0.0, 1.0)
 	main.tremer(0.015 + frac * 0.12)
+	# reação do corpo: golpe forte joga a cabeça para trás (UAL1 Hit_Head); comum alterna peito e cabeça
+	if not main.player.is_busy() and hp - 0.0 > 0.0:
+		main.player.action("Hit_Head" if frac > 0.18 or rng.randf() < 0.35 else "Hit_Chest")
 	if main.ui.has_method("flash_dano"):
 		main.ui.flash_dano(0.25 + frac * 1.6)
 	if hp <= 0.0:
@@ -1126,7 +1141,7 @@ func _executar(i: int) -> void:
 	if arqueiro:
 		main.player.disparar_arco()  # habilidade de arqueiro: o mesmo tiro completo
 	else:
-		main.player.action("Spell_Simple_Shoot" if (mg or not offensive) else "Sword_Attack")
+		main.player.action("Spell_Simple_Shoot" if (mg or not offensive) else _golpe_habilidade())
 	# efeitos por tipo de habilidade: círculo de conjuração para magias, meia-lua de luz para golpes de arma.
 	# O grau da arma aumenta o tamanho e acrescenta camadas (pedido de Robson 21/11: do NG ao SS a forma de
 	# jogar a magia e a força elemental ficam bem destacadas): B clarão nas mãos, A segundo círculo e
@@ -1353,6 +1368,7 @@ func _physics_process(dt: float) -> void:
 		recalc()
 	# regeneração: lenta em combate, rápida fora
 	var k := 0.004 if t < combat_until else 0.03
+	main.player.em_guarda = t < combat_until or (auto and target != null)
 	hp = minf(st.maxHp, hp + st.maxHp * k * dt)
 	mp = minf(st.maxMp, mp + st.maxMp * (0.012 if t < combat_until else 0.04) * dt)
 	if target and target.dead:

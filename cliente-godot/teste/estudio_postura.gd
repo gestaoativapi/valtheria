@@ -8,6 +8,9 @@ var quadros := 40
 var combate := false
 var perto := false
 var tiro := 0
+var anim := ""  # --anim=NOME: toca a animação em todos (play; nomes de golpe/reação com --acao)
+var acao := false
+var guarda := false
 var bonecos: Array = []
 var lista := "humano:m:espada_ng:pesada_ng,humano:f:espada_ng:pesada_ng,elfo:m:cajado_ng:robe_ng,elfo:f:cajado_ng:robe_ng,orc:m:machado_ng:pesada_ng,sombrio:f:adaga_ng:leve_ng,anao:m:martelo_ng:pesada_ng,humano:f:arco_ng:leve_ng"
 
@@ -20,6 +23,9 @@ func _init() -> void:
 		elif a == "--perto": perto = true
 		elif a.begins_with("--tiro="): tiro = int(a.trim_prefix("--tiro="))
 		elif a.begins_with("--quadros="): quadros = int(a.trim_prefix("--quadros="))
+		elif a.begins_with("--anim="): anim = a.trim_prefix("--anim=")
+		elif a == "--acao": acao = true
+		elif a == "--guarda": guarda = true
 
 
 func _montar() -> void:
@@ -69,6 +75,14 @@ func _process(_d: float) -> bool:
 		for c in bonecos:
 			c.set_battle(true)
 			c.disparar_arco()
+	if anim != "" and q >= 2:
+		var ini := quadros - int(OS.get_environment("ACAO_QUADROS") if OS.get_environment("ACAO_QUADROS") != "" else "18") if acao else 2
+		for c in bonecos:
+			c.em_guarda = guarda
+			if acao and q == ini:
+				c.action(anim)
+			elif not acao:
+				c.play(anim)
 	if q == quadros:
 		root.get_viewport().get_texture().get_image().save_png(saida)
 		quit()

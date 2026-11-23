@@ -1878,14 +1878,25 @@ static func _clips(sk: Skeleton3D, own := "") -> AnimationLibrary:
 		return _libraries[own]
 	var lib := AnimationLibrary.new()
 	var hip: float = OWN[own].hip if own != "" else 1.0
-	for f in ["anims_a", "anims_b"]:
-		var sc: Node = cena(DIR + f + ".glb").instantiate()
-		var ap := sc.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	# anims_c.res: clipes extras da Universal Animation Library 1 e 2 (Quaternius, CC0), mesmo rig de 65 ossos.
+	# Só ACRESCENTA nomes novos; as 28 oficiais (anims_a/anims_b) continuam as mesmas. Ver ferramentas/ual/LEIA-ME.md
+	var extra := load(DIR + "anims_c.res") as AnimationLibrary
+	for f in ["anims_a", "anims_b", "anims_c"]:
+		var sc: Node = null
+		var ap: Object = extra
+		if f != "anims_c":
+			sc = cena(DIR + f + ".glb").instantiate()
+			ap = sc.find_child("AnimationPlayer", true, false) as AnimationPlayer
+		elif extra == null:
+			continue
 		for n in ap.get_animation_list():
+			if f == "anims_c" and lib.has_animation(n):
+				continue  # nunca substitui uma oficial
 			var a: Animation = ap.get_animation(n).duplicate(true)
 			for t in range(a.get_track_count() - 1, -1, -1):
 				var p := a.track_get_path(t)
-				var bone := String(p.get_name(p.get_name_count() - 1))
+				# .glb oficial: caminho por nós (Armature/root/pelvis); anims_c.res: Armature/Skeleton3D:pelvis
+				var bone := String(p.get_concatenated_subnames()) if p.get_subname_count() > 0 else String(p.get_name(p.get_name_count() - 1))
 				if sk.find_bone(bone) < 0:
 					a.remove_track(t)
 					continue
@@ -1896,7 +1907,8 @@ static func _clips(sk: Skeleton3D, own := "") -> AnimationLibrary:
 			if n in ["Idle", "Walk", "Jog_Fwd", "Sprint", "Dance", "Idle_Talking", "Sitting_Idle", "Idle_FoldArms", "Idle_Shield", "Spell_Simple_Idle"]:
 				a.loop_mode = Animation.LOOP_LINEAR
 			lib.add_animation(n, a)
-		sc.free()
+		if sc != null:
+			sc.free()
 	_libraries[own] = lib
 	return lib
 
@@ -2464,14 +2476,22 @@ func _arma_na_mao(on: bool) -> void:
 			shield.transform = keep
 
 
+var em_guarda := false  # combate ativo: o Idle vira postura de guarda (definido pelo combat.gd)
+
 func play(n: String, speed := 1.0) -> void:
 	if guard != null and armed and not guard_on and not is_busy() and _mart_alvo == null:
 		_set_guard(true)
 	if n == "Idle" and armed and magic_idle and anim.has_animation("Spell_Simple_Idle"):
 		n = "Spell_Simple_Idle"
+	elif n == "Idle" and em_guarda and armed and not magic_idle and guard == null and shield == null and anim.has_animation("Sword_Idle"):
+		n = "Sword_Idle"  # em combate, com arma de uma mão: postura de guarda (UAL1)
+	if n == "Walk" and race_id == "elfo" and anim.has_animation("Walk_Formal"):
+		n = "Walk_Formal"  # elfo: passada leve e ereta (UAL1)
 	if not anim.has_animation(n):
 		return
 	var anda := n.contains("Walk") or n.contains("Run") or n.contains("Jog")
+	if anda and n == "Walk_Formal":
+		speed *= 1.08
 	if postura != null:
 		postura.andando = 1.0 if anda else 0.0
 	if anda:
