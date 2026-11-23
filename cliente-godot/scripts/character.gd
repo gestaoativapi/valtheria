@@ -2476,6 +2476,7 @@ func _arma_na_mao(on: bool) -> void:
 			shield.transform = keep
 
 
+const GUARDA_RACA := {"gigante": 0.8, "orc": 0.9, "beastman": 0.95, "draconato": 0.9, "anao": 1.1, "elfo": 1.05, "sombrio": 1.05}
 var em_guarda := false  # combate ativo: o Idle vira postura de guarda (definido pelo combat.gd)
 
 func play(n: String, speed := 1.0) -> void:
@@ -2492,6 +2493,8 @@ func play(n: String, speed := 1.0) -> void:
 	var anda := n.contains("Walk") or n.contains("Run") or n.contains("Jog")
 	if anda and n == "Walk_Formal":
 		speed *= 1.08
+	if n == "Sword_Idle":
+		speed *= GUARDA_RACA.get(race_id, 1.0)  # ritmo da guarda: gigante e orc pesados, anão e elfos mais vivos (só visual)
 	if postura != null:
 		postura.andando = 1.0 if anda else 0.0
 	if anda:

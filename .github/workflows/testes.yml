@@ -102,6 +102,15 @@ jobs:
           if [ -z "$TESTE_KEY" ]; then echo "Sem o segredo TESTE_ANON_KEY: D39 nao executado."; exit 1; fi
           export TESTE_URL TESTE_REF TESTE_KEY
           bash teste/d39_teste_online.sh ../d39_evidencias
+      - name: PvP com o servidor como autoridade (servidor de testes)
+        if: always()
+        env:
+          TESTE_KEY: ${{ secrets.TESTE_ANON_KEY }}
+        run: |
+          cd cliente-godot
+          . teste/ambiente_teste.env
+          export TESTE_URL TESTE_REF TESTE_KEY
+          bash teste/pvp_teste_online.sh ../d39_evidencias/pvp
       - name: Dois jogadores no tempo real (servidor de testes)
         if: always()
         env:

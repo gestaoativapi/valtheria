@@ -1,0 +1,17 @@
+-- PEDIDO 006 (23/11/2026): PvP com o servidor como autoridade. SÓ no projeto de testes (mxhhqxvrryvqcsvokyla).
+-- Aplicado como migração "pedido006_pvp_servidor" (texto completo no histórico de migrações do projeto).
+-- Resumo:
+--  * game.characters.hit_pvp_at: hora do último golpe de jogador recebido.
+--  * game.pvp_cd: recarga de habilidade em PvP (3 s), por personagem e habilidade.
+--  * public.game_pvp2(p_char, p_target, p_skill): trava as duas linhas na mesma ordem (FOR UPDATE);
+--    recusa: atacar a si mesmo, alvo ou atacante caídos, golpe com menos de 0,8 s do anterior (grava alerta),
+--    posição de algum dos dois com mais de 10 s, zona de paz (game.in_safe), distância acima do alcance
+--    (7 m corpo a corpo; 32 m arco/cajado/cetro ou classe mágica), habilidade não aprendida ou em recarga.
+--    O dano é calculado pelo servidor com game.power (o cliente não escolhe multiplicador; habilidade = 1,6x).
+--    Grava a vida do alvo, karma/PK/flag como a função antiga e o evento 'hit'/'killed'.
+--  * public.game_pvp (antiga, multiplicador escolhido pelo cliente até 5x) fechada ao cliente NO PROJETO DE TESTES.
+--  * game_save2: por 20 s depois de levar golpe de jogador, a vida salva pelo cliente não passa da vida do
+--    servidor + 1% da vida máxima por segundo (impede "curar" salvando vida cheia).
+-- Reverter: drop function public.game_pvp2(uuid,uuid,text); drop table game.pvp_cd;
+--   grant execute on function public.game_pvp(uuid,uuid,real) to authenticated;
+--   e reaplicar a game_save2 sem o trecho "hit_pvp_at".

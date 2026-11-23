@@ -58,6 +58,7 @@ var combat: Node3D
 var chasing := false
 var social: Node3D
 var grupo: Node
+var pvp: Node  # só no executável de teste
 var loja_titulo := ""  # loja pessoal aberta (placa sobre o personagem)
 var atmos: Node3D
 var npcs: Node3D
@@ -162,6 +163,11 @@ func _ready() -> void:
 	grupo = load("res://scripts/grupo.gd").new()
 	add_child(grupo)
 	grupo.setup(self)
+	if net.ambiente_teste():  # PEDIDO 006: PvP com o servidor como autoridade, só no executável de teste
+		pvp = load("res://scripts/pvp.gd").new()
+		pvp.name = "PvP"
+		add_child(pvp)
+		pvp.setup(self)
 	ui.want_grupo.connect(_grupo_acao)
 	ui.want_loja.connect(_loja)
 	interiores = load("res://scripts/interiores.gd").new()
@@ -994,6 +1000,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 				return
 			var mob = combat.pick(ro, rd)
 			if mob != null:
+				if pvp != null:
+					pvp.parar()
 				sel = {}
 				if combat.target == mob:
 					combat.engage(mob)
@@ -1002,6 +1010,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 				return
 			var other: String = social.pick(ro, rd)
 			if other != "":
+				# segundo clique no mesmo jogador = atacar (PvP, só no executável de teste)
+				if pvp != null and sel.get("kind", "") == "player" and str(sel.get("id", "")) == other:
+					pvp.atacar(other)
 				sel = {"kind": "player", "id": other}
 				combat.target = null
 				return
@@ -1013,6 +1024,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 				return
 			sel = {}
 			combat.stop_auto()
+			if pvp != null:
+				pvp.parar()
 			var hit: Variant = _ground_under(ev.position) if not combat.dead else null
 			if gm and hit != null and Input.is_key_pressed(KEY_CTRL) and Input.is_key_pressed(KEY_ALT):
 				_teleport((hit as Vector3).x, (hit as Vector3).z)
