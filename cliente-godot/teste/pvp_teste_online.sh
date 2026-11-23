@@ -74,7 +74,8 @@ sleep 1.2
 rpcT "$TB" game_save2 "{\"p_char\":\"$B\",\"p_x\":1272,\"p_z\":2250,\"p_hp\":$H3,\"p_mp\":100}" >/dev/null
 golpe >/dev/null; [ "$(motivo)" = "Alvo longe demais" ] && ok "golpe corpo a corpo a 20 m recusado" || erro "golpe a 20 m: $(head -c 160 /tmp/p.json)"
 
-# 7. Habilidade não aprendida
+# 7. Habilidade não aprendida (B volta para perto antes)
+rpcT "$TB" game_save2 "{\"p_char\":\"$B\",\"p_x\":1252,\"p_z\":2250,\"p_hp\":$H3,\"p_mp\":100}" >/dev/null
 sleep 1.2; golpe ',"p_skill":"golpe_supremo"' >/dev/null
 [ "$(motivo)" = "Habilidade não aprendida" ] && ok "habilidade não aprendida recusada" || erro "habilidade falsa: $(head -c 160 /tmp/p.json)"
 
