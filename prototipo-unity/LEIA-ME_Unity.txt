@@ -1,0 +1,38 @@
+PROTÓTIPO VALTHERIA NO UNITY (versão gratuita) — 23/11/2026
+Objetivo: comparar visual e desempenho com o Godot, no seu notebook, sem mexer no jogo oficial.
+
+O QUE TEM
+- Um cavaleiro (o mesmo modelo, armadura e brasão humano do jogo) com espada e 14 animações (Quaternius, CC0).
+- Lobisomens que andam, perseguem e atacam.
+- Chão, árvores, pedras, névoa e pós-processamento URP (tonemapping, brilho, contraste).
+- Medidor de desempenho no canto da tela: FPS médio e "1% mais lento".
+Tudo é montado sozinho quando você aperta Play. Não é preciso montar cena.
+
+PASSO A PASSO (só uma vez)
+1. Instale o Unity Hub pelo site oficial: https://unity.com/download
+   Use só esse endereço. Entre com a sua conta Unity (gratuita) e escolha a licença "Personal".
+2. No Hub, vá em Installs > Install Editor e escolha a versão Unity 6 com a marca "LTS".
+   Nos módulos, marque "Windows Build Support". O Android é opcional.
+   O download é grande (vários GB).
+3. No Hub, vá em Projects > New project e escolha o modelo "Universal 3D".
+   Dê o nome ValtheriaUnity e clique em Create.
+4. Com o projeto aberto, extraia este .zip e arraste a pasta "Valtheria" para dentro da janela Project, na pasta Assets.
+   Espere terminar a importação (barra de progresso no canto).
+5. Abra a cena Assets/Scenes/SampleScene (já vem aberta) e aperte o botão Play (▶) no alto.
+
+CONTROLES
+- WASD anda; Shift corre.
+- Clique esquerdo ou Espaço ataca.
+- Botão direito + mover o mouse gira a câmera; a roda do mouse aproxima e afasta.
+- F1 / F2 / F3 = 0 / 20 / 40 cavaleiros extras (teste de desempenho).
+
+COMO COMPARAR COM O GODOT
+- No Unity, anote o FPS médio e o "1% mais lento" com F1, F2 e F3.
+- No Godot (v31), rode o medir_fluidez.bat.
+- Mande os números e uma foto de tela de cada um.
+- Para medir de verdade, gere o executável no Unity: File > Build Profiles > Windows > Build.
+  Dentro do editor, o FPS fica mais baixo.
+
+SE ALGO DER ERRO
+Tire uma foto da janela "Console" do Unity (Window > General > Console) e me mande.
+Este protótipo foi escrito sem o Unity instalado aqui, então pode precisar de um ajuste rápido.
