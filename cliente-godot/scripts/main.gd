@@ -443,6 +443,10 @@ func _ready() -> void:
 			var mf: Node = load("res://scripts/medir_fluidez.gd").new()
 			add_child(mf)
 			mf.iniciar(self, a.trim_prefix("--medir-fluidez="))
+		elif a.begins_with("--medir-efeitos="):  # teste: 20 personagens lançando efeitos; CPU x GPU, cheio x baixo
+			var me: Node = load("res://scripts/medir_efeitos.gd").new()
+			add_child(me)
+			me.iniciar(self, a.trim_prefix("--medir-efeitos="))
 		elif a == "--humanos" or a == "--humanos-antigos":  # teste: humanos h/m com cada armadura, de frente
 			Character.V3_HUMANOS = a == "--humanos"
 			var arms := ["", "leve_ng", "pesada_ng", "robe_ng"]
