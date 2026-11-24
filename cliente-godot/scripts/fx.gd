@@ -55,9 +55,24 @@ static func _mat(add: bool) -> StandardMaterial3D:
 	return m
 
 
+# orçamento de efeitos: em luta com muita gente, cada efeito novo sai com menos partículas
+# (o visual continua, o quadro não despenca). Conta os efeitos temporários vivos.
+static var temp_vivos := 0
+
+
+static func _fator_orcamento() -> float:
+	if temp_vivos > 160:
+		return 0.3
+	if temp_vivos > 90:
+		return 0.5
+	if temp_vivos > 50:
+		return 0.75
+	return 1.0
+
+
 static func emitter(count: int, life: float, add: bool, size: float, c0: Color, c1: Color) -> CPUParticles3D:
 	var p := CPUParticles3D.new()
-	p.amount = maxi(2, int(count * maxf(amount, 0.25)))
+	p.amount = maxi(2, int(count * maxf(amount, 0.25) * _fator_orcamento()))
 	p.lifetime = life
 	var q := QuadMesh.new()
 	q.size = Vector2(size, size)
@@ -649,6 +664,8 @@ static func flecha_brilho(parent: Node, de: Vector3, ate: Vector3, elem: String,
 # fogo queima, gelo cria cristais e névoa, raio dá choques, vento gira em rajada, terra estilhaça o chão,
 # luz brilha, sombra escorre em névoa escura, água respinga; golpe sem elemento solta faíscas.
 static func _efeito_temp(no: Node, dur: float) -> void:
+	temp_vivos += 1
+	no.tree_exiting.connect(func(): temp_vivos = maxi(0, temp_vivos - 1), CONNECT_ONE_SHOT)
 	no.get_tree().create_timer(dur).timeout.connect(func(): if is_instance_valid(no): no.queue_free())
 
 

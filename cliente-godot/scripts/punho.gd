@@ -31,6 +31,8 @@ func _cache(sk: Skeleton3D, side: String) -> Array:
 
 func _process_modification() -> void:
 	var sk := get_skeleton()
+	if sk != null and sk.get_meta("lod_longe", false):  # longe da câmera: ajuste fino desligado (economiza CPU)
+		return
 	if sk == null:
 		return
 	for side in amount:

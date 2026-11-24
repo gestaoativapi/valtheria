@@ -22,6 +22,8 @@ func _ossos(sk: Skeleton3D, lado: String) -> Array:
 
 func _process_modification_with_delta(delta: float) -> void:
 	var sk := get_skeleton()
+	if sk != null and sk.get_meta("lod_longe", false):  # longe da câmera: ajuste fino desligado (economiza CPU)
+		return
 	if sk == null:
 		return
 	var inv := sk.global_transform.affine_inverse()

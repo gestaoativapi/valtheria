@@ -41,6 +41,8 @@ public static class GerarValtheria
 
     public static void Preparar()
     {
+        // reimporta a natureza (os .fbx podem ter sido trocados com a mesma data)
+        AssetDatabase.ImportAsset("Assets/Valtheria/Resources/Valtheria/Natureza", ImportAssetOptions.ForceUpdate | ImportAssetOptions.ImportRecursive);
         string T = NAT + "Texturas/";
         Mat("Bark_NormalTree", T + "Bark_NormalTree.png", false, Vector2.one, 0.05f, T + "Bark_NormalTree_Normal.png");
         Mat("Leaves_NormalTree", T + "Leaves_NormalTree_C.png", true, Vector2.one, 0.15f);

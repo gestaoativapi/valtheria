@@ -14,7 +14,13 @@ var FASES := [["A_cpu_cheio", false, 1.0], ["B_cpu_baixo", false, 0.5], ["C_gpu_
 const GARGALO := [["G0_vazio", 0, true, false, 1.0, true], ["G1_10_pers", 10, true, false, 1.0, true],
 	["G2_20_pers", 20, true, false, 1.0, true], ["G3_20_pers_parados", 20, false, false, 1.0, true],
 	["G4_20_pers_efeitos", 20, true, true, 1.0, true], ["G5_resolucao_metade", 20, true, true, 0.5, true],
-	["G6_sem_sombras", 20, true, true, 1.0, false]]
+	["G6_sem_sombras", 20, true, true, 1.0, false],
+	# sem os personagens do teste, desligando uma parte do jogo por vez (o que sobra de quadro é o peso dela)
+	["H1_sem_npcs", 0, true, false, 1.0, true, ["npcs"]], ["H2_sem_combate_mobs", 0, true, false, 1.0, true, ["combat"]],
+	["H3_sem_interface", 0, true, false, 1.0, true, ["ui"]], ["H4_sem_clima", 0, true, false, 1.0, true, ["atmos"]],
+	["H5_sem_social", 0, true, false, 1.0, true, ["social"]], ["H6_mundo_escondido", 0, true, false, 1.0, true, ["world_vis"]],
+	["H7_so_mundo", 0, true, false, 1.0, true, ["npcs", "combat", "ui", "atmos", "social"]]]
+var desligados: Array = []
 var gargalo := false
 var efeitos_on := true
 var cpu_ms: PackedFloat32Array = []
@@ -199,6 +205,24 @@ func _proxima_fase() -> void:
 			bonecos[i].visible = on
 			bonecos[i].process_mode = Node.PROCESS_MODE_INHERIT if (on and bool(f[2])) else Node.PROCESS_MODE_DISABLED
 		get_viewport().scaling_3d_scale = float(f[4])
+		for d in desligados:  # religa o que a fase anterior desligou
+			if is_instance_valid(d[0]):
+				d[0].process_mode = d[1]
+				if d[0] is Node3D or d[0] is CanvasLayer:
+					d[0].visible = d[2]
+		desligados.clear()
+		if f.size() > 6:
+			for nome in f[6]:
+				var alvo = main.get("world" if nome == "world_vis" else nome)
+				if alvo == null:
+					continue
+				desligados.append([alvo, alvo.process_mode, alvo.visible])
+				if nome == "world_vis":
+					alvo.visible = false
+				else:
+					alvo.process_mode = Node.PROCESS_MODE_DISABLED
+					if nome != "combat":
+						alvo.visible = false
 		if luzes.is_empty():
 			for l in get_tree().root.find_children("*", "Light3D", true, false):
 				luzes.append([l, (l as Light3D).shadow_enabled])

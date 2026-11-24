@@ -75,6 +75,8 @@ func _ready() -> void:
 		var e := 0.7 + _s() * 0.6
 		if p.length() >= 3:
 			_por(PLANTAS[k], p, g, e, false)
+	# mesmo personagem do protótipo Unity: o cavaleiro antigo (corpo + armadura de cavaleiro, Quaternius)
+	Ch.V3_HUMANOS = OS.get_environment("CLAREIRA_V3") == "1"
 	var jog = Ch.create({"race": "humano", "gender": "m", "equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}})
 	add_child(jog)
 	cam = Camera3D.new()

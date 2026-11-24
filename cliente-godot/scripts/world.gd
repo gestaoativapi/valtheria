@@ -1833,6 +1833,9 @@ func _build_sky() -> void:
 	sky_shader = sky_mat
 	var sky := Sky.new()
 	sky.radiance_size = Sky.RADIANCE_SIZE_64
+	# o céu tem nuvens que se mexem (TIME): no modo padrão o Godot refaz o reflexo do céu em todo quadro.
+	# Aos poucos (incremental) custa bem menos e ninguém nota a diferença (+30% de FPS na clareira, Intel UHD)
+	sky.process_mode = Sky.PROCESS_MODE_INCREMENTAL
 	sky.sky_material = sky_mat
 	env = Environment.new()
 	env.background_mode = Environment.BG_SKY

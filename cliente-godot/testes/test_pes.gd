@@ -41,6 +41,7 @@ func _process(_d: float) -> bool:
 			for i in ids.size():
 				for g in 2:
 					var c: Node3D = Character.create({"race": ids[i], "gender": "mf"[g], "skin": 1, "hair": 1, "hair_color": 1, "equipment": {"armadura": "leve_ng"}})
+					c.set_meta("sem_lod", true)  # o teste mede o IK dos pés em qualquer distância da câmera
 					main.add_child(c)
 					var px := L.x + i * 1.4 - 6.0
 					var pz := L.y + g * 2.0

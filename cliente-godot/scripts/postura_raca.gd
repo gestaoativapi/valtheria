@@ -65,6 +65,8 @@ func _graus(nome: String) -> float:
 
 func _process_modification_with_delta(delta: float) -> void:
 	var sk := get_skeleton()
+	if sk != null and sk.get_meta("lod_longe", false):  # longe da câmera: ajuste fino desligado (economiza CPU)
+		return
 	if sk == null or _ids.is_empty():
 		return
 	_mix = move_toward(_mix, 1.0 if em_combate else 0.0, delta * 3.0)

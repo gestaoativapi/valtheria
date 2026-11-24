@@ -666,9 +666,13 @@ func _process_medido(dt: float) -> void:
 		if not is_instance_valid(node) or not e.walks:
 			continue
 		var d2 := node.position.distance_squared_to(pp)
-		if d2 > 170.0 * 170.0:
-			node.visible = false
+		if d2 > 110.0 * 110.0:  # longe: some e não processa (antes 170 m; os NPCs eram metade do peso do quadro)
+			if node.visible:
+				node.visible = false
+				node.process_mode = Node.PROCESS_MODE_DISABLED
 			continue
+		if node.process_mode == Node.PROCESS_MODE_DISABLED:
+			node.process_mode = Node.PROCESS_MODE_INHERIT
 		_tick(e, dt, night)
 	# conversa espontânea perto do jogador
 	talk_t -= dt

@@ -111,6 +111,8 @@ func _atitude(b: String) -> Vector2:
 
 func _process_modification_with_delta(delta: float) -> void:
 	var sk := get_skeleton()
+	if sk != null and sk.get_meta("lod_longe", false):  # longe da câmera: ajuste fino desligado (economiza CPU)
+		return
 	if sk == null or _ids.is_empty():
 		return
 	_t += delta
