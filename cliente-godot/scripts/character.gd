@@ -53,7 +53,7 @@ static var world_ref: Node  # mundo, para os pés pisarem no chão (altura do te
 # V3 (base de teste): humanos com corpo e rosto A novos, roupa de aldeão com formas corretivas e RBF otimizado (v3o)
 static var V3_HUMANOS := true
 # raças que já usam o corpo V3 (as demais seguem no modelo antigo até ganharem corpo próprio)
-const V3_RACAS := ["humano", "elfo", "sombrio", "orc", "gigante", "anao", "beastman"]
+const V3_RACAS := ["humano", "elfo", "sombrio", "orc", "gigante", "beastman"]  # anão usa os modelos próprios M1/M5 (pedido do Robson, 23/11)
 const DIR_V3 := "res://assets_v3/personagens/"
 const V3Ctrl := preload("res://scripts/v3_corretivas.gd")
 const Enfeites := preload("res://scripts/enfeites.gd")
@@ -361,7 +361,7 @@ func _setup_medido(o: Dictionary) -> void:
 			if bi >= 0:
 				skel.set_bone_pose_scale(bi, Vector3.ONE * float(shape.bones[bn]))
 		height_m = (1.8 + (0.12 if race == "anao" else 0.0)) * k - float(shape.drop) * k
-	if not dragon and not o.get("sem_roupa", false):
+	if not dragon and own == "" and not o.get("sem_roupa", false):  # M1/M5 já vêm com a armadura no modelo
 		_cor_grau_roupa(eq)
 		var arm := str(eq.get("armadura", ""))
 		Enfeites.roupa(self, skel, Enfeites.indice(arm), "pesada" if arm.begins_with("pesada") else ("leve" if arm.begins_with("leve") else ("robe" if arm.begins_with("robe") else "")))
