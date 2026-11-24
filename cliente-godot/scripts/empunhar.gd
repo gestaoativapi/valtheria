@@ -12,6 +12,8 @@ var peso := {"r": 0.0, "l": 0.0}
 var meta := {"r": 0.0, "l": 0.0}
 var velocidade := 5.0
 var _ids := {}
+# quanto o punho pode dobrar em relação ao antebraço: firme em combate; solto (arma pendendo) fora dele
+var punho_max := deg_to_rad(22.0)
 
 
 func _ossos(sk: Skeleton3D, lado: String) -> Array:
@@ -43,12 +45,29 @@ func _pm_corpo(delta: float) -> void:
 			continue
 		var g: Transform3D = (pegada[lado] as Node3D).transform  # pegada no espaço do osso da mão
 		var a: Transform3D = inv * (alvo[lado] as Node3D).global_transform
+		a.basis = a.basis.orthonormalized()
 		var hand_g := sk.get_bone_global_pose(ids[2])
 		var esc := hand_g.basis.get_scale()
+		var p_polo: Vector3 = inv * (polo[lado] as Node3D).global_position
 		var rot := (a.basis * g.basis.inverse()).orthonormalized()
 		var mao := Basis(rot.x * esc.x, rot.y * esc.y, rot.z * esc.z)
 		var pulso := a.origin - mao * g.origin
-		_ik(sk, ids, pulso, inv * (polo[lado] as Node3D).global_position, w)
+		_ik(sk, ids, pulso, p_polo, w)
+		# punho natural (pedido de Robson 24/11 12:07: "o punho parece desproporcional"): a mão continua o
+		# antebraço e só dobra até punho_max; o resto da inclinação vai para a arma (que gira junto com a mão)
+		var ante: Vector3 = sk.get_bone_global_pose(ids[1]).origin - sk.get_bone_global_pose(ids[2]).origin
+		var y: Vector3 = a.basis.y
+		if ante.length() > 1e-5:
+			ante = ante.normalized()
+			var ang := y.angle_to(ante)
+			if ang > punho_max:
+				var eixo := y.cross(ante)
+				if eixo.length() > 1e-5:
+					a.basis = Basis(eixo.normalized(), ang - punho_max) * a.basis
+					rot = (a.basis * g.basis.inverse()).orthonormalized()
+					mao = Basis(rot.x * esc.x, rot.y * esc.y, rot.z * esc.z)
+					pulso = a.origin - mao * g.origin
+					_ik(sk, ids, pulso, p_polo, w)
 		# palma no cabo
 		var pai := sk.get_bone_parent(ids[2])
 		var pg := sk.get_bone_global_pose(pai)

@@ -11,6 +11,8 @@ var tiro := 0
 var anim := ""  # --anim=NOME: toca a animação em todos (play; nomes de golpe/reação com --acao)
 var acao := false
 var guarda := false
+var foco := ""  # --foco=x,y,z,dist: câmera de perto num ponto (ex.: a mão)
+var giro_cam := 0.0
 var bonecos: Array = []
 var lista := "humano:m:espada_ng:pesada_ng,humano:f:espada_ng:pesada_ng,elfo:m:cajado_ng:robe_ng,elfo:f:cajado_ng:robe_ng,orc:m:machado_ng:pesada_ng,sombrio:f:adaga_ng:leve_ng,anao:m:martelo_ng:pesada_ng,humano:f:arco_ng:leve_ng"
 
@@ -26,6 +28,8 @@ func _init() -> void:
 		elif a.begins_with("--anim="): anim = a.trim_prefix("--anim=")
 		elif a == "--acao": acao = true
 		elif a == "--guarda": guarda = true
+		elif a.begins_with("--foco="): foco = a.trim_prefix("--foco=")
+		elif a.begins_with("--giro="): giro_cam = float(a.trim_prefix("--giro="))
 
 
 func _montar() -> void:
@@ -66,6 +70,12 @@ func _montar() -> void:
 	if perto:  # rostos
 		cam.position = Vector3(0, 1.62, 1.2 + itens.size() * 0.42)
 		cam.look_at(Vector3(0, 1.55, 0))
+	if foco != "":
+		var f := foco.split(",")
+		var alvo := Vector3(float(f[0]), float(f[1]), float(f[2]))
+		var d := float(f[3])
+		cam.position = alvo + Vector3(sin(deg_to_rad(giro_cam)), 0.15, cos(deg_to_rad(giro_cam))) * d
+		cam.look_at(alvo)
 	cam.current = true
 
 
