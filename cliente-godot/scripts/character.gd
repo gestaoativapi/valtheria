@@ -2212,6 +2212,16 @@ func _make_shield(s: float, shield_id := "") -> void:
 	alvo.position = Vector3(0.22, 1.04, 0.34) * ka
 	add_child(alvo)
 	ik_escudo = _arm_ik("l", alvo, Vector3(0.75, 0.75, -0.15) * ka)
+	# o alvo acompanha o peito (correndo o tronco inclina e o escudo continua à frente dele, de pé)
+	var b3 := skel.find_bone("spine_03")
+	if b3 >= 0:
+		var att3 := BoneAttachment3D.new()
+		att3.bone_name = "spine_03"
+		skel.add_child(att3)
+		var pos_skel: Vector3 = skel.global_transform.affine_inverse() * (global_transform * alvo.position)
+		remove_child(alvo)
+		att3.add_child(alvo)
+		alvo.transform = Transform3D(Basis.IDENTITY, skel.get_bone_global_rest(b3).affine_inverse() * pos_skel)
 	shield_back = Node3D.new()
 	var bone := skel.find_bone("spine_03")
 	if bone >= 0:

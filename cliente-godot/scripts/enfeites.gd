@@ -261,12 +261,19 @@ static func roupa(ch: Node3D, sk: Skeleton3D, n: int, tipo: String) -> void:
 		ch.add_child(no)
 		if no != null:
 			# a capa pende da borda de cima, um pouco afastada das pernas
-			var pivo := Node3D.new()
+			var pivo: Node3D = load("res://scripts/pano_balanco.gd").new()
 			pivo.rotation = Vector3(0.16, 0, 0)
-			no.add_child(pivo)
-			var capa := QuadMesh.new()
 			var larg_c := h * (0.26 if n == 5 else 0.32)
 			var alt_c := h * (0.56 if n == 5 else 0.66)
+			pivo.dono = ch
+			pivo.altura = alt_c
+			if sk != null and sk.find_bone("spine_03") >= 0:
+				var ac := BoneAttachment3D.new()
+				ac.bone_name = "spine_03"
+				sk.add_child(ac)
+				pivo.ancora = ac
+			no.add_child(pivo)
+			var capa := QuadMesh.new()
 			capa.size = Vector2(larg_c, alt_c)
 			_peca(pivo, capa, _pano(n), Vector3(0, -alt_c * 0.5, 0)).name = "Capa"
 			if n >= 5:  # borda dourada (S) ou de luz (SS)
