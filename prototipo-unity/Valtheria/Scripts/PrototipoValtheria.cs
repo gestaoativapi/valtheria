@@ -461,10 +461,48 @@ public class PrototipoValtheria : MonoBehaviour
         }
     }
 
+    // medição automática: Valtheria.exe -medir C:/caminho/unity.json
+    // fases de 15 s (3 s de aquecimento): 0, 20 e 40 cavaleiros extras; grava FPS médio e 1% mais lento e fecha.
+    string medirSaida;
+    int medirFase = -1;
+    float medirT;
+    readonly List<float> medirQuadros = new List<float>();
+    readonly System.Text.StringBuilder medirJson = new System.Text.StringBuilder();
+    static readonly int[] MEDIR_N = { 0, 20, 40 };
+
+    void MedirAuto(float dt)
+    {
+        if (medirSaida == null)
+        {
+            var args = System.Environment.GetCommandLineArgs();
+            medirSaida = "";
+            for (int i = 0; i < args.Length - 1; i++) if (args[i] == "-medir") medirSaida = args[i + 1];
+            if (medirSaida == "") return;
+            medirFase = 0; medirT = 0; Extras(MEDIR_N[0]);
+            medirJson.Append("{\n");
+        }
+        if (medirSaida == "" || medirFase < 0) return;
+        medirT += dt;
+        if (medirT > 3f) medirQuadros.Add(dt);
+        if (medirT < 18f) return;
+        var l = new List<float>(medirQuadros); l.Sort();
+        float soma = 0; foreach (var q in l) soma += q;
+        int n = Mathf.Max(1, l.Count / 100);
+        float pior = 0; for (int i = l.Count - n; i < l.Count; i++) pior += l[i];
+        medirJson.Append($"  \"extras_{MEDIR_N[medirFase]}\": {{\"fps_medio\": {(l.Count / Mathf.Max(0.0001f, soma)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}, \"fps_1pct_baixo\": {(n / Mathf.Max(0.0001f, pior)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}, \"quadros\": {l.Count}}},\n");
+        medirQuadros.Clear(); medirT = 0; medirFase++;
+        if (medirFase < MEDIR_N.Length) { Extras(MEDIR_N[medirFase]); return; }
+        medirJson.Append($"  \"placa_de_video\": \"{SystemInfo.graphicsDeviceName}\", \"api\": \"{SystemInfo.graphicsDeviceVersion}\", \"processador\": \"{SystemInfo.processorType}\", \"janela\": \"{Screen.width}x{Screen.height}\", \"unity\": \"{Application.unityVersion}\"\n}}\n");
+        System.IO.File.WriteAllText(medirSaida, medirJson.ToString());
+        medirFase = -1;
+        Application.Quit();
+    }
+
     void Update()
     {
         float dt = Time.deltaTime;
         Medir(dt);
+        MedirAuto(dt);
         int f = Entrada.TeclaF();
         if (f == 1) Extras(0); else if (f == 2) Extras(20); else if (f == 3) Extras(40);
 
