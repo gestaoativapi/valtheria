@@ -3,6 +3,16 @@ import { NodeIO, Document } from '@gltf-transform/core'; import { ALL_EXTENSIONS
 import { MeshoptDecoder, MeshoptSimplifier } from 'meshoptimizer'; import { mat4, quat, vec3 } from 'gl-matrix'; import sharp from 'sharp'; await MeshoptDecoder.ready; await MeshoptSimplifier.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
 const CFG = {
+  orc_m: { model: { xs: 0.32, k: 1, kz: 1, hs: 1, dy: 0 }, src: '/home/claude/orc/orc_m_tex.glb', semWeld: true, height: 2.0, y0: -0.998, top: 0.987, tris: 36000,
+    spine: { pelvis: [-0.05, -0.02], spine_01: [0.08, -0.03], spine_02: [0.25, -0.04], spine_03: [0.42, -0.04], neck_01: [0.68, -0.02], Head: [0.77, 0.0] }, headTop: [0.98, 0.0], rTorso: 0.32, rHead: 0.14, rNeck: 0.12,
+    arm: { z: -0.02, clav: [0.08, 0.64], upper: [0.34, 0.60], lower: [0.52, 0.27], hand: [0.62, -0.12], tip: [0.66, -0.36], r: [0.18, 0.15, 0.13, 0.12] },
+    leg: { thigh: [0.17, -0.14, 0], calf: [0.20, -0.52, 0], foot: [0.22, -0.84, -0.03], ball: [0.22, -0.95, 0.12], tip: [0.22, -0.97, 0.24], r: [0.17, 0.15, 0.13, 0.11] }, hip: [0.17, -0.12, 0.26], shoulder: [0.27, 0.62, 0.2],
+    extra: [['clavicle_r', [-0.30, 0.66, 0], [-0.52, 0.86, 0], 0.12]] },
+  orc_f: { model: { xs: 0.27, k: 1, kz: 1, hs: 1, dy: 0 }, src: '/home/claude/orc/orc_f_tex.glb', semWeld: true, height: 1.87, y0: -0.998, top: 0.99, tris: 34000,
+    spine: { pelvis: [-0.05, -0.02], spine_01: [0.08, -0.02], spine_02: [0.25, -0.03], spine_03: [0.42, -0.03], neck_01: [0.66, -0.02], Head: [0.76, -0.01] }, headTop: [0.99, 0.0], rTorso: 0.24, rHead: 0.13, rNeck: 0.09,
+    arm: { z: -0.02, clav: [0.07, 0.60], upper: [0.29, 0.56], lower: [0.42, 0.23], hand: [0.50, -0.04], tip: [0.54, -0.19], r: [0.15, 0.12, 0.10, 0.09] },
+    leg: { thigh: [0.15, -0.10, 0], calf: [0.17, -0.50, 0], foot: [0.20, -0.84, -0.03], ball: [0.20, -0.95, 0.10], tip: [0.20, -0.97, 0.20], r: [0.15, 0.13, 0.11, 0.10] }, hip: [0.15, -0.10, 0.22], shoulder: [0.22, 0.58, 0.16],
+    extra: [['clavicle_r', [-0.26, 0.62, 0], [-0.38, 0.78, 0], 0.09]] },
   anao_m: { model: { xs: 0.36, k: 1, kz: 1, hs: 1, dy: 0 }, src: '/home/claude/meshy/m2.glb', height: 1.36, y0: -0.761, top: 0.757, tris: 34000,
     spine: { pelvis: [-0.10, 0], spine_01: [0.0, 0], spine_02: [0.12, 0], spine_03: [0.25, 0], neck_01: [0.50, 0.01], Head: [0.56, 0.02] }, headTop: [0.70, 0.02], rTorso: 0.36, rHead: 0.2, rNeck: 0.12,
     arm: { z: -0.02, clav: [0.10, 0.40], upper: [0.36, 0.39], lower: [0.56, 0.22], hand: [0.74, 0.06], tip: [0.90, -0.12], r: [0.2, 0.15, 0.13, 0.12] },
@@ -26,7 +36,7 @@ const CFG = {
 };
 const key = process.argv[2], C = CFG[key], ITER = +(process.argv[3] || 8);
 const base = await io.read('/home/claude/mmo3d/web/assets/chars/base_male.glb'), src = await io.read(C.src);
-await src.transform(weld());
+if (!C.semWeld) await src.transform(weld());
 { const t = src.getRoot().listMeshes()[0].listPrimitives()[0].getIndices().getCount() / 3; if (t > C.tris * 1.2) await src.transform(simplify({ simplifier: MeshoptSimplifier, ratio: C.tris / t, error: 0.01 })); }
 const bskin = base.getRoot().listSkins().sort((a, b) => b.listJoints().length - a.listJoints().length)[0], joints = bskin.listJoints(), names = joints.map(j => j.getName()), idx = Object.fromEntries(names.map((n, i) => [n, i]));
 // modelagem antes da pele: afina o corpo, encolhe a cabeça, alonga o pescoço e reduz o nariz
@@ -77,7 +87,7 @@ for (let i = 0; i < joints.length; i++) { const p = parent[i], lp = p >= 0 ? vec
 for (let i = 0; i < joints.length; i++) (parent[i] >= 0 ? nodes[parent[i]] : scene).addChild(nodes[i]);
 const skin = doc.createSkin(key).setInverseBindMatrices(doc.createAccessor().setType('MAT4').setArray(ibm).setBuffer(buf)); nodes.forEach(nd => skin.addJoint(nd)); skin.setSkeleton(nodes[0]);
 const smat = sprim.getMaterial(), mat = doc.createMaterial('MI_' + key).setRoughnessFactor(0.82).setMetallicFactor(0).setDoubleSided(false);
-const cpTex = async (t, nm) => t ? doc.createTexture(nm).setImage(new Uint8Array(await sharp(t.getImage()).resize(1024, 1024).jpeg({ quality: 88 }).toBuffer())).setMimeType('image/jpeg') : null;
+const cpTex = async (t, nm) => t ? doc.createTexture(nm).setImage(new Uint8Array(await sharp(t.getImage()).resize(1024, 1024, { fit: 'fill' }).jpeg({ quality: 88 }).toBuffer())).setMimeType('image/jpeg') : null;
 mat.setBaseColorTexture(await cpTex(smat.getBaseColorTexture(), key + '_cor')); mat.setNormalTexture(await cpTex(smat.getNormalTexture(), key + '_normal'));
 const acc = (type, arr) => doc.createAccessor().setType(type).setArray(arr).setBuffer(buf);
 const prim = doc.createPrimitive().setAttribute('POSITION', acc('VEC3', pos)).setAttribute('NORMAL', acc('VEC3', Float32Array.from(sprim.getAttribute('NORMAL').getArray()))).setAttribute('TEXCOORD_0', acc('VEC2', Float32Array.from(sprim.getAttribute('TEXCOORD_0').getArray()))).setAttribute('JOINTS_0', acc('VEC4', JN)).setAttribute('WEIGHTS_0', acc('VEC4', WT)).setIndices(acc('SCALAR', ind)).setMaterial(mat);

@@ -191,7 +191,9 @@ const SHAPE := {
 }
 # modelos próprios: altura e quanto o quadril fica mais baixo que o do humano (as animações movem o quadril)
 # bones: ajuste fino de proporção (braço mais curto, mão menor, perna um pouco mais longa, cabeça)
-const OWN := {"anao_m": {"height": 1.36, "hip": 0.624, "bones": {}}, "anao_f": {"height": 1.3, "hip": 0.657, "bones": {}}}
+const OWN := {"anao_m": {"height": 1.36, "hip": 0.624, "bones": {}}, "anao_f": {"height": 1.3, "hip": 0.657, "bones": {}},
+	"orc_m": {"height": 2.0, "hip": 1.006, "bones": {}}, "orc_f": {"height": 1.87, "hip": 0.94, "bones": {}}}  # orcs: pranchas originais 24/11 -> Hunyuan3D-2.1 -> pele_automatica.mjs
+static var orc_modelo_proprio := true  # false volta ao orc V3 antigo (teste/comparação)
 # pegada por tipo de arma (medidas em metros para 1,80 m de altura):
 # at = onde a mão principal segura, medido a partir da ponta do cabo; two = onde a segunda mão segura (0 = uma mão só)
 # hand = mão principal; back = guardada nas costas (senão na cintura); dual = uma em cada mão
@@ -269,12 +271,14 @@ func _setup_medido(o: Dictionary) -> void:
 	var own := ""
 	if race == "anao" and not (V3_HUMANOS and race in V3_RACAS):  # modelos M1/M5 antigos só fora do V3
 		own = "anao_m" if male else "anao_f"
+	elif race == "orc" and str(o.get("subtipo", "")) != "goblin" and orc_modelo_proprio:
+		own = "orc_m" if male else "orc_f"
 	var file := "body_%s_%s" % [g, outfit]
 	if dragon:
 		file = "body_dragonita"
 	elif own != "":
 		file = "body_" + own
-	v3 = V3_HUMANOS and race in V3_RACAS
+	v3 = V3_HUMANOS and race in V3_RACAS and own == ""
 	var body: Node3D = cena(DIR_V3 + ("pc_humano_m_rostoA" if male else "pc_humano_f_rostoA") + ".glb").instantiate() if v3 else cena(DIR + file + ".glb").instantiate()
 	body.name = "Corpo"
 	add_child(body)
