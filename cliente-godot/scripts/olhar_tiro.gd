@@ -30,6 +30,12 @@ func _gira(sk: Skeleton3D, nome: String, q: Quaternion) -> void:
 
 
 func _process_modification_with_delta(_delta: float) -> void:
+	var __t := Time.get_ticks_usec()
+	_pm_corpo(_delta)
+	preload("res://scripts/perfil.gd").soma("esq_olhar_tiro", Time.get_ticks_usec() - __t)
+
+
+func _pm_corpo(_delta: float) -> void:
 	var sk := get_skeleton()
 	if sk != null and sk.get_meta("lod_longe", false):  # longe da câmera: ajuste fino desligado (economiza CPU)
 		return

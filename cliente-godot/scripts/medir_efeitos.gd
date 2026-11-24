@@ -7,6 +7,9 @@ extends Node
 # Grava FPS médio, 1% mais lento e a placa de vídeo em JSON.
 # Uso: Valtheria.exe -- --play --at=1250,2250 --medir-efeitos=C:/caminho/efeitos.json
 const FX := preload("res://scripts/fx.gd")
+const Perfil := preload("res://scripts/perfil.gd")
+var perfil_soma := {}
+var perfil_quadros := 0
 const ELEM := ["fogo", "gelo", "agua", "luz", "sombra", "natureza", "terra", "vento", "raio"]
 const RACAS := [["humano", "m"], ["humano", "f"], ["elfo", "m"], ["elfo", "f"], ["sombrio", "m"], ["orc", "m"], ["anao", "m"], ["beastman", "m"], ["draconato", "m"], ["gigante", "m"]]
 var FASES := [["A_cpu_cheio", false, 1.0], ["B_cpu_baixo", false, 0.5], ["C_gpu_cheio", true, 1.0], ["D_gpu_baixo", true, 0.5]]
@@ -57,6 +60,7 @@ func iniciar(m: Node, caminho: String, modo_gargalo := false) -> void:
 		DUR = float(OS.get_environment("MEDIR_SEG"))
 		AQUECE = 1.0
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
+	Perfil.ativo = true
 	get_tree().node_added.connect(_no_novo)
 
 
@@ -118,9 +122,13 @@ func _process(dt: float) -> void:
 	t_fase += dt
 	if t_fase > AQUECE:
 		tempos.append(dt * 1000.0)
+		for k in Perfil.t:
+			perfil_soma[k] = float(perfil_soma.get(k, 0.0)) + int(Perfil.t[k]) / 1000.0
+		perfil_quadros += 1
 		var vr := get_viewport().get_viewport_rid()
 		cpu_ms.append(RenderingServer.viewport_get_measured_render_time_cpu(vr) + RenderingServer.get_frame_setup_time_cpu())
 		gpu_ms.append(RenderingServer.viewport_get_measured_render_time_gpu(vr))
+	Perfil.t = {}
 	if efeitos_on:
 		_golpes(dt)
 	_camera()
@@ -263,6 +271,12 @@ func _fechar_fase() -> void:
 		"chamadas_desenho": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
 		"triangulos": int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
 	}
+	var pm := {}
+	for parte in perfil_soma:
+		pm[parte] = snappedf(float(perfil_soma[parte]) / maxf(1.0, perfil_quadros), 0.01)
+	resultado[FASES[fase][0]]["ms_por_parte"] = pm
+	perfil_soma = {}
+	perfil_quadros = 0
 
 
 func _media(a: PackedFloat32Array) -> float:

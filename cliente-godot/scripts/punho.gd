@@ -30,6 +30,12 @@ func _cache(sk: Skeleton3D, side: String) -> Array:
 
 
 func _process_modification() -> void:
+	var __t := Time.get_ticks_usec()
+	_pm_corpo()
+	preload("res://scripts/perfil.gd").soma("esq_punho", Time.get_ticks_usec() - __t)
+
+
+func _pm_corpo() -> void:
 	var sk := get_skeleton()
 	if sk != null and sk.get_meta("lod_longe", false):  # longe da câmera: ajuste fino desligado (economiza CPU)
 		return

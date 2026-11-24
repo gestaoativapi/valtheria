@@ -10,6 +10,8 @@ var peso := 1.0
 var _ids := {}
 var _suave := {"l": 0.0, "r": 0.0}
 
+var _cache := {}  # altura do piso por ponto (grade de 5 cm): personagem parado não consulta o mundo de novo
+
 const MAX_SOBE := 0.4
 const MAX_DESCE := 0.3
 
@@ -20,7 +22,24 @@ func _ossos(sk: Skeleton3D, lado: String) -> Array:
 	return _ids[lado]
 
 
+func _piso(mundo, x: float, z: float, y: float) -> float:
+	var k := Vector3i(roundi(x * 20.0), roundi(z * 20.0), roundi(y * 4.0))
+	if _cache.has(k):
+		return _cache[k]
+	if _cache.size() > 96:
+		_cache.clear()
+	var v := float(mundo.floor_y(x, z, y))
+	_cache[k] = v
+	return v
+
+
 func _process_modification_with_delta(delta: float) -> void:
+	var __t := Time.get_ticks_usec()
+	_pm_corpo(delta)
+	preload("res://scripts/perfil.gd").soma("esq_pes_chao", Time.get_ticks_usec() - __t)
+
+
+func _pm_corpo(delta: float) -> void:
 	var sk := get_skeleton()
 	if sk != null and sk.get_meta("lod_longe", false):  # longe da câmera: ajuste fino desligado (economiza CPU)
 		return
@@ -40,7 +59,7 @@ func _process_modification_with_delta(delta: float) -> void:
 		if ids[0] < 0 or ids[1] < 0 or ids[2] < 0:
 			return
 		var pe: Vector3 = xf * sk.get_bone_global_pose(ids[2]).origin
-		var chao := float(mundo.floor_y(pe.x, pe.z, raiz_y + 0.5))
+		var chao := _piso(mundo, pe.x, pe.z, raiz_y + 0.5)
 		if absf(chao - raiz_y) > 0.9:
 			chao = raiz_y  # interior de casa ou ponte alta sem piso do mundo: vale a própria raiz
 		dados[lado] = [pe, chao + tornozelo]
@@ -70,8 +89,8 @@ func _process_modification_with_delta(delta: float) -> void:
 		# a sola acompanha a inclinação do piso embaixo dela (pé apoiado), sem deixar a ponta entrar no chão
 		if apoiado:
 			var e := 0.25
-			var hx := float(mundo.floor_y(pe.x + e, pe.z, raiz_y + 0.5)) - float(mundo.floor_y(pe.x - e, pe.z, raiz_y + 0.5))
-			var hz := float(mundo.floor_y(pe.x, pe.z + e, raiz_y + 0.5)) - float(mundo.floor_y(pe.x, pe.z - e, raiz_y + 0.5))
+			var hx := _piso(mundo, pe.x + e, pe.z, raiz_y + 0.5) - _piso(mundo, pe.x - e, pe.z, raiz_y + 0.5)
+			var hz := _piso(mundo, pe.x, pe.z + e, raiz_y + 0.5) - _piso(mundo, pe.x, pe.z - e, raiz_y + 0.5)
 			var n_mundo := Vector3(-hx, 2.0 * e, -hz).normalized()
 			var n := (inv.basis * n_mundo).normalized()
 			var cima := (inv.basis * Vector3.UP).normalized()

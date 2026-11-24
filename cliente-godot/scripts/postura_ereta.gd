@@ -110,6 +110,12 @@ func _atitude(b: String) -> Vector2:
 
 
 func _process_modification_with_delta(delta: float) -> void:
+	var __t := Time.get_ticks_usec()
+	_pm_corpo(delta)
+	preload("res://scripts/perfil.gd").soma("esq_postura_ereta", Time.get_ticks_usec() - __t)
+
+
+func _pm_corpo(delta: float) -> void:
 	var sk := get_skeleton()
 	if sk != null and sk.get_meta("lod_longe", false):  # longe da câmera: ajuste fino desligado (economiza CPU)
 		return

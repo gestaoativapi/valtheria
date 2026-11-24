@@ -2669,6 +2669,12 @@ func _ready() -> void:
 # pés no chão: o pé que está apoiado (o mais baixo na animação) encosta no terreno embaixo dele.
 # Corrige o corpo flutuando em descidas e o pé afundando em subidas; suaviza para não tremer.
 func _process(dt: float) -> void:
+	var __t := Time.get_ticks_usec()
+	_process_corpo(dt)
+	Perfil.soma("boneco_quadro", Time.get_ticks_usec() - __t)
+
+
+func _process_corpo(dt: float) -> void:
 	if _aparecer > 0:
 		_aparecer -= 1
 		if _aparecer == 0:
