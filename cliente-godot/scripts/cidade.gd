@@ -629,6 +629,7 @@ func fountain(x: float, z: float, r: float, statue := false) -> void:
 	else:
 		_peca(lathe([Vector2(0.14, 0.0), Vector2(0.12, 0.5), Vector2(0.2, 0.62), Vector2(0.0, 0.85)]), mats.marmore, base + Vector3(0, 2.75, 0))
 	var jet := CPUParticles3D.new()
+	FX.cull(jet, 70.0)
 	jet.amount = int(70 * FX.amount) + 10
 	jet.lifetime = 1.2
 	jet.direction = Vector3.UP

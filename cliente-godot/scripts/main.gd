@@ -85,6 +85,7 @@ func _ready() -> void:
 	_log_open()
 	compat = RenderingServer.get_current_rendering_method() == "gl_compatibility"
 	forward = RenderingServer.get_current_rendering_method() == "forward_plus"
+	add_child(load("res://scripts/cull_particulas.gd").new())
 	world = World.new()
 	add_child(world)
 	world.build()
@@ -447,6 +448,10 @@ func _ready() -> void:
 			var me: Node = load("res://scripts/medir_efeitos.gd").new()
 			add_child(me)
 			me.iniciar(self, a.trim_prefix("--medir-efeitos="))
+		elif a.begins_with("--medir-gargalo="):  # teste: separa o peso (personagens, animação, efeitos, resolução, sombras)
+			var mg: Node = load("res://scripts/medir_efeitos.gd").new()
+			add_child(mg)
+			mg.iniciar(self, a.trim_prefix("--medir-gargalo="), true)
 		elif a == "--humanos" or a == "--humanos-antigos":  # teste: humanos h/m com cada armadura, de frente
 			Character.V3_HUMANOS = a == "--humanos"
 			var arms := ["", "leve_ng", "pesada_ng", "robe_ng"]

@@ -78,9 +78,17 @@ static func emitter(count: int, life: float, add: bool, size: float, c0: Color, 
 	return p
 
 
+# partículas fixas do cenário (tochas, fogueiras, chafarizes): só simulam e desenham perto da câmera.
+# Sem isso, as ~230 tochas do mapa inteiro rodavam na CPU em todo quadro, mesmo longe.
+static func cull(n: Node3D, dist := 70.0) -> void:
+	n.set_meta("cull_dist", dist)
+	n.add_to_group("cull_particulas")
+
+
 # fogueira ou tocha: chamas, brasas e fumaça
 static func fire(size := 1.0, smoke := true) -> Node3D:
 	var root := Node3D.new()
+	cull(root, 70.0)
 	var f := emitter(26, 0.75, true, 0.75 * size, Color(1.0, 0.92, 0.45, 0.9), Color(1.0, 0.3, 0.04, 0.8))
 	f.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 	f.emission_sphere_radius = 0.22 * size

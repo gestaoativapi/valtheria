@@ -9,7 +9,17 @@ extends Node
 const FX := preload("res://scripts/fx.gd")
 const ELEM := ["fogo", "gelo", "agua", "luz", "sombra", "natureza", "terra", "vento", "raio"]
 const RACAS := [["humano", "m"], ["humano", "f"], ["elfo", "m"], ["elfo", "f"], ["sombrio", "m"], ["orc", "m"], ["anao", "m"], ["beastman", "m"], ["draconato", "m"], ["gigante", "m"]]
-const FASES := [["A_cpu_cheio", false, 1.0], ["B_cpu_baixo", false, 0.5], ["C_gpu_cheio", true, 1.0], ["D_gpu_baixo", true, 0.5]]
+var FASES := [["A_cpu_cheio", false, 1.0], ["B_cpu_baixo", false, 0.5], ["C_gpu_cheio", true, 1.0], ["D_gpu_baixo", true, 0.5]]
+# modo gargalo (--medir-gargalo=): separa o que pesa. [nome, personagens, animados, efeitos, escala 3D, sombras]
+const GARGALO := [["G0_vazio", 0, true, false, 1.0, true], ["G1_10_pers", 10, true, false, 1.0, true],
+	["G2_20_pers", 20, true, false, 1.0, true], ["G3_20_pers_parados", 20, false, false, 1.0, true],
+	["G4_20_pers_efeitos", 20, true, true, 1.0, true], ["G5_resolucao_metade", 20, true, true, 0.5, true],
+	["G6_sem_sombras", 20, true, true, 1.0, false]]
+var gargalo := false
+var efeitos_on := true
+var cpu_ms: PackedFloat32Array = []
+var gpu_ms: PackedFloat32Array = []
+var luzes: Array = []
 var DUR := 20.0
 var AQUECE := 4.0
 
@@ -27,13 +37,20 @@ var resultado := {}
 var rng := RandomNumberGenerator.new()
 
 
-func iniciar(m: Node, caminho: String) -> void:
+func iniciar(m: Node, caminho: String, modo_gargalo := false) -> void:
 	main = m
+	gargalo = modo_gargalo
+	if gargalo:
+		FASES = GARGALO
+	if gargalo:
+		DUR = 12.0
+		AQUECE = 3.0
 	saida = caminho
 	rng.seed = 42
 	if OS.get_environment("MEDIR_SEG") != "":  # testes rápidos
 		DUR = float(OS.get_environment("MEDIR_SEG"))
 		AQUECE = 1.0
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	get_tree().node_added.connect(_no_novo)
 
 
@@ -95,11 +112,17 @@ func _process(dt: float) -> void:
 	t_fase += dt
 	if t_fase > AQUECE:
 		tempos.append(dt * 1000.0)
-	_golpes(dt)
+		var vr := get_viewport().get_viewport_rid()
+		cpu_ms.append(RenderingServer.viewport_get_measured_render_time_cpu(vr) + RenderingServer.get_frame_setup_time_cpu())
+		gpu_ms.append(RenderingServer.viewport_get_measured_render_time_gpu(vr))
+	if efeitos_on:
+		_golpes(dt)
 	_camera()
 	if fase == 0 and OS.get_environment("MEDIR_FOTO") != "" and absf(t_fase - (AQUECE + DUR * 0.5)) < dt:
 		get_viewport().get_texture().get_image().save_png(OS.get_environment("MEDIR_FOTO"))
 	if t_fase >= AQUECE + DUR:
+		if gargalo and fase == 0:
+			resultado["censo_mundo"] = _censo()
 		_fechar_fase()
 		_proxima_fase()
 
@@ -117,8 +140,11 @@ func _golpes(dt: float) -> void:
 	if t_golpe > 0.0:
 		return
 	t_golpe = 0.12  # ~8 ações por segundo no grupo (cada personagem age a cada ~2,5 s)
-	var c = bonecos[i_golpe % bonecos.size()]
-	var alvo = bonecos[(i_golpe + 7) % bonecos.size()]
+	var ativos := bonecos.filter(func(b): return b.visible)
+	if ativos.size() < 2:
+		return
+	var c = ativos[i_golpe % ativos.size()]
+	var alvo = ativos[(i_golpe + 7) % ativos.size()]
 	i_golpe += 1
 	var e: String = ELEM[rng.randi() % ELEM.size()]
 	var de: Vector3 = c.position + Vector3(0, 1.4, 0)
@@ -164,10 +190,28 @@ func _proxima_fase() -> void:
 		return
 	var f: Array = FASES[fase]
 	print("MEDIR_EFEITOS fase ", f[0])
-	usar_gpu = bool(f[1])
-	FX.amount = float(f[2])
+	if gargalo:
+		usar_gpu = false
+		FX.amount = 1.0
+		efeitos_on = bool(f[3])
+		for i in bonecos.size():
+			var on: bool = i < int(f[1])
+			bonecos[i].visible = on
+			bonecos[i].process_mode = Node.PROCESS_MODE_INHERIT if (on and bool(f[2])) else Node.PROCESS_MODE_DISABLED
+		get_viewport().scaling_3d_scale = float(f[4])
+		if luzes.is_empty():
+			for l in get_tree().root.find_children("*", "Light3D", true, false):
+				luzes.append([l, (l as Light3D).shadow_enabled])
+		for par in luzes:
+			if is_instance_valid(par[0]):
+				(par[0] as Light3D).shadow_enabled = bool(par[1]) and bool(f[5])
+	else:
+		usar_gpu = bool(f[1])
+		FX.amount = float(f[2])
 	t_fase = 0.0
 	tempos = PackedFloat32Array()
+	cpu_ms = PackedFloat32Array()
+	gpu_ms = PackedFloat32Array()
 
 
 func _fechar_fase() -> void:
@@ -188,7 +232,46 @@ func _fechar_fase() -> void:
 		"quadro_p99_ms": snappedf(lista[int(n * 0.99)] if n > 0 else 0.0, 0.01),
 		"particulas_cpu": get_tree().root.find_children("*", "CPUParticles3D", true, false).size(),
 		"particulas_gpu": get_tree().root.find_children("*", "GPUParticles3D", true, false).size(),
+		"render_cpu_ms": snappedf(_media(cpu_ms), 0.01),
+		"render_gpu_ms": snappedf(_media(gpu_ms), 0.01),
+		"logica_ms": snappedf(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 0.01),
+		"fisica_ms": snappedf(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 0.01),
+		"chamadas_desenho": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+		"triangulos": int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
 	}
+
+
+func _media(a: PackedFloat32Array) -> float:
+	if a.is_empty():
+		return 0.0
+	var s := 0.0
+	for v in a:
+		s += v
+	return s / a.size()
+
+
+func _censo() -> Dictionary:
+	# de onde vêm as partículas e malhas que já existem no mundo (sem os personagens do teste)
+	var cont := {}
+	for n in get_tree().root.find_children("*", "CPUParticles3D", true, false):
+		if not (n as Node3D).is_visible_in_tree() or not n.can_process():
+			continue
+		var dono: Node = n.get_parent()
+		while dono != null and dono.get_script() == null:
+			dono = dono.get_parent()
+		var cp := n as CPUParticles3D
+		var k: String = "particulas:" + (dono.get_script().resource_path.get_file() if dono else "?") + ":" + String(n.get_parent().name).rstrip("0123456789@_") + ":q" + str(cp.amount) + ":v" + str(int(cp.lifetime * 10))
+		cont[k] = int(cont.get(k, 0)) + 1
+	var lista := []
+	for k in cont:
+		lista.append([cont[k], k])
+	lista.sort_custom(func(a, b): return a[0] > b[0])
+	var r := {}
+	for i in mini(12, lista.size()):
+		r[lista[i][1]] = lista[i][0]
+	r["malhas_visiveis"] = get_tree().root.find_children("*", "MeshInstance3D", true, false).filter(func(m): return m.is_visible_in_tree()).size()
+	r["multimalhas"] = get_tree().root.find_children("*", "MultiMeshInstance3D", true, false).size()
+	return r
 
 
 func _gravar() -> void:
