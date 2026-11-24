@@ -17,10 +17,10 @@ public class Empunho : MonoBehaviour
     // valores do Godot (POSE_ARMA), lado direito; o X é invertido na leitura (G2U)
     static readonly Dictionary<string, Pose> POSES = new Dictionary<string, Pose>
     {
-        { "normal", new Pose(new Vector3(-0.14f, -0.95f, 0.22f), 0.93f, new Vector3(-0.14f, -0.28f, 0.95f), new Vector3(-0.3f, -0.35f, -0.9f)) },
+        { "normal", new Pose(new Vector3(-0.22f, -0.93f, 0.22f), 0.93f, new Vector3(-0.14f, -0.28f, 0.95f), new Vector3(-0.3f, -0.35f, -0.9f)) },
         { "normal_machado", new Pose(new Vector3(-0.28f, -0.55f, 0.78f), 0.55f, new Vector3(0.18f, 0.62f, -0.76f), new Vector3(-0.5f, -0.85f, 0.1f)) },  // no ombro, como lenhador
-        { "normal_adaga", new Pose(new Vector3(-0.16f, -0.92f, 0.3f), 0.9f, new Vector3(-0.12f, 0.3f, 0.95f), new Vector3(-0.35f, -0.4f, -0.85f)) },
-        { "combate", new Pose(new Vector3(-0.08f, -0.8f, 0.6f), 0.88f, new Vector3(-0.22f, 0.5f, 0.84f), new Vector3(-0.7f, -0.7f, -0.2f)) },
+        { "normal_adaga", new Pose(new Vector3(-0.25f, -0.9f, 0.3f), 0.9f, new Vector3(-0.12f, 0.3f, 0.95f), new Vector3(-0.35f, -0.4f, -0.85f)) },
+        { "combate", new Pose(new Vector3(-0.2f, -0.78f, 0.58f), 0.88f, new Vector3(-0.26f, 0.5f, 0.82f), new Vector3(-0.8f, -0.6f, -0.15f)) },
     };
     static Vector3 G2U(Vector3 v) => new Vector3(-v.x, v.y, v.z);
 
@@ -30,6 +30,7 @@ public class Empunho : MonoBehaviour
     public System.Func<bool> ocupado;  // golpe/reação tocando: a animação manda no braço
 
     Transform ombroR, cotR, maoR, ombroL, cotL, maoL, peito;
+    Quaternion peitoRestLocal = Quaternion.identity;
     Transform pegadaR;           // quadro da pegada preso à mão (+Z lâmina, +Y para o pulso)
     Quaternion pegadaLocalRot;   // rotação da pegada no espaço do osso da mão
     Vector3 pegadaLocalPos;
@@ -53,6 +54,7 @@ public class Empunho : MonoBehaviour
         ombroR = Osso(transform, "upperarm_r"); cotR = Osso(transform, "lowerarm_r"); maoR = Osso(transform, "hand_r");
         ombroL = Osso(transform, "upperarm_l"); cotL = Osso(transform, "lowerarm_l"); maoL = Osso(transform, "hand_l");
         peito = Osso(transform, "spine_03");
+        if (peito != null) peitoRestLocal = Quaternion.Inverse(transform.rotation) * peito.rotation;
         if (maoR == null || cotR == null || ombroR == null) { enabled = false; return; }
         bracoR = Braco("r");
         bracoL = Braco("l");
@@ -68,6 +70,7 @@ public class Empunho : MonoBehaviour
         pegadaR = g;
         pegadaLocalRot = g.localRotation;
         pegadaLocalPos = g.localPosition;
+        MedirCapsulas();
         if (modeloArma != null) PorArma(modeloArma, comprimento);
         if (comEscudo && modeloEscudo != null && peito != null && maoL != null) PorEscudo(modeloEscudo);
     }
@@ -94,6 +97,7 @@ public class Empunho : MonoBehaviour
         float cabo = dir[eixo] > 0 ? b.min[eixo] : b.max[eixo];
         float at = arma == Arma.Machado ? 0.4f : (arma == Arma.Adaga ? 0.06f : 0.1f);
         Vector3 pega = b.center; pega[eixo] = cabo + dir[eixo] * at / k;
+        laminaM = comprimento - at; caboM = at;
         var suporte = new GameObject("Arma").transform;
         suporte.SetParent(pegadaR, false);
         inst.transform.SetParent(suporte, false);
@@ -167,6 +171,7 @@ public class Empunho : MonoBehaviour
         inst.transform.localPosition = -(modeloRot * (b.center * k));
         // em guarda: nó que segue o peito; alvo do punho esquerdo à frente do peito
         alvoEscudoLocal = G2U(new Vector3(0.22f, 1.04f, 0.34f));
+        if (capsulas.Count > 1) alvoEscudoLocal.z = Mathf.Max(alvoEscudoLocal.z, capsulas[1].r / Mathf.Max(0.0001f, transform.lossyScale.x) + 0.2f / Mathf.Max(0.0001f, transform.lossyScale.x));
         // nó do escudo em guarda: segue a posição do peito e só o giro horizontal dele (num golpe o tronco se
         // curva e o escudo não pode deitar nem ir para as costas)
         escudoPeito = new GameObject("EscudoPeito").transform;
@@ -186,8 +191,29 @@ public class Empunho : MonoBehaviour
     {
         Vector3 f = peito.rotation * frentePeitoLocal; f.y = 0;
         if (f.sqrMagnitude < 0.04f) f = transform.forward;
-        var giro = Quaternion.LookRotation(f.normalized, Vector3.up);
-        escudoPeito.SetPositionAndRotation(peito.position + giro * offPeito, giro);
+        // só 30% do giro do tronco (correndo ele torce e o escudo rodava junto, até entrar no corpo)
+        var giro = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(f.normalized, Vector3.up), 0.3f);
+        Vector3 pos = peito.position + giro * offPeito;
+        escudoPeito.SetPositionAndRotation(pos, giro);
+        if (escudo != null && escudoNaGuarda && capsulas.Count > 0)
+        {
+            for (int it = 0; it < 4; it++)
+            {
+                Vector3 pior = Vector3.zero;
+                foreach (var mf in escudo.GetComponentsInChildren<MeshFilter>())
+                {
+                    var bb = mf.sharedMesh.bounds;
+                    for (int ix = 0; ix < 3; ix++) for (int iy = 0; iy < 3; iy++) for (int iz = 0; iz < 3; iz++)
+                    {
+                        var pl = bb.min + Vector3.Scale(bb.size, new Vector3(ix, iy, iz) * 0.5f);
+                        var sa = Saida(mf.transform.TransformPoint(pl), 0.06f);
+                        if (sa.magnitude > pior.magnitude) pior = sa;
+                    }
+                }
+                if (pior.sqrMagnitude < 1e-10f) break;
+                escudoPeito.position += pior * 1.1f;
+            }
+        }
     }
 
     bool escudoNaGuarda;
@@ -219,6 +245,7 @@ public class Empunho : MonoBehaviour
         peso = Mathf.MoveTowards(peso, golpe ? 0f : 1f, dt * (golpe ? 14f : 4f));
         punhoMax = Mathf.Lerp(punhoMax, emCombate ? 22f : (arma == Arma.Machado ? 60f : 35f), Mathf.Clamp01(dt * 6f));
         if (peso > 0.001f) MaoDireita(peso);
+        if (peso < 0.999f && capsulas.Count > 0) GolpeForaDoCorpo();
         if (escudo != null)
         {
             if (emCombate != escudoNaGuarda) PosEscudo(emCombate);
@@ -247,8 +274,17 @@ public class Empunho : MonoBehaviour
         float kr = Mathf.Clamp01(Time.deltaTime * 1.6f);
         refMao = Vector3.Lerp(refMao, maoAnim, kr);
         refAnte = Vector3.Lerp(refAnte, anteAnim, kr).normalized;
-        Vector3 desvio = transform.TransformVector(maoAnim - refMao) * balanco;
-        var giroBal = Quaternion.Slerp(Quaternion.identity, Quaternion.FromToRotation(transform.TransformDirection(refAnte), transform.TransformDirection(anteAnim)), balanco * 0.7f);
+        // limites (Godot 24/11 14:38): o desvio tem teto de 12 cm, nunca puxa a mão para dentro do corpo e o giro do
+        // antebraço entra pela metade e até 20 graus
+        Vector3 dl = (maoAnim - refMao) * balanco;
+        Vector3 radial = new Vector3(maoAnim.x, 0, 0);
+        if (radial.sqrMagnitude > 1e-6f && Vector3.Dot(dl, radial.normalized) < 0) dl -= radial.normalized * Vector3.Dot(dl, radial.normalized);
+        dl = Vector3.ClampMagnitude(dl, 0.12f / Mathf.Max(0.0001f, transform.lossyScale.x));
+        Vector3 desvio = transform.TransformVector(dl);
+        var giroTotal = Quaternion.FromToRotation(transform.TransformDirection(refAnte), transform.TransformDirection(anteAnim));
+        giroTotal.ToAngleAxis(out float angG, out Vector3 _);
+        float kG = angG > 0.01f ? Mathf.Min(balanco * 0.5f, 20f / angG) : 0f;
+        var giroBal = Quaternion.Slerp(Quaternion.identity, giroTotal, kG);
         string chave = emCombate ? "combate" : (arma == Arma.Machado ? "normal_machado" : (arma == Arma.Adaga ? "normal_adaga" : "normal"));
         var p = POSES[chave];
         Vector3 om = ombroR.position;
@@ -257,8 +293,15 @@ public class Empunho : MonoBehaviour
         Vector3 dica = (om - mao).normalized;
         Vector3 y = (dica - z * Vector3.Dot(dica, z)).normalized;
         Vector3 polo = om + transform.TransformDirection(G2U(p.polo)) * bracoR + desvio;
+        if (!emCombate && arma == Arma.Machado && peito != null)
+        {
+            // machado no ombro: a pose gira junto com a inclinação do peito, em volta do ombro
+            var rq = peito.rotation * Quaternion.Inverse(transform.rotation * peitoRestLocal);
+            mao = om + rq * (mao - om); polo = om + rq * (polo - om); z = rq * z; y = rq * y;
+        }
         mao += desvio;
         z = giroBal * z; y = giroBal * y;
+        ForaDoCorpo(ref mao, ref z, ref y);
         var alvoRot = Quaternion.LookRotation(z, y);      // rotação desejada da pegada
         var rotMao = alvoRot * Quaternion.Inverse(pegadaLocalRot);
         Vector3 pulso = mao - rotMao * Vector3.Scale(pegadaLocalPos, maoR.lossyScale);
@@ -276,6 +319,108 @@ public class Empunho : MonoBehaviour
             IK(ombroR, cotR, maoR, pulso, polo, w);
         }
         maoR.rotation = Quaternion.Slerp(maoR.rotation, rotMao, w);
+    }
+
+    // ---------- corpo como cápsulas (porta de character.gd _capsulas / empunhar.gd _fora_do_corpo) ----------
+    static readonly string[,] CAPS = { { "pelvis", "spine_03" }, { "spine_03", "neck_01" }, { "neck_01", "Head" }, { "thigh_l", "calf_l" }, { "thigh_r", "calf_r" }, { "calf_l", "foot_l" }, { "calf_r", "foot_r" } };
+    readonly List<(Transform a, Transform b, float r, bool cabeca)> capsulas = new List<(Transform, Transform, float, bool)>();
+    float laminaM = 1f, caboM = 0.1f, larguraM = 0.03f;
+
+    void MedirCapsulas()
+    {
+        var dist = new List<float>[CAPS.GetLength(0)];
+        var ossoSeg = new Dictionary<Transform, int>();
+        for (int i = 0; i < CAPS.GetLength(0); i++)
+        {
+            dist[i] = new List<float>();
+            var t = Osso(transform, CAPS[i, 0]);
+            if (t != null) ossoSeg[t] = i;
+            if (i == 0) { var s1 = Osso(transform, "spine_01"); var s2 = Osso(transform, "spine_02"); if (s1) ossoSeg[s1] = 0; if (s2) ossoSeg[s2] = 0; }
+            if (i == 2) { var hd = Osso(transform, "Head"); if (hd) ossoSeg[hd] = 2; }
+        }
+        foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>())
+        {
+            var m = smr.sharedMesh; if (m == null || !m.isReadable) continue;
+            var vs = m.vertices; var bw = m.boneWeights; var bp = m.bindposes; var bones = smr.bones;
+            if (bw.Length != vs.Length) continue;
+            for (int v = 0; v < vs.Length; v += 4)
+            {
+                int bi = bw[v].boneIndex0;
+                if (bi < 0 || bi >= bones.Length || bones[bi] == null || !ossoSeg.TryGetValue(bones[bi], out int seg)) continue;
+                Vector3 pw = bones[bi].localToWorldMatrix.MultiplyPoint3x4(bp[bi].MultiplyPoint3x4(vs[v]));
+                var a = Osso(transform, CAPS[seg, 0]); var b = Osso(transform, CAPS[seg, 1]);
+                if (a == null || b == null) continue;
+                dist[seg].Add(Vector3.Distance(pw, PontoSeg(pw, a.position, b.position)));
+            }
+        }
+        for (int i = 0; i < CAPS.GetLength(0); i++)
+        {
+            var a = Osso(transform, CAPS[i, 0]); var b = Osso(transform, CAPS[i, 1]);
+            if (a == null || b == null) continue;
+            float r;
+            if (dist[i].Count > 10) { dist[i].Sort(); r = dist[i][(int)(dist[i].Count * 0.6f)]; }
+            else r = i == 2 ? 0.1f : (i < 2 ? 0.13f : 0.08f);
+            capsulas.Add((a, b, r, i == 2));
+        }
+    }
+
+    static Vector3 PontoSeg(Vector3 p, Vector3 a, Vector3 b)
+    {
+        Vector3 ab = b - a; float t = Mathf.Clamp01(Vector3.Dot(p - a, ab) / Mathf.Max(ab.sqrMagnitude, 1e-8f));
+        return a + ab * t;
+    }
+
+    Vector3 Saida(Vector3 p, float folga)
+    {
+        Vector3 melhor = Vector3.zero;
+        foreach (var c in capsulas)
+        {
+            Vector3 a = c.a.position, b = c.b.position;
+            if (c.cabeca) b += (b - a).normalized * c.r * 1.2f;
+            Vector3 d = p - PontoSeg(p, a, b);
+            float dentro = c.r + folga - d.magnitude;
+            if (dentro > melhor.magnitude) melhor = (d.sqrMagnitude > 1e-10f ? d.normalized : transform.right) * dentro;
+        }
+        return melhor;
+    }
+
+    // pegada fora do corpo e lâmina girada para fora quando passaria por dentro (mesma regra do Godot)
+    void ForaDoCorpo(ref Vector3 mao, ref Vector3 z, ref Vector3 y)
+    {
+        if (capsulas.Count == 0) return;
+        mao += Saida(mao, 0.06f);
+        float C = caboM / Mathf.Max(laminaM, 0.01f);
+        float[] ts = { -C, -C * 0.5f, 0.1f, 0.25f, 0.45f, 0.65f, 0.85f, 1f };
+        float girado = 0f;
+        for (int it = 0; it < 6; it++)
+        {
+            Vector3 pior = Vector3.zero; float tp = 0;
+            foreach (var t in ts)
+            {
+                var sa = Saida(mao + z * laminaM * t, 0.03f + (t > 0.6f ? larguraM : 0f));
+                if (sa.magnitude > pior.magnitude) { pior = sa; tp = t; }
+            }
+            if (pior.sqrMagnitude < 1e-10f) break;
+            var q = Quaternion.FromToRotation(z, (z * laminaM * tp + pior * 1.6f).normalized);
+            q.ToAngleAxis(out float aq, out Vector3 _);
+            if (girado + aq > 35f) { mao += pior * 1.1f; continue; }  // girar demais vira a arma; a mão se afasta
+            girado += aq;
+            z = q * z; y = q * y;
+        }
+    }
+
+    // no golpe a animação manda; aqui só se tira a mão de dentro do corpo
+    void GolpeForaDoCorpo()
+    {
+        for (int it = 0; it < 4; it++)
+        {
+            Vector3 palma = pegadaR.position;
+            var s = Saida(palma, 0.045f);
+            if (s.sqrMagnitude < 1e-10f) break;
+            var rot = maoR.rotation;
+            IK(ombroR, cotR, maoR, maoR.position + s * 1.15f, cotR.position + s, 1f);
+            maoR.rotation = rot;
+        }
     }
 
     // IK de dois ossos com polo (igual ao empunhar.gd)

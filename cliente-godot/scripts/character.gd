@@ -176,6 +176,7 @@ var postura: Node
 var ciclo_raca := 1.0
 var subtipo := ""
 var race_id := "humano"
+var armadura_id := ""
 var male_flag := true
 
 
@@ -254,6 +255,7 @@ func _setup_medido(o: Dictionary) -> void:
 	var hc_i := int(o.get("hair_color", look.get("hair_color", 0)))
 	var hair_col := Color(str(HAIR_COLORS[clampi(hc_i, 0, HAIR_COLORS.size() - 1)])) if not HAIR_COLORS.is_empty() else Color(0.24, 0.15, 0.08)
 	var armor := str(eq.get("armadura", "pesada_ng"))
+	armadura_id = armor
 	var g := "male" if male else "female"
 	var outfit := "peasant"
 	if armor.begins_with("pesada"):
@@ -2013,7 +2015,7 @@ const PEGADA_RACA := {
 	"humano": {"guarda": [Vector3(0.22, 0.86, 0.46), Vector3(-0.04, 0.98, 0.3)], "uma_mao": [0.0, 0.0]},
 	"elfo": {"guarda": [Vector3(0.1, 0.96, 0.28), Vector3(-0.02, 1.1, 0.27)], "uma_mao": [-0.18, -0.08]},
 	"sombrio": {"guarda": [Vector3(-0.05, 0.6, 0.8), Vector3(0.0, 1.04, 0.33)], "uma_mao": [-0.42, -0.12]},
-	"orc": {"guarda": [Vector3(0.5, 0.72, 0.2), Vector3(-0.14, 0.92, 0.3)], "uma_mao": [0.12, 0.38]},
+	"orc": {"guarda": [Vector3(0.36, 0.8, 0.45), Vector3(-0.13, 0.95, 0.36)], "uma_mao": [0.12, 0.38]},
 	"goblin": {"guarda": [Vector3(0.3, 0.6, 0.62), Vector3(-0.06, 0.86, 0.34)], "uma_mao": [-0.5, 0.2]},
 	"gigante": {"guarda": [Vector3(0.38, 0.68, 0.6), Vector3(-0.06, 0.84, 0.38)], "uma_mao": [0.18, 0.1]},
 	"anao": {"guarda": [Vector3(0.26, 0.8, 0.54), Vector3(-0.02, 0.82, 0.28)], "uma_mao": [0.1, 0.15]},
@@ -2074,7 +2076,9 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 		var up: Vector3 = (pg[0] as Vector3).normalized()
 		guard = Node3D.new()
 		var gx := Vector3(1, 0, 0).cross(up).normalized()
-		guard.transform = Transform3D(Basis(up.cross(gx).normalized(), gx, up), (pg[1] as Vector3) * k)
+		var pos_g: Vector3 = (pg[1] as Vector3) * k
+		pos_g.z = maxf(pos_g.z, _raio_peito_m() + 0.17)  # mãos e cabo à frente do peito, sem atravessar
+		guard.transform = Transform3D(Basis(up.cross(gx).normalized(), gx, up), pos_g)
 		add_child(guard)
 		var hand_r := Node3D.new()
 		guard.add_child(hand_r)
@@ -2117,11 +2121,16 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 			wnode.transform = _girar_fio(wnode.transform, wnode, guard.basis.inverse() * Vector3(0, 0, 1))
 		arma_base = wnode.transform
 		arma_golpe = _alinhar_lamina(giro * wnode.transform, wnode)
-		arma_normal = arma_golpe
+		# fora de combate a arma fica na pegada sem o giro de golpe da raça: a lâmina segue o +Z da pegada, que é o
+		# eixo que o Empunhar usa para tirá-la de dentro do corpo
+		arma_normal = _alinhar_lamina(arma_base, wnode)
 		if kind in FIO_UNICO:
 			arma_golpe = _girar_fio(arma_golpe, wnode, Vector3(0, -1, 0), giro.basis.z)
-			# carregando com a cabeça para baixo (lenhador), o fio fica virado para a frente
-			arma_normal = _girar_fio(arma_golpe, wnode, Vector3(0, 1, 0), giro.basis.z)
+			# no ombro (lenhador) o fio fica virado para trás/cima, longe da cabeça
+			arma_normal = _girar_fio(arma_normal, wnode, Vector3(0, 1, 0))
+		if kind == "machado":
+			# no ombro a mão segura perto do fim do cabo (como um lenhador): o cabo não sobra para baixo da mão
+			arma_normal.origin += Vector3(0, 0, 1) * (float(g.at) - 0.08) * s
 		mao_l_golpe = Node3D.new()
 		mao_l_golpe.name = "SegundaMao"
 		mao_l_golpe.position = giro * Vector3(0, 0, -(float(g.at) - two) * s)
@@ -2226,6 +2235,7 @@ func _make_shield(s: float, shield_id := "") -> void:
 	var alvo := Node3D.new()
 	alvo.name = "AlvoEscudo"
 	alvo.position = ((POSE_ESTILO.get(estilo, {}) as Dictionary).get("escudo_alvo", Vector3(0.22, 1.04, 0.34)) as Vector3) * ka
+	alvo.position.z = maxf(alvo.position.z, _raio_peito_m() + 0.2)  # à frente do peito de cada raça (anão, orc são largos)
 	add_child(alvo)
 	ik_escudo = _arm_ik("l", alvo, Vector3(0.75, 0.75, -0.15) * ka)
 	# o alvo acompanha o peito (correndo o tronco inclina e o escudo continua à frente dele, de pé): a cada quadro
@@ -2343,19 +2353,20 @@ func _make_sheath(back: bool, small: bool) -> void:
 # Vetores no espaço do personagem para o lado DIREITO (+Z frente, +Y cima, -X direita); o esquerdo é espelhado.
 # mao = direção do ombro até a pegada (vezes k x comprimento do braço); lamina = para onde a arma aponta;
 # polo = para onde vai o cotovelo. Medidas pelo braço de cada raça, então valem para todas.
+const ABERTURA_RACA := {"orc": 1.35, "gigante": 1.35, "anao": 1.3, "draconato": 1.2, "beastman": 1.15, "goblin": 1.1, "elfo": 0.95, "sombrio": 0.95}
 const POSE_ARMA := {
 	# espada (24/11 13:40, "mais reta e firme"): lâmina quase em ângulo reto com o antebraço, à frente e um pouco baixa
-	"normal": {"mao": Vector3(-0.14, -0.95, 0.22), "k": 0.93, "lamina": Vector3(-0.14, -0.28, 0.95), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal": {"mao": Vector3(-0.22, -0.93, 0.22), "k": 0.93, "lamina": Vector3(-0.14, -0.28, 0.95), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# machado e adaga (correção de Robson 24/11 12:07: a lâmina não fica para baixo): machado carregado pelo cabo
 	# com a cabeça para cima e à frente; adaga na cintura com a lâmina para a frente, um pouco erguida
 	# machado (24/11 13:40): como um lenhador carrega — cabo apoiado no ombro direito, mão à frente do peito, cabeça atrás do ombro
 	"normal_machado": {"mao": Vector3(-0.28, -0.55, 0.78), "k": 0.55, "lamina": Vector3(0.18, 0.62, -0.76), "polo": Vector3(-0.5, -0.85, 0.1)},
-	"normal_adaga": {"mao": Vector3(-0.16, -0.92, 0.3), "k": 0.9, "lamina": Vector3(-0.12, 0.3, 0.95), "polo": Vector3(-0.35, -0.4, -0.85)},
-	"normal_duas": {"mao": Vector3(-0.16, -0.95, 0.2), "k": 0.93, "lamina": Vector3(-0.2, -0.9, 0.38), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal_adaga": {"mao": Vector3(-0.25, -0.9, 0.3), "k": 0.9, "lamina": Vector3(-0.12, 0.3, 0.95), "polo": Vector3(-0.35, -0.4, -0.85)},
+	"normal_duas": {"mao": Vector3(-0.24, -0.93, 0.22), "k": 0.93, "lamina": Vector3(-0.32, -0.7, 0.64), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# cajado (21/11): postura formal de mago, cajado em pé ao lado do corpo, mão na altura da cintura
 	"normal_cajado": {"mao": Vector3(-0.3, -0.72, 0.62), "k": 0.8, "lamina": Vector3(-0.04, 1.0, 0.1), "polo": Vector3(-0.4, -0.5, -0.75)},
 	"normal_dupla": {"mao": Vector3(-0.22, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.38, -0.84, 0.39), "polo": Vector3(-0.4, -0.3, -0.85)},
-	"combate": {"mao": Vector3(-0.08, -0.8, 0.6), "k": 0.88, "lamina": Vector3(-0.22, 0.5, 0.84), "polo": Vector3(-0.7, -0.7, -0.2)},
+	"combate": {"mao": Vector3(-0.2, -0.78, 0.58), "k": 0.88, "lamina": Vector3(-0.26, 0.5, 0.82), "polo": Vector3(-0.8, -0.6, -0.15)},
 	# arco (21/11): segurado pelo meio, em pé ao lado do corpo (as duas pontas longe das costas), ponta de cima um pouco à frente
 	"normal_arco": {"mao": Vector3(-0.2, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.08, -0.99, -0.1), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# arco no peito (22/11): mão no centro da empunhadura na frente do peito, arco em pé colado ao corpo, barriga
@@ -2427,7 +2438,11 @@ func _quadro_pose(lado: String, chave: String) -> Array:
 	var dedo: Vector3 = rs * skel.get_bone_global_rest(mb).origin if mb >= 0 else pu
 	var braco := om.distance_to(cot) + cot.distance_to(pu) + pu.distance_to(dedo) * 0.55
 	var esp := func(v: Vector3) -> Vector3: return Vector3(v.x * sx, v.y, v.z)
-	var mao: Vector3 = om + (esp.call(p.mao) as Vector3).normalized() * braco * float(p.k)
+	# braço mais aberto nas raças largas (24/11 14:38): a mão sai do lado do corpo em vez de cruzar a frente dele
+	var pm: Vector3 = p.mao
+	if chave != "normal_machado":  # o machado no ombro não abre (o cabo cruzaria o peito)
+		pm.x *= float(ABERTURA_RACA.get("goblin" if subtipo == "goblin" else race_id, 1.0))
+	var mao: Vector3 = om + (esp.call(pm) as Vector3).normalized() * braco * float(p.k)
 	var z: Vector3 = (esp.call(p.lamina) as Vector3).normalized()
 	var dica := (om - mao).normalized()
 	if p.get("reto", false):  # punho reto: a arma (arco) fica a 90 graus do antebraço, as duas pontas iguais
@@ -2497,6 +2512,81 @@ func _girar_fio(t: Transform3D, w: Node3D, para: Vector3, eixo := Vector3(0, 0, 
 	return Transform3D(Basis(eixo, ang), Vector3.ZERO) * t
 
 
+# corpo como cápsulas para a pegada não atravessar o próprio corpo (24/11 14:38): tronco, peito, cabeça, coxas e
+# canelas, com o raio medido nos vértices de cada osso (corpo + roupa, em repouso; 60% dos vértices ficam dentro).
+# Vale para qualquer raça e roupa; guardado por raça/gênero/roupa para medir uma vez só.
+const CAPSULAS := [["pelvis", "spine_03", ["pelvis", "spine_01", "spine_02"]], ["spine_03", "neck_01", ["spine_03"]],
+	["neck_01", "Head", ["neck_01", "Head"]], ["thigh_l", "calf_l", ["thigh_l"]], ["thigh_r", "calf_r", ["thigh_r"]],
+	["calf_l", "foot_l", ["calf_l"]], ["calf_r", "foot_r", ["calf_r"]]]
+static var _capsulas_cache := {}  # chave -> [[osso_a, osso_b, raio, extensão do topo], ...]
+
+
+func _capsulas(chave: String) -> Array:
+	if _capsulas_cache.has(chave):
+		return _capsulas_cache[chave]
+	var dist := []
+	var osso_seg := {}
+	for i in CAPSULAS.size():
+		dist.append([])
+		for b in CAPSULAS[i][2]:
+			osso_seg[skel.find_bone(b)] = i
+	for m in find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.skin == null or mi.mesh == null or mi.name in ["olhos", "sobrancelha", "cilios", "cabelo"]:
+			continue
+		for si in mi.mesh.get_surface_count():
+			var arr := mi.mesh.surface_get_arrays(si)
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var bs = arr[Mesh.ARRAY_BONES]
+			var ws = arr[Mesh.ARRAY_WEIGHTS]
+			if bs == null or ws == null or vs.is_empty():
+				continue
+			var per: int = bs.size() / vs.size()
+			for v in range(0, vs.size(), 4):
+				var best := 0
+				for j in per:
+					if ws[v * per + j] > ws[v * per + best]:
+						best = j
+				var bind: int = bs[v * per + best]
+				if bind >= mi.skin.get_bind_count():
+					continue
+				var bone: int = mi.skin.get_bind_bone(bind)
+				if bone < 0:
+					bone = skel.find_bone(mi.skin.get_bind_name(bind))
+				if not osso_seg.has(bone):
+					continue
+				var i: int = osso_seg[bone]
+				var pv: Vector3 = skel.get_bone_global_rest(bone) * (mi.skin.get_bind_pose(bind) * vs[v])
+				var a: Vector3 = skel.get_bone_global_rest(skel.find_bone(CAPSULAS[i][0])).origin
+				var b: Vector3 = skel.get_bone_global_rest(skel.find_bone(CAPSULAS[i][1])).origin
+				var ab := b - a
+				var t := clampf((pv - a).dot(ab) / maxf(ab.length_squared(), 1e-8), 0.0, 1.0)
+				dist[i].append(pv.distance_to(a + ab * t))
+	var out := []
+	for i in CAPSULAS.size():
+		var l: Array = dist[i]
+		if l.size() < 10:
+			continue
+		l.sort()
+		out.append([skel.find_bone(CAPSULAS[i][0]), skel.find_bone(CAPSULAS[i][1]), float(l[int(l.size() * 0.6)]), 1.2 if CAPSULAS[i][1] == "Head" else 0.0])
+	_capsulas_cache[chave] = out
+	return out
+
+
+# raio do peito em metros (para afastar escudo e guarda de duas mãos do corpo)
+func _raio_peito_m() -> float:
+	var caps := _capsulas(_chave_capsulas())
+	var esc := _rel_self(skel).basis.get_scale().x
+	for c in caps:
+		if c[0] == skel.find_bone("spine_03"):
+			return float(c[2]) * esc
+	return 0.13 * height_m / 1.8
+
+
+func _chave_capsulas() -> String:
+	return "%s|%s|%s|%s" % [race_id, subtipo, male_flag, armadura_id]
+
+
 func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: bool) -> void:
 	if skel.find_bone("upperarm_r") < 0 or skel.find_bone("middle_01_r") < 0:
 		return
@@ -2508,6 +2598,23 @@ func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: b
 	empunho = load("res://scripts/empunhar.gd").new()
 	empunho.name = "Empunhar"
 	skel.add_child(empunho)
+	empunho.capsulas = _capsulas(_chave_capsulas())
+	empunho.cabo = float(GRIP[kind].at) * (height_m / 1.8)
+	if wnode != null:  # meia-largura da cabeça da arma, medida no modelo (machado ~ larga, espada ~ fina)
+		var bbw := AABB()
+		var pw := true
+		for m in wnode.find_children("*", "MeshInstance3D", true, false):
+			var ab: AABB = (wnode.transform * _rel_no(m, wnode)) * (m as MeshInstance3D).get_aabb()
+			bbw = ab if pw else bbw.merge(ab)
+			pw = false
+		if not pw:
+			empunho.largura = clampf(maxf(bbw.size.x, bbw.size.y) * 0.5, 0.02, 0.25)
+	if kind == "machado":
+		empunho.segue_peito = 1.0
+		empunho.balanco = 0.4
+		empunho.cabo = 0.08 * (height_m / 1.8)
+		empunho.lamina = (float(GRIP[kind].len) - 0.08) * (height_m / 1.8)  # machado no ombro: balança pouco (cabo encostado no ombro)
+	empunho.lamina = float(GRIP[kind].len) * (height_m / 1.8) * (1.0 - float(GRIP[kind].at) / maxf(float(GRIP[kind].len), 0.01))
 	for lado in lados:
 		var nn := "normal"
 		var cc := "combate"
@@ -2911,10 +3018,97 @@ func _process(dt: float) -> void:
 var _escudo_alvo: Node3D = null
 var _escudo_b3 := -1
 var _escudo_off = null  # Transform3D no espaço do osso spine_03
+var _escudo_cantos: Array = []
 var _alvo_mao := {}   # lado -> alvo do IK que se corrige (armas de duas mãos)
 var _palma_att := {}  # lado -> [BoneAttachment da mão, do dedo médio]
 var _corr_mao := {"r": Vector3.ZERO, "l": Vector3.ZERO}
 var _cabo_l := Vector3.ZERO  # ponto do cabo da mão esquerda, no espaço da guarda
+
+
+# guarda de duas mãos (machado, espadão, martelo): acompanha a posição e o giro horizontal do peito (correndo o
+# tronco inclina e antes o cabo entrava no peito) e sai de dentro do corpo (cabeça, peito, coxas) quando tocaria nele
+var _guarda_off = null
+var _guarda_base := Transform3D()
+func _guarda_no_peito() -> void:
+	if guard == null or not guard_on or _escudo_b3 < 0 or empunho == null or not is_inside_tree():
+		if guard != null and _escudo_b3 < 0:
+			_escudo_b3 = skel.find_bone("spine_03")
+		return
+	var peito: Transform3D = _osso_pos("spine_03")
+	var fr := _frente_do_peito(peito)
+	var ref := Transform3D(Basis.looking_at(-fr.normalized(), Vector3.UP), peito.origin)
+	if _guarda_off == null:
+		_guarda_base = guard.transform
+		_guarda_off = ref.affine_inverse() * guard.transform
+		return
+	var t: Transform3D = ref * (_guarda_off as Transform3D)
+	# cabo e cabeça da arma fora do corpo: empurra a guarda inteira para fora (no espaço do esqueleto)
+	var g := GRIP[arma_kind] as Dictionary
+	var k := height_m / 1.8
+	var de := -float(g.at) * k
+	var ate := (float(g.len) - float(g.at)) * k
+	for _i in 4:
+		var pior := Vector3.ZERO
+		var pts: Array = []
+		for j in 9:
+			pts.append(t.origin + t.basis.z.normalized() * lerpf(de, ate, j / 8.0))
+		if mao_l_guarda != null:  # as duas mãos no cabo também ficam fora do peito
+			pts.append(t * mao_l_guarda.position)
+		for p_char in pts:
+			var sa := _saida_corpo(p_char, 0.04)
+			if sa.length() > pior.length():
+				pior = sa
+		if pior.length() < 1e-5:
+			break
+		t.origin += pior * 1.15
+	guard.transform = t
+
+
+# direção da frente do peito no plano do chão: o eixo do osso que apontava para a frente do personagem no primeiro
+# quadro (os eixos do osso spine_03 não são os mesmos em todos os modelos; usar o Z dele fazia o escudo rodar)
+var _frente_peito_local = null
+func _frente_do_peito(peito: Transform3D) -> Vector3:
+	if _frente_peito_local == null:
+		_frente_peito_local = peito.basis.orthonormalized().inverse() * Vector3.BACK
+	var fr: Vector3 = peito.basis.orthonormalized() * (_frente_peito_local as Vector3)
+	fr.y = 0.0
+	if fr.length() < 0.2:
+		fr = Vector3.BACK
+	# só 30% do giro do tronco (correndo ele torce de um lado para o outro e o escudo/arma rodava junto, até
+	# entrar no corpo); o resto segue a frente do personagem
+	return Vector3.BACK.slerp(fr.normalized(), 0.3)
+
+
+# posição dos ossos depois de todos os ajustes (postura da raça, pés, mãos): lida de BoneAttachment3D, com um
+# quadro de atraso. get_bone_global_pose fora de um modificador dá a pose da animação, sem a postura da raça.
+var _atts_pos := {}
+func _osso_pos(nome: String) -> Transform3D:
+	if not _atts_pos.has(nome):
+		var at := BoneAttachment3D.new()
+		at.bone_name = nome
+		skel.add_child(at)
+		_atts_pos[nome] = at
+		return _rel_self(skel) * skel.get_bone_global_pose(skel.find_bone(nome))
+	return global_transform.affine_inverse() * (_atts_pos[nome] as Node3D).global_transform
+
+
+# saída do corpo para um ponto no espaço do personagem (cápsulas com a pose final)
+func _saida_corpo(p: Vector3, folga: float) -> Vector3:
+	var caps := _capsulas(_chave_capsulas())
+	var esc := _rel_self(skel).basis.get_scale().x
+	var melhor := Vector3.ZERO
+	for c in caps:
+		var a: Vector3 = _osso_pos(skel.get_bone_name(c[0])).origin
+		var b: Vector3 = _osso_pos(skel.get_bone_name(c[1])).origin
+		if float(c[3]) > 0.0:  # cabeça: a cápsula vai até o alto do crânio
+			b += (b - a).normalized() * float(c[2]) * esc * float(c[3])
+		var ab := b - a
+		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 1e-8), 0.0, 1.0)
+		var d := p - (a + ab * t)
+		var dentro: float = float(c[2]) * esc + folga - d.length()
+		if dentro > melhor.length():
+			melhor = (d.normalized() if d.length() > 1e-5 else Vector3.FORWARD) * dentro
+	return melhor
 
 
 func _escudo_no_peito() -> void:
@@ -2922,19 +3116,39 @@ func _escudo_no_peito() -> void:
 		return
 	if escudo_mao != null and shield != null and shield.get_parent() == escudo_mao and shield_arm != null:
 		escudo_mao.position = to_local(shield_arm.global_position)
-	var peito: Transform3D = _rel_self(skel) * skel.get_bone_global_pose(_escudo_b3)
+	var peito: Transform3D = _osso_pos("spine_03")
 	# segue a posição do peito e só o giro horizontal dele: num golpe o tronco se curva muito e o escudo não pode
 	# deitar nem ir para as costas; continua de pé, à frente, acompanhando para onde o peito está virado
-	var fr := peito.basis.z
-	fr.y = 0.0
-	if fr.length() < 0.2:
-		fr = Vector3.BACK
+	var fr := _frente_do_peito(peito)
 	var giro := Basis.looking_at(-fr.normalized(), Vector3.UP)
 	var ref := Transform3D(giro, peito.origin)
 	if _escudo_off == null:
 		_escudo_off = ref.affine_inverse() * _escudo_alvo.transform
 		return
-	_escudo_alvo.transform = ref * (_escudo_off as Transform3D)
+	var t: Transform3D = ref * (_escudo_off as Transform3D)
+	# escudo em guarda fora do corpo (cabeça, peito, coxas): os cantos da caixa do escudo saem das cápsulas
+	if shield != null and shield.get_parent() == _escudo_alvo:
+		if _escudo_cantos.is_empty():
+			var bb := AABB()
+			var primeiro := true
+			for m in shield.find_children("*", "MeshInstance3D", true, false):
+				var a: AABB = _rel_no(m, shield) * (m as MeshInstance3D).get_aabb()
+				bb = a if primeiro else bb.merge(a)
+				primeiro = false
+			for ix in 3:
+				for iy in 3:
+					for iz in 3:
+						_escudo_cantos.append(bb.position + bb.size * Vector3(ix, iy, iz) * 0.5)
+		for _i in 4:
+			var pior := Vector3.ZERO
+			for c in _escudo_cantos:
+				var sa := _saida_corpo(t * (escudo_guarda * (c as Vector3)), 0.06)
+				if sa.length() > pior.length():
+					pior = sa
+			if pior.length() < 1e-5:
+				break
+			t.origin += pior * 1.1
+	_escudo_alvo.transform = t
 
 
 func _maos_no_cabo() -> void:
@@ -2995,6 +3209,7 @@ func _process_corpo(dt: float) -> void:
 			visible = true
 	var longe: bool = skel != null and skel.get_meta("lod_longe", false)
 	if not longe:
+		_guarda_no_peito()
 		_maos_no_cabo()
 		_escudo_no_peito()
 	if longe:

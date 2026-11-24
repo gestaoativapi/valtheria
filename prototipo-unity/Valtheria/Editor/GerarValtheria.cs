@@ -49,6 +49,7 @@ public static class GerarValtheria
         if (AssetDatabase.IsValidFolder("Assets/Valtheria/Resources/Valtheria/Armas"))
             AssetDatabase.ImportAsset("Assets/Valtheria/Resources/Valtheria/Armas", ImportAssetOptions.ForceUpdate | ImportAssetOptions.ImportRecursive);
         AssetDatabase.ImportAsset("Assets/Valtheria/Resources/Valtheria/espada.fbx", ImportAssetOptions.ForceUpdate);
+        AssetDatabase.ImportAsset("Assets/Valtheria/Resources/Valtheria/cavaleiro.fbx", ImportAssetOptions.ForceUpdate);
         string T = NAT + "Texturas/";
         Mat("Bark_NormalTree", T + "Bark_NormalTree.png", false, Vector2.one, 0.05f, T + "Bark_NormalTree_Normal.png");
         Mat("Leaves_NormalTree", T + "Leaves_NormalTree_C.png", true, Vector2.one, 0.15f);

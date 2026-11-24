@@ -47,6 +47,7 @@ public class ImportarValtheria : AssetPostprocessor
         }
         mi.animationType = ModelImporterAnimationType.Generic;
         mi.importAnimation = true;
+        mi.isReadable = true;  // o Empunho.cs mede o corpo (cápsulas) nos vértices da malha
         mi.materialImportMode = ModelImporterMaterialImportMode.None;
         mi.globalScale = 1f;
     }
