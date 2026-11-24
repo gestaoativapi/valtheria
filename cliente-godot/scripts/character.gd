@@ -2026,7 +2026,11 @@ func _pegada() -> Dictionary:
 	var k := race_id
 	if race_id == "orc" and subtipo == "goblin":
 		k = "goblin"
-	return PEGADA_RACA.get(k, PEGADA_RACA.humano)
+	var base: Dictionary = PEGADA_RACA.get(k, PEGADA_RACA.humano)
+	var e: Dictionary = POSE_ESTILO.get(estilo, {})
+	if e.has("guarda"):
+		return {"guarda": e.guarda, "uma_mao": base.uma_mao}
+	return base
 
 
 var arma_kind := ""
@@ -2035,6 +2039,7 @@ const FIO_UNICO := ["machado", "adaga", "punhal"]  # armas com um lado de corte 
 
 func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id := "") -> void:
 	arma_kind = kind
+	estilo = estilo_pegada
 	var g: Dictionary = GRIP[kind]
 	var side := str(g.get("hand", "r"))
 	fist = load("res://scripts/punho.gd").new()
@@ -2216,7 +2221,7 @@ func _make_shield(s: float, shield_id := "") -> void:
 	var ka := height_m / 1.8
 	var alvo := Node3D.new()
 	alvo.name = "AlvoEscudo"
-	alvo.position = Vector3(0.22, 1.04, 0.34) * ka
+	alvo.position = ((POSE_ESTILO.get(estilo, {}) as Dictionary).get("escudo_alvo", Vector3(0.22, 1.04, 0.34)) as Vector3) * ka
 	add_child(alvo)
 	ik_escudo = _arm_ik("l", alvo, Vector3(0.75, 0.75, -0.15) * ka)
 	# o alvo acompanha o peito (correndo o tronco inclina e o escudo continua à frente dele, de pé): a cada quadro
@@ -2355,6 +2360,42 @@ const POSE_ARMA := {
 }
 
 
+# estilos de pegada para Robson escolher (24/11 13:06): A = atual (cavaleiro clássico), B = guarda alta
+# (tanque: escudo alto, arma apontada à frente, fora de combate no ombro), C = guarda baixa e ágil.
+# Só entram as chaves que mudam; o resto vem de POSE_ARMA, PEGADA_RACA e do escudo padrão.
+const POSE_ESTILO := {
+	"B": {
+		"combate": {"mao": Vector3(-0.12, -0.45, 0.88), "k": 0.8, "lamina": Vector3(-0.1, 0.35, 0.93), "polo": Vector3(-0.8, -0.5, -0.2)},
+		"combate_adaga": {"mao": Vector3(-0.1, -0.55, 0.8), "k": 0.82, "lamina": Vector3(0.1, 0.1, 0.99), "polo": Vector3(-0.8, -0.5, -0.2)},
+		"normal": {"mao": Vector3(-0.25, -0.55, 0.55), "k": 0.75, "lamina": Vector3(-0.05, 0.75, -0.65), "polo": Vector3(-0.6, -0.6, -0.3)},
+		"normal_machado": {"mao": Vector3(-0.22, -0.75, 0.55), "k": 0.78, "lamina": Vector3(-0.05, 0.97, 0.2), "polo": Vector3(-0.6, -0.6, -0.3)},
+		"normal_adaga": {"mao": Vector3(-0.2, -0.7, 0.6), "k": 0.8, "lamina": Vector3(-0.05, 0.2, 0.98), "polo": Vector3(-0.6, -0.5, -0.5)},
+		"guarda": [Vector3(0.05, 0.95, 0.3), Vector3(-0.02, 1.12, 0.3)],
+		"escudo_alvo": Vector3(0.2, 1.18, 0.36),
+	},
+	"C": {
+		"combate": {"mao": Vector3(-0.15, -0.9, 0.4), "k": 0.9, "lamina": Vector3(-0.3, 0.15, 0.94), "polo": Vector3(-0.6, -0.6, -0.5)},
+		"combate_adaga": {"mao": Vector3(-0.2, -0.75, 0.62), "k": 0.9, "lamina": Vector3(-0.35, 0.2, 0.9), "polo": Vector3(-0.7, -0.6, -0.3)},
+		"normal": {"mao": Vector3(-0.12, -0.97, 0.1), "k": 0.95, "lamina": Vector3(-0.15, -0.85, -0.5), "polo": Vector3(-0.3, -0.35, -0.9)},
+		"normal_machado": {"mao": Vector3(-0.2, -0.93, 0.25), "k": 0.92, "lamina": Vector3(-0.4, 0.75, 0.5), "polo": Vector3(-0.4, -0.45, -0.8)},
+		"normal_adaga": {"mao": Vector3(-0.16, -0.92, 0.3), "k": 0.9, "lamina": Vector3(-0.25, -0.1, 0.96), "polo": Vector3(-0.35, -0.4, -0.85)},
+		"guarda": [Vector3(0.35, 0.55, 0.75), Vector3(-0.05, 0.9, 0.36)],
+		"escudo_alvo": Vector3(0.26, 0.95, 0.3),
+	},
+}
+static var estilo_pegada := "A"  # estilo dos personagens criados a seguir (estúdio de opções)
+var estilo := "A"
+
+
+func _pose_estilo(chave: String) -> Dictionary:
+	var e: Dictionary = POSE_ESTILO.get(estilo, {})
+	if e.has(chave):
+		return e[chave]
+	if POSE_ARMA.has(chave):
+		return POSE_ARMA[chave]
+	return POSE_ARMA["combate"]
+
+
 # transformação de um nó relativa ao personagem, sem depender da árvore estar pronta
 func _rel_self(n: Node) -> Transform3D:
 	var t := Transform3D()
@@ -2367,7 +2408,7 @@ func _rel_self(n: Node) -> Transform3D:
 
 # quadro da pegada para uma pose: origem na mão, +Z na lâmina, +Y voltado para o pulso
 func _quadro_pose(lado: String, chave: String) -> Array:
-	var p: Dictionary = POSE_ARMA[chave]
+	var p: Dictionary = _pose_estilo(chave)
 	var sx := 1.0 if lado == "r" else -1.0
 	var rs := _rel_self(skel)
 	var ub := skel.find_bone("upperarm_" + lado)
@@ -2473,6 +2514,7 @@ func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: b
 			nn = "normal_machado"
 		elif kind in ["adaga", "punhal"]:
 			nn = "normal_adaga"
+			cc = "combate_adaga"
 		elif duas:
 			nn = "normal_duas"
 		var qn := _quadro_pose(lado, nn)
