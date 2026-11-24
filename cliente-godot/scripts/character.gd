@@ -2674,14 +2674,50 @@ func _process(dt: float) -> void:
 	Perfil.soma("boneco_quadro", Time.get_ticks_usec() - __t)
 
 
+var _piso_cache := {}  # altura do piso por ponto (grade de 5 cm): parado não consulta o mundo de novo
+var _quadro_lod := 0
+var _anim_acum := 0.0
+
+
+func _piso_c(x: float, z: float, y: float) -> float:
+	var k := Vector3i(roundi(x * 20.0), roundi(z * 20.0), roundi(y * 4.0))
+	if _piso_cache.has(k):
+		return _piso_cache[k]
+	if _piso_cache.size() > 64:
+		_piso_cache.clear()
+	var v := float(world_ref.floor_y(x, z, y))
+	_piso_cache[k] = v
+	return v
+
+
 func _process_corpo(dt: float) -> void:
 	if _aparecer > 0:
 		_aparecer -= 1
 		if _aparecer == 0:
 			visible = true
+	var longe: bool = skel != null and skel.get_meta("lod_longe", false)
+	if longe:
+		_quadro_lod += 1
+	# longe da câmera (ver cull_particulas.gd): a animação anda em passos de 3 quadros (~20 por segundo),
+	# como nos MMOs; perto volta ao normal
+	if anim != null:
+		var modo := AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL if longe else AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
+		if anim.callback_mode_process != modo:
+			anim.callback_mode_process = modo
+			_anim_acum = 0.0
+		if longe:
+			_anim_acum += dt
+			if _quadro_lod % 3 == 0:
+				anim.advance(_anim_acum)
+				_anim_acum = 0.0
 	_empunho_passo(dt)
 	if world_ref == null or skel == null or body_node == null or not visible:
 		return
+	# longe: o corpo acompanha o chão 1 quadro em 4
+	if longe:
+		if _quadro_lod % 4 != 0:
+			return
+		dt *= 4.0
 	if feet.is_empty():
 		for side in ["l", "r"]:
 			var b := skel.find_bone("foot_" + side)
@@ -2708,7 +2744,7 @@ func _process_corpo(dt: float) -> void:
 	var gap_alto := -1e9
 	for p in locs:
 		if (p as Vector3).y - root_y <= best + 0.06:
-			var chao := float(world_ref.floor_y(p.x, p.z, root_y + 0.5))
+			var chao := _piso_c(p.x, p.z, root_y + 0.5)
 			if absf(chao - root_y) > 0.9:
 				chao = root_y  # sem chão do mundo por perto (interior de casa, ponte alta): o piso é o da própria raiz
 			var gp := ((p as Vector3).y - ankle) - chao
