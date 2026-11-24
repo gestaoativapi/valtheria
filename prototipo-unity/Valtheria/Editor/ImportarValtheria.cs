@@ -25,7 +25,7 @@ public class ImportarValtheria : AssetPostprocessor
     {
         if (!DoValtheria) return;
         var mi = (ModelImporter)assetImporter;
-        if (assetPath.Contains("/Natureza/"))
+        if (assetPath.Contains("/Natureza/") || assetPath.Contains("/Vila/"))
         {
             // árvores, pedras e plantas (Quaternius, CC0, os mesmos do jogo): sem animação; o nome do material
             // vem do arquivo e o protótipo troca pelo material pronto da pasta Mats

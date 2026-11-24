@@ -77,6 +77,7 @@ func _ready() -> void:
 			_por(PLANTAS[k], p, g, e, false)
 	# mesmo personagem do protótipo Unity: o cavaleiro antigo (corpo + armadura de cavaleiro, Quaternius)
 	Ch.V3_HUMANOS = OS.get_environment("CLAREIRA_V3") == "1"
+	_vila()
 	var jog = Ch.create({"race": "humano", "gender": "m", "equipment": {"armadura": "pesada_ng", "arma": "espada_ng"}})
 	add_child(jog)
 	cam = Camera3D.new()
@@ -162,3 +163,36 @@ func _trocar() -> void:
 		get_tree().quit()
 		return
 	_extras(FASES[fase])
+
+
+# a mesma vila do protótipo Unity (mesmos modelos, tamanhos e lugares; X espelhado como o resto)
+func _vila() -> void:
+	var L := [["b_inn", -16, -34, 10.5, 20], ["b_house_1", 14, -36, 7.5, -25], ["b_blacksmith", -22, -18, 6.8, 75],
+		["b_stable", 22, -20, 6.2, -80], ["b_mill", 30, -48, 9.0, -40], ["b_house_1", -6, -50, 7.5, 5],
+		["b_well", 3, -24, 2.6, 0], ["b_bonfire_lit", -4, -16, 1.5, 0], ["b_marketstand_1", 9, -14, 3.1, -60],
+		["b_marketstand_1", -12, -10, 3.1, 50], ["b_cart", 12, -26, 2.4, 30], ["b_hay", 15, -24, 1.2, 10],
+		["b_hay", 16.2, -25.5, 1.2, 70], ["b_barrel", -9, -13, 0.9, 0], ["b_barrel", -9.8, -12.2, 0.9, 40],
+		["b_crate", -10.5, -14.2, 0.7, 15], ["b_bags", 8, -12.5, 0.6, 0], ["b_bench_1", -1, -19, 1.6, 90],
+		["b_bench_1", 6, -20, 1.6, -90], ["n_light_street_1", -3, -8, 4.2, 0], ["n_light_street_1", 5, -30, 4.2, 0],
+		["d_torch", -14, -24, 2.2, 0], ["q_birchtree_1", 26, -8, 9.0, 0], ["q_willow_1", -28, -40, 8.0, 30],
+		["n_twistedtree_1", 36, -30, 10.0, 0], ["n_tree_light_1", -32, -6, 8.0, 0], ["q_treestump_moss", 18, -6, 1.0, 0],
+		["q_woodlog_moss", -20, -4, 2.5, 60], ["q_bushberries_1", 10, -6, 1.3, 0], ["n_mushroom_common", -16, -6, 0.5, 0],
+		["n_flower_4_group", 4, -6, 0.7, 0], ["a_deer", 30, -2, 1.7, -120], ["a_horse", 24, -14, 2.4, -95]]
+	for e in L:
+		var caminho: String = "res://assets/world/" + e[0] + ".glb"
+		if not ResourceLoader.exists(caminho):
+			continue
+		var n: Node3D = load(caminho).instantiate()
+		add_child(n)
+		var bb := AABB()
+		var primeiro := true
+		for m in n.find_children("*", "MeshInstance3D", true, false):
+			var mi := m as MeshInstance3D
+			var a: AABB = mi.global_transform * mi.get_aabb()
+			bb = a if primeiro else bb.merge(a)
+			primeiro = false
+		var maior := maxf(bb.size.x, maxf(bb.size.y, bb.size.z))
+		if maior > 0.001:
+			n.scale = Vector3.ONE * float(e[3]) / maior
+		n.position = Vector3(-float(e[1]), 0, float(e[2]))
+		n.rotation.y = -deg_to_rad(float(e[4]))

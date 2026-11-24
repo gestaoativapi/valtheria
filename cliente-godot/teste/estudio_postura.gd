@@ -49,6 +49,8 @@ func _montar() -> void:
 		var eq := {"armadura": p[3] if p.size() > 3 else "leve_ng"}
 		if p.size() > 2 and p[2] != "":
 			eq["arma"] = p[2]
+		if p.size() > 4 and p[4] != "":
+			eq["escudo"] = p[4]
 		var c: Node3D = C.create({"race": p[0], "gender": p[1], "equipment": eq})
 		raiz.add_child(c)
 		if not combate:

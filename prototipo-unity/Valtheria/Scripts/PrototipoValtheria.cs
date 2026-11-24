@@ -374,41 +374,47 @@ public class PrototipoValtheria : MonoBehaviour
         // céu, luz e névoa na paleta aprovada (céu nublado, névoa úmida)
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 35f;
-        RenderSettings.fogEndDistance = 180f;
-        RenderSettings.fogColor = new Color(0.62f, 0.66f, 0.66f);
+        RenderSettings.fogStartDistance = 45f;
+        RenderSettings.fogEndDistance = 220f;
+        RenderSettings.fogColor = new Color(0.66f, 0.74f, 0.82f);
+        // luz ambiente em três tons (céu azul, horizonte claro, chão quente) — cores mais vivas e naturais
         RenderSettings.ambientMode = AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.55f, 0.6f, 0.66f);
-        RenderSettings.ambientEquatorColor = new Color(0.45f, 0.45f, 0.4f);
-        RenderSettings.ambientGroundColor = new Color(0.22f, 0.2f, 0.16f);
+        RenderSettings.ambientSkyColor = new Color(0.58f, 0.7f, 0.9f);
+        RenderSettings.ambientEquatorColor = new Color(0.56f, 0.6f, 0.52f);
+        RenderSettings.ambientGroundColor = new Color(0.3f, 0.26f, 0.2f);
 
         var sol = FindFirstObjectByType<Light>();
         if (sol == null || sol.type != LightType.Directional) sol = new GameObject("Sol").AddComponent<Light>();
         sol.type = LightType.Directional;
-        sol.color = new Color(1f, 0.93f, 0.82f);
-        sol.intensity = 1.6f;
+        sol.color = new Color(1f, 0.92f, 0.78f);
+        sol.intensity = 1.9f;
         sol.shadows = LightShadows.Soft;
-        sol.transform.rotation = Quaternion.Euler(42f, 35f, 0f);
+        sol.shadowStrength = 0.82f;
+        sol.transform.rotation = Quaternion.Euler(38f, 35f, 0f);
 
         var camara = Camera.main;
         if (camara == null) { camara = new GameObject("Camera").AddComponent<Camera>(); camara.tag = "MainCamera"; }
         cam = camara.transform;
         camara.clearFlags = CameraClearFlags.SolidColor;
         camara.backgroundColor = RenderSettings.fogColor;
-        camara.farClipPlane = 250f;
+        camara.farClipPlane = 300f;
         var dados = camara.GetUniversalAdditionalCameraData();
         dados.renderPostProcessing = true;
         dados.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+        dados.antialiasingQuality = AntialiasingQuality.High;
 
-        // pós-processamento: tonemapping ACES, brilho contido, contraste e saturação leves
+        // pós-processamento: ACES, brilho, cor viva e quente, contraste, sombras e luzes separadas, vinheta leve
         var vol = new GameObject("PosProcesso").AddComponent<Volume>();
         vol.isGlobal = true;
         vol.priority = 50;
         var perfil = ScriptableObject.CreateInstance<VolumeProfile>();
         var tm = perfil.Add<Tonemapping>(true); tm.mode.Override(TonemappingMode.ACES);
-        var bl = perfil.Add<Bloom>(true); bl.intensity.Override(0.35f); bl.threshold.Override(1.1f);
-        var ca = perfil.Add<ColorAdjustments>(true); ca.contrast.Override(8f); ca.saturation.Override(6f);
-        var vg = perfil.Add<Vignette>(true); vg.intensity.Override(0.18f);
+        var bl = perfil.Add<Bloom>(true); bl.intensity.Override(0.6f); bl.threshold.Override(0.95f); bl.scatter.Override(0.72f);
+        var ca = perfil.Add<ColorAdjustments>(true); ca.contrast.Override(12f); ca.saturation.Override(8f); ca.postExposure.Override(0.05f);
+        var wb = perfil.Add<WhiteBalance>(true); wb.temperature.Override(3f); wb.tint.Override(1f);
+        var smh = perfil.Add<ShadowsMidtonesHighlights>(true);
+        smh.shadows.Override(new Vector4(0.92f, 0.96f, 1.08f, 0f)); smh.highlights.Override(new Vector4(1.06f, 1.02f, 0.94f, 0f));
+        var vg = perfil.Add<Vignette>(true); vg.intensity.Override(0.2f); vg.smoothness.Override(0.45f);
         vol.profile = perfil;
 
         // chão de grama com a mesma textura do jogo (CC0)
@@ -448,8 +454,50 @@ public class PrototipoValtheria : MonoBehaviour
             if (p.magnitude < 3) continue;
             Natureza(plantas[k], p, g, e, false);
         }
+        Vila();
         var ceu = Resources.Load<Material>("Valtheria/Natureza/Mats/Ceu");
         if (ceu != null) { RenderSettings.skybox = ceu; camara.clearFlags = CameraClearFlags.Skybox; DynamicGI.UpdateEnvironment(); }
+    }
+
+    // vila (mesmos modelos do jogo, Quaternius CC0), no mesmo tamanho que o jogo usa (maior medida em metros)
+    void Vila()
+    {
+        void P(string n, float x, float z, float tam, float giro, bool sombra = true) => Peca("Valtheria/Vila/" + n, new Vector3(x, 0, z), giro, tam, sombra);
+        P("b_inn", -16, -34, 10.5f, 20); P("b_house_1", 14, -36, 7.5f, -25); P("b_blacksmith", -22, -18, 6.8f, 75);
+        P("b_stable", 22, -20, 6.2f, -80); P("b_mill", 30, -48, 9f, -40); P("b_house_1", -6, -50, 7.5f, 5);
+        P("b_well", 3, -24, 2.6f, 0); P("b_bonfire_lit", -4, -16, 1.5f, 0);
+        P("b_marketstand_1", 9, -14, 3.1f, -60); P("b_marketstand_1", -12, -10, 3.1f, 50);
+        P("b_cart", 12, -26, 2.4f, 30); P("b_hay", 15, -24, 1.2f, 10); P("b_hay", 16.2f, -25.5f, 1.2f, 70);
+        P("b_barrel", -9, -13, 0.9f, 0); P("b_barrel", -9.8f, -12.2f, 0.9f, 40); P("b_crate", -10.5f, -14.2f, 0.7f, 15);
+        P("b_bags", 8, -12.5f, 0.6f, 0); P("b_bench_1", -1, -19, 1.6f, 90); P("b_bench_1", 6, -20, 1.6f, -90);
+        P("n_light_street_1", -3, -8, 4.2f, 0); P("n_light_street_1", 5, -30, 4.2f, 0); P("d_torch", -14, -24, 2.2f, 0);
+        P("q_birchtree_1", 26, -8, 9f, 0); P("q_willow_1", -28, -40, 8f, 30); P("n_twistedtree_1", 36, -30, 10f, 0);
+        P("n_tree_light_1", -32, -6, 8f, 0); P("q_treestump_moss", 18, -6, 1f, 0); P("q_woodlog_moss", -20, -4, 2.5f, 60);
+        P("q_bushberries_1", 10, -6, 1.3f, 0, false); P("n_mushroom_common", -16, -6, 0.5f, 0, false); P("n_flower_4_group", 4, -6, 0.7f, 0, false);
+        P("a_deer", 30, -2, 1.7f, -120); P("a_horse", 24, -14, 2.4f, -95);
+    }
+
+    void Peca(string caminho, Vector3 pos, float giro, float tam, bool sombra)
+    {
+        var pref = Resources.Load<GameObject>(caminho);
+        if (pref == null) return;
+        var g = Instantiate(pref, pos, Quaternion.Euler(0, giro, 0) * pref.transform.rotation);
+        var b = new Bounds(); bool primeiro = true;
+        foreach (var r in g.GetComponentsInChildren<Renderer>()) { if (primeiro) { b = r.bounds; primeiro = false; } else b.Encapsulate(r.bounds); }
+        float maior = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
+        if (maior > 0.001f) g.transform.localScale *= tam / maior;
+        foreach (var r in g.GetComponentsInChildren<Renderer>())
+        {
+            var ms = r.sharedMaterials;
+            for (int i = 0; i < ms.Length; i++)
+            {
+                if (ms[i] == null) continue;
+                var troca = MatNat(ms[i].name.Replace(" (Instance)", "").Trim());
+                if (troca != null) ms[i] = troca;
+            }
+            r.sharedMaterials = ms;
+            if (!sombra) r.shadowCastingMode = ShadowCastingMode.Off;
+        }
     }
 
     static long semente = 7;

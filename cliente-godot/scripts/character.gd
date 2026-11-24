@@ -93,6 +93,10 @@ var offhand: Node3D  # segunda adaga (armas duplas), só aparece em combate
 var shield: Node3D
 var shield_arm: Node3D
 var shield_back: Node3D
+# escudo em guarda (pedido de Robson 24/11): antebraço esquerdo à frente do peito, escudo de pé, preso no braço
+var ik_escudo: SkeletonModifier3D
+var escudo_base := Transform3D()   # no braço caído (escudo ao longo do antebraço)
+var escudo_guarda := Transform3D() # antebraço levantado: escudo girado 90° para ficar de pé
 var body_node: Node3D
 var body_base_y := 0.0
 var feet := []  # [osso do pé esquerdo, osso do pé direito]
@@ -159,6 +163,11 @@ const POSTURAS := {
 	"anao": {"pose": {"pelvis": -2, "spine_01": 5, "spine_02": 2, "Head": -2, "clavicle": 4, "upperarm": 5, "lowerarm": -2, "hand": 3, "thigh": 5, "calf": 3, "foot": -2},
 		"combate": {"spine_01": 6, "upperarm": 6, "lowerarm": -3}, "ciclo": 0.9, "inclina": 3},
 }
+# quanto da postura própria da raça some fora de combate (pedido de Robson 24/11: cada raça com seus traços,
+# não todos retos): humano e elfo continuam eretos; orc, gigante, fera, goblin e draconato mantêm o corpo
+# pesado e curvado; anão firme e baixo; sombrio esguio e um pouco inclinado
+const ERETO_RACA := {"elfo": 0.5, "sombrio": 0.35, "anao": 0.3, "draconato": 0.2, "beastman": 0.15, "orc": 0.15, "goblin": 0.1, "gigante": 0.15}
+const FORCA_ERETA := {"humano": 0.85, "elfo": 0.7, "sombrio": 0.45, "anao": 0.4, "draconato": 0.3, "beastman": 0.25, "orc": 0.25, "goblin": 0.2, "gigante": 0.25}
 const PosturaRaca = preload("res://scripts/postura_raca.gd")
 var postura: Node
 var ciclo_raca := 1.0
@@ -187,7 +196,7 @@ const GRIP := {
 	"adaga": {"file": "w_dagger", "len": 0.5, "at": 0.06},
 	"punhal": {"file": "w_dagger", "len": 0.42, "at": 0.05},
 	"duplas": {"file": "w_sword", "len": 0.8, "at": 0.08, "dual": true},
-	"machado": {"file": "w_axe", "len": 0.95, "at": 0.12},
+	"machado": {"file": "w_axe", "len": 0.95, "at": 0.4, "two": 0.07, "back": true},  # machado de guerra: duas mãos (direita perto da lâmina, esquerda no fim do cabo)
 	"cetro": {"file": "w_spear", "len": 0.75, "at": 0.1},
 	"espadao": {"file": "w_claymore", "len": 1.45, "at": 0.3, "two": 0.1, "back": true},
 	"martelo": {"file": "w_hammer_double", "len": 1.1, "at": 0.4, "two": 0.12, "back": true},
@@ -376,7 +385,7 @@ func _setup_medido(o: Dictionary) -> void:
 		postura.pose = pr.pose
 		postura.combate = pr.combate
 		postura.inclina = float(pr.inclina)
-		postura.ereto = 0.75
+		postura.ereto = float(ERETO_RACA.get(chave_postura, 0.25))
 		ciclo_raca = float(pr.ciclo)
 		skel.add_child(postura)
 	if race == "gigante" and not dragon:  # metade humano, metade golem de gelo (pedido de Robson 21/11)
@@ -386,6 +395,7 @@ func _setup_medido(o: Dictionary) -> void:
 	var ereta = load("res://scripts/postura_ereta.gd").new()
 	ereta.name = "PosturaEreta"
 	ereta.dono = self
+	ereta.forca = float(FORCA_ERETA.get(chave_postura, 0.8))
 	ereta.feminino = not male
 	ereta.mago = str(o.get("type", "")) == "m" or str(eq.get("arma", "")).begins_with("cajado") or str(eq.get("arma", "")).begins_with("cetro")
 	skel.add_child(ereta)
@@ -2016,7 +2026,11 @@ func _pegada() -> Dictionary:
 	return PEGADA_RACA.get(k, PEGADA_RACA.humano)
 
 
+var arma_kind := ""
+
+
 func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id := "") -> void:
+	arma_kind = kind
 	var g: Dictionary = GRIP[kind]
 	var side := str(g.get("hand", "r"))
 	fist = load("res://scripts/punho.gd").new()
@@ -2062,8 +2076,26 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 			var ponto: Vector3 = guard.transform * mao.position
 			var dirb := (ponto - (par[1] as Vector3)).normalized()
 			mao.position += guard.basis.inverse() * (-dirb * 0.065 * k)
-		ik_r = _arm_ik("r", hand_r, Vector3(-0.6, 0.45, -0.5) * k)
-		ik = _arm_ik("l", hand_l, Vector3(0.6, 0.45, -0.5) * k)
+		# alvos que se corrigem sozinhos (pedido de Robson 24/11: mão sempre fechada no cabo): a cada quadro a
+		# palma é medida e o alvo do IK anda o que falta para ela cair em cima do ponto certo do cabo
+		_alvo_mao["r"] = Node3D.new()
+		_alvo_mao["l"] = Node3D.new()
+		for lado in ["r", "l"]:
+			add_child(_alvo_mao[lado])
+			_alvo_mao[lado].position = (hand_r if lado == "r" else hand_l).position
+			var am := BoneAttachment3D.new()
+			am.bone_name = "hand_" + lado
+			skel.add_child(am)
+			var md := BoneAttachment3D.new()
+			md.bone_name = "middle_01_" + lado
+			skel.add_child(md)
+			var om := BoneAttachment3D.new()
+			om.bone_name = "upperarm_" + lado
+			skel.add_child(om)
+			_palma_att[lado] = [am, md, om]
+		_cabo_l = Vector3(0, 0, -(float(g.at) - two) * s)
+		ik_r = _arm_ik("r", _alvo_mao["r"], Vector3(-0.6, 0.45, -0.5) * k)
+		ik = _arm_ik("l", _alvo_mao["l"], Vector3(0.6, 0.45, -0.5) * k)
 		mao_l_guarda = hand_l
 		# no golpe a arma fica na mão direita e a esquerda continua no cabo: o alvo dela é um ponto do próprio
 		# cabo (no mesmo lugar da guarda, medido a partir da mão direita), então ela acompanha o giro da arma
@@ -2130,8 +2162,10 @@ func _set_guard(on: bool) -> void:
 		wnode.transform = arma_base if on else arma_golpe
 	# as duas mãos ficam sempre no cabo: na guarda as duas vão até a arma parada; no golpe a direita conduz
 	# a arma (animação) e a esquerda segue o cabo pelo IK
-	if mao_l_golpe != null:
+	if mao_l_golpe != null and _alvo_mao.is_empty():
 		(ik as TwoBoneIK3D).set_target_node(0, (ik as TwoBoneIK3D).get_path_to(mao_l_guarda if on else mao_l_golpe))
+	elif not _alvo_mao.is_empty():
+		(ik as TwoBoneIK3D).set_target_node(0, (ik as TwoBoneIK3D).get_path_to(_alvo_mao["l"]))
 	ik.active = true
 	ik_r.active = on
 	if postura != null:
@@ -2168,6 +2202,16 @@ func _make_shield(s: float, shield_id := "") -> void:
 	basis = Basis(Vector3.BACK, Vector3.UP, Vector3.RIGHT) * basis
 	shield.transform = Transform3D(basis.scaled(Vector3.ONE * k), Vector3.ZERO) * Transform3D(Basis.IDENTITY, -bb.get_center())
 	shield.position += Vector3(0.07, 0.16, 0) * s
+	escudo_base = shield.transform
+	# na guarda o antebraço fica deitado à frente do peito; o escudo gira em torno da frente dele (+X) e fica
+	# de pé, com o centro um pouco à frente do punho (na alça), como se segura um escudo de verdade
+	escudo_guarda = Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-90)), Vector3(0.07, 0.0, 0.0) * s) * Transform3D(shield.transform.basis, Vector3.ZERO)
+	var ka := height_m / 1.8
+	var alvo := Node3D.new()
+	alvo.name = "AlvoEscudo"
+	alvo.position = Vector3(0.22, 1.04, 0.34) * ka
+	add_child(alvo)
+	ik_escudo = _arm_ik("l", alvo, Vector3(0.75, 0.75, -0.15) * ka)
 	shield_back = Node3D.new()
 	var bone := skel.find_bone("spine_03")
 	if bone >= 0:
@@ -2443,9 +2487,10 @@ func set_battle(on: bool) -> void:
 		offhand.visible = on
 	if shield != null and shield_arm != null and shield_back != null:
 		shield.get_parent().remove_child(shield)
-		var keep := shield.transform
 		(shield_arm if on else shield_back).add_child(shield)
-		shield.transform = keep
+		shield.transform = escudo_guarda if on else escudo_base
+		if ik_escudo != null:
+			ik_escudo.active = on
 
 
 # com a postura de arma: a arma nunca vai para a bainha; muda só a pose (normal ou combate)
@@ -2470,10 +2515,11 @@ func _arma_na_mao(on: bool) -> void:
 		offhand.visible = true
 	if shield != null and shield_arm != null:
 		if shield.get_parent() != shield_arm:
-			var keep := shield.transform
 			shield.get_parent().remove_child(shield)
 			shield_arm.add_child(shield)
-			shield.transform = keep
+		shield.transform = escudo_guarda if on else escudo_base
+		if ik_escudo != null:
+			ik_escudo.active = on
 
 
 const GUARDA_RACA := {"gigante": 0.8, "orc": 0.9, "beastman": 0.95, "draconato": 0.9, "anao": 1.1, "elfo": 1.05, "sombrio": 1.05}
@@ -2524,16 +2570,26 @@ func tocar_gesto(nome: String, dur := 0.9) -> float:
 	return gesto.tocar(nome, dur)
 
 
+# golpes de espada de uma mão trocados, nas armas pesadas de duas mãos, pelo golpe com as duas mãos no cabo
+# (pedido de Robson 24/11: espadão, machado e martelo seguros do jeito certo também no ataque)
+const GOLPE_DUAS_MAOS := ["Sword_Attack", "Sword_Regular_A", "Sword_Regular_B", "Sword_Regular_C", "Sword_Heavy_Combo", "Sword_Regular_Combo", "Sword_Dash"]
+var _golpe_alterna := 0
+
+
 func action(n: String) -> float:
+	var vel := 1.0
+	if guard != null and arma_kind in ["espadao", "machado", "martelo"] and n in GOLPE_DUAS_MAOS and anim.has_animation("TreeChopping"):
+		n = "TreeChopping"
+		vel = 1.35
 	if not anim.has_animation(n):
 		return 0.0
 	current = n
 	if guard != null and armed:
 		_set_guard(false)
-	anim.speed_scale = 1.0
+	anim.speed_scale = vel
 	anim.play(n)
 	anim.seek(0.0)
-	var len := anim.get_animation(n).length
+	var len := anim.get_animation(n).length / vel
 	busy_until = Time.get_ticks_msec() * 0.001 + len * 0.9
 	return len
 
@@ -2674,6 +2730,47 @@ func _process(dt: float) -> void:
 	Perfil.soma("boneco_quadro", Time.get_ticks_usec() - __t)
 
 
+var _alvo_mao := {}   # lado -> alvo do IK que se corrige (armas de duas mãos)
+var _palma_att := {}  # lado -> [BoneAttachment da mão, do dedo médio]
+var _corr_mao := {"r": Vector3.ZERO, "l": Vector3.ZERO}
+var _cabo_l := Vector3.ZERO  # ponto do cabo da mão esquerda, no espaço da guarda
+
+
+func _maos_no_cabo() -> void:
+	if _alvo_mao.is_empty() or _mart_alvo != null or ik == null or not ik.active:
+		return
+	for lado in ["r", "l"]:
+		var cabo: Vector3
+		var at: Array = _palma_att[lado]
+		if guard_on and lado == "l":
+			# a mão de trás desliza no cabo até onde o braço alcança (cabo de lança e cajado; no espadão o
+			# limite é o próprio punho da espada): ponto do cabo mais perto do ombro, entre o lugar ideal e a mão da frente
+			var gt := guard.global_transform
+			var eixo := gt.basis.z.normalized()
+			var omb: Vector3 = (at[2] as Node3D).global_position
+			var d := clampf(eixo.dot(omb - gt.origin) / maxf(gt.basis.z.length(), 0.001), _cabo_l.z, -0.09 * height_m / 1.8)
+			cabo = gt * Vector3(0, 0, d)
+		elif guard_on:
+			cabo = guard.global_transform.origin
+		elif lado == "l" and mao_l_golpe != null:
+			# no golpe a arma está na mão direita: a esquerda desliza no cabo até onde o braço alcança
+			var o: Vector3 = grip_node.global_position
+			var fim: Vector3 = mao_l_golpe.global_position
+			var comp := o.distance_to(fim)
+			var eixo2 := (fim - o) / maxf(comp, 0.001)
+			var omb2: Vector3 = (at[2] as Node3D).global_position
+			var d2 := clampf(eixo2.dot(omb2 - o), 0.09 * height_m / 1.8, comp)
+			cabo = o + eixo2 * d2
+		else:
+			continue
+		var palma: Vector3 = ((at[0] as Node3D).global_position + (at[1] as Node3D).global_position) * 0.5
+		var c: Vector3 = _corr_mao[lado] + (cabo - palma) * 0.5
+		if c.length() > 0.25:
+			c = c.normalized() * 0.25
+		_corr_mao[lado] = c
+		(_alvo_mao[lado] as Node3D).global_position = cabo + c
+
+
 var _piso_cache := {}  # altura do piso por ponto (grade de 5 cm): parado não consulta o mundo de novo
 var _quadro_lod := 0
 var _anim_acum := 0.0
@@ -2696,6 +2793,8 @@ func _process_corpo(dt: float) -> void:
 		if _aparecer == 0:
 			visible = true
 	var longe: bool = skel != null and skel.get_meta("lod_longe", false)
+	if not longe:
+		_maos_no_cabo()
 	if longe:
 		_quadro_lod += 1
 	# longe da câmera (ver cull_particulas.gd): a animação anda em passos de 3 quadros (~20 por segundo),

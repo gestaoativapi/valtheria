@@ -26,7 +26,7 @@ public static class GerarValtheria
             var n = AssetDatabase.LoadAssetAtPath<Texture2D>(normal);
             if (n != null) { m.SetTexture("_BumpMap", n); m.EnableKeyword("_NORMALMAP"); }
         }
-        m.SetColor("_BaseColor", Color.white);
+        m.SetColor("_BaseColor", nome == "Terra" ? new Color(0.78f, 0.74f, 0.7f) : nome == "Chao" ? new Color(0.9f, 0.95f, 0.88f) : Color.white);
         m.SetFloat("_Smoothness", liso);
         m.SetFloat("_Metallic", 0f);
         if (corte)
@@ -43,6 +43,8 @@ public static class GerarValtheria
     {
         // reimporta a natureza (os .fbx podem ter sido trocados com a mesma data)
         AssetDatabase.ImportAsset("Assets/Valtheria/Resources/Valtheria/Natureza", ImportAssetOptions.ForceUpdate | ImportAssetOptions.ImportRecursive);
+        if (AssetDatabase.IsValidFolder("Assets/Valtheria/Resources/Valtheria/Vila"))
+            AssetDatabase.ImportAsset("Assets/Valtheria/Resources/Valtheria/Vila", ImportAssetOptions.ForceUpdate | ImportAssetOptions.ImportRecursive);
         string T = NAT + "Texturas/";
         Mat("Bark_NormalTree", T + "Bark_NormalTree.png", false, Vector2.one, 0.05f, T + "Bark_NormalTree_Normal.png");
         Mat("Leaves_NormalTree", T + "Leaves_NormalTree_C.png", true, Vector2.one, 0.15f);
@@ -80,13 +82,34 @@ public static class GerarValtheria
             var q = QualitySettings.GetRenderPipelineAssetAt(i);
             if (q != null) lista.Add(q);
         }
+        // oclusão de ambiente (SSAO): cantos e contatos mais escuros, cena mais real
+        var tipoSsao = System.Type.GetType("UnityEngine.Rendering.Universal.ScreenSpaceAmbientOcclusion, Unity.RenderPipelines.Universal.Runtime");
         foreach (var a in lista)
         {
             if (a is UniversalRenderPipelineAsset u)
             {
                 u.shadowDistance = 90f;
                 u.shadowCascadeCount = 2;
+                u.mainLightShadowmapResolution = 2048;
                 EditorUtility.SetDirty(u);
+                var campo = typeof(UniversalRenderPipelineAsset).GetField("m_RendererDataList", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var dadosR = campo?.GetValue(u) as ScriptableRendererData[];
+                if (dadosR == null || tipoSsao == null) continue;
+                foreach (var rd in dadosR)
+                {
+                    if (rd == null || rd.rendererFeatures.Exists(f => f != null && f.GetType() == tipoSsao)) continue;
+                    var ssao = (ScriptableRendererFeature)ScriptableObject.CreateInstance(tipoSsao);
+                    ssao.name = "SSAO";
+                    AssetDatabase.AddObjectToAsset(ssao, rd);
+                    rd.rendererFeatures.Add(ssao);
+                    var so = new SerializedObject(rd);
+                    var mapa = so.FindProperty("m_RendererFeatureMap");
+                    mapa.arraySize++;
+                    AssetDatabase.TryGetGUIDAndLocalFileIdentifier(ssao, out string _, out long id);
+                    mapa.GetArrayElementAtIndex(mapa.arraySize - 1).longValue = id;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                    EditorUtility.SetDirty(rd);
+                }
             }
         }
         AssetDatabase.SaveAssets();
