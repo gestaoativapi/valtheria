@@ -82,6 +82,15 @@ var swimming := false
 
 
 func _ready() -> void:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--clareira="):  # teste: mesma clareira do protótipo Unity, sem o mundo do jogo
+			set_process(false)
+			set_physics_process(false)
+			set_process_unhandled_input(false)
+			var cl: Node = load("res://scripts/clareira.gd").new()
+			cl.iniciar(a.trim_prefix("--clareira="))
+			add_child(cl)
+			return
 	_log_open()
 	compat = RenderingServer.get_current_rendering_method() == "gl_compatibility"
 	forward = RenderingServer.get_current_rendering_method() == "forward_plus"

@@ -411,40 +411,77 @@ public class PrototipoValtheria : MonoBehaviour
         var vg = perfil.Add<Vignette>(true); vg.intensity.Override(0.18f);
         vol.profile = perfil;
 
-        // chão
+        // chão de grama com a mesma textura do jogo (CC0)
         var chao = GameObject.CreatePrimitive(PrimitiveType.Plane);
         chao.name = "Chao";
         chao.transform.localScale = new Vector3(40, 1, 40);
-        chao.GetComponent<Renderer>().sharedMaterial = Mat("chao", new Color(0.33f, 0.36f, 0.22f), null, null, 0.1f);
+        chao.GetComponent<Renderer>().sharedMaterial = MatNat("Chao") ?? Mat("chao", new Color(0.33f, 0.36f, 0.22f), null, null, 0.1f);
+        var trilha = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        Destroy(trilha.GetComponent<Collider>());
+        trilha.transform.position = new Vector3(0, 0.01f, -10f);
+        trilha.transform.localScale = new Vector3(1.6f, 1, 4.5f);
+        trilha.GetComponent<Renderer>().sharedMaterial = MatNat("Terra") ?? Mat("terra", new Color(0.4f, 0.32f, 0.22f), null, null, 0.1f);
 
-        // árvores e pedras simples (instanciadas)
-        var tronco = Mat("tronco", new Color(0.3f, 0.22f, 0.15f), null, null, 0.1f);
-        var copa = Mat("copa", new Color(0.2f, 0.33f, 0.17f), null, null, 0.15f);
-        var pedra = Mat("pedra", new Color(0.45f, 0.44f, 0.42f), null, null, 0.2f);
-        var rng = new System.Random(7);
+        // árvores, pedras e plantas: os mesmos modelos do jogo (Quaternius, CC0)
+        string[] arvores = { "n_commontree_1", "n_commontree_2", "n_commontree_3", "n_pine_1", "n_pine_2" };
+        string[] pedras = { "n_rock_medium_1", "n_rock_medium_2", "n_rock_medium_3", "n_rock_large_1" };
+        string[] plantas = { "n_bush_common", "n_bush_common_flowers", "n_fern_1", "n_flower_3_group", "n_plant_1_big" };
+        // sorteio igual ao do Godot (mesma sequência), para as duas cenas ficarem com as plantas no mesmo lugar
+        semente = 7;
         for (int i = 0; i < 90; i++)
         {
-            var p = new Vector3((float)rng.NextDouble() * 180 - 90, 0, (float)rng.NextDouble() * 180 - 90);
+            var p = new Vector3(Sorteio() * 180 - 90, 0, Sorteio() * 180 - 90);
+            int k = (int)(Sorteio() * arvores.Length); float g = Sorteio() * 360f, e = 0.9f + Sorteio() * 0.5f;
             if (p.magnitude < 12) continue;
-            float h = 4f + (float)rng.NextDouble() * 4f;
-            var t = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            Destroy(t.GetComponent<Collider>());
-            t.transform.position = p + Vector3.up * h * 0.5f;
-            t.transform.localScale = new Vector3(0.45f, h * 0.5f, 0.45f);
-            t.GetComponent<Renderer>().sharedMaterial = tronco;
-            var c = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            Destroy(c.GetComponent<Collider>());
-            c.transform.position = p + Vector3.up * (h + 1.2f);
-            c.transform.localScale = new Vector3(3.6f, 3.0f, 3.6f) * (0.8f + (float)rng.NextDouble() * 0.5f);
-            c.GetComponent<Renderer>().sharedMaterial = copa;
+            Natureza(arvores[k], p, g, e);
         }
         for (int i = 0; i < 40; i++)
         {
-            var s = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            Destroy(s.GetComponent<Collider>());
-            s.transform.position = new Vector3((float)rng.NextDouble() * 160 - 80, 0.1f, (float)rng.NextDouble() * 160 - 80);
-            s.transform.localScale = new Vector3(1.4f, 0.7f, 1.1f) * (0.6f + (float)rng.NextDouble());
-            s.GetComponent<Renderer>().sharedMaterial = pedra;
+            var p = new Vector3(Sorteio() * 160 - 80, 0, Sorteio() * 160 - 80);
+            int k = (int)(Sorteio() * pedras.Length); float g = Sorteio() * 360f, e = 0.6f + Sorteio();
+            Natureza(pedras[k], p, g, e);
+        }
+        for (int i = 0; i < 260; i++)
+        {
+            var p = new Vector3(Sorteio() * 70 - 35, 0, Sorteio() * 70 - 35);
+            int k = (int)(Sorteio() * plantas.Length); float g = Sorteio() * 360f, e = 0.7f + Sorteio() * 0.6f;
+            if (p.magnitude < 3) continue;
+            Natureza(plantas[k], p, g, e, false);
+        }
+        var ceu = Resources.Load<Material>("Valtheria/Natureza/Mats/Ceu");
+        if (ceu != null) { RenderSettings.skybox = ceu; camara.clearFlags = CameraClearFlags.Skybox; DynamicGI.UpdateEnvironment(); }
+    }
+
+    static long semente = 7;
+    static float Sorteio() { semente = (semente * 1103515245L + 12345L) % 2147483648L; return semente / 2147483648f; }
+
+    static readonly Dictionary<string, Material> matsNat = new Dictionary<string, Material>();
+    static Material MatNat(string nome)
+    {
+        if (matsNat.TryGetValue(nome, out var m)) return m;
+        m = Resources.Load<Material>("Valtheria/Natureza/Mats/" + nome);
+        matsNat[nome] = m;
+        return m;
+    }
+
+    readonly Dictionary<string, GameObject> modelosNat = new Dictionary<string, GameObject>();
+    void Natureza(string nome, Vector3 pos, float giro, float escala, bool sombra = true)
+    {
+        if (!modelosNat.TryGetValue(nome, out var pref)) { pref = Resources.Load<GameObject>("Valtheria/Natureza/" + nome); modelosNat[nome] = pref; }
+        if (pref == null) return;
+        var g = Instantiate(pref, pos, Quaternion.Euler(0, giro, 0) * pref.transform.rotation);
+        g.transform.localScale *= escala;
+        foreach (var r in g.GetComponentsInChildren<Renderer>())
+        {
+            var ms = r.sharedMaterials;
+            for (int i = 0; i < ms.Length; i++)
+            {
+                if (ms[i] == null) continue;
+                var troca = MatNat(ms[i].name.Replace(" (Instance)", "").Trim());
+                if (troca != null) ms[i] = troca;
+            }
+            r.sharedMaterials = ms;
+            if (!sombra) r.shadowCastingMode = ShadowCastingMode.Off;
         }
     }
 
@@ -469,6 +506,33 @@ public class PrototipoValtheria : MonoBehaviour
     readonly List<float> medirQuadros = new List<float>();
     readonly System.Text.StringBuilder medirJson = new System.Text.StringBuilder();
     static readonly int[] MEDIR_N = { 0, 20, 40 };
+
+    // foto para comparar com o Godot: Valtheria.exe -foto C:/caminho/unity.png (20 cavaleiros, câmera fixa)
+    string fotoSaida;
+    float fotoT;
+    bool fotoTirada;
+    void FotoAuto(float dt)
+    {
+        if (fotoSaida == null)
+        {
+            var args = System.Environment.GetCommandLineArgs();
+            fotoSaida = "";
+            for (int i = 0; i < args.Length - 1; i++) if (args[i] == "-foto") fotoSaida = args[i + 1];
+            if (fotoSaida != "") Extras(20);
+        }
+        if (fotoSaida == "" && string.IsNullOrEmpty(medirSaida)) return;
+        // câmera fixa, a mesma da clareira do Godot (foto e medição)
+        cam.position = new Vector3(5.5f, 4.2f, 7.5f);
+        cam.rotation = Quaternion.LookRotation(new Vector3(-1.5f, 1.0f, -9f) - cam.position);
+        if (fotoSaida == "" || fotoTirada) return;
+        fotoT += dt;
+        if (fotoT < 8f) return;
+        ScreenCapture.CaptureScreenshot(fotoSaida);
+        fotoTirada = true;
+        if (medirSaida == "") Invoke(nameof(Sair), 1.5f);
+    }
+    void Sair() { Application.Quit(); }
+    void LateUpdate() { FotoAuto(Time.deltaTime); }
 
     void MedirAuto(float dt)
     {
@@ -662,6 +726,7 @@ public class PrototipoValtheria : MonoBehaviour
 
     void OnGUI()
     {
+        if (!string.IsNullOrEmpty(fotoSaida)) return;  // foto de comparação sem o painel
         var est = new GUIStyle(GUI.skin.label) { fontSize = 16 };
         GUI.color = new Color(0, 0, 0, 0.55f);
         GUI.DrawTexture(new Rect(8, 8, 430, 118), Texture2D.whiteTexture);

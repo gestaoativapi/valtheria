@@ -11,17 +11,30 @@ public class ImportarValtheria : AssetPostprocessor
     {
         if (!DoValtheria) return;
         var ti = (TextureImporter)assetImporter;
-        if (assetPath.Contains("Normal"))
+        var nomeTex = System.IO.Path.GetFileNameWithoutExtension(assetPath).ToLowerInvariant();
+        if (nomeTex.EndsWith("_normal"))
         {
             ti.textureType = TextureImporterType.NormalMap;
         }
         ti.maxTextureSize = 1024;
+        if (assetPath.Contains("Leaves") || assetPath.Contains("Leaf") || assetPath.Contains("Flowers"))
+            ti.alphaIsTransparency = true;
     }
 
     void OnPreprocessModel()
     {
         if (!DoValtheria) return;
         var mi = (ModelImporter)assetImporter;
+        if (assetPath.Contains("/Natureza/"))
+        {
+            // árvores, pedras e plantas (Quaternius, CC0, os mesmos do jogo): sem animação; o nome do material
+            // vem do arquivo e o protótipo troca pelo material pronto da pasta Mats
+            mi.animationType = ModelImporterAnimationType.None;
+            mi.importAnimation = false;
+            mi.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+            mi.globalScale = 1f;
+            return;
+        }
         mi.animationType = ModelImporterAnimationType.Generic;
         mi.importAnimation = true;
         mi.materialImportMode = ModelImporterMaterialImportMode.None;
