@@ -14,6 +14,10 @@ for imp in glob.glob('**/*.import', recursive=True):
         open(imp, 'w').write(s.replace('compress/mode=' + de, 'compress/mode=' + para))
 PY
 }
+# número da versão sobe sozinho (quantidade de commits): o Android instala por cima da versão anterior,
+# sem desinstalar e sem perder os dados, desde que a assinatura seja a mesma (chave de teste do projeto)
+N=$(git rev-list --count HEAD 2>/dev/null || echo 1)
+sed -i "s/^version\/code=.*/version\/code=$N/; s/^version\/name=.*/version\/name=\"0.$N-teste\"/" export_presets.cfg
 troca 2 1
 $G --headless --import --path . >/dev/null 2>&1
 $G --headless --export-debug "Android" build/Valtheria-teste.apk >/dev/null 2>&1 || true
