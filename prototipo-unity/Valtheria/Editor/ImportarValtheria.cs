@@ -35,6 +35,16 @@ public class ImportarValtheria : AssetPostprocessor
             mi.globalScale = 1f;
             return;
         }
+        if (assetPath.Contains("/Armas/") || assetPath.EndsWith("/espada.fbx"))
+        {
+            // armas e escudo (v38): o Empunho.cs lê os vértices para achar a ponta, o fio e a frente do escudo
+            mi.animationType = ModelImporterAnimationType.None;
+            mi.importAnimation = false;
+            mi.isReadable = true;
+            mi.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+            mi.globalScale = 1f;
+            return;
+        }
         mi.animationType = ModelImporterAnimationType.Generic;
         mi.importAnimation = true;
         mi.materialImportMode = ModelImporterMaterialImportMode.None;

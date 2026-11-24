@@ -2034,6 +2034,7 @@ func _pegada() -> Dictionary:
 
 
 var arma_kind := ""
+var arma_normal := Transform3D()  # arma de duas mãos fora de combate, na mão direita
 const FIO_UNICO := ["machado", "adaga", "punhal"]  # armas com um lado de corte (o resto é simétrico)
 
 
@@ -2116,8 +2117,11 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 			wnode.transform = _girar_fio(wnode.transform, wnode, guard.basis.inverse() * Vector3(0, 0, 1))
 		arma_base = wnode.transform
 		arma_golpe = _alinhar_lamina(giro * wnode.transform, wnode)
+		arma_normal = arma_golpe
 		if kind in FIO_UNICO:
 			arma_golpe = _girar_fio(arma_golpe, wnode, Vector3(0, -1, 0), giro.basis.z)
+			# carregando com a cabeça para baixo (lenhador), o fio fica virado para a frente
+			arma_normal = _girar_fio(arma_golpe, wnode, Vector3(0, 1, 0), giro.basis.z)
 		mao_l_golpe = Node3D.new()
 		mao_l_golpe.name = "SegundaMao"
 		mao_l_golpe.position = giro * Vector3(0, 0, -(float(g.at) - two) * s)
@@ -2340,10 +2344,12 @@ func _make_sheath(back: bool, small: bool) -> void:
 # mao = direção do ombro até a pegada (vezes k x comprimento do braço); lamina = para onde a arma aponta;
 # polo = para onde vai o cotovelo. Medidas pelo braço de cada raça, então valem para todas.
 const POSE_ARMA := {
-	"normal": {"mao": Vector3(-0.14, -0.95, 0.22), "k": 0.93, "lamina": Vector3(-0.25, -0.6, 0.76), "polo": Vector3(-0.3, -0.35, -0.9)},
+	# espada (24/11 13:40, "mais reta e firme"): lâmina quase em ângulo reto com o antebraço, à frente e um pouco baixa
+	"normal": {"mao": Vector3(-0.14, -0.95, 0.22), "k": 0.93, "lamina": Vector3(-0.14, -0.28, 0.95), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# machado e adaga (correção de Robson 24/11 12:07: a lâmina não fica para baixo): machado carregado pelo cabo
 	# com a cabeça para cima e à frente; adaga na cintura com a lâmina para a frente, um pouco erguida
-	"normal_machado": {"mao": Vector3(-0.2, -0.9, 0.36), "k": 0.9, "lamina": Vector3(-0.14, 0.78, 0.6), "polo": Vector3(-0.4, -0.45, -0.8)},
+	# machado (24/11 13:40): como um lenhador carrega — cabo apoiado no ombro direito, mão à frente do peito, cabeça atrás do ombro
+	"normal_machado": {"mao": Vector3(-0.28, -0.55, 0.78), "k": 0.55, "lamina": Vector3(0.18, 0.62, -0.76), "polo": Vector3(-0.5, -0.85, 0.1)},
 	"normal_adaga": {"mao": Vector3(-0.16, -0.92, 0.3), "k": 0.9, "lamina": Vector3(-0.12, 0.3, 0.95), "polo": Vector3(-0.35, -0.4, -0.85)},
 	"normal_duas": {"mao": Vector3(-0.16, -0.95, 0.2), "k": 0.93, "lamina": Vector3(-0.2, -0.9, 0.38), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# cajado (21/11): postura formal de mago, cajado em pé ao lado do corpo, mão na altura da cintura
@@ -2608,7 +2614,7 @@ func _empunho_passo(dt: float) -> void:
 		var on := not golpe and not (guard != null and armed) and not (arqueria != null and armed)
 		empunho.meta[lado] = 1.0 if on else 0.0
 	empunho.velocidade = 4.0 if not golpe else 14.0
-	empunho.punho_max = lerpf(empunho.punho_max, deg_to_rad(22.0 if armed else 80.0), clampf(dt * 6.0, 0.0, 1.0))
+	empunho.punho_max = lerpf(empunho.punho_max, deg_to_rad(22.0 if armed else (60.0 if arma_kind == "machado" else 35.0)), clampf(dt * 6.0, 0.0, 1.0))
 
 
 # em combate a arma vai para a mão; fora dele, para as costas ou a cintura
@@ -2674,7 +2680,7 @@ func _arma_na_mao(on: bool) -> void:
 		grip_node.add_child(wnode)
 	if guard != null:
 		guard_on = false
-		wnode.transform = arma_golpe
+		wnode.transform = arma_golpe if on else arma_normal
 		if on:
 			_set_guard(true)
 		else:
@@ -2917,10 +2923,18 @@ func _escudo_no_peito() -> void:
 	if escudo_mao != null and shield != null and shield.get_parent() == escudo_mao and shield_arm != null:
 		escudo_mao.position = to_local(shield_arm.global_position)
 	var peito: Transform3D = _rel_self(skel) * skel.get_bone_global_pose(_escudo_b3)
+	# segue a posição do peito e só o giro horizontal dele: num golpe o tronco se curva muito e o escudo não pode
+	# deitar nem ir para as costas; continua de pé, à frente, acompanhando para onde o peito está virado
+	var fr := peito.basis.z
+	fr.y = 0.0
+	if fr.length() < 0.2:
+		fr = Vector3.BACK
+	var giro := Basis.looking_at(-fr.normalized(), Vector3.UP)
+	var ref := Transform3D(giro, peito.origin)
 	if _escudo_off == null:
-		_escudo_off = peito.affine_inverse() * _escudo_alvo.transform
+		_escudo_off = ref.affine_inverse() * _escudo_alvo.transform
 		return
-	_escudo_alvo.transform = (peito * (_escudo_off as Transform3D)).orthonormalized()
+	_escudo_alvo.transform = ref * (_escudo_off as Transform3D)
 
 
 func _maos_no_cabo() -> void:

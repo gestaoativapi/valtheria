@@ -12,6 +12,8 @@ var peso := {"r": 0.0, "l": 0.0}
 var meta := {"r": 0.0, "l": 0.0}
 var velocidade := 5.0
 var _ids := {}
+var _ref := {}  # lado -> [média lenta da mão animada, média do antebraço animado]
+var balanco := 1.0  # quanto do balanço da animação a arma acompanha (1 = todo)
 # quanto o punho pode dobrar em relação ao antebraço: firme em combate; solto (arma pendendo) fora dele
 var punho_max := deg_to_rad(22.0)
 
@@ -49,6 +51,23 @@ func _pm_corpo(delta: float) -> void:
 		var hand_g := sk.get_bone_global_pose(ids[2])
 		var esc := hand_g.basis.get_scale()
 		var p_polo: Vector3 = inv * (polo[lado] as Node3D).global_position
+		# a arma acompanha o corpo (pedido de Robson 24/11: "a arma está estática no movimento"): o balanço que a
+		# animação dá à mão e ao antebraço (andando, correndo, na skill) é somado à pose da pegada. A referência é a
+		# média lenta da própria animação, então parado não muda nada e em movimento a arma vai e volta com o braço.
+		var mao_anim: Vector3 = hand_g.origin
+		var ante_anim: Vector3 = (hand_g.origin - sk.get_bone_global_pose(ids[1]).origin).normalized()
+		if not _ref.has(lado):
+			_ref[lado] = [mao_anim, ante_anim]
+		var ref: Array = _ref[lado]
+		var k_ref := clampf(delta * 1.6, 0.0, 1.0)
+		ref[0] = (ref[0] as Vector3).lerp(mao_anim, k_ref)
+		ref[1] = (ref[1] as Vector3).lerp(ante_anim, k_ref).normalized()
+		var desvio: Vector3 = (mao_anim - (ref[0] as Vector3)) * balanco
+		a.origin += desvio
+		p_polo += desvio
+		if (ref[1] as Vector3).length() > 0.5:
+			var giro := Quaternion(ref[1] as Vector3, ante_anim)
+			a.basis = Basis(Quaternion.IDENTITY.slerp(giro, balanco * 0.7)) * a.basis
 		var rot := (a.basis * g.basis.inverse()).orthonormalized()
 		var mao := Basis(rot.x * esc.x, rot.y * esc.y, rot.z * esc.z)
 		var pulso := a.origin - mao * g.origin

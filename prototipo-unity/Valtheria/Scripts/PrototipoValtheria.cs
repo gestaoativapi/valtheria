@@ -306,6 +306,44 @@ public class PrototipoValtheria : MonoBehaviour
         suporte.transform.localScale = Vector3.one / Mathf.Max(0.0001f, mao.lossyScale.x);
     }
 
+    // ---------- armas e escudo com a pegada do Godot (Empunho.cs, v38) ----------
+    static void PintarArma(GameObject g)
+    {
+        foreach (var r in g.GetComponentsInChildren<Renderer>())
+        {
+            var arr = r.sharedMaterials;
+            for (int i = 0; i < arr.Length; i++)
+            {
+                string n = arr[i] != null ? arr[i].name : "";
+                if (n.Contains("DarkWood")) arr[i] = Mat("madeira_escura", new Color(0.40f, 0.27f, 0.19f), null, null, 0.25f);
+                else if (n.Contains("Wood")) arr[i] = Mat("madeira", new Color(0.50f, 0.33f, 0.22f), null, null, 0.25f);
+                else if (n.Contains("DarkSteel")) arr[i] = Mat("aco_escuro", new Color(0.46f, 0.46f, 0.44f), null, null, 0.6f, 0.8f);
+                else arr[i] = Mat("aco", new Color(0.62f, 0.64f, 0.66f), null, null, 0.7f, 0.85f);
+            }
+            r.sharedMaterials = arr;
+            r.shadowCastingMode = ShadowCastingMode.On;
+        }
+    }
+
+    static Empunho Equipar(GameObject cav, Animador a, Empunho.Arma tipo, bool escudo)
+    {
+        var emp = cav.AddComponent<Empunho>();
+        string nome = tipo == Empunho.Arma.Espada ? "espada" : (tipo == Empunho.Arma.Machado ? "Armas/machado" : "Armas/adaga");
+        var pref = Resources.Load<GameObject>("Valtheria/" + nome);
+        GameObject inst = pref != null ? Instantiate(pref) : null;
+        if (inst != null) PintarArma(inst);
+        GameObject esc = null;
+        if (escudo)
+        {
+            var pe = Resources.Load<GameObject>("Valtheria/Armas/escudo");
+            if (pe != null) { esc = Instantiate(pe); PintarArma(esc); }
+        }
+        float comp = tipo == Empunho.Arma.Adaga ? 0.5f : 0.95f;
+        emp.Montar(tipo, escudo, inst, esc, comp);
+        emp.ocupado = () => a.Ocupado;
+        return emp;
+    }
+
     // ---------- personagens ----------
     class Lobo
     {
@@ -314,11 +352,12 @@ public class PrototipoValtheria : MonoBehaviour
         public MaterialPropertyBlock mpb = new MaterialPropertyBlock(); public Renderer[] rs;
     }
 
-    GameObject jogador; Animador animJ; Transform cam;
+    GameObject jogador; Animador animJ; Transform cam; Empunho empJ;
     float yaw = 30f, pitch = 18f, dist = 6.5f;
     float vidaJ = 300, vidaMaxJ = 300; int combo; float golpeEm = -1; bool golpePendente;
     readonly List<Lobo> lobos = new List<Lobo>();
     readonly List<(GameObject go, Animador a, Vector3 c, float fase)> extras = new List<(GameObject, Animador, Vector3, float)>();
+    readonly List<Empunho> extrasArmas = new List<Empunho>();
     readonly List<(Vector3 p, string t, Color c, float ate)> textos = new List<(Vector3, string, Color, float)>();
     readonly Queue<float> quadros = new Queue<float>();
     float fpsMed, fpsBaixo, tFps;
@@ -342,7 +381,7 @@ public class PrototipoValtheria : MonoBehaviour
         clipesLobo = Resources.LoadAll<AnimationClip>("Valtheria/lobisomem");
         MontarMundo();
         jogador = NovoCavaleiro(Vector3.zero, out animJ);
-        PorEspada(jogador);
+        empJ = Equipar(jogador, animJ, Empunho.Arma.Espada, true);
         for (int i = 0; i < 5; i++) NovoLobo(new Vector3(Random.Range(-25f, 25f), 0, Random.Range(8f, 30f)));
     }
 
@@ -537,11 +576,16 @@ public class PrototipoValtheria : MonoBehaviour
     {
         foreach (var e in extras) { e.a.Destruir(); Destroy(e.go); }
         extras.Clear();
+        extrasArmas.Clear();
         for (int i = 0; i < n; i++)
         {
             var c = new Vector3((i % 8) * 3f - 10.5f, 0, -6f - (i / 8) * 3f);
             var g = NovoCavaleiro(c, out var a);
             a.Tocar(i % 2 == 0 ? "Walk" : "Sword_Idle");
+            var tipo = (Empunho.Arma)(i % 3);
+            var emp = Equipar(g, a, tipo, tipo == Empunho.Arma.Espada);
+            emp.emCombate = i % 2 == 1;
+            extrasArmas.Add(emp);
             extras.Add((g, a, c, i * 0.7f));
         }
     }
@@ -579,8 +623,58 @@ public class PrototipoValtheria : MonoBehaviour
         fotoTirada = true;
         if (medirSaida == "") Invoke(nameof(Sair), 1.5f);
     }
+
+    // foto da pegada: Valtheria.exe -pegada C:/caminho/pegada (grava _frente.png e _lado.png)
+    // seis cavaleiros: espada+escudo, machado e adaga, em combate (frente) e fora dele (atrás)
+    string pegadaSaida;
+    float pegadaT;
+    int pegadaFase;
+    readonly List<(GameObject go, Animador a)> pegadaBonecos = new List<(GameObject, Animador)>();
+    void PegadaAuto(float dt)
+    {
+        if (pegadaSaida == null)
+        {
+            var args = System.Environment.GetCommandLineArgs();
+            pegadaSaida = "";
+            for (int i = 0; i < args.Length - 1; i++) if (args[i] == "-pegada") pegadaSaida = args[i + 1];
+            if (pegadaSaida == "") return;
+            foreach (var l in lobos) { l.anim.Destruir(); Destroy(l.go); }
+            lobos.Clear();
+            jogador.transform.position = new Vector3(60, 0, 60);
+            for (int i = 0; i < 6; i++)
+            {
+                bool combate = i < 3;
+                var tipo = (Empunho.Arma)(i % 3);
+                var pos = new Vector3(((i % 3) - 1) * 1.3f + (combate ? 0f : 0.4f), 0, combate ? 0f : 2.2f);
+                var g = NovoCavaleiro(pos, out var a);
+                g.transform.rotation = Quaternion.Euler(0, 180f, 0);
+                a.Tocar(combate ? "Sword_Idle" : "Idle");
+                var emp = Equipar(g, a, tipo, tipo == Empunho.Arma.Espada);
+                emp.emCombate = combate;
+                pegadaBonecos.Add((g, a));
+            }
+        }
+        if (pegadaSaida == "") return;
+        foreach (var b in pegadaBonecos) b.a.Atualizar(dt);
+        pegadaT += dt;
+        // câmeras: frente e lado das duas fileiras, depois de perto (machado e adaga, frente e lado)
+        var cams = new (Vector3 p, Vector3 o, string n)[] {
+            (new Vector3(0, 1.3f, -3.6f), new Vector3(0, 1.05f, 0.6f), "_frente"),
+            (new Vector3(-4.2f, 1.3f, 1.0f), new Vector3(0, 1.05f, 1.0f), "_lado"),
+            (new Vector3(0.2f, 1.25f, -1.7f), new Vector3(0, 1.05f, 0f), "_machado_frente"),
+            (new Vector3(-1.6f, 1.25f, -0.4f), new Vector3(0, 1.05f, 0f), "_machado_lado"),
+            (new Vector3(1.5f, 1.25f, -1.7f), new Vector3(1.3f, 1.05f, 0f), "_adaga_frente"),
+            (new Vector3(0.7f, 1.25f, 0.9f), new Vector3(-0.9f, 1.0f, 2.2f), "_escudo_normal") };
+        if (pegadaFase < cams.Length)
+        {
+            cam.position = cams[pegadaFase].p;
+            cam.rotation = Quaternion.LookRotation(cams[pegadaFase].o - cam.position);
+            if (pegadaT > 5f) { ScreenCapture.CaptureScreenshot(pegadaSaida + cams[pegadaFase].n + ".png"); pegadaFase++; pegadaT = 4.6f; }
+        }
+        else if (pegadaFase == cams.Length) { pegadaFase++; Invoke(nameof(Sair), 1.5f); }
+    }
     void Sair() { Application.Quit(); }
-    void LateUpdate() { FotoAuto(Time.deltaTime); }
+    void LateUpdate() { FotoAuto(Time.deltaTime); PegadaAuto(Time.deltaTime); }
 
     void MedirAuto(float dt)
     {
@@ -657,6 +751,7 @@ public class PrototipoValtheria : MonoBehaviour
         var direita = Quaternion.Euler(0, yaw, 0) * Vector3.right;
         var mov = frente * e.y + direita * e.x;
         bool emCombate = lobos.Exists(l => !l.morto && (l.go.transform.position - jogador.transform.position).magnitude < 12f);
+        if (empJ != null) empJ.emCombate = emCombate || animJ.Ocupado;
 
         if (Entrada.Atacar() && !animJ.Ocupado)
         {
@@ -774,7 +869,7 @@ public class PrototipoValtheria : MonoBehaviour
 
     void OnGUI()
     {
-        if (!string.IsNullOrEmpty(fotoSaida)) return;  // foto de comparação sem o painel
+        if (!string.IsNullOrEmpty(fotoSaida) || !string.IsNullOrEmpty(pegadaSaida)) return;  // fotos sem o painel
         var est = new GUIStyle(GUI.skin.label) { fontSize = 16 };
         GUI.color = new Color(0, 0, 0, 0.55f);
         GUI.DrawTexture(new Rect(8, 8, 430, 118), Texture2D.whiteTexture);

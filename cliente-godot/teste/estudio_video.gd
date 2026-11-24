@@ -9,8 +9,8 @@ var bonecos: Array = []
 var lista := "humano:m:espada_ng:pesada_ng:escudo_ng:A"
 var passo := 2  # grava 1 quadro a cada 2 (15 por segundo)
 # roteiro em quadros (30 por segundo)
-const ROTEIRO := [[0, "Idle", false], [45, "Walk", false], [105, "Jog_Fwd", false], [150, "Idle", true], [195, "Jog_Fwd", true], [240, "Walk", true], [285, "Idle", false]]
-const FIM := 330
+const ROTEIRO := [[0, "Idle", false], [45, "Walk", false], [105, "Jog_Fwd", false], [150, "Idle", true], [195, "Jog_Fwd", true], [240, "Idle", true], [255, "!Sword_Regular_A", true], [300, "!Sword_Regular_B", true], [345, "Walk", false], [390, "Idle", false]]
+const FIM := 420
 
 
 func _init() -> void:
@@ -79,7 +79,10 @@ func _process(_d: float) -> bool:
 			for c in bonecos:
 				c.set_battle(bool(r[2]))
 				c.em_guarda = bool(r[2])
-				c.play(str(r[1]))
+				if str(r[1]).begins_with("!"):
+					c.action(str(r[1]).substr(1))
+				else:
+					c.play(str(r[1]))
 	if f >= 0 and f % passo == 0:
 		root.get_viewport().get_texture().get_image().save_jpg("%s/q%04d.jpg" % [saida, f / passo], 0.9)
 	if f >= FIM:
