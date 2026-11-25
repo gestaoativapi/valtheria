@@ -150,26 +150,27 @@ const REGIAO_OSSO := {
 # perfil de combate, ritmo da caminhada (ciclo) e inclinação ao andar. Ver scripts/postura_raca.gd.
 const POSTURAS := {
 	"elfo": {"pose": {"pelvis": -2, "spine_02": -2, "spine_03": -3, "Head": 1, "clavicle": -2, "upperarm": -3, "lowerarm": 2, "calf": 2},
-		"combate": {"spine_01": -2, "spine_02": -2, "upperarm": -5, "lowerarm": 4}, "ciclo": 0.95, "inclina": -2},
-	"sombrio": {"pose": {"pelvis": 4, "spine_01": 5, "spine_02": 3, "neck_01": -2, "Head": -3, "clavicle": 4, "upperarm": 5, "lowerarm": -2, "hand": 3, "thigh": 2, "calf": 3, "foot": -2},
-		"combate": {"spine_01": 7, "spine_02": 3, "upperarm": 8, "lowerarm": -4}, "ciclo": 1.05, "inclina": 4},
+		"combate": {"spine_01": 3, "spine_02": 2, "upperarm": -5, "lowerarm": 4}, "ciclo": 0.95, "inclina": -2},
+	"sombrio": {"pose": {"pelvis": 3, "spine_01": 3, "spine_02": 2, "neck_01": -2, "Head": -3, "clavicle": 4, "upperarm": 5, "lowerarm": -2, "hand": 3, "thigh": 2, "calf": 3, "foot": -2},
+		"combate": {"spine_01": 4, "spine_02": 2, "neck_01": -3, "Head": -3, "upperarm": 8, "lowerarm": -4}, "ciclo": 1.05, "inclina": 2},
 	"orc": {"pose": {"pelvis": -4, "spine_01": 7, "spine_02": 4, "spine_03": 2, "neck_01": -3, "Head": -4, "clavicle": 8, "upperarm": 9, "lowerarm": -4, "hand": 5, "thigh": 4, "calf": 3, "foot": -3},
-		"combate": {"spine_01": 10, "spine_02": 5, "upperarm": 12, "lowerarm": -7}, "ciclo": 0.85, "inclina": 5},
-	"goblin": {"pose": {"pelvis": 7, "spine_01": 10, "spine_02": 4, "spine_03": -3, "neck_01": -4, "Head": -5, "clavicle": 5, "upperarm": 8, "lowerarm": -5, "hand": 6, "thigh": 6, "calf": 4, "foot": -4},
-		"combate": {"spine_01": 12, "spine_02": 5, "upperarm": 10, "lowerarm": -8}, "ciclo": 1.25, "inclina": 9},
+		"combate": {"spine_01": 10, "spine_02": 5, "neck_01": -8, "Head": -8, "upperarm": 12, "lowerarm": -7}, "ciclo": 0.85, "inclina": 5},
+	"goblin": {"pose": {"pelvis": 5, "spine_01": 7, "spine_02": 3, "spine_03": -3, "neck_01": -4, "Head": -5, "clavicle": 5, "upperarm": 8, "lowerarm": -5, "hand": 6, "thigh": 6, "calf": 4, "foot": -4},
+		"combate": {"spine_01": 8, "spine_02": 4, "neck_01": -5, "Head": -5, "upperarm": 10, "lowerarm": -8}, "ciclo": 1.25, "inclina": 5},
 	"beastman": {"pose": {"pelvis": 3, "spine_01": 7, "spine_02": 3, "spine_03": -2, "neck_01": -2, "Head": -3, "clavicle": 5, "upperarm": 7, "lowerarm": -3, "hand": 4, "thigh": 5, "calf": 3, "foot": -3},
-		"combate": {"spine_01": 9, "spine_02": 4, "upperarm": 10, "lowerarm": -6}, "ciclo": 1.08, "inclina": 6},
+		"combate": {"spine_01": 7, "spine_02": 3, "neck_01": -4, "Head": -4, "upperarm": 10, "lowerarm": -6}, "ciclo": 1.08, "inclina": 4},
 	"draconato": {"pose": {"pelvis": 2, "spine_01": 5, "spine_02": 2, "spine_03": -2, "neck_01": -2, "Head": -2, "clavicle": 4, "upperarm": 6, "lowerarm": -3, "hand": 3, "thigh": 3, "calf": 2, "foot": -2},
 		"combate": {"spine_01": 7, "spine_02": 4, "upperarm": 8, "lowerarm": -4}, "ciclo": 0.95, "inclina": 3},
 	"gigante": {"pose": {"pelvis": -5, "spine_01": 8, "spine_02": 5, "spine_03": 2, "neck_01": -4, "Head": -5, "clavicle": 8, "upperarm": 9, "lowerarm": -5, "hand": 5, "thigh": 5, "calf": 3, "foot": -3},
-		"combate": {"spine_01": 10, "spine_02": 6, "upperarm": 12, "lowerarm": -6}, "ciclo": 0.72, "inclina": 6},
+		"combate": {"spine_01": 10, "spine_02": 6, "neck_01": -8, "Head": -8, "upperarm": 12, "lowerarm": -6}, "ciclo": 0.72, "inclina": 6},
 	"anao": {"pose": {"pelvis": -2, "spine_01": 5, "spine_02": 2, "Head": -2, "clavicle": 4, "upperarm": 5, "lowerarm": -2, "hand": 3, "thigh": 5, "calf": 3, "foot": -2},
-		"combate": {"spine_01": 6, "upperarm": 6, "lowerarm": -3}, "ciclo": 0.9, "inclina": 3},
+		"combate": {"spine_01": 6, "neck_01": -6, "Head": -6, "upperarm": 6, "lowerarm": -3}, "ciclo": 0.9, "inclina": 3},
 }
 # quanto da postura própria da raça some fora de combate (pedido de Robson 24/11: cada raça com seus traços,
 # não todos retos): humano e elfo continuam eretos; orc, gigante, fera, goblin e draconato mantêm o corpo
 # pesado e curvado; anão firme e baixo; sombrio esguio e um pouco inclinado
 const CORRIDA_RETA := {"orc": 35.0, "anao": 22.0, "gigante": 40.0}  # graus devolvidos ao tronco na corrida
+const CORRIDA_RETA_V3 := {"goblin": 22.0, "beastman": 16.0, "sombrio": 14.0, "gigante": 12.0, "draconato": 10.0}
 const ERETO_RACA := {"elfo": 0.5, "sombrio": 0.35, "anao": 0.3, "draconato": 0.2, "beastman": 0.15, "orc": 0.15, "goblin": 0.1, "gigante": 0.15}
 const FORCA_ERETA := {"humano": 0.85, "elfo": 0.7, "sombrio": 0.45, "anao": 0.4, "draconato": 0.3, "beastman": 0.25, "orc": 0.25, "goblin": 0.2, "gigante": 0.25}
 const PosturaRaca = preload("res://scripts/postura_raca.gd")
@@ -407,6 +408,8 @@ func _setup_medido(o: Dictionary) -> void:
 		ciclo_raca = float(pr.ciclo)
 		if own != "":  # corpo próprio já vem com a massa à frente: na corrida o tronco sobe (orc e anão tombavam)
 			postura.corrida_reta = float(CORRIDA_RETA.get(own.split("_")[0], 0.0))
+		else:  # 25/11: raças V3 curvadas também tombavam na corrida (goblin 48°, fera 38°, sombrio 33°)
+			postura.corrida_reta = float(CORRIDA_RETA_V3.get(chave_postura, 0.0))
 		skel.add_child(postura)
 	if race == "gigante" and not dragon and own == "":  # metade humano, metade golem de gelo (pedido de Robson 21/11)
 		# armadura de grau B para cima mostra cor e brilho por cima do gelo (decisão de Robson 22/11)
