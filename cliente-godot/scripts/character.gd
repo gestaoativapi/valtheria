@@ -169,6 +169,7 @@ const POSTURAS := {
 # quanto da postura própria da raça some fora de combate (pedido de Robson 24/11: cada raça com seus traços,
 # não todos retos): humano e elfo continuam eretos; orc, gigante, fera, goblin e draconato mantêm o corpo
 # pesado e curvado; anão firme e baixo; sombrio esguio e um pouco inclinado
+const CORRIDA_RETA := {"orc": 35.0, "anao": 22.0, "gigante": 40.0}  # graus devolvidos ao tronco na corrida
 const ERETO_RACA := {"elfo": 0.5, "sombrio": 0.35, "anao": 0.3, "draconato": 0.2, "beastman": 0.15, "orc": 0.15, "goblin": 0.1, "gigante": 0.15}
 const FORCA_ERETA := {"humano": 0.85, "elfo": 0.7, "sombrio": 0.45, "anao": 0.4, "draconato": 0.3, "beastman": 0.25, "orc": 0.25, "goblin": 0.2, "gigante": 0.25}
 const PosturaRaca = preload("res://scripts/postura_raca.gd")
@@ -192,8 +193,11 @@ const SHAPE := {
 # modelos próprios: altura e quanto o quadril fica mais baixo que o do humano (as animações movem o quadril)
 # bones: ajuste fino de proporção (braço mais curto, mão menor, perna um pouco mais longa, cabeça)
 const OWN := {"anao_m": {"height": 1.36, "hip": 0.624, "bones": {}}, "anao_f": {"height": 1.3, "hip": 0.657, "bones": {}},
-	"orc_m": {"height": 2.0, "hip": 1.006, "bones": {}}, "orc_f": {"height": 1.87, "hip": 0.94, "bones": {}}}  # orcs: pranchas originais 24/11 -> Hunyuan3D-2.1 -> pele_automatica.mjs
-static var orc_modelo_proprio := true  # false volta ao orc V3 antigo (teste/comparação)
+	"orc_m": {"height": 2.0, "hip": 1.006, "bones": {}}, "orc_f": {"height": 1.87, "hip": 0.94, "bones": {}},
+	"gigante_m": {"height": 2.6, "hip": 1.305, "bones": {}}}  # orcs: pranchas originais 24/11 -> Hunyuan3D-2.1 -> pele_automatica.mjs
+static var orc_modelo_proprio := true
+const CORPO_PROPRIO_RACAS := ["gigante", "elfo", "sombrio", "humano"]  # padrão novo; anão e orc acima
+static var corpos_proprios := true  # false volta todas essas raças ao V3 (comparação)  # false volta ao orc V3 antigo (teste/comparação)
 # pegada por tipo de arma (medidas em metros para 1,80 m de altura):
 # at = onde a mão principal segura, medido a partir da ponta do cabo; two = onde a segunda mão segura (0 = uma mão só)
 # hand = mão principal; back = guardada nas costas (senão na cintura); dual = uma em cada mão
@@ -273,6 +277,11 @@ func _setup_medido(o: Dictionary) -> void:
 		own = "anao_m" if male else "anao_f"
 	elif race == "orc" and str(o.get("subtipo", "")) != "goblin" and orc_modelo_proprio:
 		own = "orc_m" if male else "orc_f"
+	elif race in CORPO_PROPRIO_RACAS and corpos_proprios and not o.get("sem_roupa", false):
+		# padrão Valtheria (ferramentas/racas/nova_raca.py): só entra se o corpo da raça/gênero já existe
+		var k := "%s_%s" % [race, "m" if male else "f"]
+		if OWN.has(k) and ResourceLoader.exists(DIR + "body_" + k + ".glb"):
+			own = k
 	var file := "body_%s_%s" % [g, outfit]
 	if dragon:
 		file = "body_dragonita"
@@ -396,8 +405,10 @@ func _setup_medido(o: Dictionary) -> void:
 		postura.inclina = float(pr.inclina)
 		postura.ereto = float(ERETO_RACA.get(chave_postura, 0.25))
 		ciclo_raca = float(pr.ciclo)
+		if own != "":  # corpo próprio já vem com a massa à frente: na corrida o tronco sobe (orc e anão tombavam)
+			postura.corrida_reta = float(CORRIDA_RETA.get(own.split("_")[0], 0.0))
 		skel.add_child(postura)
-	if race == "gigante" and not dragon:  # metade humano, metade golem de gelo (pedido de Robson 21/11)
+	if race == "gigante" and not dragon and own == "":  # metade humano, metade golem de gelo (pedido de Robson 21/11)
 		# armadura de grau B para cima mostra cor e brilho por cima do gelo (decisão de Robson 22/11)
 		load("res://scripts/gelo_golem.gd").montar(skel, grau_do_item(str(eq.get("armadura", ""))) in ["b", "a", "s"])
 	# postura parada ereta (guerreiro reto; mago reto e formal; mulher com jeito feminino), depois da postura da raça
@@ -2132,7 +2143,7 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 			arma_golpe = _girar_fio(arma_golpe, wnode, Vector3(0, -1, 0), giro.basis.z)
 			# no ombro (lenhador) o fio fica virado para trás/cima, longe da cabeça
 			arma_normal = _girar_fio(arma_normal, wnode, Vector3(0, 1, 0))
-		if kind == "machado":
+		if kind == "machado" and not _machado_baixo():
 			# no ombro a mão segura perto do fim do cabo (como um lenhador): o cabo não sobra para baixo da mão
 			arma_normal.origin += Vector3(0, 0, 1) * (float(g.at) - 0.08) * s
 		mao_l_golpe = Node3D.new()
@@ -2365,6 +2376,8 @@ const POSE_ARMA := {
 	# com a cabeça para cima e à frente; adaga na cintura com a lâmina para a frente, um pouco erguida
 	# machado (24/11 13:40): como um lenhador carrega — cabo apoiado no ombro direito, mão à frente do peito, cabeça atrás do ombro
 	"normal_machado": {"mao": Vector3(-0.28, -0.55, 0.78), "k": 0.55, "lamina": Vector3(0.18, 0.62, -0.76), "polo": Vector3(-0.5, -0.85, 0.1)},
+	# orc (corpo próprio): ombreira de chifres no ombro direito, o cabo atravessava; leva o machado baixo, cabeça à frente
+	"normal_machado_baixo": {"mao": Vector3(-0.2, -0.93, 0.25), "k": 0.92, "lamina": Vector3(-0.4, 0.75, 0.5), "polo": Vector3(-0.4, -0.45, -0.8)},
 	"normal_adaga": {"mao": Vector3(-0.25, -0.9, 0.3), "k": 0.9, "lamina": Vector3(-0.12, 0.3, 0.95), "polo": Vector3(-0.35, -0.4, -0.85)},
 	"normal_duas": {"mao": Vector3(-0.24, -0.93, 0.22), "k": 0.93, "lamina": Vector3(-0.32, -0.7, 0.64), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# cajado (21/11): postura formal de mago, cajado em pé ao lado do corpo, mão na altura da cintura
@@ -2428,6 +2441,10 @@ func _rel_self(n: Node) -> Transform3D:
 
 
 # quadro da pegada para uma pose: origem na mão, +Z na lâmina, +Y voltado para o pulso
+func _machado_baixo() -> bool:
+	return race_id == "orc" and subtipo != "goblin" and orc_modelo_proprio
+
+
 func _quadro_pose(lado: String, chave: String) -> Array:
 	var p: Dictionary = _pose_estilo(chave)
 	var sx := 1.0 if lado == "r" else -1.0
@@ -2613,7 +2630,7 @@ func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: b
 			pw = false
 		if not pw:
 			empunho.largura = clampf(maxf(bbw.size.x, bbw.size.y) * 0.5, 0.02, 0.25)
-	if kind == "machado":
+	if kind == "machado" and not _machado_baixo():
 		empunho.segue_peito = 1.0
 		empunho.balanco = 0.4
 		empunho.cabo = 0.08 * (height_m / 1.8)
@@ -2628,7 +2645,7 @@ func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: b
 		elif kind in ["cajado"]:
 			nn = "normal_cajado"
 		elif kind == "machado":
-			nn = "normal_machado"
+			nn = "normal_machado_baixo" if _machado_baixo() else "normal_machado"
 		elif kind in ["adaga", "punhal"]:
 			nn = "normal_adaga"
 			cc = "combate_adaga"
@@ -2832,6 +2849,7 @@ func play(n: String, speed := 1.0) -> void:
 		speed *= GUARDA_RACA.get(race_id, 1.0)  # ritmo da guarda: gigante e orc pesados, anão e elfos mais vivos (só visual)
 	if postura != null:
 		postura.andando = 1.0 if anda else 0.0
+		postura.correndo = 1.0 if (n.contains("Run") or n.contains("Jog")) else 0.0
 	if anda:
 		speed *= ciclo_raca
 	if current == n:

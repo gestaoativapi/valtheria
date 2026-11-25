@@ -109,7 +109,7 @@ static func aplicar(skel: Skeleton3D, raca: String, male: bool) -> void:
 			continue
 		var mi := ch as MeshInstance3D
 		var nome := String(mi.name).to_lower()
-		if mi.mesh == null or nome in PULA or nome.begins_with("ca_") or nome.contains("hair") or nome.contains("eye"):
+		if mi.mesh == null or nome in PULA or nome.begins_with("corpo_") or nome.begins_with("ca_") or nome.contains("hair") or nome.contains("eye"):
 			continue
 		var chave := "%d|%s|%s" % [mi.mesh.get_instance_id(), raca, g]
 		if _cache.has(chave):

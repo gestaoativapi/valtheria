@@ -28,6 +28,8 @@ var em_combate := false
 var intensidade := 2.1
 var bracos_livres := true  # com a guarda armada (IK nos braços) a postura não mexe nos braços
 var andando := 0.0   # 0 parado .. 1 andando (o personagem atualiza)
+var correndo := 0.0  # 0 .. 1 só na corrida (Jog/Run)
+var corrida_reta := 0.0  # graus para trás na corrida (corpos próprios largos: orc e anão não tombam o tronco)
 # postura ereta e firme fora de combate (pedido de Robson 20/11, referências de MMO clássico): tira parte da
 # curvatura de coluna, pescoço e pernas; em combate a postura de ataque da raça volta inteira
 var ereto := 0.0
@@ -60,6 +62,10 @@ func _graus(nome: String) -> float:
 	var g := base + comb
 	if nome == "spine_01":
 		g += inclina * andando
+	if corrida_reta != 0.0 and correndo > 0.0:
+		var parte := {"spine_01": 0.4, "spine_02": 0.3, "neck_01": 0.15, "Head": 0.15}
+		if parte.has(nome):
+			g -= corrida_reta * correndo * float(parte[nome])
 	return g
 
 

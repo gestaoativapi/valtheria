@@ -1,3 +1,4 @@
+import fs from 'fs';
 // Pele automática para modelos em pose T (Meshy) usando o esqueleto do jogo. uso: node sk5.mjs <anao_m|anao_f>
 import { NodeIO, Document } from '@gltf-transform/core'; import { ALL_EXTENSIONS } from '@gltf-transform/extensions'; import { weld, simplify } from '@gltf-transform/functions';
 import { MeshoptDecoder, MeshoptSimplifier } from 'meshoptimizer'; import { mat4, quat, vec3 } from 'gl-matrix'; import sharp from 'sharp'; await MeshoptDecoder.ready; await MeshoptSimplifier.ready;
@@ -6,12 +7,12 @@ const CFG = {
   orc_m: { model: { xs: 0.32, k: 1, kz: 1, hs: 1, dy: 0 }, src: '/home/claude/orc/orc_m_tex.glb', semWeld: true, height: 2.0, y0: -0.998, top: 0.987, tris: 36000,
     spine: { pelvis: [-0.05, -0.02], spine_01: [0.08, -0.03], spine_02: [0.25, -0.04], spine_03: [0.42, -0.04], neck_01: [0.68, -0.02], Head: [0.77, 0.0] }, headTop: [0.98, 0.0], rTorso: 0.32, rHead: 0.14, rNeck: 0.12,
     arm: { z: -0.02, clav: [0.08, 0.64], upper: [0.34, 0.60], lower: [0.52, 0.27], hand: [0.62, -0.12], tip: [0.66, -0.36], r: [0.18, 0.15, 0.13, 0.12] },
-    leg: { thigh: [0.17, -0.14, 0], calf: [0.20, -0.52, 0], foot: [0.22, -0.84, -0.03], ball: [0.22, -0.95, 0.12], tip: [0.22, -0.97, 0.24], r: [0.17, 0.15, 0.13, 0.11] }, hip: [0.17, -0.12, 0.26], shoulder: [0.27, 0.62, 0.2],
+    leg: { thigh: [0.17, -0.14, 0], calf: [0.20, -0.52, 0], foot: [0.22, -0.84, -0.03], ball: [0.22, -0.95, 0.12], tip: [0.22, -0.97, 0.24], r: [0.21, 0.15, 0.13, 0.11] }, hip: [0.17, -0.12, 0.17], rPelvis: 0.2, shoulder: [0.27, 0.62, 0.2],
     extra: [['clavicle_r', [-0.30, 0.66, 0], [-0.52, 0.86, 0], 0.12]] },
   orc_f: { model: { xs: 0.27, k: 1, kz: 1, hs: 1, dy: 0 }, src: '/home/claude/orc/orc_f_tex.glb', semWeld: true, height: 1.87, y0: -0.998, top: 0.99, tris: 34000,
     spine: { pelvis: [-0.05, -0.02], spine_01: [0.08, -0.02], spine_02: [0.25, -0.03], spine_03: [0.42, -0.03], neck_01: [0.66, -0.02], Head: [0.76, -0.01] }, headTop: [0.99, 0.0], rTorso: 0.24, rHead: 0.13, rNeck: 0.09,
     arm: { z: -0.02, clav: [0.07, 0.60], upper: [0.29, 0.56], lower: [0.42, 0.23], hand: [0.50, -0.04], tip: [0.54, -0.19], r: [0.15, 0.12, 0.10, 0.09] },
-    leg: { thigh: [0.15, -0.10, 0], calf: [0.17, -0.50, 0], foot: [0.20, -0.84, -0.03], ball: [0.20, -0.95, 0.10], tip: [0.20, -0.97, 0.20], r: [0.15, 0.13, 0.11, 0.10] }, hip: [0.15, -0.10, 0.22], shoulder: [0.22, 0.58, 0.16],
+    leg: { thigh: [0.15, -0.10, 0], calf: [0.17, -0.50, 0], foot: [0.20, -0.84, -0.03], ball: [0.20, -0.95, 0.10], tip: [0.20, -0.97, 0.20], r: [0.18, 0.13, 0.11, 0.10] }, hip: [0.15, -0.10, 0.14], rPelvis: 0.16, shoulder: [0.22, 0.58, 0.16],
     extra: [['clavicle_r', [-0.26, 0.62, 0], [-0.38, 0.78, 0], 0.09]] },
   anao_m: { model: { xs: 0.36, k: 1, kz: 1, hs: 1, dy: 0 }, src: '/home/claude/meshy/m2.glb', height: 1.36, y0: -0.761, top: 0.757, tris: 34000,
     spine: { pelvis: [-0.10, 0], spine_01: [0.0, 0], spine_02: [0.12, 0], spine_03: [0.25, 0], neck_01: [0.50, 0.01], Head: [0.56, 0.02] }, headTop: [0.70, 0.02], rTorso: 0.36, rHead: 0.2, rNeck: 0.12,
@@ -66,7 +67,7 @@ for (let i = 0; i < joints.length; i++) { const nm = names[i], p = parent[i], pd
   if (J[nm]) bindP[i] = J[nm]; else { const off = vec3.sub([], restP[i], restP[p]); vec3.transformQuat(off, off, delta[p]); if (/hand_|index|middle|ring|pinky|thumb/.test(names[p])) vec3.scale(off, off, handK); bindP[i] = vec3.add([], bindP[p], off); } }
 const bindW = joints.map((_, i) => mat4.fromRotationTranslation(mat4.create(), bindQ[i], bindP[i])), ibm = new Float32Array(joints.length * 16); bindW.forEach((m, i) => ibm.set(mat4.invert(mat4.create(), m), i * 16));
 const seg = [], addS = (b, a, c, r) => seg.push({ b: idx[b], a, c, r: r * S }), sp = C.spine, P3 = (y, z) => T(0, y, z);
-addS('pelvis', J.pelvis, J.spine_01, C.rTorso); addS('pelvis', T(-C.hip[0], C.hip[1], 0), T(C.hip[0], C.hip[1], 0), C.hip[2]); addS('spine_01', J.spine_01, J.spine_02, C.rTorso); addS('spine_02', J.spine_02, J.spine_03, C.rTorso);
+addS('pelvis', J.pelvis, J.spine_01, C.rPelvis ?? C.rTorso); addS('pelvis', T(-C.hip[0], C.hip[1], 0), T(C.hip[0], C.hip[1], 0), C.hip[2]); addS('spine_01', J.spine_01, J.spine_02, C.rTorso); addS('spine_02', J.spine_02, J.spine_03, C.rTorso);
 addS('spine_03', J.spine_03, P3((sp.spine_03[0] + sp.neck_01[0]) / 2, 0), C.rTorso); addS('spine_03', T(-C.shoulder[0], C.shoulder[1], 0), T(C.shoulder[0], C.shoulder[1], 0), C.shoulder[2]);
 addS('neck_01', J.neck_01, J.Head, C.rNeck); addS('Head', J.Head, P3(...C.headTop), C.rHead);
 for (const [b, a, c, r] of C.extra) addS(b, T(...a), T(...c), r);
@@ -77,6 +78,7 @@ const label = new Int32Array(n); for (let i = 0; i < n; i++) { const p = [pos[i 
 const rep = new Int32Array(n), seen = new Map(); for (let i = 0; i < n; i++) { const k = Math.round(pos[i * 3] * 5000) + ',' + Math.round(pos[i * 3 + 1] * 5000) + ',' + Math.round(pos[i * 3 + 2] * 5000); if (!seen.has(k)) seen.set(k, i); rep[i] = seen.get(k); }
 const adj = Array.from({ length: n }, () => new Set()); for (let i = 0; i < ind.length; i += 3) { const [a, b, c] = [rep[ind[i]], rep[ind[i + 1]], rep[ind[i + 2]]]; adj[a].add(b).add(c); adj[b].add(a).add(c); adj[c].add(a).add(b); }
 for (let i = 0; i < n; i++) label[i] = label[rep[i]];
+if (process.env.ROTULOS) fs.writeFileSync(process.env.ROTULOS, JSON.stringify({pos: Array.from(pos), lab: Array.from(label), names}));
 let W = Array.from({ length: n }, (_, i) => new Map([[label[i], 1]]));
 for (let it = 0; it < ITER; it++) { const N = []; for (let i = 0; i < n; i++) { if (rep[i] !== i || !adj[i].size) { N.push(W[i]); continue; } const m = new Map(W[i]); for (const j of adj[i]) for (const [b, w] of W[j]) m.set(b, (m.get(b) || 0) + w / adj[i].size); let s = 0; for (const w of m.values()) s += w; for (const [b, w] of m) m.set(b, w / s); N.push(m); } W = N; }
 for (let i = 0; i < n; i++) if (rep[i] !== i) W[i] = W[rep[i]];
