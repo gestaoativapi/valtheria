@@ -177,14 +177,14 @@ const GIRO_PRONTO := 0.45
 #   giro (rad): quanto o corpo fica de lado · ancora: [lado, altura, frente] da âncora em relação ao queixo (corpo de 1,8 m)
 #   canto (rad): inclinação do arco · inclina/agacha (graus): coluna e joelhos · tempo: velocidade do tiro
 const ESTILO := {
-	"humano": {"giro": 1.3, "ancora": [0.0, -0.02, 0.05], "canto": 0.0, "inclina": 3.0, "agacha": 0.0, "tempo": 1.0, "pronto": [0.08, -0.72, 0.69]},
-	"elfo": {"giro": 1.4, "ancora": [0.0, 0.03, 0.05], "canto": 0.22, "inclina": 0.0, "agacha": 0.0, "tempo": 0.8, "pronto": [0.05, -0.45, 0.89]},
-	"sombrio": {"giro": 1.25, "ancora": [0.0, -0.05, 0.06], "canto": 0.3, "inclina": 9.0, "agacha": 10.0, "tempo": 0.85, "pronto": [0.15, -0.8, 0.58]},
-	"orc": {"giro": 1.1, "ancora": [0.0, -0.11, 0.04], "canto": 0.0, "inclina": 7.0, "agacha": 14.0, "tempo": 1.25, "pronto": [0.2, -0.85, 0.5]},
-	"anao": {"giro": 1.15, "ancora": [0.0, -0.14, 0.05], "canto": -0.08, "inclina": 5.0, "agacha": 12.0, "tempo": 1.15, "pronto": [0.12, -0.62, 0.78]},
-	"beastman": {"giro": 1.2, "ancora": [0.0, -0.04, 0.06], "canto": 0.15, "inclina": 12.0, "agacha": 18.0, "tempo": 0.9, "pronto": [0.18, -0.6, 0.78]},
-	"draconato": {"giro": 1.3, "ancora": [0.0, -0.03, 0.05], "canto": 0.0, "inclina": 4.0, "agacha": 0.0, "tempo": 1.05, "pronto": [0.06, -0.55, 0.83]},
-	"gigante": {"giro": 1.15, "ancora": [0.0, -0.1, 0.05], "canto": 0.0, "inclina": 6.0, "agacha": 8.0, "tempo": 1.35, "pronto": [0.16, -0.88, 0.45]},
+	"humano": {"giro": 1.3, "ancora": [0.0, -0.02, 0.05], "canto": 0.0, "inclina": 3.0, "agacha": 0.0, "tempo": 1.0, "pronto": [0.22, -0.5, 0.84]},
+	"elfo": {"giro": 1.4, "ancora": [0.0, 0.03, 0.05], "canto": 0.22, "inclina": 0.0, "agacha": 0.0, "tempo": 0.8, "pronto": [0.2, -0.4, 0.89]},
+	"sombrio": {"giro": 1.25, "ancora": [0.0, -0.05, 0.06], "canto": 0.3, "inclina": 9.0, "agacha": 10.0, "tempo": 0.85, "pronto": [0.25, -0.5, 0.83]},
+	"orc": {"giro": 1.1, "ancora": [0.0, -0.11, 0.04], "canto": 0.0, "inclina": 7.0, "agacha": 14.0, "tempo": 1.25, "pronto": [0.4, -0.36, 0.84]},
+	"anao": {"giro": 1.15, "ancora": [0.0, -0.14, 0.05], "canto": -0.08, "inclina": 5.0, "agacha": 12.0, "tempo": 1.15, "pronto": [0.32, -0.28, 0.9]},
+	"beastman": {"giro": 1.2, "ancora": [0.0, -0.04, 0.06], "canto": 0.15, "inclina": 12.0, "agacha": 18.0, "tempo": 0.9, "pronto": [0.28, -0.48, 0.83]},
+	"draconato": {"giro": 1.3, "ancora": [0.0, -0.03, 0.05], "canto": 0.0, "inclina": 4.0, "agacha": 0.0, "tempo": 1.05, "pronto": [0.22, -0.48, 0.85]},
+	"gigante": {"giro": 1.15, "ancora": [0.0, -0.1, 0.05], "canto": 0.0, "inclina": 6.0, "agacha": 8.0, "tempo": 1.35, "pronto": [0.4, -0.38, 0.83]},
 }
 var estilo: Dictionary = ESTILO.humano
 var olhar: SkeletonModifier3D
@@ -246,7 +246,7 @@ func _pontos() -> Dictionary:
 
 func _pose(w: float, pt: Dictionary) -> void:
 	# w = 0: prontidão (arco baixo e inclinado, flecha apontada para o chão à frente); w = 1: mirando
-	var pronto := Transform3D(Basis(Vector3.RIGHT, 0.55) * Basis(Vector3.BACK, -0.5), pt.pronto)
+	var pronto := Transform3D(Basis(Vector3.RIGHT, 0.55) * Basis(Vector3.BACK, -0.95), pt.pronto)  # arco deitado ~55°: a ponta de baixo sai para fora, longe das coxas
 	var mirando := Transform3D(Basis(Vector3.BACK, -0.04 - float(estilo.canto)), pt.mira)
 	mira.transform = pronto.interpolate_with(mirando, clampf(w, 0.0, 1.0))
 	_polos(pt)

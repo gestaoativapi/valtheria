@@ -444,7 +444,7 @@ func _setup_medido(o: Dictionary) -> void:
 	var kind := wid.split("_")[0]
 	if GRIP.has(kind):
 		# a arma acompanha o tamanho de quem usa: menor no anão, maior no gigante
-		_weapon(kind, lerpf(1.0, height_m / 1.8, 0.85), str(eq.get("escudo", "")) != "", wid, str(eq.get("escudo", "")))
+		_weapon(kind, _escala_arma(kind), str(eq.get("escudo", "")) != "", wid, str(eq.get("escudo", "")))
 		var en: Dictionary = o.get("enchant") if o.get("enchant") is Dictionary else {}
 		brilho_encanto(int(en.get(wid, 0)))
 	# o elmo do conjunto conta nos atributos, mas não aparece na cabeça (pedido de Robson 21/11):
@@ -2163,7 +2163,7 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	_make_sheath(bool(g.get("back", false)), kind in ["adaga", "punhal"])
 	if kind != "arco":
 		_montar_empunho(kind, grip, offhand.get_parent() if offhand != null else null, has_shield)
-	else:
+	elif arco_na_mao_fora:
 		_montar_empunho_arco(grip)
 	if kind == "arco" and postura != null:
 		postura.ereto = 1.0          # arqueiro: postura própria, mais ereta e de busto firme (parado e no tiro)
@@ -2348,7 +2348,8 @@ func _make_sheath(back: bool, small: bool) -> void:
 	# no espaço do modelo: +Y para cima, +Z para a frente; a lâmina (eixo +Z do suporte) aponta para baixo
 	var blade := Vector3(-0.42, -0.9, 0.0).normalized()  # costas: cruzando na diagonal
 	var out := Vector3(0, 0, -1)
-	var handle := gb.origin + Vector3(0.2, 0.2, -0.17) * k
+	# afastada das costas pelo raio do peito medido na malha (anão e orc têm costas largas: o arco entrava no peito)
+	var handle := gb.origin + Vector3(0.2 * k, 0.2 * k, -maxf(0.17 * k, _raio_peito_m() + 0.06))
 	if not back:  # cintura, lado esquerdo, inclinada para trás para não arrastar no chão
 		blade = (Vector3(0.1, -0.95, -0.3) if small else Vector3(0.15, -0.7, -0.7)).normalized()
 		out = Vector3(1, 0, 0)
@@ -2382,13 +2383,13 @@ const POSE_ARMA := {
 	"normal_duas": {"mao": Vector3(-0.24, -0.93, 0.22), "k": 0.93, "lamina": Vector3(-0.32, -0.7, 0.64), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# cajado (21/11): postura formal de mago, cajado em pé ao lado do corpo, mão na altura da cintura
 	"normal_cajado": {"mao": Vector3(-0.3, -0.72, 0.62), "k": 0.8, "lamina": Vector3(-0.04, 1.0, 0.1), "polo": Vector3(-0.4, -0.5, -0.75)},
-	"normal_dupla": {"mao": Vector3(-0.22, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.38, -0.84, 0.39), "polo": Vector3(-0.4, -0.3, -0.85)},
+	"normal_dupla": {"mao": Vector3(-0.22, -0.93, 0.2), "k": 0.94, "lamina": Vector3(-0.14, -0.28, 0.95), "polo": Vector3(-0.4, -0.3, -0.85)},
 	"combate": {"mao": Vector3(-0.2, -0.78, 0.58), "k": 0.88, "lamina": Vector3(-0.26, 0.5, 0.82), "polo": Vector3(-0.8, -0.6, -0.15)},
 	# arco (21/11): segurado pelo meio, em pé ao lado do corpo (as duas pontas longe das costas), ponta de cima um pouco à frente
-	"normal_arco": {"mao": Vector3(-0.2, -0.95, 0.12), "k": 0.94, "lamina": Vector3(-0.08, -0.99, -0.1), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal_arco": {"mao": Vector3(-0.26, -0.93, 0.18), "k": 0.94, "lamina": Vector3(-0.2, -0.97, 0.12), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# arco no peito (22/11): mão no centro da empunhadura na frente do peito, arco em pé colado ao corpo, barriga
 	# do arco para a frente; o outro braço fica solto para baixo
-	"normal_arco_peito": {"mao": Vector3(0.4, -0.55, 0.74), "k": 0.8, "lamina": Vector3(0.0, -0.94, -0.34), "polo": Vector3(-0.5, -0.8, -0.2)},
+	"normal_arco_peito": {"mao": Vector3(0.35, -0.45, 0.82), "k": 0.8, "lamina": Vector3(-0.85, -0.45, 0.2), "polo": Vector3(-0.5, -0.8, -0.2)},
 	"combate_dupla": {"mao": Vector3(0.02, -0.6, 0.8), "k": 0.86, "lamina": Vector3(-0.12, 0.34, 0.93), "polo": Vector3(-0.7, -0.7, -0.2)},
 	"combate_dupla_l": {"mao": Vector3(-0.05, -0.78, 0.6), "k": 0.88, "lamina": Vector3(-0.28, 0.12, 0.95), "polo": Vector3(-0.7, -0.6, -0.3)},
 }
@@ -2441,6 +2442,21 @@ func _rel_self(n: Node) -> Transform3D:
 
 
 # quadro da pegada para uma pose: origem na mão, +Z na lâmina, +Y voltado para o pulso
+# tamanho da arma (pedido de Robson 24/11: se adaptar à mão e à raça): média entre a escala pela altura e a
+# escala pela mão medida no esqueleto (punho até a ponta do dedo médio; mão humana de referência = 0,184 m)
+func _escala_arma(kind := "") -> float:
+	var s_alt := lerpf(1.0, height_m / 1.8, 0.85)
+	if kind == "arco":  # o arco acompanha a altura (arco do tamanho do anão), não a mão
+		return s_alt
+	var a := skel.find_bone("hand_r")
+	var b := skel.find_bone("middle_03_r")
+	if a < 0 or b < 0:
+		return s_alt
+	var rs := _rel_self(skel)
+	var mao := (rs * skel.get_bone_global_rest(a).origin).distance_to(rs * skel.get_bone_global_rest(b).origin)
+	return sqrt(s_alt * clampf(mao / 0.184, 0.7, 1.6))
+
+
 func _machado_baixo() -> bool:
 	return race_id == "orc" and subtipo != "goblin" and orc_modelo_proprio
 
@@ -2620,7 +2636,7 @@ func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: b
 	empunho.name = "Empunhar"
 	skel.add_child(empunho)
 	empunho.capsulas = _capsulas(_chave_capsulas())
-	empunho.cabo = float(GRIP[kind].at) * (height_m / 1.8)
+	empunho.cabo = float(GRIP[kind].at) * _escala_arma(kind)
 	if wnode != null:  # meia-largura da cabeça da arma, medida no modelo (machado ~ larga, espada ~ fina)
 		var bbw := AABB()
 		var pw := true
@@ -2633,16 +2649,16 @@ func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: b
 	if kind == "machado" and not _machado_baixo():
 		empunho.segue_peito = 1.0
 		empunho.balanco = 0.4
-		empunho.cabo = 0.08 * (height_m / 1.8)
-		empunho.lamina = (float(GRIP[kind].len) - 0.08) * (height_m / 1.8)  # machado no ombro: balança pouco (cabo encostado no ombro)
-	empunho.lamina = float(GRIP[kind].len) * (height_m / 1.8) * (1.0 - float(GRIP[kind].at) / maxf(float(GRIP[kind].len), 0.01))
+		empunho.cabo = 0.08 * _escala_arma(kind)
+		empunho.lamina = (float(GRIP[kind].len) - 0.08) * _escala_arma(kind)  # machado no ombro: balança pouco (cabo encostado no ombro)
+	empunho.lamina = float(GRIP[kind].len) * _escala_arma(kind) * (1.0 - float(GRIP[kind].at) / maxf(float(GRIP[kind].len), 0.01))
 	for lado in lados:
 		var nn := "normal"
 		var cc := "combate"
 		if dupla:
 			nn = "normal_dupla"
 			cc = "combate_dupla" if lado == "r" else "combate_dupla_l"
-		elif kind in ["cajado"]:
+		elif kind in ["cajado", "lanca"]:  # lança em pé como o cajado (24/11: deitada cruzava a coxa ao andar)
 			nn = "normal_cajado"
 		elif kind == "machado":
 			nn = "normal_machado_baixo" if _machado_baixo() else "normal_machado"
@@ -2692,7 +2708,10 @@ func _montar_empunho_arco(grip_l: Node3D) -> void:
 
 # como cada raça carrega o arco parada (pedido de Robson 22/11): ao lado do corpo, pela empunhadura, com a ponta
 # de baixo apontada para o chão; ou encostado no peito, seguro pelo centro, com o outro braço solto
-const ARCO_PEITO := ["elfo", "sombrio", "beastman", "draconato"]
+# 24/11: fora de combate o arco vai nas costas (na mão ou no peito, o arco de 1,3 m cruzava coxa e peito ao
+# andar e correr em todas as raças: medido 30-99% dos quadros). true volta a levar na mão.
+static var arco_na_mao_fora := false
+const ARCO_PEITO := []  # 24/11: no peito o arco de 1,3 m cruzava peito e coxas ao andar e correr (medido 50-98%); todos levam ao lado
 
 
 func _estilo_arco() -> String:
@@ -3161,7 +3180,7 @@ func _escudo_no_peito() -> void:
 				for iy in 3:
 					for iz in 3:
 						_escudo_cantos.append(bb.position + bb.size * Vector3(ix, iy, iz) * 0.5)
-		for _i in 4:
+		for _i in 8:
 			var pior := Vector3.ZERO
 			for c in _escudo_cantos:
 				var sa := _saida_corpo(t * (escudo_guarda * (c as Vector3)), 0.06)
@@ -3169,7 +3188,7 @@ func _escudo_no_peito() -> void:
 					pior = sa
 			if pior.length() < 1e-5:
 				break
-			t.origin += pior * 1.1
+			t.origin += pior * 1.2
 	_escudo_alvo.transform = t
 
 

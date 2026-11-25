@@ -28,7 +28,7 @@ def detectar(m, aj=None):
     ytip=float((maos[1][1]+maos[-1][1])/2); xtip=float((abs(maos[1][0])+abs(maos[-1][0]))/2)
     up=np.array([rT*0.95, Y(g['upper'])]); hand=np.array([xtip-0.03, ytip+0.11*h*0.95*0.5*2.2/2.2*1.0])
     hand[1]=ytip+0.12*h* (0.5)  # punho ~6% da altura acima da ponta
-    hand=np.array([xtip-0.025, ytip+0.06*h])
+    hand=np.array([xtip-0.035, ytip+0.105*h])  # mão humana ~10,5% da altura (punho à ponta do dedo médio)
     el=up+(hand-up)*0.48; el[0]+=0.04   # cotovelo levemente para fora
     armz=faixa(.4,.6); armz=armz[np.abs(armz[:,0])>rT]; az=float(np.median(armz[:,2])) if len(armz)>20 else zt
     J['arm']={'z':round(az,3),'clav':[round(0.09,3),round(float(Y(g['clav'])),3)],'upper':[round(float(up[0]),3),round(float(up[1]),3)],

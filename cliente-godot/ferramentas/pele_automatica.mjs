@@ -35,6 +35,7 @@ const CFG = {
     leg: { thigh: [0.13, -0.16, 0], calf: [0.17, -0.40, 0], foot: [0.20, -0.60, -0.03], ball: [0.20, -0.66, 0.08], tip: [0.20, -0.67, 0.2], r: [0.12, 0.11, 0.11, 0.10] }, hip: [0.14, -0.17, 0.2], shoulder: [0.17, 0.22, 0.16],
     extra: [['Head', [-0.2, 0.58, 0], [0.2, 0.58, 0], 0.13], ['Head', [0.15, 0.46, 0], [0.15, 0.33, 0], 0.06], ['Head', [-0.15, 0.46, 0], [-0.15, 0.33, 0], 0.06]] },
 };
+if (process.env.CFG_JSON) CFG[process.argv[2]] = JSON.parse(fs.readFileSync(process.env.CFG_JSON, 'utf8'));
 const key = process.argv[2], C = CFG[key], ITER = +(process.argv[3] || 8);
 const base = await io.read('/home/claude/mmo3d/web/assets/chars/base_male.glb'), src = await io.read(C.src);
 if (!C.semWeld) await src.transform(weld());
@@ -59,7 +60,7 @@ for (const [sf, sd] of [['l', 1], ['r', -1]]) { const a = C.arm, l = C.leg, A = 
 const restW = joints.map(j => mat4.clone(j.getWorldMatrix())), restP = restW.map(m => [m[12], m[13], m[14]]), restQ = restW.map(m => { const q = quat.create(); mat4.getRotation(q, m); return quat.normalize(q, q); });
 const parent = joints.map(j => idx[j.getParentNode()?.getName()] ?? -1), mainChild = { pelvis: 'spine_01', spine_01: 'spine_02', spine_02: 'spine_03', spine_03: 'neck_01', neck_01: 'Head' };
 for (const sf of ['l', 'r']) Object.assign(mainChild, { ['clavicle_' + sf]: 'upperarm_' + sf, ['upperarm_' + sf]: 'lowerarm_' + sf, ['lowerarm_' + sf]: 'hand_' + sf, ['thigh_' + sf]: 'calf_' + sf, ['calf_' + sf]: 'foot_' + sf, ['foot_' + sf]: 'ball_' + sf });
-const handK = (C.arm.tip[0] - C.arm.hand[0]) * S / 0.19;
+const handK = Math.hypot(C.arm.tip[0] - C.arm.hand[0], C.arm.tip[1] - C.arm.hand[1]) * S / 0.19;
 const bindQ = [], bindP = [], delta = [];
 for (let i = 0; i < joints.length; i++) { const nm = names[i], p = parent[i], pd = p >= 0 ? delta[p] : quat.create(); let dq = /^(pelvis|spine_0\d|neck_01|Head|clavicle_.|thigh_.)$/.test(nm) ? quat.create() : quat.clone(pd);
   if (mainChild[nm] && J[nm] && J[mainChild[nm]] && !/^(pelvis|spine_0\d|neck_01)$/.test(nm)) { const c = idx[mainChild[nm]], a = vec3.sub([], restP[c], restP[i]), b = vec3.sub([], J[mainChild[nm]], J[nm]); vec3.normalize(a, a); vec3.normalize(b, b); dq = quat.rotationTo(quat.create(), a, b); }
@@ -77,6 +78,18 @@ const dseg = (p, a, c) => { const ab = vec3.sub([], c, a), ap = vec3.sub([], p, 
 const label = new Int32Array(n); for (let i = 0; i < n; i++) { const p = [pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]]; let best = 1e9, bb = 0; for (const s of seg) { const d = dseg(p, s.a, s.c) / s.r; if (d < best) { best = d; bb = s.b; } } label[i] = bb; }
 const rep = new Int32Array(n), seen = new Map(); for (let i = 0; i < n; i++) { const k = Math.round(pos[i * 3] * 5000) + ',' + Math.round(pos[i * 3 + 1] * 5000) + ',' + Math.round(pos[i * 3 + 2] * 5000); if (!seen.has(k)) seen.set(k, i); rep[i] = seen.get(k); }
 const adj = Array.from({ length: n }, () => new Set()); for (let i = 0; i < ind.length; i += 3) { const [a, b, c] = [rep[ind[i]], rep[ind[i + 1]], rep[ind[i + 2]]]; adj[a].add(b).add(c); adj[b].add(a).add(c); adj[c].add(a).add(b); }
+// dedos (24/11): a mão da malha passa a seguir os ossos dos dedos (antes era um osso só e o punho não fechava no cabo)
+for (const sf of ['l', 'r']) {
+  const hb = idx['hand_' + sf], segs = [];
+  const P = nm => bindP[idx[nm]];
+  const F = ['index', 'middle', 'ring', 'pinky', 'thumb'];
+  const nucle = vec3.scale([], F.slice(0, 4).reduce((a, f) => vec3.add([], a, P(f + '_01_' + sf)), [0, 0, 0]), 0.25);
+  segs.push([hb, P('hand_' + sf), nucle]);
+  for (const f of F) { const a = P(f + '_01_' + sf), b = P(f + '_02_' + sf), c = P(f + '_03_' + sf), d = vec3.add([], c, vec3.sub([], c, b));
+    segs.push([idx[f + '_01_' + sf], a, b], [idx[f + '_02_' + sf], b, c], [idx[f + '_03_' + sf], c, d]); }
+  for (let i = 0; i < n; i++) { if (label[i] !== hb) continue; const p = [pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]]; let best = 1e9, bb = hb;
+    for (const [b, a, c] of segs) { const dd = dseg(p, a, c); if (dd < best) { best = dd; bb = b; } } label[i] = bb; }
+}
 for (let i = 0; i < n; i++) label[i] = label[rep[i]];
 if (process.env.ROTULOS) fs.writeFileSync(process.env.ROTULOS, JSON.stringify({pos: Array.from(pos), lab: Array.from(label), names}));
 let W = Array.from({ length: n }, (_, i) => new Map([[label[i], 1]]));
