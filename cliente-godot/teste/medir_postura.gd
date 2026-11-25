@@ -60,11 +60,18 @@ func _process(_d: float) -> bool:
 				var o3: Vector3 = inv * (m["upperarm_" + lado] as Node3D).global_position
 				var mao: Vector3 = inv * (m["hand_" + lado] as Node3D).global_position
 				abre += rad_to_deg(atan2(absf(mao.x - o3.x), o3.y - mao.y)) * 0.5
-			var a: Array = acum.get(k, [0.0, 0.0, 0.0, 0])
-			acum[k] = [a[0] + t, a[1] + h, a[2] + abre, a[3] + 1]
+			# olhar: para onde o rosto aponta (rotação da cabeça em relação ao repouso), + = olhando para baixo
+			var sk: Skeleton3D = c.skel
+			var hi := sk.find_bone("Head")
+			var rr := (inv.basis * sk.global_basis * sk.get_bone_global_rest(hi).basis).orthonormalized()
+			var ra := (inv.basis * (m.Head as Node3D).global_basis).orthonormalized()
+			var fw := (ra * rr.inverse()) * Vector3(0, 0, 1)
+			var olhar := rad_to_deg(atan2(-fw.y, Vector2(fw.x, fw.z).length()))
+			var a: Array = acum.get(k, [0.0, 0.0, 0.0, 0, 0.0])
+			acum[k] = [a[0] + t, a[1] + h, a[2] + abre, a[3] + 1, a[4] + olhar]
 	if q == 91:
 		for k in bonecos.size():
 			var a: Array = acum[k]
-			print("POSTURA %-18s %-8s tronco %5.1f  cabeca %5.1f  bracos %5.1f" % [bonecos[k][0], anim + ("+c" if combate else ""), a[0] / a[3], a[1] / a[3], a[2] / a[3]])
+			print("POSTURA %-18s %-8s tronco %5.1f  cabeca %5.1f  bracos %5.1f  olhar %5.1f" % [bonecos[k][0], anim + ("+c" if combate else ""), a[0] / a[3], a[1] / a[3], a[2] / a[3], a[4] / a[3]])
 		quit()
 	return false

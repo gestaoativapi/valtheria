@@ -50,6 +50,11 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 09:20 cabeça dos orcs, 2ª rodada (Robson: ainda com problema): (1) bochechas, presas e barba do orc macho ainda no
+  peito (rosto mais largo que o alto da cabeça) -> elipse alarga à frente e barba até 1,60 m na cabeça
+  (--frente-y); (2) cabeça olhando o chão na animação dos corpos próprios -> CABECA_ERGUE (orc M -36°, F -24°,
+  anão -6°, gigante -10°), conferido em foto. Rosto: distorção 0% em parado, corrida e golpe. Regressão: 0 falhas.
+  Pendente: ponta da barba abaixo de 1,57 m ainda estica no golpe; manchas escuras na textura do rosto do gigante.
 - 08:30 (Robson acordado) cabeça esticada dos corpos próprios: a pele deixava queixo/rosto no spine_03 e nunca usava
   o neck_01. Nova ferramenta ferramentas/racas/pesos_cabeca.py (cabeça inteira no Head pela elipse medida da cabeça,
   pescoço em rampa spine_03>neck_01>Head), aplicada a orc m/f, anão m/f e gigante m e ligada no nova_raca.py.

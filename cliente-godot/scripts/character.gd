@@ -196,6 +196,12 @@ const SHAPE := {
 const OWN := {"anao_m": {"height": 1.36, "hip": 0.624, "bones": {}}, "anao_f": {"height": 1.3, "hip": 0.657, "bones": {}},
 	"orc_m": {"height": 2.0, "hip": 1.006, "bones": {}}, "orc_f": {"height": 1.87, "hip": 0.94, "bones": {}},
 	"gigante_m": {"height": 2.6, "hip": 1.305, "bones": {}}}  # orcs: pranchas originais 24/11 -> Hunyuan3D-2.1 -> pele_automatica.mjs
+# 25/11: cabeça dos corpos próprios baixa demais (orc olhava o chão: pescoço 22,7° à frente; humano -10°).
+# Graus para erguer pescoço e cabeça (medidos com teste/medir_postura.gd e conferidos em foto).
+const CABECA_ERGUE := {"orc_m": -36.0, "orc_f": -24.0, "anao_m": -6.0, "anao_f": -6.0, "gigante_m": -10.0}
+# pescoço dos corpos próprios: a malha veio com os ombros na altura da boca (cabeça afundada e projetada);
+# a cabeça sobe e recua (metros) depois das animações, como na prancha aprovada
+const PESCOCO_SOBE := {}
 static var orc_modelo_proprio := true
 const CORPO_PROPRIO_RACAS := ["gigante", "elfo", "sombrio", "humano"]  # padrão novo; anão e orc acima
 static var corpos_proprios := true  # false volta todas essas raças ao V3 (comparação)  # false volta ao orc V3 antigo (teste/comparação)
@@ -409,6 +415,8 @@ func _setup_medido(o: Dictionary) -> void:
 		if own != "":  # corpo próprio já vem com a massa à frente: na corrida o tronco sobe (orc e anão tombavam)
 			postura.intensidade *= 0.55  # 25/11: a malha já vem curvada; a pose da raça inteira dobrava demais na guarda
 			postura.corrida_reta = float(CORRIDA_RETA.get(own.split("_")[0], 0.0))
+			postura.cabeca_extra = float(CABECA_ERGUE.get(own, 0.0))
+			postura.pescoco = PESCOCO_SOBE.get(own, Vector3.ZERO)
 		else:  # 25/11: raças V3 curvadas também tombavam na corrida (goblin 48°, fera 38°, sombrio 33°)
 			postura.corrida_reta = float(CORRIDA_RETA_V3.get(chave_postura, 0.0))
 		skel.add_child(postura)

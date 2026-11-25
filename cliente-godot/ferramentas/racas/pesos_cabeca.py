@@ -17,7 +17,7 @@ COMP = {5126: 'f4', 5123: 'u2', 5121: 'u1', 5125: 'u4'}
 NC = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4, 'MAT4': 16}
 
 
-def main(src, dst, raio_k=1.0):
+def main(src, dst, raio_k=1.0, frente_y=None):
     raw = bytearray(open(src, 'rb').read())
     n = struct.unpack('<I', raw[12:16])[0]
     js = json.loads(raw[20:20 + n])
@@ -66,16 +66,22 @@ def main(src, dst, raio_k=1.0):
     tronco = np.isin(J, [iS, iN, iH, nomes.index('spine_02')])
     dono = (np.where(tronco, W, 0).sum(1) > 0.85)  # só quem já é do tronco/pescoço/cabeça
     # elipse horizontal da cabeça (x, z) normalizada: < 1 dentro
-    ex = (P[:, 0] - cx) / hx
+    frente = np.clip((P[:, 2] - zc) / max(zf - zc, 0.01), 0, 1)  # 0 no meio da cabeça, 1 no rosto
+    # o rosto (bochechas, mandíbula, presas) é mais largo que o alto da cabeça; o ombro fica atrás, não à frente
+    ex = (P[:, 0] - cx) / (hx * (1.0 + 0.4 * frente))
     ez = (P[:, 2] - zc) / ((zf - zb) * 0.5)
     e = np.hypot(ex, ez)
-    frente = np.clip((P[:, 2] - zc) / max(zf - zc, 0.01), 0, 1)  # 0 no meio da cabeça, 1 no rosto
     lim = queixo - 0.9 * seg * frente  # mandíbula, presas e barba descem mais à frente
+    if frente_y is not None:  # barba longa (orc macho): tudo à frente do eixo, acima desta altura, é da cabeça
+        lim = np.where(frente > 0.35, np.minimum(lim, frente_y), lim)
     mud = 0
     for v in np.where(dono)[0]:
         y = P[v, 1]
         if y >= lim[v] and e[v] < 1.0:
             jw = [(iH, 1.0)]
+        elif frente_y is not None and frente[v] > 0.35 and frente_y - 0.03 <= y < lim[v] and e[v] < 1.0:
+            t = (y - (frente_y - 0.03)) / 0.03  # transição curta da barba para o peito
+            jw = [(iS, 1 - t), (iH, t)]
         elif baixo <= y < lim[v] and e[v] < 0.85:
             t = (y - baixo) / max(lim[v] - baixo, 0.01)
             jw = [(iS, 1 - 2 * t), (iN, 2 * t)] if t < 0.5 else [(iN, 2 - 2 * t), (iH, 2 * t - 1)]
@@ -95,6 +101,9 @@ def main(src, dst, raio_k=1.0):
 
 if __name__ == '__main__':
     k = 1.0
+    fy = None
     if '--raio-k' in sys.argv:
         k = float(sys.argv[sys.argv.index('--raio-k') + 1])
-    main(sys.argv[1], sys.argv[2], k)
+    if '--frente-y' in sys.argv:
+        fy = float(sys.argv[sys.argv.index('--frente-y') + 1])
+    main(sys.argv[1], sys.argv[2], k, fy)

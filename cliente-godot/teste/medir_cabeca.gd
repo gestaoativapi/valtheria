@@ -1,6 +1,6 @@
 extends SceneTree
 # Mede quanto o rosto estica durante as animações (corpos próprios com pele automática).
-# Pega os vértices da cabeça (acima do queixo, perto do eixo), faz a pele na CPU com a pose real dos
+# Pega os vértices do rosto (acima do queixo, à frente do eixo da cabeça), faz a pele na CPU com a pose real dos
 # ossos (BoneAttachment3D, que já inclui os modificadores de postura) e compara 300 pares de pontos com o
 # repouso: distorção = quanto a distância entre os pares muda, descontada a escala.
 # uso: -s teste/medir_cabeca.gd -- --lista=orc:m,orc:f --anims=Idle,Walk,Sprint --queixo=1.704,1.574
@@ -80,7 +80,8 @@ func _preparar(cs: Array) -> void:
 	eixo = soma / maxf(1, n)
 	var cab: Array = []
 	for v in sel:
-		if Vector2(V[v].x, V[v].z).distance_to(eixo) < 0.12:
+		# rosto: parte da frente da cabeça (atrás e dos lados ficam o pescoço e o trapézio, que devem esticar)
+		if Vector2(V[v].x, V[v].z).distance_to(eixo) < 0.14 and V[v].z > eixo.y + 0.06:
 			cab.append(v)
 	var inv := skel.global_transform.affine_inverse()
 	var pose := {}

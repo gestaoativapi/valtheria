@@ -33,6 +33,14 @@ var corrida_reta := 0.0  # graus para trás na corrida (corpos próprios largos:
 # postura ereta e firme fora de combate (pedido de Robson 20/11, referências de MMO clássico): tira parte da
 # curvatura de coluna, pescoço e pernas; em combate a postura de ataque da raça volta inteira
 var ereto := 0.0
+# corpos próprios (orc, anão, gigante): a malha já vem com o pescoço projetado; graus para erguer a cabeça
+# (negativo = para trás), divididos entre pescoço (60%) e cabeça (40%). Vale parado, andando e em combate.
+var cabeca_extra := 0.0
+# pescoço mais longo nos corpos próprios: a cabeça sobe (e recua) alguns cm em relação ao pescoço, depois das
+# animações; os vértices da faixa do pescoço (pesos em rampa) esticam junto, sem mexer no rosto.
+var pescoco := Vector3.ZERO  # (x, sobe, frente) em metros no espaço do esqueleto
+var _pos_base := Vector3.ZERO
+var _pos_ultimo := Vector3(INF, INF, INF)
 var ereto_combate := 0.0  # arqueiro: ereto também em combate (busto firme)
 var _mix := 0.0
 var _ids := {}
@@ -62,6 +70,8 @@ func _graus(nome: String) -> float:
 	var g := base + comb
 	if nome == "spine_01":
 		g += inclina * andando
+	if cabeca_extra != 0.0 and (nome == "neck_01" or nome == "Head"):
+		g += cabeca_extra * (0.6 if nome == "neck_01" else 0.4)
 	if corrida_reta != 0.0 and correndo > 0.0:
 		var parte := {"spine_01": 0.4, "spine_02": 0.3, "neck_01": 0.15, "Head": 0.15}
 		if parte.has(nome):
@@ -127,3 +137,12 @@ func _pm_corpo(delta: float) -> void:
 		var novo := (gp.inverse() * q * gp * local).normalized()
 		_ultimo[i] = novo
 		sk.set_bone_pose_rotation(i, novo)
+	if pescoco != Vector3.ZERO and _ids.has("Head"):
+		var hi: int = _ids["Head"]
+		var pp := sk.get_bone_pose_position(hi)
+		if not pp.is_equal_approx(_pos_ultimo):
+			_pos_base = pp
+		var pai_b := sk.get_bone_global_pose(sk.get_bone_parent(hi)).basis
+		var novo_p := _pos_base + pai_b.inverse() * pescoco
+		_pos_ultimo = novo_p
+		sk.set_bone_pose_position(hi, novo_p)
