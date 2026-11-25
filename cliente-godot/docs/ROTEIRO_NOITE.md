@@ -53,7 +53,8 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
 - 05:40 item 3 (parte 2): fogo refeito (línguas em gota, miolo amarelo + borda laranja + brasa na base; antes era
   uma bola branca) — estúdio teste/estudio_fogo.gd. Nascer no centro exato de obstáculo (chafariz da capital) agora
   empurra para fora. Minimapa desenha a planta real da cidade (prédios e obstáculos da colisão) sobre a imagem do
-  mundo; falta foto no PC para conferir. Regressão: 0 falhas.
+  mundo. Conferido em foto: chão calçado até a muralha + telhados; capital nasce fora do chafariz. Regressão: 0 falhas.
+  Falta do item 3: colunas de prata de Umbraval no ultra (foto no PC).
 - 04:50 itens 10 e 11: trava de PvP (jogador só é atacado com Ctrl + skill ou Ctrl + clique; sem Ctrl aparece
   aviso). Guia de Valtheria na praça de cada cidade: quadro com 6 assuntos (primeiros passos, combate, PvP,
   classes, graus/encanto, missões), texto também no bate-papo. Regressão: 0 falhas.

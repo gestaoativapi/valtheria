@@ -129,13 +129,20 @@ func _desenhar_planta(r: Rect2, p: Vector3, alc: float, esc: float) -> void:
 						_planta.append(b)
 	var centro := r.get_center()
 	var dentro := r.grow(-2)
-	var cor := Color(0.62, 0.55, 0.45, 0.95)
+	# chão calçado da cidade (até a muralha), por baixo dos prédios
+	for c in cidades:
+		var cq := centro + (Vector2(float(c.x), float(c.z)) - pv) * esc
+		var rr: float = w.wall_r(c) * esc
+		if cq.distance_to(centro) - rr < TAM_MINI:
+			_disco_recortado(cq, rr, dentro, Color(0.74, 0.7, 0.62, 0.75))
+	var cor := Color(0.5, 0.3, 0.22, 0.95)  # telhado
 	var borda := Color(0.2, 0.15, 0.1, 0.9)
 	for e in _planta:
 		if e is Vector3:
 			var q := centro + (Vector2(e.x, e.y) - pv) * esc
 			if dentro.has_point(q):
-				draw_circle(q, maxf(1.5, e.z * esc), Color(0.55, 0.62, 0.7, 0.9))
+				var borda_d := minf(minf(q.x - dentro.position.x, dentro.end.x - q.x), minf(q.y - dentro.position.y, dentro.end.y - q.y))
+				draw_circle(q, clampf(e.z * esc, 1.0, maxf(1.0, borda_d)), cor)
 			continue
 		var o := centro + (Vector2(e[0], e[1]) - pv) * esc
 		if not dentro.grow(20).has_point(o):
@@ -143,15 +150,20 @@ func _desenhar_planta(r: Rect2, p: Vector3, alc: float, esc: float) -> void:
 		var ax := Vector2(e[2], -e[3]) * float(e[4]) * esc
 		var az := Vector2(e[3], e[2]) * float(e[5]) * esc
 		var pts := PackedVector2Array([o - ax - az, o + ax - az, o + ax + az, o - ax + az])
-		var fora := false
-		for i in 4:
-			if not dentro.has_point(pts[i]):
-				fora = true
-		if fora:
-			continue   # sem recorte: peça que passa da borda fica de fora (evita desenhar fora do quadro)
+		for i in 4:   # prende na borda do quadro (prédio cortado pela borda, sem vazar)
+			pts[i] = pts[i].clamp(dentro.position, dentro.end)
 		draw_colored_polygon(pts, cor)
 		pts.append(pts[0])
 		draw_polyline(pts, borda, 1.0)
+
+
+# círculo cortado pelo retângulo do minimapa (polígono com os pontos presos na borda)
+func _disco_recortado(c: Vector2, raio: float, ret: Rect2, cor: Color) -> void:
+	var pts := PackedVector2Array()
+	for i in 40:
+		var a := TAU * float(i) / 40.0
+		pts.append((c + Vector2(cos(a), sin(a)) * raio).clamp(ret.position, ret.end))
+	draw_colored_polygon(pts, cor)
 
 
 func _grande() -> void:
