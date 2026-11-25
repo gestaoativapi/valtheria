@@ -169,6 +169,8 @@ func soltou() -> bool:
 # Tudo é medido no corpo de quem atira, a cada quadro: ombros, cabeça e comprimento do braço. Por isso o braço
 # do arco fica sempre esticado na altura do ombro, a mão da corda sempre ancora no queixo e o corpo sempre gira de
 # lado para o alvo, seja anão, gigante ou elfo. Em combate parado: arco baixo à frente, flecha encaixada (prontidão).
+const ANCORA_LADO := 0.11
+const ANCORA_FRENTE := 0.04
 const GIRO_TIRO := 0.95     # (padrão; cada raça tem o seu em ESTILO)
 const GIRO_PRONTO := 0.45
 # Estrutura do tiro (21/11, referências reais de Robson): forma de "T" — pés na largura dos ombros, corpo de lado
@@ -179,12 +181,12 @@ const GIRO_PRONTO := 0.45
 const ESTILO := {
 	"humano": {"giro": 1.3, "ancora": [0.0, -0.02, 0.05], "canto": 0.0, "inclina": 3.0, "agacha": 0.0, "tempo": 1.0, "pronto": [0.22, -0.5, 0.84]},
 	"elfo": {"giro": 1.4, "ancora": [0.0, 0.03, 0.05], "canto": 0.22, "inclina": 0.0, "agacha": 0.0, "tempo": 0.8, "pronto": [0.2, -0.4, 0.89]},
-	"sombrio": {"giro": 1.25, "ancora": [0.0, -0.05, 0.06], "canto": 0.3, "inclina": 9.0, "agacha": 10.0, "tempo": 0.85, "pronto": [0.25, -0.5, 0.83]},
-	"orc": {"giro": 1.1, "ancora": [0.0, -0.11, 0.04], "canto": 0.0, "inclina": 7.0, "agacha": 14.0, "tempo": 1.25, "pronto": [0.4, -0.36, 0.84]},
-	"anao": {"giro": 1.15, "ancora": [0.0, -0.14, 0.05], "canto": -0.08, "inclina": 5.0, "agacha": 12.0, "tempo": 1.15, "pronto": [0.32, -0.28, 0.9]},
+	"sombrio": {"giro": 1.25, "ancora": [-0.02, -0.01, 0.06], "canto": 0.3, "inclina": 9.0, "agacha": 10.0, "tempo": 0.85, "pronto": [0.25, -0.5, 0.83]},
+	"orc": {"giro": 1.1, "ancora": [0.0, -0.03, 0.08], "canto": 0.0, "inclina": 7.0, "agacha": 14.0, "tempo": 1.25, "pronto": [0.05, -0.4, 0.92]},
+	"anao": {"giro": 1.15, "ancora": [0.0, -0.04, 0.09], "canto": -0.08, "inclina": 5.0, "agacha": 12.0, "tempo": 1.15, "pronto": [0.05, -0.25, 0.97]},
 	"beastman": {"giro": 1.2, "ancora": [0.0, -0.04, 0.06], "canto": 0.15, "inclina": 12.0, "agacha": 18.0, "tempo": 0.9, "pronto": [0.28, -0.48, 0.83]},
 	"draconato": {"giro": 1.3, "ancora": [0.0, -0.03, 0.05], "canto": 0.0, "inclina": 4.0, "agacha": 0.0, "tempo": 1.05, "pronto": [0.22, -0.48, 0.85]},
-	"gigante": {"giro": 1.15, "ancora": [0.0, -0.1, 0.05], "canto": 0.0, "inclina": 6.0, "agacha": 8.0, "tempo": 1.35, "pronto": [0.4, -0.38, 0.83]},
+	"gigante": {"giro": 1.15, "ancora": [0.0, -0.02, 0.09], "canto": 0.0, "inclina": 6.0, "agacha": 8.0, "tempo": 1.35, "pronto": [0.05, -0.4, 0.92]},
 }
 var estilo: Dictionary = ESTILO.humano
 var olhar: SkeletonModifier3D
@@ -230,7 +232,9 @@ func _pontos() -> Dictionary:
 	var cab := _osso("Head")
 	# âncora no queixo: a flecha passa rente ao rosto, na altura do queixo, apontada para o alvo (+Z)
 	var an: Array = estilo.ancora
-	var ancora := Vector3(cab.x - 0.035 * hs + float(an[0]) * hs, cab.y + (0.02 + float(an[1])) * hs, cab.z + float(an[2]) * hs)
+	# a mão fica do lado de fora do rosto (bochecha/queixo), não dentro da cabeça: o osso Head fica no meio do crânio,
+	# então a âncora sai meia cabeça para o lado da corda e um pouco à frente (medido em teste/medir_atravessa.gd)
+	var ancora := Vector3(cab.x - ANCORA_LADO * hs + float(an[0]) * hs, cab.y + (0.02 + float(an[1])) * hs, cab.z + (ANCORA_FRENTE + float(an[2])) * hs)
 	# mão do arco: na linha da flecha, braço quase esticado (cotovelo levemente solto, como nas referências)
 	var gx := ancora.x + 0.02 * hs
 	var gy := ancora.y - 0.01 * hs

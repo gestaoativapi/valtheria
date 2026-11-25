@@ -50,6 +50,12 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 14:20 armas nas 12 combinações novas (6 raças x 2 gêneros, 11 armas) com teste/medir_atravessa.gd (o golpe do
+  arqueiro agora é o tiro, como no jogo). Arco: âncora fora do rosto (meia cabeça ao lado) e pronta mais à frente
+  nos corpos largos; lança e cajado com a mão mais perto do pé (por raça em GRIP_RACA); duas espadas menores nos
+  gigantes. Ex.: arco tiro gigante 42%/28 cm -> 33%/7 cm; lança correndo elfo negro 51% -> 2%; duplas gigante na
+  cabeça 34% -> 0. Regressão: 0 falhas. Resta: espada no golpe do elfo negro passa 3-6 cm na cabeça; mão do anão
+  no peito com martelo/cajado (barba e armadura largas).
 - 12:40 item 4: 7 corpos novos gerados no Hunyuan3D com a conta Hugging Face do Robson (giganta, elfo/elfa, elfo/elfa
   negros, humano/humana), pelo padrão nova_raca.py já com pesos suavizados, cabeça inteira e bordas da textura.
   Rosto assado com a vista de frente mandando (lados desalinhavam). Cabeça erguida 20° nas raças novas. Vídeo de teste

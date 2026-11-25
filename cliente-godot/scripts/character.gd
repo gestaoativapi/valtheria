@@ -221,8 +221,8 @@ const GRIP := {
 	"cetro": {"file": "w_spear", "len": 0.75, "at": 0.1},
 	"espadao": {"file": "w_claymore", "len": 1.45, "at": 0.3, "two": 0.1, "back": true},
 	"martelo": {"file": "w_hammer_double", "len": 1.1, "at": 0.4, "two": 0.12, "back": true},
-	"cajado": {"file": "w_spear", "len": 1.7, "at": 0.75, "two": 0.42, "back": true},
-	"lanca": {"file": "w_spear", "len": 1.9, "at": 0.75, "two": 0.38, "back": true},
+	"cajado": {"file": "w_spear", "len": 1.7, "at": 0.45, "two": 0.42, "back": true},
+	"lanca": {"file": "w_spear", "len": 1.9, "at": 0.35, "two": 0.38, "back": true},
 	"arco": {"file": "w_bow_wooden", "len": 1.3, "at": -1.0, "hand": "l", "back": true},
 }
 const WEAPON := {"espada": ["w_sword", 1.0], "espadao": ["w_claymore", 1.45], "arco": ["w_bow_wooden", 1.3], "adaga": ["w_dagger", 0.5], "martelo": ["w_hammer_double", 1.2], "cajado": ["w_spear", 1.7], "machado": ["w_axe", 0.95]}
@@ -2075,7 +2075,7 @@ const FIO_UNICO := ["machado", "adaga", "punhal"]  # armas com um lado de corte 
 func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id := "") -> void:
 	arma_kind = kind
 	estilo = estilo_pegada
-	var g: Dictionary = GRIP[kind]
+	var g: Dictionary = _grip(kind)
 	var side := str(g.get("hand", "r"))
 	fist = load("res://scripts/punho.gd").new()
 	skel.add_child(fist)
@@ -2461,6 +2461,22 @@ func _rel_self(n: Node) -> Transform3D:
 # quadro da pegada para uma pose: origem na mão, +Z na lâmina, +Y voltado para o pulso
 # tamanho da arma (pedido de Robson 24/11: se adaptar à mão e à raça): média entre a escala pela altura e a
 # escala pela mão medida no esqueleto (punho até a ponta do dedo médio; mão humana de referência = 0,184 m)
+# pegada por raça: onde a mão segura (at, metros a partir do pé da arma) muda com o corpo. Medido em
+# teste/medir_atravessa.gd (25/11): lança com a mão mais perto do pé deixou de cruzar a coxa nos corpos esguios;
+# nos largos (orc, gigante) a lança mais curta à frente cruzava a coxa ao correr, então fica como antes.
+const GRIP_RACA := {"anao": {"cajado": {"at": 0.75}}, "humano": {"cajado": {"at": 0.3}}, "gigante": {"lanca": {"at": 0.75}, "cajado": {"at": 0.75}}, "orc": {"lanca": {"at": 0.55}, "cajado": {"at": 0.75}}}
+
+
+func _grip(kind: String) -> Dictionary:
+	var g: Dictionary = GRIP[kind]
+	var ov: Dictionary = GRIP_RACA.get(race_id, {}).get(kind, {})
+	if ov.is_empty():
+		return g
+	var r := g.duplicate()
+	r.merge(ov, true)
+	return r
+
+
 func _escala_arma(kind := "") -> float:
 	var s_alt := lerpf(1.0, height_m / 1.8, 0.85)
 	if kind == "arco":  # o arco acompanha a altura (arco do tamanho do anão), não a mão
@@ -2471,7 +2487,10 @@ func _escala_arma(kind := "") -> float:
 		return s_alt
 	var rs := _rel_self(skel)
 	var mao := (rs * skel.get_bone_global_rest(a).origin).distance_to(rs * skel.get_bone_global_rest(b).origin)
-	return sqrt(s_alt * clampf(mao / 0.184, 0.7, 1.6))
+	var esc := sqrt(s_alt * clampf(mao / 0.184, 0.7, 1.6))
+	if kind == "duplas":  # duas lâminas: nos gigantes a da mão esquerda passava pela cabeça no golpe (medido 25/11)
+		esc = minf(esc, 0.98)
+	return esc
 
 
 func _machado_baixo() -> bool:
@@ -2644,8 +2663,8 @@ func _chave_capsulas() -> String:
 func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: bool) -> void:
 	if skel.find_bone("upperarm_r") < 0 or skel.find_bone("middle_01_r") < 0:
 		return
-	var duas := float(GRIP[kind].get("two", 0.0)) > 0.0
-	var dupla := bool(GRIP[kind].get("dual", false))
+	var duas := float(_grip(kind).get("two", 0.0)) > 0.0
+	var dupla := bool(_grip(kind).get("dual", false))
 	var lados := {"r": grip_r}
 	if dupla and grip_l != null:
 		lados["l"] = grip_l
@@ -2653,7 +2672,7 @@ func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: b
 	empunho.name = "Empunhar"
 	skel.add_child(empunho)
 	empunho.capsulas = _capsulas(_chave_capsulas())
-	empunho.cabo = float(GRIP[kind].at) * _escala_arma(kind)
+	empunho.cabo = float(_grip(kind).at) * _escala_arma(kind)
 	if wnode != null:  # meia-largura da cabeça da arma, medida no modelo (machado ~ larga, espada ~ fina)
 		var bbw := AABB()
 		var pw := true
@@ -2667,8 +2686,8 @@ func _montar_empunho(kind: String, grip_r: Node3D, grip_l: Node3D, com_escudo: b
 		empunho.segue_peito = 1.0
 		empunho.balanco = 0.4
 		empunho.cabo = 0.08 * _escala_arma(kind)
-		empunho.lamina = (float(GRIP[kind].len) - 0.08) * _escala_arma(kind)  # machado no ombro: balança pouco (cabo encostado no ombro)
-	empunho.lamina = float(GRIP[kind].len) * _escala_arma(kind) * (1.0 - float(GRIP[kind].at) / maxf(float(GRIP[kind].len), 0.01))
+		empunho.lamina = (float(_grip(kind).len) - 0.08) * _escala_arma(kind)  # machado no ombro: balança pouco (cabo encostado no ombro)
+	empunho.lamina = float(_grip(kind).len) * _escala_arma(kind) * (1.0 - float(_grip(kind).at) / maxf(float(_grip(kind).len), 0.01))
 	for lado in lados:
 		var nn := "normal"
 		var cc := "combate"
@@ -3101,7 +3120,7 @@ func _guarda_no_peito() -> void:
 		return
 	var t: Transform3D = ref * (_guarda_off as Transform3D)
 	# cabo e cabeça da arma fora do corpo: empurra a guarda inteira para fora (no espaço do esqueleto)
-	var g := GRIP[arma_kind] as Dictionary
+	var g := _grip(arma_kind)
 	var k := height_m / 1.8
 	var de := -float(g.at) * k
 	var ate := (float(g.len) - float(g.at)) * k

@@ -188,7 +188,10 @@ func _process(_d: float) -> bool:
 				c.set_battle(bool(r[2]))
 				c.em_guarda = bool(r[2])
 				if str(r[1]).begins_with("!"):
-					c.action(str(r[1]).substr(1))
+					if c.arqueria != null:  # arqueiro: o golpe dele é o tiro (puxa a corda até o queixo), como no jogo
+						c.disparar_arco()
+					else:
+						c.action(str(r[1]).substr(1))
 				else:
 					c.play(str(r[1]))
 	if f > 5:
