@@ -50,6 +50,10 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 05:40 item 3 (parte 2): fogo refeito (línguas em gota, miolo amarelo + borda laranja + brasa na base; antes era
+  uma bola branca) — estúdio teste/estudio_fogo.gd. Nascer no centro exato de obstáculo (chafariz da capital) agora
+  empurra para fora. Minimapa desenha a planta real da cidade (prédios e obstáculos da colisão) sobre a imagem do
+  mundo; falta foto no PC para conferir. Regressão: 0 falhas.
 - 04:50 itens 10 e 11: trava de PvP (jogador só é atacado com Ctrl + skill ou Ctrl + clique; sem Ctrl aparece
   aviso). Guia de Valtheria na praça de cada cidade: quadro com 6 assuntos (primeiros passos, combate, PvP,
   classes, graus/encanto, missões), texto também no bate-papo. Regressão: 0 falhas.

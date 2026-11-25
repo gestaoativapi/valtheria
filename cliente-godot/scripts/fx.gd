@@ -100,20 +100,84 @@ static func cull(n: Node3D, dist := 70.0) -> void:
 	n.add_to_group("cull_particulas")
 
 
-# fogueira ou tocha: chamas, brasas e fumaça
+# textura de língua de fogo: gota alongada, base larga e ponta fina, borda suave (não um círculo chapado)
+static var _chama_mat: StandardMaterial3D = null
+
+
+static func _mat_chama() -> StandardMaterial3D:
+	if _chama_mat != null:
+		return _chama_mat
+	var w := 48
+	var h := 96
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	for y in h:
+		var t := 1.0 - float(y) / float(h - 1)  # 0 = base, 1 = ponta
+		var larg := 0.95 * sin(PI * pow(clampf(t, 0.0, 1.0), 0.55)) * (1.0 - 0.55 * t)
+		for x in w:
+			var u := absf(float(x) / float(w - 1) * 2.0 - 1.0)
+			var a := 0.0
+			if larg > 0.01:
+				a = 1.0 - smoothstep(0.35, 1.0, u / larg)
+			a *= smoothstep(0.0, 0.12, t) * (1.0 - smoothstep(0.7, 1.0, t))
+			img.set_pixel(x, y, Color(1, 1, 1, clampf(a, 0.0, 1.0)))
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.billboard_keep_scale = true
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = ImageTexture.create_from_image(img)
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.disable_fog = true
+	_chama_mat = m
+	return m
+
+
+# uma camada de línguas de fogo (quad alto com a textura de gota)
+static func _linguas(n: int, life: float, larg: float, alt: float, c0: Color, c1: Color, raio: float, vmin: float, vmax: float) -> CPUParticles3D:
+	var f := emitter(n, life, true, larg, c0, c1)
+	var q := QuadMesh.new()
+	q.size = Vector2(larg, alt)
+	q.center_offset = Vector3(0, alt * 0.4, 0)
+	q.material = _mat_chama()
+	f.mesh = q
+	f.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	f.emission_sphere_radius = raio
+	f.direction = Vector3.UP
+	f.spread = 8.0
+	f.initial_velocity_min = vmin
+	f.initial_velocity_max = vmax
+	f.damping_min = 0.8
+	f.damping_max = 1.6
+	f.angle_min = -12.0
+	f.angle_max = 12.0
+	f.scale_amount_min = 0.7
+	f.scale_amount_max = 1.15
+	var c := Curve.new()  # nasce cheia e afina ao subir
+	c.add_point(Vector2(0, 0.75))
+	c.add_point(Vector2(0.25, 1.0))
+	c.add_point(Vector2(1, 0.15))
+	f.scale_amount_curve = c
+	return f
+
+
+# fogueira ou tocha: línguas de fogo em duas camadas (miolo amarelo e borda laranja), brasas e fumaça
 static func fire(size := 1.0, smoke := true) -> Node3D:
 	var root := Node3D.new()
 	cull(root, 70.0)
-	var f := emitter(26, 0.75, true, 0.75 * size, Color(1.0, 0.92, 0.45, 0.9), Color(1.0, 0.3, 0.04, 0.8))
-	f.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	f.emission_sphere_radius = 0.22 * size
-	f.direction = Vector3.UP
-	f.spread = 12.0
-	f.initial_velocity_min = 1.1 * size
-	f.initial_velocity_max = 2.0 * size
-	f.scale_amount_min = 0.6
-	f.scale_amount_max = 1.2
-	root.add_child(f)
+	# borda: laranja avermelhada, mais larga e transparente
+	root.add_child(_linguas(22, 0.7, 0.6 * size, 0.9 * size, Color(1.0, 0.55, 0.12, 0.55), Color(0.85, 0.18, 0.03, 0.22),
+		0.28 * size, 0.45 * size, 0.9 * size))
+	# miolo: amarelo, menor e mais baixo (só o centro fica claro)
+	root.add_child(_linguas(12, 0.55, 0.32 * size, 0.6 * size, Color(1.0, 0.86, 0.45, 0.6), Color(1.0, 0.5, 0.1, 0.4),
+		0.13 * size, 0.35 * size, 0.75 * size))
+	# brasa da base: brilho baixo e largo, para o fogo não parecer flutuar
+	var b := emitter(4, 1.2, true, 0.9 * size, Color(1.0, 0.45, 0.1, 0.22), Color(0.9, 0.2, 0.04, 0.12))
+	b.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	b.emission_sphere_radius = 0.1 * size
+	b.position = Vector3(0, 0.05 * size, 0)
+	root.add_child(b)
 	var e := emitter(10, 1.6, true, 0.07 * size, Color(1.0, 0.8, 0.3), Color(1.0, 0.3, 0.05))
 	e.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 	e.emission_sphere_radius = 0.25 * size

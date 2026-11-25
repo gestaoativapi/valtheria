@@ -16,6 +16,9 @@ var castelos: Array = []
 var vilas: Array = []
 var marcos: Array = []
 var _t := 0.0
+# planta da cidade no minimapa: prédios (caixas de colisão) e peças redondas perto do jogador
+var _planta: Array = []
+var _planta_em := Vector2(INF, INF)
 
 
 func setup(m: Node) -> void:
@@ -91,6 +94,7 @@ func _mini() -> void:
 	draw_rect(r.grow(3), Color(0.08, 0.06, 0.04, 0.85))
 	draw_texture_rect_region(tex, r, src)
 	var esc := TAM_MINI / alc
+	_desenhar_planta(r, p, alc, esc)
 	for c in cidades:
 		var q := r.get_center() + (Vector2(float(c.x), float(c.z)) - Vector2(p.x, p.z)) * esc
 		if r.grow(-6).has_point(q):
@@ -99,6 +103,55 @@ func _mini() -> void:
 	_seta(r.get_center(), main.facing, 7, Color(1, 0.25, 0.2))
 	draw_rect(r.grow(3), Color(0.75, 0.6, 0.35), false, 2.0)
 	draw_string(fonte, Vector2(r.position.x, r.end.y + 16), "M — mapa   %d, %d" % [int(p.x), int(p.z)], HORIZONTAL_ALIGNMENT_LEFT, TAM_MINI, 12, Color(1, 1, 1, 0.9))
+
+
+# a imagem do mundo tem ~3 m por pixel: numa cidade o minimapa virava um quadrado verde.
+# Desenha por cima os prédios e obstáculos reais (os mesmos da colisão), refeitos a cada 8 m andados.
+func _desenhar_planta(r: Rect2, p: Vector3, alc: float, esc: float) -> void:
+	var w = main.world
+	if w == null or not ("boxes" in w):
+		return
+	var pv := Vector2(p.x, p.z)
+	if pv.distance_to(_planta_em) > 8.0:
+		_planta_em = pv
+		_planta.clear()
+		var meio := alc * 0.75
+		var vistos := {}
+		for kz in range(floori((p.z - meio) / 8.0), floori((p.z + meio) / 8.0) + 1):
+			for kx in range(floori((p.x - meio) / 8.0), floori((p.x + meio) / 8.0) + 1):
+				var k := Vector2i(kx, kz)
+				for e in w.boxes.get(k, []):
+					if not vistos.has(e):
+						vistos[e] = true
+						_planta.append(e)
+				for b in w.blockers.get(k, []):
+					if float(b.z) >= 1.2:   # chafariz, fogueira, torre (troncos e postes ficam de fora)
+						_planta.append(b)
+	var centro := r.get_center()
+	var dentro := r.grow(-2)
+	var cor := Color(0.62, 0.55, 0.45, 0.95)
+	var borda := Color(0.2, 0.15, 0.1, 0.9)
+	for e in _planta:
+		if e is Vector3:
+			var q := centro + (Vector2(e.x, e.y) - pv) * esc
+			if dentro.has_point(q):
+				draw_circle(q, maxf(1.5, e.z * esc), Color(0.55, 0.62, 0.7, 0.9))
+			continue
+		var o := centro + (Vector2(e[0], e[1]) - pv) * esc
+		if not dentro.grow(20).has_point(o):
+			continue
+		var ax := Vector2(e[2], -e[3]) * float(e[4]) * esc
+		var az := Vector2(e[3], e[2]) * float(e[5]) * esc
+		var pts := PackedVector2Array([o - ax - az, o + ax - az, o + ax + az, o - ax + az])
+		var fora := false
+		for i in 4:
+			if not dentro.has_point(pts[i]):
+				fora = true
+		if fora:
+			continue   # sem recorte: peça que passa da borda fica de fora (evita desenhar fora do quadro)
+		draw_colored_polygon(pts, cor)
+		pts.append(pts[0])
+		draw_polyline(pts, borda, 1.0)
 
 
 func _grande() -> void:

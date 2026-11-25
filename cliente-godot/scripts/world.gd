@@ -945,8 +945,9 @@ func resolve(p: Vector3, from: Vector3) -> Vector3:
 				var v := Vector2(p.x - b.x, p.z - b.y)
 				var d := v.length()
 				var r: float = b.z + 0.35
-				if d < r and d > 0.001:
-					v = v / d * r
+				if d < r:
+					# exatamente no centro (ex.: nascer no meio do chafariz da praça): empurra para o sul
+					v = (v / d if d > 0.001 else Vector2(0, 1)) * r
 					p.x = b.x + v.x
 					p.z = b.y + v.y
 	var kc := Vector2i(floori(p.x / CH), floori(p.z / CH))
