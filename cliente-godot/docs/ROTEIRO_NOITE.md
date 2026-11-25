@@ -46,10 +46,12 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
 12. [ ] Enredo e missões: linha principal do primeiro arco + missões secundárias da região inicial, com
        diálogos originais e recompensas pela grade.
 13. [ ] Revisão minuciosa: procurar erros e falhas (log do Godot, regressão, testes de cada sistema novo) e corrigir.
-14. [ ] Entrega da manhã: regressão, exe + exe de testes + APK na pasta Downloads\Valtheria-base-teste-40 com
+14. [x] Entrega da manhã: regressão, exe + exe de testes + APK na pasta Downloads\Valtheria-base-teste-40 com
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 06:25 item 14: entrega v40 em Downloads\Valtheria-base-teste-40 (exe, exe de testes com chave pública anon,
+  APK, SHA256 conferido no PC, QR, vídeo antes/depois); v39 movida para _PARA_EXCLUIR_Valtheria_antigos.
 - 05:40 item 3 (parte 2): fogo refeito (línguas em gota, miolo amarelo + borda laranja + brasa na base; antes era
   uma bola branca) — estúdio teste/estudio_fogo.gd. Nascer no centro exato de obstáculo (chafariz da capital) agora
   empurra para fora. Minimapa desenha a planta real da cidade (prédios e obstáculos da colisão) sobre a imagem do
