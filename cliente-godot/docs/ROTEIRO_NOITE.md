@@ -9,6 +9,9 @@ Trabalho livre seguindo esta linha, sem pedir autorização. Marcar [x] ao termi
 - Não excluir arquivos oficiais nem do PC (o que sair vai para _PARA_EXCLUIR_Valtheria_antigos).
 - Cada etapa: medir (medir_atravessa / estúdio), corrigir, regressão (testes/regressao.sh) antes do commit.
 - Assets só gratuitos com uso comercial; nada copiado de outros jogos.
+- Quando precisar criar algo (imagem, modelo, textura, som), usar plataformas gratuitas (Gemini na conta do
+  Robson, Hunyuan3D, Blender/scripts locais, pacotes CC0) e refazer quantas vezes for preciso até ficar
+  definitivo: comparar com o anterior, medir e só então trocar no jogo (orientação de Robson, 25/11 00:32).
 
 ## Agenda das rodadas
 00:55, 01:45, 02:30, 03:15, 04:00, 04:45, 05:30, 06:15 (rodada normal: a menção a "item 5" nessa mensagem é antiga;
