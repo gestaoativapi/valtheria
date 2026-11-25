@@ -853,7 +853,11 @@ func _set_quality(q: int) -> void:
 	e.ssr_enabled = q >= 3 and forward
 	vp.use_taa = q >= 3 and forward
 	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if q == 2 else Viewport.SCREEN_SPACE_AA_DISABLED
-	e.sdfgi_enabled = q >= 4 and forward
+	# 25/11: SDFGI desligado no ultra — em mundo aberto ensolarado estourava tudo em branco (água, pedra, árvores);
+	# o ultra fica com SSIL suave, sombras e distância maiores
+	e.sdfgi_enabled = false
+	if e.ssil_enabled:
+		e.ssil_intensity = 0.6
 	world.set_detail(q)
 	cam.far = world.far_r + 400.0
 	ui.btn_quality.text = "Qualidade: " + QUALITY[q]

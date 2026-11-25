@@ -1856,7 +1856,7 @@ func _build_sky() -> void:
 	env.glow_bloom = 0.05
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 2.2
-	env.volumetric_fog_density = 0.006
+	env.volumetric_fog_density = 0.0025  # 25/11: 0,006 deixava a cidade cinza no alto e no ultra
 	env.volumetric_fog_albedo = Color(0.9, 0.93, 1.0)
 	env.volumetric_fog_length = 160.0
 	env.adjustment_enabled = true

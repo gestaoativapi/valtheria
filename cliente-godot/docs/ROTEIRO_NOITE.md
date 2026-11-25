@@ -50,6 +50,11 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 03:40 item 5 (parte 1): fotos do jogo no PC do Robson (placa de vídeo; o servidor sem placa leva >10 min por
+  foto) em Downloads\Valtheria-fotos-madrugada. ULTRA estourava em branco (SDFGI em mundo aberto): desligado,
+  SSIL suave no lugar; neblina volumétrica 0,006 -> 0,0025 (alto/ultra cinza). Achados para as próximas rodadas:
+  minimapa da cidade é um quadrado verde (sem ruas/prédios), chama da fogueira chapada e forte, colunas de
+  Umbraval brancas demais no ultra, ponto de teste nasce em cima da fonte/fogueira. Hunyuan: cota ainda esgotada.
 - 03:10 item 7 (parte 1): estrela de encanto com teste de profundidade (atravessava rosto e corpo), anéis de
   rastro (+13/+16) na escala do corpo, casca de aura menor em cabeça grossa (martelo). Estúdio aceita nível de
   encanto (6º campo da lista). Martelo do anão em guarda: mudar a guarda piorou cajado/lança -> mantido (mão
