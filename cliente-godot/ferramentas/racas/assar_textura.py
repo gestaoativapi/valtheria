@@ -94,10 +94,14 @@ def main():
         for nome, ci, msk, P2, Z, zb, nd, ui, us, zi, zs, W, H in prep:
             w = np.clip(nor @ nd, 0, 1) ** 3
             if nome in ('esq', 'dir'): w = w * 0.6  # lados valem menos (pose da prancha difere um pouco)
+            # rosto: a vista de frente manda (os lados da prancha desalinham e jogavam cabelo e sombra nas bochechas)
+            cab = pos[:, 1] > lo[1] + 0.86 * (hi[1] - lo[1])
+            if nome in ('esq', 'dir'): w = np.where(cab & (nor[:, 2] > 0.0), w * 0.15, w)
             u = (pos[:, ui] - lo[ui]) / (hi[ui] - lo[ui]); u = u if us > 0 else 1 - u
             t = (hi[1] - pos[:, 1]) / (hi[1] - lo[1])
             px = np.clip((u * (W - 1)).astype(int), 0, W - 1); py = np.clip((t * (H - 1)).astype(int), 0, H - 1)
-            vis = (pos[:, zi] * zs) >= zb[py, px] - 0.03 * (hi[1] - lo[1])
+            tol = np.where(cab, 0.06, 0.03) * (hi[1] - lo[1])  # rosto: nariz e sobrancelha não escondem o próprio rosto
+            vis = (pos[:, zi] * zs) >= zb[py, px] - tol
             w = w * vis
             cor += ci[py, px] * w[:, None]; ws += w
         sola = (nor[:, 1] < -0.35) | ((pos[:, 1] < lo[1] + 0.022 * (hi[1] - lo[1])) | ((pos[:, 1] < lo[1] + 0.05 * (hi[1] - lo[1])) & (nor[:, 2] < 0.3)))  # fundo e borda da sola  # sola/fundo: nenhuma vista mostra; cor de couro escuro

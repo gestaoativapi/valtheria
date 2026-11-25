@@ -29,7 +29,7 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        anão firme, gigante lento, fera curvada, draconato altivo, sombrio inclinado, humano neutro).
 3. [ ] Correções gráficas: sola/bota clara nos corpos próprios; enquadramento dos estúdios para o gigante;
        emendas de textura; fotos do jogo (cidade, campo, combate) procurando falhas visuais e corrigindo.
-4. [ ] Corpos novos (quando a cota grátis do Hunyuan voltar): giganta, elfo/elfa branca, elfo/elfa negra,
+4. [x] Corpos novos (quando a cota grátis do Hunyuan voltar): giganta, elfo/elfa branca, elfo/elfa negra,
        humano/humana — `ferramentas/racas/nova_raca.py`; conferir juntas, mãos, armas e vídeo.
 5. [ ] Gráfico nos 4 níveis (baixo, normal, alto, ultra): fotos fixas de cidade, campo, masmorra e combate em
        cada nível; corrigir o que estiver feio (sombras, LOD, vegetação, água, céu, luz); manter 60 fps no PC e
@@ -50,6 +50,10 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 12:40 item 4: 7 corpos novos gerados no Hunyuan3D com a conta Hugging Face do Robson (giganta, elfo/elfa, elfo/elfa
+  negros, humano/humana), pelo padrão nova_raca.py já com pesos suavizados, cabeça inteira e bordas da textura.
+  Rosto assado com a vista de frente mandando (lados desalinhavam). Cabeça erguida 20° nas raças novas. Vídeo de teste
+  com câmera afastada para os gigantes (--longe). Regressão: 0 falhas. Resta: manchas no rosto da humana.
 - 10:30 refino dos corpos próprios (Robson: ainda com imperfeições). Medição nova teste/medir_esticar.gd (pele na
   CPU, aresta por aresta, 4 animações): vincos em cintura, virilha, ombro, joelho, pescoço. Ferramentas novas:
   suavizar_pesos.py (difusão dos pesos, dedos fixos), borda suave da cabeça no pescoço/trapézio, barba até 1,56 m,

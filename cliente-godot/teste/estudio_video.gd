@@ -63,8 +63,12 @@ func _montar() -> void:
 	var cam := Camera3D.new()
 	raiz.add_child(cam)
 	cam.fov = 30.0
-	cam.position = Vector3(0, 1.2, 2.6 + itens.size() * 1.25)
-	cam.look_at(Vector3(0, 0.95, 0))
+	# --longe=k: câmera k vezes mais afastada e mais alta (gigantes cabem no quadro)
+	var longe := 1.0
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--longe="): longe = float(a.trim_prefix("--longe="))
+	cam.position = Vector3(0, 1.2 * longe, (2.6 + itens.size() * 1.25) * longe)
+	cam.look_at(Vector3(0, 0.95 * longe, 0))
 	cam.current = true
 
 

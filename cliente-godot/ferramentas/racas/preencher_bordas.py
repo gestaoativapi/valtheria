@@ -87,7 +87,7 @@ def main(src, dst, anel=2, margem=16):
     print(f'{src}: textura {W}x{H}, ilhas {m.mean() * 100:.0f}% da imagem, beira refeita {anel} px, margem {margem} px')
 
 
-def manchas(src, dst, viz_min=130.0, razao=0.6, y_min=-1e9, so_cabeca=False):
+def manchas(src, dst, viz_min=130.0, razao=0.6, y_min=-1e9, so_cabeca=False, escuro_max=95.0):
     """Triângulos isolados muito escuros no meio de pele clara (vistas que não alcançaram o ponto ao assar):
     pinta o pedaço da textura com a cor média dos vizinhos da malha. Use só em corpos de pele clara."""
     raw = open(src, 'rb').read()
@@ -130,7 +130,7 @@ def manchas(src, dst, viz_min=130.0, razao=0.6, y_min=-1e9, so_cabeca=False):
     img = Image.fromarray(a.astype(np.uint8)); d = ImageDraw.Draw(img)
     feitos = 0
     for ti, t in enumerate(T):
-        if lum[ti] > 95 or P[t, 1].min() < y_min or (so_cabeca and not cabeca[t].all()):
+        if lum[ti] > escuro_max or P[t, 1].min() < y_min or (so_cabeca and not cabeca[t].all()):
             continue
         viz = set()
         for k in t:
@@ -164,7 +164,7 @@ def manchas(src, dst, viz_min=130.0, razao=0.6, y_min=-1e9, so_cabeca=False):
         b = np.asarray(img).astype(np.float32)
         lp = b.mean(2)
         viz_med = ndimage.median_filter(lp, size=13)
-        escuro = mcab & (lp < 70) & (viz_med > viz_min)
+        escuro = mcab & (lp < min(70.0, escuro_max)) & (viz_med > viz_min)
         escuro = ndimage.binary_dilation(escuro, iterations=1) & mcab
         if escuro.any():
             b = cv2.inpaint(b.astype(np.uint8), escuro.astype(np.uint8) * 255, 4, cv2.INPAINT_TELEA)
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     if '--botas' in args:
         manchas_claras(args[0], args[1])
     elif '--manchas' in args:
-        manchas(args[0], args[1], y_min=float(args[args.index('--y-min') + 1]) if '--y-min' in args else -1e9, so_cabeca='--cabeca' in args, viz_min=float(args[args.index('--viz-min') + 1]) if '--viz-min' in args else 130.0)
+        manchas(args[0], args[1], y_min=float(args[args.index('--y-min') + 1]) if '--y-min' in args else -1e9, so_cabeca='--cabeca' in args, escuro_max=float(args[args.index('--escuro-max') + 1]) if '--escuro-max' in args else 95.0, viz_min=float(args[args.index('--viz-min') + 1]) if '--viz-min' in args else 130.0)
     else:
         anel = int(args[args.index('--anel') + 1]) if '--anel' in args else 2
         margem = int(args[args.index('--margem') + 1]) if '--margem' in args else 16

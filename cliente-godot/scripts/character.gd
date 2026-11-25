@@ -195,10 +195,14 @@ const SHAPE := {
 # bones: ajuste fino de proporção (braço mais curto, mão menor, perna um pouco mais longa, cabeça)
 const OWN := {"anao_m": {"height": 1.36, "hip": 0.624, "bones": {}}, "anao_f": {"height": 1.3, "hip": 0.657, "bones": {}},
 	"orc_m": {"height": 2.0, "hip": 1.006, "bones": {}}, "orc_f": {"height": 1.87, "hip": 0.94, "bones": {}},
-	"gigante_m": {"height": 2.6, "hip": 1.305, "bones": {}}}  # orcs: pranchas originais 24/11 -> Hunyuan3D-2.1 -> pele_automatica.mjs
+	"gigante_m": {"height": 2.6, "hip": 1.305, "bones": {}}, "gigante_f": {"height": 2.45, "hip": 1.23, "bones": {}},
+	"elfo_m": {"height": 1.85, "hip": 0.929, "bones": {}}, "elfo_f": {"height": 1.75, "hip": 0.879, "bones": {}},
+	"sombrio_m": {"height": 1.82, "hip": 0.914, "bones": {}}, "sombrio_f": {"height": 1.72, "hip": 0.864, "bones": {}},
+	"humano_m": {"height": 1.8, "hip": 0.904, "bones": {}}, "humano_f": {"height": 1.68, "hip": 0.844, "bones": {}}}  # orcs: pranchas originais 24/11 -> Hunyuan3D-2.1 -> pele_automatica.mjs
 # 25/11: cabeça dos corpos próprios baixa demais (orc olhava o chão: pescoço 22,7° à frente; humano -10°).
 # Graus para erguer pescoço e cabeça (medidos com teste/medir_postura.gd e conferidos em foto).
-const CABECA_ERGUE := {"orc_m": -36.0, "orc_f": -24.0, "anao_m": -6.0, "anao_f": -6.0, "gigante_m": -10.0}
+const CABECA_ERGUE := {"orc_m": -36.0, "orc_f": -24.0, "anao_m": -6.0, "anao_f": -6.0, "gigante_m": -10.0, "gigante_f": -20.0,
+	"elfo_m": -20.0, "elfo_f": -20.0, "sombrio_m": -20.0, "sombrio_f": -20.0, "humano_m": -20.0, "humano_f": -20.0}
 # pescoço dos corpos próprios: a malha veio com os ombros na altura da boca (cabeça afundada e projetada);
 # a cabeça sobe e recua (metros) depois das animações, como na prancha aprovada
 const PESCOCO_SOBE := {}
