@@ -22,7 +22,7 @@ Cada rodada (~70 min) fecha pelo menos um item ou uma parte medida dele, com com
 dividir em partes no Diário e seguir para o próximo na rodada seguinte.
 
 ## Linha de produção
-1. [ ] Pegada — resíduos: escudo x cabeça do gigante no golpe; lança correndo em combate (coxa); duas espadas
+1. [x] Pegada — resíduos: escudo x cabeça do gigante no golpe; lança correndo em combate (coxa); duas espadas
        apontando à frente (elfa/orc); arco em guarda tocando o tronco (anão/orc/gigante).
 2. [ ] Postura de cada raça (parado, andando, correndo, guarda): medir ângulos de tronco/cabeça/braços em todas as
        raças e gêneros; corrigir quem tomba ou fica rígido; manter o caráter de cada raça (orc pesado, elfo ereto,
@@ -50,6 +50,12 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 01:00 item 1: duas espadas fora de combate com as lâminas para baixo em todas as raças (punho até 60°;
+  medido: fora de combate limpo; golpe toca a cabeça 18-20% no orc/gigante, até 3,6 cm). Lança: testei pegar mais
+  atrás (humano 31->11%), mas o gigante piorou (3->87%); voltei ao original. Escudo do gigante: a 'cabeça'
+  medida inclui a barba longa (raio 26 cm); fica para o item 6. Arco em guarda: 8-13% tronco, aceito.
+- 01:40 item 3 (parte 1): solas dos corpos próprios sem manchas brancas (faixa da sola em couro escuro +
+  limpeza do branco do fundo nos orcs).
 - 00:30 item 2 (parte 1): postura medida em 17 corpos (teste/medir_postura.gd). Corrida: goblin 48→32°, sombrio 33→21°,
   fera 38→28°, draconato 29→25° (CORRIDA_RETA_V3); elfo em combate deixou de recuar (−3,6→−0,3°); cabeça de
   orc/anão/gigante um pouco mais erguida na guarda. Falta: cabeça dos corpos próprios ainda muito à frente na guarda.

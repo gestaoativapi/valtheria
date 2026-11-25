@@ -2386,7 +2386,7 @@ const POSE_ARMA := {
 	"normal_duas": {"mao": Vector3(-0.24, -0.93, 0.22), "k": 0.93, "lamina": Vector3(-0.32, -0.7, 0.64), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# cajado (21/11): postura formal de mago, cajado em pé ao lado do corpo, mão na altura da cintura
 	"normal_cajado": {"mao": Vector3(-0.3, -0.72, 0.62), "k": 0.8, "lamina": Vector3(-0.04, 1.0, 0.1), "polo": Vector3(-0.4, -0.5, -0.75)},
-	"normal_dupla": {"mao": Vector3(-0.22, -0.93, 0.2), "k": 0.94, "lamina": Vector3(-0.14, -0.28, 0.95), "polo": Vector3(-0.4, -0.3, -0.85)},
+	"normal_dupla": {"mao": Vector3(-0.24, -0.93, 0.15), "k": 0.94, "lamina": Vector3(-0.25, -0.92, -0.3), "polo": Vector3(-0.4, -0.3, -0.85)},
 	"combate": {"mao": Vector3(-0.2, -0.78, 0.58), "k": 0.88, "lamina": Vector3(-0.26, 0.5, 0.82), "polo": Vector3(-0.8, -0.6, -0.15)},
 	# arco (21/11): segurado pelo meio, em pé ao lado do corpo (as duas pontas longe das costas), ponta de cima um pouco à frente
 	"normal_arco": {"mao": Vector3(-0.26, -0.93, 0.18), "k": 0.94, "lamina": Vector3(-0.2, -0.97, 0.12), "polo": Vector3(-0.3, -0.35, -0.9)},
@@ -2764,7 +2764,7 @@ func _empunho_passo(dt: float) -> void:
 		var on := not golpe and not (guard != null and armed) and not (arqueria != null and armed)
 		empunho.meta[lado] = 1.0 if on else 0.0
 	empunho.velocidade = 4.0 if not golpe else 14.0
-	empunho.punho_max = lerpf(empunho.punho_max, deg_to_rad(22.0 if armed else (60.0 if arma_kind == "machado" else 35.0)), clampf(dt * 6.0, 0.0, 1.0))
+	empunho.punho_max = lerpf(empunho.punho_max, deg_to_rad(22.0 if armed else (60.0 if arma_kind in ["machado", "duplas"] else 35.0)), clampf(dt * 6.0, 0.0, 1.0))
 
 
 # em combate a arma vai para a mão; fora dele, para as costas ou a cintura

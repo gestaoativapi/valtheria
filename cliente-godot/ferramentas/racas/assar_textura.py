@@ -100,7 +100,7 @@ def main():
             vis = (pos[:, zi] * zs) >= zb[py, px] - 0.03 * (hi[1] - lo[1])
             w = w * vis
             cor += ci[py, px] * w[:, None]; ws += w
-        sola = nor[:, 1] < -0.35  # sola/fundo: nenhuma vista mostra; cor de couro escuro
+        sola = (nor[:, 1] < -0.35) | ((pos[:, 1] < lo[1] + 0.022 * (hi[1] - lo[1])) | ((pos[:, 1] < lo[1] + 0.05 * (hi[1] - lo[1])) & (nor[:, 2] < 0.3)))  # fundo e borda da sola  # sola/fundo: nenhuma vista mostra; cor de couro escuro
         if sola.any(): cor[sola] = np.array([58, 48, 42]) * 1.0; ws[sola] = 1.0
         yy = (gy[k] - 0.5).astype(int); xx = (gx[k] - 0.5).astype(int)
         tex[yy, xx] = cor; wsum[yy, xx] = ws
@@ -109,6 +109,12 @@ def main():
     # texels sem cor (escondidos em todas as vistas) e fora das ilhas: cor do vizinho mais próximo
     ii = ndimage.distance_transform_edt(~ok, return_distances=False, return_indices=True)
     tex = tex[ii[0], ii[1]]
+    if '--sem-branco' in sys.argv:  # restos do fundo branco da foto (ponta das botas): troca pela cor vizinha
+        br = (tex.min(2) > 228) & ((tex.max(2) - tex.min(2)) < 18)
+        br = ndimage.binary_dilation(br, iterations=2)
+        if br.any():
+            jj = ndimage.distance_transform_edt(br, return_distances=False, return_indices=True)
+            tex = tex[jj[0], jj[1]]
     img = Image.fromarray(np.clip(tex, 0, 255).astype(np.uint8))
     mat = trimesh.visual.material.PBRMaterial(baseColorTexture=img, roughnessFactor=0.85, metallicFactor=0)
     out = trimesh.Trimesh(V, idx, visual=trimesh.visual.TextureVisuals(uv=T, material=mat), process=False)
