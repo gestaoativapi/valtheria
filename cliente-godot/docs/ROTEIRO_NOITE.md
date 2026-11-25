@@ -50,6 +50,12 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 10:30 refino dos corpos próprios (Robson: ainda com imperfeições). Medição nova teste/medir_esticar.gd (pele na
+  CPU, aresta por aresta, 4 animações): vincos em cintura, virilha, ombro, joelho, pescoço. Ferramentas novas:
+  suavizar_pesos.py (difusão dos pesos, dedos fixos), borda suave da cabeça no pescoço/trapézio, barba até 1,56 m,
+  preencher_bordas.py (beira das ilhas de UV sem preto, manchas escuras do rosto do gigante, pontos brancos das
+  botas). Pele esticando >3x: orc M 6,7%->4,2%, orc F 4,3%->1,6%, anão M 4,3%->1,7%, anã 4,8%->1,6%, gigante 4,4%->1,7%.
+  Tudo ligado no nova_raca.py. Regressão: 0 falhas. Resta: virilha e axila (malha fundida em pose A).
 - 09:20 cabeça dos orcs, 2ª rodada (Robson: ainda com problema): (1) bochechas, presas e barba do orc macho ainda no
   peito (rosto mais largo que o alto da cabeça) -> elipse alarga à frente e barba até 1,60 m na cabeça
   (--frente-y); (2) cabeça olhando o chão na animação dos corpos próprios -> CABECA_ERGUE (orc M -36°, F -24°,

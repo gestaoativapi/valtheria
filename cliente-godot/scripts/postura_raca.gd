@@ -34,7 +34,7 @@ var corrida_reta := 0.0  # graus para trás na corrida (corpos próprios largos:
 # curvatura de coluna, pescoço e pernas; em combate a postura de ataque da raça volta inteira
 var ereto := 0.0
 # corpos próprios (orc, anão, gigante): a malha já vem com o pescoço projetado; graus para erguer a cabeça
-# (negativo = para trás), divididos entre pescoço (60%) e cabeça (40%). Vale parado, andando e em combate.
+# (negativo = para trás), divididos entre peito alto (25%), pescoço (45%) e cabeça (30%). Vale parado, andando e em combate.
 var cabeca_extra := 0.0
 # pescoço mais longo nos corpos próprios: a cabeça sobe (e recua) alguns cm em relação ao pescoço, depois das
 # animações; os vértices da faixa do pescoço (pesos em rampa) esticam junto, sem mexer no rosto.
@@ -70,8 +70,9 @@ func _graus(nome: String) -> float:
 	var g := base + comb
 	if nome == "spine_01":
 		g += inclina * andando
-	if cabeca_extra != 0.0 and (nome == "neck_01" or nome == "Head"):
-		g += cabeca_extra * (0.6 if nome == "neck_01" else 0.4)
+	if cabeca_extra != 0.0:
+		# divide entre peito alto, pescoço e cabeça: cada dobra pequena, sem vinco na garganta
+		g += cabeca_extra * float({"spine_03": 0.25, "neck_01": 0.45, "Head": 0.3}.get(nome, 0.0))
 	if corrida_reta != 0.0 and correndo > 0.0:
 		var parte := {"spine_01": 0.4, "spine_02": 0.3, "neck_01": 0.15, "Head": 0.15}
 		if parte.has(nome):

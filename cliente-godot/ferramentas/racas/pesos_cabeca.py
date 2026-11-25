@@ -62,7 +62,7 @@ def main(src, dst, raio_k=1.0, frente_y=None):
     zf = float(np.percentile(P[alto, 2], 98)) + 0.03
     zc = (zb + zf) * 0.5
     queixo = N[1] + 0.15 * seg
-    baixo = N[1] - 0.9 * seg
+    baixo = N[1] - 1.6 * seg  # faixa do pescoço larga: a cabeça erguida não vinca a garganta
     tronco = np.isin(J, [iS, iN, iH, nomes.index('spine_02')])
     dono = (np.where(tronco, W, 0).sum(1) > 0.85)  # só quem já é do tronco/pescoço/cabeça
     # elipse horizontal da cabeça (x, z) normalizada: < 1 dentro
@@ -79,8 +79,18 @@ def main(src, dst, raio_k=1.0, frente_y=None):
         y = P[v, 1]
         if y >= lim[v] and e[v] < 1.0:
             jw = [(iH, 1.0)]
-        elif frente_y is not None and frente[v] > 0.35 and frente_y - 0.03 <= y < lim[v] and e[v] < 1.0:
-            t = (y - (frente_y - 0.03)) / 0.03  # transição curta da barba para o peito
+        elif y >= lim[v] and e[v] < 1.3:
+            # borda da cabeça (trapézio, nuca, lados do pescoço): mistura suave com o que já havia
+            wh = (1.3 - e[v]) / 0.3
+            mix = {}
+            for j, w in zip(J[v], W[v]):
+                mix[int(j)] = mix.get(int(j), 0.0) + float(w) * (1 - wh)
+            mix[iH] = mix.get(iH, 0.0) + wh
+            jw = sorted(mix.items(), key=lambda t: -t[1])[:4]
+            soma = sum(w for _, w in jw)
+            jw = [(j, w / soma) for j, w in jw]
+        elif frente_y is not None and frente[v] > 0.35 and frente_y - 0.06 <= y < lim[v] and e[v] < 1.0:
+            t = (y - (frente_y - 0.06)) / 0.06  # transição da barba para o peito
             jw = [(iS, 1 - t), (iH, t)]
         elif baixo <= y < lim[v] and e[v] < 0.85:
             t = (y - baixo) / max(lim[v] - baixo, 0.01)

@@ -34,7 +34,12 @@ r = subprocess.run(['node', 'pele.mjs', chave], cwd='/home/claude/gt', env={**os
 print(r.stdout.strip().splitlines()[0])
 # cabeça inteira no osso Head e pescoço em rampa (sem isso o rosto estica nas animações)
 corpo = f'/home/claude/valtheria/cliente-godot/assets/chars/body_{chave}.glb'
-subprocess.run(['python3', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pesos_cabeca.py'), corpo, corpo], check=True)
+aqui = os.path.dirname(os.path.abspath(__file__))
+# pesos espalhados nas dobras (cintura, virilha, ombro, joelho) e depois a cabeça inteira
+subprocess.run(['python3', os.path.join(aqui, 'suavizar_pesos.py'), corpo, corpo], check=True)
+subprocess.run(['python3', os.path.join(aqui, 'pesos_cabeca.py'), corpo, corpo], check=True)
+# beira das ilhas de UV sem preto (riscos escuros nas costuras)
+subprocess.run(['python3', os.path.join(aqui, 'preencher_bordas.py'), corpo, corpo], check=True)
 # altura da pelve -> fator 'hip' das animações (pelve do esqueleto base = 0,95 m)
 pel = (J['spine']['pelvis'][0] - J['y0']) * altura / (J['top'] - J['y0'])
 print(json.dumps({'chave': chave, 'altura': altura, 'hip': round(pel / 0.95, 3)}))
