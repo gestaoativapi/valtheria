@@ -171,6 +171,7 @@ func soltou() -> bool:
 # lado para o alvo, seja anão, gigante ou elfo. Em combate parado: arco baixo à frente, flecha encaixada (prontidão).
 const ANCORA_LADO := 0.11
 const ANCORA_FRENTE := 0.04
+const ANCORA_ALTURA := -0.05   # canto da boca / queixo (o osso Head fica na altura dos olhos nos corpos próprios)
 const GIRO_TIRO := 0.95     # (padrão; cada raça tem o seu em ESTILO)
 const GIRO_PRONTO := 0.45
 # Estrutura do tiro (21/11, referências reais de Robson): forma de "T" — pés na largura dos ombros, corpo de lado
@@ -234,7 +235,7 @@ func _pontos() -> Dictionary:
 	var an: Array = estilo.ancora
 	# a mão fica do lado de fora do rosto (bochecha/queixo), não dentro da cabeça: o osso Head fica no meio do crânio,
 	# então a âncora sai meia cabeça para o lado da corda e um pouco à frente (medido em teste/medir_atravessa.gd)
-	var ancora := Vector3(cab.x - ANCORA_LADO * hs + float(an[0]) * hs, cab.y + (0.02 + float(an[1])) * hs, cab.z + (ANCORA_FRENTE + float(an[2])) * hs)
+	var ancora := Vector3(cab.x - ANCORA_LADO * hs + float(an[0]) * hs, cab.y + (ANCORA_ALTURA + float(an[1])) * hs, cab.z + (ANCORA_FRENTE + float(an[2])) * hs)
 	# mão do arco: na linha da flecha, braço quase esticado (cotovelo levemente solto, como nas referências)
 	var gx := ancora.x + 0.02 * hs
 	var gy := ancora.y - 0.01 * hs
@@ -257,6 +258,7 @@ func _pose(w: float, pt: Dictionary) -> void:
 
 
 var polo_l: Node3D
+const POLO_CORDA := [-0.25, -0.1, -0.9]
 var polo_r: Node3D
 
 func _polos(pt: Dictionary) -> void:
@@ -270,8 +272,10 @@ func _polos(pt: Dictionary) -> void:
 		(ik_r as TwoBoneIK3D).set_pole_node(0, (ik_r as TwoBoneIK3D).get_path_to(polo_r))
 	var hs: float = pt.hs
 	polo_l.position = (pt.sh_l as Vector3) + Vector3(0.45, -0.35, 0.1) * hs
-	# cotovelo da corda recua na altura do ombro (um pouco acima), atrás, em linha com a flecha (abre o peito)
-	polo_r.position = (pt.sh_r as Vector3) + Vector3(-0.55, -0.12, -0.85) * hs
+	# cotovelo da corda recua atrás do ombro, na linha da flecha e um pouco acima: no tiro o corpo está de lado
+	# (rosto para -X), então -X aqui é a frente do rosto; o polo fica atrás (-Z) e levemente para as costas (+X),
+	# senão o braço cruza na frente do rosto e o antebraço contorna a cabeça
+	polo_r.position = (pt.sh_r as Vector3) + Vector3(POLO_CORDA[0], POLO_CORDA[1], POLO_CORDA[2]) * hs
 
 
 func _flecha_na_corda(ponto_corda: Vector3) -> void:
