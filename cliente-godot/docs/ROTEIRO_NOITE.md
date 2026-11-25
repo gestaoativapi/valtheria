@@ -41,8 +41,8 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        por arma e armadura, seguindo a grade do jogo; conferir em todas as raças.
 9. [ ] Skills: implantar todas as skills das classes da grade; banco de skills e banco de classes (dados
        consultáveis no jogo); caixa de skills (barra) em que o jogador escolhe o que usar ao atacar.
-10. [ ] Trava de PvP: atacar jogador só com Ctrl + atalho/clique de skill (sem Ctrl, nada acontece contra jogador).
-11. [ ] NPC tutor que explica o jogo (primeiros passos, classes, skills, craft, PvP), na cidade inicial.
+10. [x] Trava de PvP: atacar jogador só com Ctrl + atalho/clique de skill (sem Ctrl, nada acontece contra jogador).
+11. [x] NPC tutor que explica o jogo (primeiros passos, classes, skills, craft, PvP), na cidade inicial.
 12. [ ] Enredo e missões: linha principal do primeiro arco + missões secundárias da região inicial, com
        diálogos originais e recompensas pela grade.
 13. [ ] Revisão minuciosa: procurar erros e falhas (log do Godot, regressão, testes de cada sistema novo) e corrigir.
@@ -50,6 +50,9 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 04:50 itens 10 e 11: trava de PvP (jogador só é atacado com Ctrl + skill ou Ctrl + clique; sem Ctrl aparece
+  aviso). Guia de Valtheria na praça de cada cidade: quadro com 6 assuntos (primeiros passos, combate, PvP,
+  classes, graus/encanto, missões), texto também no bate-papo. Regressão: 0 falhas.
 - 03:40 item 5 (parte 1): fotos do jogo no PC do Robson (placa de vídeo; o servidor sem placa leva >10 min por
   foto) em Downloads\Valtheria-fotos-madrugada. ULTRA estourava em branco (SDFGI em mundo aberto): desligado,
   SSIL suave no lugar; neblina volumétrica 0,006 -> 0,0025 (alto/ultra cinza). Achados para as próximas rodadas:

@@ -160,7 +160,7 @@ func _ready() -> void:
 	add_child(combat)
 	combat.setup(self)
 	combat.message.connect(func(t): ui.say(t))
-	ui.want_skill.connect(func(i): combat.use_skill(i))
+	ui.want_skill.connect(_usar_skill)
 	npcs = Npcs.new()
 	add_child(npcs)
 	npcs.setup(self)
@@ -576,6 +576,25 @@ func _ready() -> void:
 			player.current = "Dance"
 		elif a.begins_with("--chars"):
 			_new_char()
+
+
+# trava de PvP: com um jogador selecionado, skill e clique só atacam com Ctrl segurado (evita ataque sem querer)
+func _usar_skill(i: int) -> void:
+	if sel.get("kind", "") == "player":
+		if pvp != null and Input.is_key_pressed(KEY_CTRL):
+			pvp.atacar(str(sel.get("id", "")))
+		else:
+			_aviso_trava_pvp()
+		return
+	combat.use_skill(i)
+
+
+var _aviso_pvp_t := 0
+func _aviso_trava_pvp() -> void:
+	if Time.get_ticks_msec() - _aviso_pvp_t < 2500:
+		return
+	_aviso_pvp_t = Time.get_ticks_msec()
+	ui.say("Trava de PvP: para atacar um jogador, segure Ctrl e use a skill ou clique nele")
 
 
 func _place_player(p: Vector3) -> void:
@@ -1033,8 +1052,12 @@ func _unhandled_input(ev: InputEvent) -> void:
 			var other: String = social.pick(ro, rd)
 			if other != "":
 				# segundo clique no mesmo jogador = atacar (PvP, só no executável de teste)
+				# trava de PvP (pedido de Robson 25/11): contra jogador só ataca com Ctrl segurado
 				if pvp != null and sel.get("kind", "") == "player" and str(sel.get("id", "")) == other:
-					pvp.atacar(other)
+					if Input.is_key_pressed(KEY_CTRL):
+						pvp.atacar(other)
+					else:
+						_aviso_trava_pvp()
 				sel = {"kind": "player", "id": other}
 				combat.target = null
 				return

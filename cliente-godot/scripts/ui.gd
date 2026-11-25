@@ -829,7 +829,7 @@ func _build_hud() -> void:
 	bs.pressed.connect(func(): bs.text = cycle_scale())
 	v.add_child(bs)
 
-	var help := _label("W A S D ou clique: andar   ·   clique no monstro: alvo (2º clique ou F: atacar)   ·   Tab: próximo alvo   ·   1 a 9 e Shift+1 a 9: habilidades   ·   F1 a F9: itens   ·   arraste os painéis para mover", 14, Color(0.9, 0.9, 0.92))
+	var help := _label("W A S D ou clique: andar   ·   clique no monstro: alvo (2º clique ou F: atacar)   ·   Tab: próximo alvo   ·   1 a 9 e Shift+1 a 9: habilidades   ·   Ctrl + skill: atacar jogador (PvP)   ·   F1 a F9: itens", 14, Color(0.9, 0.9, 0.92))
 	help.anchor_top = 1.0
 	help.anchor_bottom = 1.0
 	help.anchor_right = 1.0

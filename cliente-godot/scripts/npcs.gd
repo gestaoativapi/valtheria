@@ -15,6 +15,7 @@ const ROLES := [
 	["Mestre do Clã", Vector3(5.0, 0, -11.0), 0.2, "Idle", "cla", "robe_ng", ""],
 	["Mestre de Classes", Vector3(-3.0, 0, -12.5), 0.0, "Idle_FoldArms", "classe", "pesada_ng", "espadao_ng"],
 	["Estalajadeiro", Vector3(-6.0, 0, -58.0), 0.1, "Idle_Talking", "", "leve_ng", ""],
+	["Guia de Valtheria", Vector3(6.5, 0, 9.0), 3.6, "Idle_Talking", "guia", "robe_ng", "cajado_ng"],
 ]
 # capital: lugar (ponto de serviço), nome, deslocamento x, z, giro, animação, janela, roupa, arma
 const CAPITAL_ROLES := [
@@ -29,6 +30,9 @@ const CAPITAL_ROLES := [
 	["quartel", "Comandante dos Cavaleiros", 6.0, 22.0, 0.0, "Idle_FoldArms", "classe", "pesada_ng", "espadao_ng"],
 	["igreja", "Sumo Sacerdote", 0.0, 0.0, 0.0, "Idle", "", "robe_ng", ""],
 ]
+# o guia recebe quem chega e explica o jogo (as explicações completas ficam no quadro de conversa)
+const GUIA_FALAS := ["Novo por aqui? Fale comigo, eu explico como tudo funciona.", "Escolha um assunto e eu explico, aventureiro.",
+	"Dúvida sobre skills, classes ou equipamento? Pergunte ao guia!", "Ninguém nasce sabendo. Venha, eu ensino."]
 # conversas entre dois moradores (falas alternadas)
 const DIALOGS := [
 	["Bom dia! Vai ao mercado hoje?", "Vou sim, preciso de farinha e sal.", "Diz que chegou tecido novo do porto.", "Então vou junto, quero ver."],
@@ -510,7 +514,7 @@ func _make(q: Dictionary) -> void:
 			c.position = pos
 			var nm: String = (d[0] if role else "%s\n%s" % [d[0], d[1]])
 			c.set_tag(nm, Color(0.7, 1.0, 0.75) if (role and str(d[4]) != "") else (Color(1.0, 0.85, 0.45) if not role else Color(0.85, 0.9, 1.0)), 25.0 if role else 12.0)
-			var e := {"node": c, "window": d[4] if role else "", "name": d[0], "kind": q.kind, "age": "adulto", "lines": (d[2] as Array) if not role else (CHAT.guarda if d[0] == "Guarda" else CHAT.adulto),
+			var e := {"node": c, "window": d[4] if role else "", "name": d[0], "kind": q.kind, "age": "adulto", "lines": (d[2] as Array) if not role else (CHAT.guarda if d[0] == "Guarda" else (GUIA_FALAS if str(d[4]) == "guia" else CHAT.adulto)),
 				"home": pos, "goal": pos, "state": "parado", "timer": rng.randf_range(3.0, 10.0), "speed": 1.0, "anim": d[3] if role else "Idle", "walks": not role, "line_i": 0}
 			list.append(e)
 		"citizen":
