@@ -50,6 +50,11 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 03:10 item 7 (parte 1): estrela de encanto com teste de profundidade (atravessava rosto e corpo), anéis de
+  rastro (+13/+16) na escala do corpo, casca de aura menor em cabeça grossa (martelo). Estúdio aceita nível de
+  encanto (6º campo da lista). Martelo do anão em guarda: mudar a guarda piorou cajado/lança -> mantido (mão
+  encosta 1-2 cm na armadura). Fotos do mundo por qualidade: o jogo completo leva >10 min para carregar no
+  servidor sem placa; próxima rodada faz uma qualidade por vez.
 - 02:30 item 2 (parte 2): espada parada com a ponta para baixo e à frente (antes apontava reta como lança);
   corpos próprios com 55% da pose da raça (a malha já vem curvada): escudo x cabeça do gigante 39->1%,
   espada do orc no golpe 23->2%; espada fora de combate sem nenhum toque em 6 corpos. Martelo do anão: mão

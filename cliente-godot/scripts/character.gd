@@ -684,7 +684,7 @@ func brilho_encanto(nivel: int) -> void:
 			onda.shader = _shader("onda", ONDA_SHADER)
 			onda.set_shader_parameter("cor", cor)
 			onda.set_shader_parameter("forca", 0.18 + 0.5 * t)
-			onda.set_shader_parameter("largura", 0.025 + 0.075 * t)
+			onda.set_shader_parameter("largura", (0.025 + 0.075 * t) * (0.6 if bb.size.x > 0.0 and minf(bb.size.x, minf(bb.size.y, bb.size.z)) * maxf(wnode.transform.basis.get_scale().x, 0.0001) > 0.08 else 1.0))  # cabeça grossa (martelo): casca menor
 			onda.set_shader_parameter("eixo", eixo)
 			onda.set_shader_parameter("comprimento", maxf(comp, 0.2))
 			onda.set_shader_parameter("velocidade", 0.6 + 1.0 * t)
@@ -739,7 +739,7 @@ func brilho_encanto(nivel: int) -> void:
 # leve no celular) e uma estrela de luz pulsando na ponta. Efeito genérico de jogo de fantasia, desenhado aqui.
 const ESTRELA_SHADER := """
 shader_type spatial;
-render_mode blend_add, unshaded, cull_disabled, depth_draw_never, depth_test_disabled, fog_disabled;
+render_mode blend_add, unshaded, cull_disabled, depth_draw_never, fog_disabled;  // 25/11: com teste de profundidade (atravessava rosto e corpo)
 uniform vec3 cor : source_color = vec3(1.0);
 uniform float forca = 1.0;
 uniform float raios = 1.0;
@@ -857,7 +857,8 @@ func _rastros_encanto(faixa: int, cor: Color) -> void:
 		return
 	_rastros = Node3D.new()
 	_rastros.name = "RastrosEncanto"
-	_rastros.position = Vector3(0, 1.0, 0)
+	_rastros.position = Vector3(0, 1.0 * height_m / 1.8, 0)
+	_rastros.scale = Vector3.ONE * clampf(height_m / 1.8, 0.75, 1.5)  # 25/11: anéis do tamanho do corpo (gigante/anão)
 	add_child(_rastros)
 	var mat := ShaderMaterial.new()
 	mat.shader = _shader("arco", ARCO_SHADER)

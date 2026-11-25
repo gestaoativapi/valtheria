@@ -55,7 +55,10 @@ func _montar() -> void:
 			eq["arma"] = p[2]
 		if p.size() > 4 and p[4] != "":
 			eq["escudo"] = p[4]
-		var c: Node3D = C.create({"race": p[0], "gender": p[1], "equipment": eq})
+		var o := {"race": p[0], "gender": p[1], "equipment": eq}
+		if p.size() > 5 and p[5] != "" and eq.has("arma"):  # 6º campo: nível de encanto da arma
+			o["enchant"] = {eq["arma"]: int(p[5])}
+		var c: Node3D = C.create(o)
 		raiz.add_child(c)
 		if not combate:
 			c.set_battle(false)
