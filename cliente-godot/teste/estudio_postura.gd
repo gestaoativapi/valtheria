@@ -21,6 +21,11 @@ func _init() -> void:
 		if a.begins_with("--saida="): saida = a.trim_prefix("--saida=")
 		elif a.begins_with("--lista="): lista = a.trim_prefix("--lista=")
 		elif a == "--lado": lado = true
+		elif a == "--sem-proprios" or a == "--antigos":
+			var CH = load("res://scripts/character.gd")
+			CH.corpos_proprios = false
+			CH.orc_modelo_proprio = false
+			if a == "--antigos": CH.V3_HUMANOS = false
 		elif a == "--combate": combate = true
 		elif a == "--perto": perto = true
 		elif a.begins_with("--tiro="): tiro = int(a.trim_prefix("--tiro="))
