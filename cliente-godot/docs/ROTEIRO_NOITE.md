@@ -24,7 +24,7 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
 ## Linha de produção
 1. [x] Pegada — resíduos: escudo x cabeça do gigante no golpe; lança correndo em combate (coxa); duas espadas
        apontando à frente (elfa/orc); arco em guarda tocando o tronco (anão/orc/gigante).
-2. [ ] Postura de cada raça (parado, andando, correndo, guarda): medir ângulos de tronco/cabeça/braços em todas as
+2. [x] Postura de cada raça (parado, andando, correndo, guarda): medir ângulos de tronco/cabeça/braços em todas as
        raças e gêneros; corrigir quem tomba ou fica rígido; manter o caráter de cada raça (orc pesado, elfo ereto,
        anão firme, gigante lento, fera curvada, draconato altivo, sombrio inclinado, humano neutro).
 3. [ ] Correções gráficas: sola/bota clara nos corpos próprios; enquadramento dos estúdios para o gigante;
@@ -50,6 +50,10 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 02:30 item 2 (parte 2): espada parada com a ponta para baixo e à frente (antes apontava reta como lança);
+  corpos próprios com 55% da pose da raça (a malha já vem curvada): escudo x cabeça do gigante 39->1%,
+  espada do orc no golpe 23->2%; espada fora de combate sem nenhum toque em 6 corpos. Martelo do anão: mão
+  esquerda no peito em guarda (32%, 2,3 cm) — próximo ajuste.
 - 01:00 item 1: duas espadas fora de combate com as lâminas para baixo em todas as raças (punho até 60°;
   medido: fora de combate limpo; golpe toca a cabeça 18-20% no orc/gigante, até 3,6 cm). Lança: testei pegar mais
   atrás (humano 31->11%), mas o gigante piorou (3->87%); voltei ao original. Escudo do gigante: a 'cabeça'

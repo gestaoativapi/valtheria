@@ -407,6 +407,7 @@ func _setup_medido(o: Dictionary) -> void:
 		postura.ereto = float(ERETO_RACA.get(chave_postura, 0.25))
 		ciclo_raca = float(pr.ciclo)
 		if own != "":  # corpo próprio já vem com a massa à frente: na corrida o tronco sobe (orc e anão tombavam)
+			postura.intensidade *= 0.55  # 25/11: a malha já vem curvada; a pose da raça inteira dobrava demais na guarda
 			postura.corrida_reta = float(CORRIDA_RETA.get(own.split("_")[0], 0.0))
 		else:  # 25/11: raças V3 curvadas também tombavam na corrida (goblin 48°, fera 38°, sombrio 33°)
 			postura.corrida_reta = float(CORRIDA_RETA_V3.get(chave_postura, 0.0))
@@ -2375,7 +2376,7 @@ func _make_sheath(back: bool, small: bool) -> void:
 const ABERTURA_RACA := {"orc": 1.35, "gigante": 1.35, "anao": 1.3, "draconato": 1.2, "beastman": 1.15, "goblin": 1.1, "elfo": 0.95, "sombrio": 0.95}
 const POSE_ARMA := {
 	# espada (24/11 13:40, "mais reta e firme"): lâmina quase em ângulo reto com o antebraço, à frente e um pouco baixa
-	"normal": {"mao": Vector3(-0.22, -0.93, 0.22), "k": 0.93, "lamina": Vector3(-0.14, -0.28, 0.95), "polo": Vector3(-0.3, -0.35, -0.9)},
+	"normal": {"mao": Vector3(-0.22, -0.93, 0.2), "k": 0.93, "lamina": Vector3(-0.25, -0.92, -0.3), "polo": Vector3(-0.3, -0.35, -0.9)},
 	# machado e adaga (correção de Robson 24/11 12:07: a lâmina não fica para baixo): machado carregado pelo cabo
 	# com a cabeça para cima e à frente; adaga na cintura com a lâmina para a frente, um pouco erguida
 	# machado (24/11 13:40): como um lenhador carrega — cabo apoiado no ombro direito, mão à frente do peito, cabeça atrás do ombro
@@ -2764,7 +2765,7 @@ func _empunho_passo(dt: float) -> void:
 		var on := not golpe and not (guard != null and armed) and not (arqueria != null and armed)
 		empunho.meta[lado] = 1.0 if on else 0.0
 	empunho.velocidade = 4.0 if not golpe else 14.0
-	empunho.punho_max = lerpf(empunho.punho_max, deg_to_rad(22.0 if armed else (60.0 if arma_kind in ["machado", "duplas"] else 35.0)), clampf(dt * 6.0, 0.0, 1.0))
+	empunho.punho_max = lerpf(empunho.punho_max, deg_to_rad(22.0 if armed else (60.0 if arma_kind in ["machado", "duplas"] else 50.0)), clampf(dt * 6.0, 0.0, 1.0))
 
 
 # em combate a arma vai para a mão; fora dele, para as costas ou a cintura
