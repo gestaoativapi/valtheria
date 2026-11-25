@@ -32,6 +32,9 @@ cfg = {'model': {'xs': J['xs'], 'k': 1, 'kz': 1, 'hs': 1, 'dy': 0}, 'src': f'{OU
 cj = f'{OUT}/{chave}_cfg.json'; json.dump(cfg, open(cj, 'w'), indent=1)
 r = subprocess.run(['node', 'pele.mjs', chave], cwd='/home/claude/gt', env={**os.environ, 'CFG_JSON': cj}, capture_output=True, text=True, check=True)
 print(r.stdout.strip().splitlines()[0])
+# cabeça inteira no osso Head e pescoço em rampa (sem isso o rosto estica nas animações)
+corpo = f'/home/claude/valtheria/cliente-godot/assets/chars/body_{chave}.glb'
+subprocess.run(['python3', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pesos_cabeca.py'), corpo, corpo], check=True)
 # altura da pelve -> fator 'hip' das animações (pelve do esqueleto base = 0,95 m)
 pel = (J['spine']['pelvis'][0] - J['y0']) * altura / (J['top'] - J['y0'])
 print(json.dumps({'chave': chave, 'altura': altura, 'hip': round(pel / 0.95, 3)}))

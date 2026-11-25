@@ -50,6 +50,11 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
        SHA-256 e QR; v39 para _PARA_EXCLUIR_Valtheria_antigos; vídeos de antes/depois; resumo curto para Robson.
 
 ## Diário
+- 08:30 (Robson acordado) cabeça esticada dos corpos próprios: a pele deixava queixo/rosto no spine_03 e nunca usava
+  o neck_01. Nova ferramenta ferramentas/racas/pesos_cabeca.py (cabeça inteira no Head pela elipse medida da cabeça,
+  pescoço em rampa spine_03>neck_01>Head), aplicada a orc m/f, anão m/f e gigante m e ligada no nova_raca.py.
+  Medição teste/medir_cabeca.gd (pares de pontos do rosto, pele na CPU com a pose real): orc M golpe máx 95% -> 0-27%
+  (o resto é o ombro alto do orc, não o rosto); orc F 53% -> 0%; anão M 28% -> 0%; gigante 38% -> 0%. Regressão: 0 falhas.
 - 06:25 item 14: entrega v40 em Downloads\Valtheria-base-teste-40 (exe, exe de testes com chave pública anon,
   APK, SHA256 conferido no PC, QR, vídeo antes/depois); v39 movida para _PARA_EXCLUIR_Valtheria_antigos.
 - 05:40 item 3 (parte 2): fogo refeito (línguas em gota, miolo amarelo + borda laranja + brasa na base; antes era
