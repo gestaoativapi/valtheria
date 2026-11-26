@@ -109,3 +109,11 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
 - 00:30 item 2 (parte 1): postura medida em 17 corpos (teste/medir_postura.gd). Corrida: goblin 48→32°, sombrio 33→21°,
   fera 38→28°, draconato 29→25° (CORRIDA_RETA_V3); elfo em combate deixou de recuar (−3,6→−0,3°); cabeça de
   orc/anão/gigante um pouco mais erguida na guarda. Falta: cabeça dos corpos próprios ainda muito à frente na guarda.
+
+
+## Madrugada 26/11 (agenda aprovada por Robson às 23:24)
+- [x] Rodada 1 (23:30) — rostos refeitos a partir da imagem de frente (ferramentas/racas/rosto_frontal.py): humano, elfo, elfo sombrio e gigante, nos dois gêneros; textura 2048 só nesses corpos; costuras sem risco escuro. Orc e anão ficam com a textura atual (vêm de outro processo).
+- [ ] Rodada 2 (01:00) — mão no peito: anão (martelo, cajado, arco) e orc/gigante na puxada do arco
+- [ ] Rodada 3 (02:30) — espada do sombrio na cabeça; machado do orc perto do rosto na guarda
+- [ ] Rodada 4 (04:00) — pele esticando (ombro no arco, axila, virilha); colunas de Umbraval no ultra
+- [ ] Rodada 5 (05:30) — versão 41 (exe, exe de teste, APK, SHA256, QR) e resumo com fotos e vídeo
