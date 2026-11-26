@@ -192,6 +192,10 @@ func _process(_d: float) -> bool:
 						c.disparar_arco()
 					else:
 						c.action(str(r[1]).substr(1))
+				elif str(r[1]) == "Walk" and c.has_method("mover"):
+					c.mover(1.5, "andar")  # 26/11: como no jogo (passada sincronizada)
+				elif str(r[1]) == "Jog_Fwd" and c.has_method("mover"):
+					c.mover(5.2, "correr")
 				else:
 					c.play(str(r[1]))
 	if f > 5:

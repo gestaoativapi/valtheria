@@ -2162,7 +2162,7 @@ const PEGADA_RACA := {
 	"orc": {"guarda": [Vector3(0.5, 0.62, 0.6), Vector3(-0.13, 0.92, 0.4)], "uma_mao": [0.12, 0.38]},
 	"goblin": {"guarda": [Vector3(0.3, 0.6, 0.62), Vector3(-0.06, 0.86, 0.34)], "uma_mao": [-0.5, 0.2]},
 	"gigante": {"guarda": [Vector3(0.38, 0.68, 0.6), Vector3(-0.06, 0.84, 0.38)], "uma_mao": [0.18, 0.1]},
-	"anao": {"guarda": [Vector3(0.42, 0.6, 0.68), Vector3(-0.02, 0.78, 0.5)], "uma_mao": [0.1, 0.15]},
+	"anao": {"guarda": [Vector3(0.42, 0.6, 0.68), Vector3(-0.02, 0.82, 0.6)], "uma_mao": [0.1, 0.15]},
 	"beastman": {"guarda": [Vector3(0.14, 0.55, 0.82), Vector3(-0.04, 1.0, 0.37)], "uma_mao": [-0.38, 0.1]},
 	"draconato": {"guarda": [Vector3(0.32, 0.84, 0.42), Vector3(-0.07, 1.02, 0.31)], "uma_mao": [0.05, 0.22]},
 }
@@ -2577,7 +2577,7 @@ func _rel_self(n: Node) -> Transform3D:
 # pegada por raça: onde a mão segura (at, metros a partir do pé da arma) muda com o corpo. Medido em
 # teste/medir_atravessa.gd (25/11): lança com a mão mais perto do pé deixou de cruzar a coxa nos corpos esguios;
 # nos largos (orc, gigante) a lança mais curta à frente cruzava a coxa ao correr, então fica como antes.
-const GRIP_RACA := {"anao": {"cajado": {"at": 0.75}}, "humano": {"cajado": {"at": 0.3}}, "gigante": {"lanca": {"at": 0.75}, "cajado": {"at": 0.75}}, "orc": {"lanca": {"at": 0.55}, "cajado": {"at": 0.75}}}
+const GRIP_RACA := {"anao": {"cajado": {"at": 0.75}}, "humano": {"cajado": {"at": 0.3}}, "gigante": {"lanca": {"at": 0.35}, "cajado": {"at": 0.75}}, "orc": {"lanca": {"at": 0.55}, "cajado": {"at": 0.75}}}
 
 
 func _grip(kind: String) -> Dictionary:
@@ -3247,7 +3247,9 @@ func _guarda_no_peito() -> void:
 		if mao_l_guarda != null:  # as duas mãos no cabo também ficam fora do peito
 			pts.append(t * mao_l_guarda.position)
 		for p_char in pts:
-			var sa := _saida_corpo(p_char, 0.04)
+			# 26/11: correndo, a coxa avança vários cm por quadro e a guarda era calculada com a perna do quadro
+			# anterior: folga maior nas pernas só na corrida (o cabo cruzava a coxa direita em 10-30% da corrida)
+			var sa := _saida_corpo(p_char, 0.04, (0.09 * k) if current in ["Jog_Fwd", "Sprint"] else 0.0)
 			if sa.length() > pior.length():
 				pior = sa
 		if pior.length() < 1e-5:
@@ -3285,11 +3287,15 @@ func _osso_pos(nome: String) -> Transform3D:
 
 
 # saída do corpo para um ponto no espaço do personagem (cápsulas com a pose final)
-func _saida_corpo(p: Vector3, folga: float) -> Vector3:
+func _saida_corpo(p: Vector3, folga: float, extra_pernas := 0.0) -> Vector3:
 	var caps := _capsulas(_chave_capsulas())
 	var esc := _rel_self(skel).basis.get_scale().x
 	var melhor := Vector3.ZERO
+	var i_perna := 3  # CAPSULAS: 0 tronco, 1 peito, 2 cabeça, 3.. coxas e canelas
+	var ci := -1
 	for c in caps:
+		ci += 1
+		var fo := folga + (extra_pernas if ci >= i_perna else 0.0)
 		var a: Vector3 = _osso_pos(skel.get_bone_name(c[0])).origin
 		var b: Vector3 = _osso_pos(skel.get_bone_name(c[1])).origin
 		if float(c[3]) > 0.0:  # cabeça: a cápsula vai até o alto do crânio
@@ -3297,7 +3303,7 @@ func _saida_corpo(p: Vector3, folga: float) -> Vector3:
 		var ab := b - a
 		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 1e-8), 0.0, 1.0)
 		var d := p - (a + ab * t)
-		var dentro: float = float(c[2]) * esc + folga - d.length()
+		var dentro: float = float(c[2]) * esc + fo - d.length()
 		if dentro > melhor.length():
 			melhor = (d.normalized() if d.length() > 1e-5 else Vector3.FORWARD) * dentro
 	return melhor
@@ -3873,3 +3879,19 @@ func mover(v: float, modo := "") -> void:
 		esc = clampf(esc, 0.5, 2.3)
 	play(n, 1.0)
 	anim.speed_scale = esc
+
+
+# ---------- pulo (26/11) ----------
+# Jump_Start a partir do impulso (os pés saem do chão aos 0,12 s) e Jump_Land no toque (agacha e levanta).
+func pulo(fase: String) -> void:
+	var n := "Jump_Start" if fase == "inicio" else "Jump_Land"
+	if not anim.has_animation(n):
+		return
+	anim.get_animation(n).loop_mode = Animation.LOOP_NONE
+	if postura != null:
+		postura.andando = 0.0
+		postura.correndo = 0.0
+	current = n
+	anim.play(n, 0.08 if fase == "inicio" else 0.06)
+	anim.seek(0.12 if fase == "inicio" else 0.04, true)
+	anim.speed_scale = 1.5 if fase == "inicio" else 1.35
