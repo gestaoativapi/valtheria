@@ -12,7 +12,7 @@ const Npcs = preload("res://scripts/npcs.gd")
 const FX = preload("res://scripts/fx.gd")
 
 const QUALITY := ["Mínima", "Baixa", "Média", "Alta", "Ultra"]
-const WALK := 1.9
+const WALK := 1.5  # 26/11: passo de caminhada real (a 1,9 m/s o pé patinava ou a perna virava hélice)
 const RUN := 5.2
 const SPRINT := 8.2
 
@@ -72,6 +72,8 @@ var gm := false  # conta de GM
 var gm_god := false
 var gm_speed := false
 var vel_atual := 0.0      # velocidade suavizada do jogador (arranque)
+var ultimo_move := Vector3.ZERO  # 26/11: direção do último passo (freada curta ao soltar a tecla)
+var vinha_teclado := false
 var tremor := 0.0         # tremor da câmera (golpe forte, dano recebido); some sozinho
 var inclina_lado := 0.0   # inclinação nas curvas
 var gm_fly := false
@@ -1144,6 +1146,17 @@ func _physics_process(dt: float) -> void:
 			move = to.normalized()
 	if player.is_busy():
 		move = Vector3.ZERO
+	# 26/11: ao soltar a tecla/joystick o corpo não para "seco" (de 5 m/s a zero num quadro, com a perna ainda no
+	# meio da passada, o pé arrastava): freia em ~0,15 s na mesma direção. Destino de clique e golpe param na hora.
+	var freando := false
+	if move != Vector3.ZERO:
+		ultimo_move = move
+		vinha_teclado = input.length() > 0.1
+	elif vinha_teclado and vel_atual > 0.6 and not player.is_busy() and not combat.dead and not swimming and not jumping and not gm_fly:
+		move = ultimo_move
+		freando = true
+	else:
+		vinha_teclado = false
 	if dust and is_instance_valid(dust):
 		dust.emitting = move != Vector3.ZERO
 	if move != Vector3.ZERO:
@@ -1153,7 +1166,14 @@ func _physics_process(dt: float) -> void:
 		if gm_speed:
 			speed *= 3.0
 		# arranque e troca de ritmo suaves (22/11, mobilidade): a velocidade sobe em ~0,15 s em vez de pular de 0 ao máximo
-		vel_atual = move_toward(vel_atual, speed, maxf(speed, 1.0) * 7.0 * dt)
+		# joystick de toque: inclinar pouco = andar, inclinar tudo = correr (26/11)
+		var analogico: bool = toque != null and toque.mov != Vector2.ZERO and not freando
+		if analogico:
+			speed *= clampf(toque.mov.length() * 1.15, 0.3, 1.0)
+		if freando:
+			vel_atual = move_toward(vel_atual, 0.0, 32.0 * dt)
+		else:
+			vel_atual = move_toward(vel_atual, speed, maxf(speed, 1.0) * 7.0 * dt)
 		speed = vel_atual
 		var step := speed * dt
 		if has_target:  # nunca passa do destino
@@ -1177,7 +1197,10 @@ func _physics_process(dt: float) -> void:
 		inclina_lado = lerpf(inclina_lado, -curva * 0.012 * clampf(speed / 5.2, 0.0, 1.4), minf(1.0, dt * 8.0))
 		player.rotation.z = inclina_lado
 		player.rotation.x = lerpf(player.rotation.x, 0.035 * clampf(speed / 6.0, 0.0, 1.3) if not walk else 0.0, minf(1.0, dt * 6.0))
-		player.play("Walk" if walk or swimming else "Jog_Fwd", 0.7 if swimming else (1.1 if walk else speed / 5.2))
+		if swimming:
+			player.play("Walk", 0.7)
+		else:
+			player.mover(speed, "andar" if walk else ("" if (analogico or freando) else "correr"))  # 26/11: passada sincronizada (pé não patina)
 		emote = ""
 	elif not player.is_busy() and not combat.dead:
 		if combat.auto:

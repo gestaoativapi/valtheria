@@ -294,7 +294,7 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 		node = Criatura.criar(id, sc)
 		if bool(fam.get("boss", false)):
 			VisualMonstros.aura_chefe(node, Color(str(fam.get("color", "#888888"))).lightened(0.2), 0.45 * node.altura)
-		return {"node": node, "kind": "criatura", "height": node.altura}
+		return {"node": node, "kind": "criatura", "height": node.altura, "arquivo": "golem" if id.begins_with("golem") else ""}
 	match modelo:
 		"fera_chefe":
 			kind = "char"
@@ -387,6 +387,7 @@ func _mob_model(fam: Dictionary) -> Dictionary:
 			holder.add_child(sc_node)
 			node = holder
 			height = target_h * sc
+			return {"node": node, "kind": kind, "height": height, "arquivo": file}
 	return {"node": node, "kind": kind, "height": height}
 
 
@@ -452,10 +453,25 @@ func _spawn_medido(x: float, z: float, boss := false, boss_lvl := 0, spot := "",
 		lb.font_size = 46
 	node.add_child(lb)
 	var m := {"fam": fam, "L": L, "hp": float(ms[0]), "maxHp": float(ms[0]), "atk": float(ms[1]), "def": float(ms[2]), "xp": float(ms[3]), "node": node, "kind": md.kind, "home": node.position,
-		"aggro": false, "next_atk": 0.0, "stun": 0.0, "wander": node.position, "wander_t": rng.randf() * 4.0, "dead": false, "dead_t": 0.0, "weak": 0.0, "anim": "", "height": md.height, "boss": boss, "spot": spot}
+		"aggro": false, "next_atk": 0.0, "stun": 0.0, "wander": node.position, "wander_t": rng.randf() * 4.0, "dead": false, "dead_t": 0.0, "weak": 0.0, "anim": "", "height": md.height, "boss": boss, "spot": spot, "arquivo": str(md.get("arquivo", ""))}
 	m.ap = node.anim if md.kind == "char" else (node.ap if md.kind == "criatura" else node.find_child("AnimationPlayer", true, false))
 	_mob_anim(m, "idle")
 	mobs.append(m)
+
+
+# 26/11: passada natural (m/s) de cada modelo de bicho com 1 m de altura, ritmo 1 (teste/medir_passada_mob.gd).
+# O ritmo da animação acompanha a velocidade real e o tamanho, para a pata não patinar no chão.
+const PASSADA_MOB := {"m_wolf": {"walk": 0.85, "run": 2.37}, "e_spider": {"walk": 1.0, "run": 1.0}, "golem": {"walk": 0.87, "run": 2.2}}
+
+
+func _ritmo_patas(m: Dictionary, speed: float) -> void:
+	var nat: Dictionary = PASSADA_MOB.get(str(m.get("arquivo", "")), {})
+	var ap: AnimationPlayer = m.ap
+	if nat.is_empty() or ap == null or not m.anim in ["walk", "run"]:
+		return
+	var n := float(nat.get(m.anim, 0.0)) * maxf(float(m.height), 0.1)
+	if n > 0.01:
+		ap.speed_scale = clampf(speed / n, 0.5, 2.2)
 
 
 func _mob_anim(m: Dictionary, what: String) -> void:
@@ -489,6 +505,7 @@ func _mob_anim(m: Dictionary, what: String) -> void:
 		if ap.has_animation(n):
 			if what in ["idle", "walk", "run"]:
 				ap.get_animation(n).loop_mode = Animation.LOOP_LINEAR
+			ap.speed_scale = 1.0  # o ritmo da passada (_ritmo_patas) não pode ficar no ataque nem no parado
 			ap.play(n, 0.2)
 			return
 
@@ -595,14 +612,18 @@ func _mob_tick(m: Dictionary, dt: float) -> void:
 	var speed := 0.0
 	if m.aggro:
 		var reach: float = 1.6 + float(m.height) * 0.5
-		if d > reach:
+		# 26/11: folga de 45 cm para voltar a perseguir (antes, na borda do alcance, trocava correr/parado a cada quadro)
+		var folga: float = 0.0 if m.anim in ["run", "walk"] else 0.45
+		if d > reach + folga:
 			goal = pp
 			speed = 4.2
-		elif t >= float(m.next_atk):
+		else:
+			# 26/11: no alcance, vira para o jogador aos poucos (antes girava de uma vez a cada golpe)
+			node.rotation.y = lerp_angle(node.rotation.y, atan2(pp.x - node.position.x, pp.z - node.position.z), minf(1.0, dt * 9.0))
+		if d <= reach + folga and t >= float(m.next_atk):
 			m.next_atk = t + 2.0
 			m.anim = ""
 			_mob_anim(m, "attack")
-			node.rotation.y = atan2(pp.x - node.position.x, pp.z - node.position.z)
 			var atk: float = float(m.atk) * (0.75 if t < float(m.weak) else 1.0)
 			var dmg := atk * atk / (atk + float(st.pdef) * 0.5) * rng.randf_range(0.9, 1.1)
 			_hurt_player(dmg)
@@ -628,7 +649,12 @@ func _mob_tick(m: Dictionary, dt: float) -> void:
 			var np: Vector3 = node.position + dir * speed * dt
 			node.position = Vector3(np.x, world.height(np.x, np.z), np.z)
 			node.rotation.y = lerp_angle(node.rotation.y, atan2(dir.x, dir.z), minf(1.0, dt * 8.0))
-			_mob_anim(m, "run" if speed > 2.0 else "walk")
+			if m.kind == "char" and now() >= float(m.get("hit_ate", 0.0)) and node.has_method("mover"):
+				m.anim = "run" if speed > 2.0 else "walk"
+				node.mover(speed)  # 26/11: passada na velocidade real (bandido não patina)
+			else:
+				_mob_anim(m, "run" if speed > 2.0 else "walk")
+				_ritmo_patas(m, speed)
 	elif m.anim in ["walk", "run"] or (m.anim == "attack" and t > float(m.next_atk) - 1.2):
 		_mob_anim(m, "idle")
 

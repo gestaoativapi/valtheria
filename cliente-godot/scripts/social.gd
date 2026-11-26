@@ -53,9 +53,22 @@ func _on_pos(p: Dictionary) -> void:
 	others[id].lvl = int(p.get("l", 1))
 	others[id].hp = float(p.get("hp", 100.0))
 	others[id].cp = float(p.get("cp", 100.0))
+	# 26/11: velocidade real do outro jogador entre dois avisos (5 por segundo andando); serve para ele andar no
+	# mesmo ritmo, sem arrancar e frear a cada aviso, e para a passada da animação bater com o chão
+	var agora := Time.get_ticks_msec() * 0.001
+	var o_: Dictionary = others[id]
+	var dtr := agora - float(o_.get("t_rx", 0.0))
+	if o_.has("t_rx") and dtr > 0.05 and dtr < 1.5:
+		var vn := (pos - (o_.pos as Vector3)) / dtr
+		if vn.length() > 12.0:
+			vn = Vector3.ZERO  # teleporte/entrada em mapa: não extrapola
+		o_.vnet = vn
+	elif dtr >= 1.5:
+		o_.vnet = Vector3.ZERO
+	o_.t_rx = agora
 	others[id].pos = pos
 	others[id].rot = float(p.get("r", 0.0))
-	others[id].seen = Time.get_ticks_msec() * 0.001
+	others[id].seen = agora
 	var lj := str(p.get("lj", "")).strip_edges().left(32)
 	if lj != str(others[id].get("loja", "")):
 		others[id].loja = lj
@@ -79,11 +92,26 @@ func _process_medido(dt: float) -> void:
 			_drop(id)
 			continue
 		var cur := Vector3(node.position.x, 0, node.position.z)
-		var d := cur.distance_to(o.pos)
-		var np := cur.lerp(o.pos, minf(1.0, dt * 6.0)) if d < 12.0 else (o.pos as Vector3)
+		# 26/11: segue a posição prevista (último aviso + velocidade x tempo, no máximo 0,35 s à frente) em ritmo
+		# constante; antes ia em "pulos" (rápido logo após o aviso, quase parando antes do próximo) e trocava
+		# corrida/parado várias vezes por segundo
+		var vn: Vector3 = o.get("vnet", Vector3.ZERO)
+		var alvo: Vector3 = (o.pos as Vector3) + vn * clampf(now - float(o.get("t_rx", now)), 0.0, 0.35)
+		var d := cur.distance_to(alvo)
+		var np := alvo
+		if d < 12.0:
+			np = cur.move_toward(alvo, (vn.length() * 1.05 + d * 2.5) * dt)
+		var vis := (np - cur).length() / maxf(dt, 0.001) if d < 12.0 else 0.0
+		o.vvis = lerpf(float(o.get("vvis", 0.0)), vis, minf(1.0, dt * 6.0))
 		node.position = Vector3(np.x, main.world.height(np.x, np.z), np.z)
 		node.rotation.y = lerp_angle(node.rotation.y, float(o.rot), minf(1.0, dt * 8.0))
-		node.play("Jog_Fwd" if d > 0.35 else ("Sitting_Idle" if str(o.get("loja", "")) != "" else "Idle"))
+		var andando: bool = o.get("andando", false)
+		andando = float(o.vvis) > (0.25 if andando else 0.6)  # folga: não pisca entre andar e parar
+		o.andando = andando
+		if andando:
+			node.mover(float(o.vvis))
+		else:
+			node.play("Sitting_Idle" if str(o.get("loja", "")) != "" else "Idle")
 	# envia a própria posição: 5 vezes por segundo andando, a cada 3 s parado
 	send_t += dt
 	var moved: bool = main.player.position.distance_to(last_sent) > 0.05

@@ -176,6 +176,8 @@ const FORCA_ERETA := {"humano": 0.85, "elfo": 0.7, "sombrio": 0.45, "anao": 0.4,
 const PosturaRaca = preload("res://scripts/postura_raca.gd")
 var postura: Node
 var ciclo_raca := 1.0
+var chave_passada := ""  # corpo próprio (raca_g): passada medida por teste/medir_passada.gd
+var _quadril := 0.0
 var subtipo := ""
 var race_id := "humano"
 var armadura_id := ""
@@ -321,6 +323,8 @@ func _setup_medido(o: Dictionary) -> void:
 		body.add_child(arm)
 		body.remove_child(skel)
 		arm.add_child(skel)
+	if own != "":
+		chave_passada = own
 	if own != "" and CORRETIVO_ARCO:
 		_ligar_corretivo_arco(own)
 	if dragon:
@@ -2059,7 +2063,7 @@ static func _clips(sk: Skeleton3D, own := "") -> AnimationLibrary:
 				if hip != 1.0 and a.track_get_type(t) == Animation.TYPE_POSITION_3D:
 					for k in a.track_get_key_count(t):
 						a.track_set_key_value(t, k, (a.track_get_key_value(t, k) as Vector3) * hip)
-			if n in ["Idle", "Walk", "Jog_Fwd", "Sprint", "Dance", "Idle_Talking", "Sitting_Idle", "Idle_FoldArms", "Idle_Shield", "Spell_Simple_Idle"]:
+			if n in ["Idle", "Walk", "Walk_Formal", "Jog_Fwd", "Sprint", "Dance", "Idle_Talking", "Sitting_Idle", "Idle_FoldArms", "Idle_Shield", "Spell_Simple_Idle"]:
 				a.loop_mode = Animation.LOOP_LINEAR
 			lib.add_animation(n, a)
 		if sc != null:
@@ -3008,14 +3012,14 @@ func play(n: String, speed := 1.0) -> void:
 		n = "Walk_Formal"  # elfo: passada leve e ereta (UAL1)
 	if not anim.has_animation(n):
 		return
-	var anda := n.contains("Walk") or n.contains("Run") or n.contains("Jog")
+	var anda := n.contains("Walk") or n.contains("Run") or n.contains("Jog") or n == "Sprint"
 	if anda and n == "Walk_Formal":
 		speed *= 1.08
 	if n == "Sword_Idle":
 		speed *= GUARDA_RACA.get(race_id, 1.0)  # ritmo da guarda: gigante e orc pesados, anão e elfos mais vivos (só visual)
 	if postura != null:
 		postura.andando = 1.0 if anda else 0.0
-		postura.correndo = 1.0 if (n.contains("Run") or n.contains("Jog")) else 0.0
+		postura.correndo = 1.0 if (n.contains("Run") or n.contains("Jog") or n == "Sprint") else 0.0
 	if anda:
 		speed *= ciclo_raca
 	if current == n:
@@ -3805,3 +3809,67 @@ func set_corretivo_arco(w: float) -> void:
 	if corretivo_arco.is_empty() or not is_instance_valid(corretivo_arco[0]):
 		return
 	(corretivo_arco[0] as MeshInstance3D).set_blend_shape_value(0, clampf(w, 0.0, 1.0))
+
+
+# ---------- passada sincronizada com a velocidade (26/11) ----------
+# Velocidade em que o pé apoiado NÃO escorrega = K x altura do quadril. K medido em cada corpo próprio com
+# teste/medir_passada.gd (personagem parado, pé de apoio andando para trás); os outros corpos usam a mediana.
+const PASSADA_K := {
+	"anao_f": {"Jog_Fwd": 4.622, "Sprint": 5.492, "Walk": 0.738, "Walk_Formal": 0.931},
+	"anao_m": {"Jog_Fwd": 4.598, "Sprint": 5.254, "Walk": 0.784, "Walk_Formal": 0.948},
+	"elfo_f": {"Jog_Fwd": 4.761, "Sprint": 5.652, "Walk": 0.918, "Walk_Formal": 0.918},
+	"elfo_m": {"Jog_Fwd": 4.818, "Sprint": 5.685, "Walk": 0.931, "Walk_Formal": 0.931},
+	"gigante_f": {"Jog_Fwd": 4.33, "Sprint": 5.405, "Walk": 0.672, "Walk_Formal": 0.879},
+	"gigante_m": {"Jog_Fwd": 4.363, "Sprint": 5.432, "Walk": 0.688, "Walk_Formal": 0.893},
+	"humano_f": {"Jog_Fwd": 4.986, "Sprint": 5.81, "Walk": 0.762, "Walk_Formal": 0.956},
+	"humano_m": {"Jog_Fwd": 4.922, "Sprint": 5.744, "Walk": 0.749, "Walk_Formal": 0.943},
+	"orc_f": {"Jog_Fwd": 4.419, "Sprint": 5.591, "Walk": 0.663, "Walk_Formal": 0.864},
+	"orc_m": {"Jog_Fwd": 4.592, "Sprint": 5.598, "Walk": 0.686, "Walk_Formal": 0.903},
+	"sombrio_f": {"Jog_Fwd": 4.716, "Sprint": 5.48, "Walk": 0.743, "Walk_Formal": 0.932},
+	"sombrio_m": {"Jog_Fwd": 4.802, "Sprint": 5.559, "Walk": 0.754, "Walk_Formal": 0.945},
+}
+const PASSADA_K_PADRAO := {"Jog_Fwd": 4.725, "Sprint": 5.574, "Walk": 0.746, "Walk_Formal": 0.931}
+static var SINCRONIA_PASSADA := true
+static var AJUSTE_K := 1.0  # só para calibração (teste/medir_escorrega.gd --k=)
+
+
+func altura_quadril() -> float:
+	if _quadril <= 0.05 and skel != null and skel.is_inside_tree():
+		var bi := skel.find_bone("thigh_l")
+		if bi >= 0:
+			var p := skel.global_transform * skel.get_bone_global_rest(bi).origin
+			_quadril = (global_transform.affine_inverse() * p).y * global_transform.basis.get_scale().y
+	return _quadril if _quadril > 0.05 else 0.8
+
+
+# velocidade (m/s) em que a animação, no ritmo 1, deixa o pé parado no chão
+func passada(an: String) -> float:
+	var k: float = (PASSADA_K.get(chave_passada, PASSADA_K_PADRAO) as Dictionary).get(an, PASSADA_K_PADRAO.get(an, 4.7))
+	return maxf(k * AJUSTE_K * altura_quadril(), 0.05)
+
+
+# anda/corre na velocidade v (m/s) com a passada certa: escolhe a animação e o ritmo para o pé não patinar.
+# modo: "" decide pela velocidade, "andar" força passo, "correr" força corrida.
+func mover(v: float, modo := "") -> void:
+	if not SINCRONIA_PASSADA:
+		play("Walk" if (modo == "andar" or (modo == "" and v < 2.6)) else "Jog_Fwd", v / (1.7 if v < 2.6 else 5.2))
+		return
+	var n := ""
+	var esc := 1.0
+	if modo == "andar" or (modo == "" and v < 2.6):
+		n = "Walk_Formal" if race_id == "elfo" else "Walk"
+		esc = v / passada(n)
+		if esc > 1.9 and n == "Walk" and anim.has_animation("Walk_Formal"):
+			n = "Walk_Formal"  # passo curto demais para a velocidade: troca pela passada mais longa
+			esc = v / passada(n)
+		esc = clampf(esc, 0.45, 2.7)  # anão: perna curta precisa de passo rápido
+	else:
+		n = "Jog_Fwd"
+		esc = v / passada(n)
+		var limite := 1.38 if current == "Sprint" else 1.5  # folga para não ficar trocando
+		if esc > limite and anim.has_animation("Sprint"):
+			n = "Sprint"  # perna curta (anão) ou corrida muito rápida: passada de disparada
+			esc = v / passada(n)
+		esc = clampf(esc, 0.5, 2.3)
+	play(n, 1.0)
+	anim.speed_scale = esc

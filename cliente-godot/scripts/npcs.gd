@@ -828,7 +828,8 @@ func _walk(e: Dictionary, to: Vector3, dt: float, run := false) -> bool:
 	np = main.world.resolve(np, c.position)
 	c.position = Vector3(np.x, main.world.height(np.x, np.z), np.z)
 	c.rotation.y = lerp_angle(c.rotation.y, atan2(dir.x, dir.z), minf(1.0, dt * 6.0))
-	_anim(e, "Jog_Fwd" if e.age == "crianca" else "Walk", spd / 3.0 if e.age == "crianca" else spd / 1.2)
+	e.anim = "mover"
+	c.mover(spd, "correr" if e.age == "crianca" or run else "andar")  # 26/11: passada sincronizada
 	return false
 
 
@@ -1014,7 +1015,8 @@ func _tick_traveler(e: Dictionary, dt: float) -> void:
 	c.position = Vector3(x, main.world.height(x, z), z)
 	c.rotation.y = lerp_angle(c.rotation.y, atan2(dir.x, dir.z), minf(1.0, dt * 4.0))
 	c.visible = true
-	_anim(e, "Walk")
+	e.anim = "mover"
+	c.mover(float(e.speed), "andar")
 
 
 func _tick_animal(e: Dictionary, dt: float) -> void:
