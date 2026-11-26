@@ -30,6 +30,8 @@ func _init() -> void:
 			CH.corpos_proprios = false
 			CH.orc_modelo_proprio = false
 			if a == "--antigos": CH.V3_HUMANOS = false
+		elif a == "--sem-corretivo":
+			load("res://scripts/character.gd").CORRETIVO_ARCO = false
 		elif a == "--combate": combate = true
 		elif a == "--perto": perto = true
 		elif a.begins_with("--tiro="): tiro = int(a.trim_prefix("--tiro="))

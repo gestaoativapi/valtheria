@@ -141,6 +141,7 @@ func ligar(on: bool) -> void:
 	for seg in cordas:
 		(seg as Node3D).visible = on
 	if not on:
+		c.set_corretivo_arco(0.0)
 		_girar_corpo(0.0)
 		if olhar != null:
 			olhar.peso = 0.0
@@ -254,6 +255,7 @@ func _pose(w: float, pt: Dictionary) -> void:
 	var pronto := Transform3D(Basis(Vector3.RIGHT, 0.55) * Basis(Vector3.BACK, -0.95), pt.pronto)  # arco deitado ~55°: a ponta de baixo sai para fora, longe das coxas
 	var mirando := Transform3D(Basis(Vector3.BACK, -0.04 - float(estilo.canto)), pt.mira)
 	mira.transform = pronto.interpolate_with(mirando, clampf(w, 0.0, 1.0))
+	c.set_corretivo_arco(w)  # ombro da corda sem balão (forma corretiva, 26/11)
 	_polos(pt)
 
 

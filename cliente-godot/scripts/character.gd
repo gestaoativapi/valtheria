@@ -210,6 +210,9 @@ static var orc_modelo_proprio := true
 const CORPO_PROPRIO_RACAS := ["gigante", "elfo", "sombrio", "humano"]  # padrão novo; anão e orc acima
 # 25/11 (escolha de Robson): raças montadas na base Quaternius CC0 (rosto, olhos e cílios de verdade, mesmo
 # esqueleto oficial de 65 ossos); a raça vem de proporções por osso, cor de pele e peças (orelhas, presas, barba)
+static var CORRETIVO_ARCO := true  # 26/11: forma corretiva do ombro no tiro de arco (data/corpos/arco_<corpo>.bin)
+static var _malhas_arco := {}
+var corretivo_arco: Array = []  # [MeshInstance3D, índice da forma]
 static var BASE_Q := false  # 25/11 22h: Robson preferiu os personagens anteriores; a base Q fica só para teste (--com-q)
 const Q_RACAS := ["humano", "elfo", "sombrio", "orc", "anao", "gigante"]
 static var corpos_proprios := true  # false volta todas essas raças ao V3 (comparação)  # false volta ao orc V3 antigo (teste/comparação)
@@ -318,6 +321,8 @@ func _setup_medido(o: Dictionary) -> void:
 		body.add_child(arm)
 		body.remove_child(skel)
 		arm.add_child(skel)
+	if own != "" and CORRETIVO_ARCO:
+		_ligar_corretivo_arco(own)
 	if dragon:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
 			# a textura da dragonita é avermelhada: limita cada canal para a cor da escama não estourar
@@ -3749,3 +3754,54 @@ func _martelo_passo(t: float) -> void:
 	else:             # repique e pausa na bigorna
 		p = bate + Vector3(0, sin((f - 0.68) / 0.32 * PI) * 0.05 * k, 0)
 	_mart_alvo.position = p
+
+
+# ---------- forma corretiva do ombro no arco (26/11) ----------
+# teste/corretivo_arco.gd calcula a malha na pose de tiro, alisa o ombro que estufava e grava a diferença;
+# aqui ela vira uma forma (blend shape) do corpo, ligada por arqueria.gd só enquanto o braço está no tiro.
+func _ligar_corretivo_arco(chave: String) -> void:
+	var arq := "res://data/corpos/arco_%s.bin" % chave
+	if not FileAccess.file_exists(arq):
+		return
+	var mi: MeshInstance3D = null
+	for m in skel.find_children("*", "MeshInstance3D", true, false):
+		if (m as MeshInstance3D).skin != null and (m as MeshInstance3D).mesh.get_surface_count() == 1:
+			if mi == null or (m as MeshInstance3D).mesh.surface_get_array_len(0) > mi.mesh.surface_get_array_len(0):
+				mi = m
+	if mi == null:
+		return
+	var orig: Mesh = mi.mesh
+	var nova: ArrayMesh = _malhas_arco.get(chave)
+	if nova == null:
+		var fa := FileAccess.open(arq, FileAccess.READ)
+		var dados: Dictionary = fa.get_var()
+		fa.close()
+		var a := orig.surface_get_arrays(0)
+		var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+		if int(dados.n) != v.size():
+			return
+		var bv := v.duplicate()
+		var ids: PackedInt32Array = dados.i
+		var dif: PackedVector3Array = dados.d
+		for j in ids.size():
+			bv[ids[j]] += dif[j]
+		var forma := []
+		forma.resize(Mesh.ARRAY_MAX)
+		forma[Mesh.ARRAY_VERTEX] = bv
+		forma[Mesh.ARRAY_NORMAL] = a[Mesh.ARRAY_NORMAL]
+		forma[Mesh.ARRAY_TANGENT] = a[Mesh.ARRAY_TANGENT]
+		nova = ArrayMesh.new()
+		nova.add_blend_shape("arco")
+		nova.blend_shape_mode = Mesh.BLEND_SHAPE_MODE_NORMALIZED
+		nova.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a, [forma])
+		nova.surface_set_material(0, orig.surface_get_material(0))
+		nova.surface_set_name(0, orig.surface_get_name(0))
+		_malhas_arco[chave] = nova
+	mi.mesh = nova
+	corretivo_arco = [mi, 0]
+
+
+func set_corretivo_arco(w: float) -> void:
+	if corretivo_arco.is_empty() or not is_instance_valid(corretivo_arco[0]):
+		return
+	(corretivo_arco[0] as MeshInstance3D).set_blend_shape_value(0, clampf(w, 0.0, 1.0))
