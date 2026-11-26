@@ -2149,8 +2149,8 @@ static func _model(item_id: String, kind: String, file: String, length: float, a
 const PEGADA_RACA := {
 	"humano": {"guarda": [Vector3(0.22, 0.86, 0.46), Vector3(-0.04, 0.98, 0.3)], "uma_mao": [0.0, 0.0]},
 	"elfo": {"guarda": [Vector3(0.1, 0.96, 0.28), Vector3(-0.02, 1.1, 0.27)], "uma_mao": [-0.18, -0.08]},
-	"sombrio": {"guarda": [Vector3(-0.05, 0.6, 0.8), Vector3(0.0, 1.04, 0.33)], "uma_mao": [-0.42, -0.12]},
-	"orc": {"guarda": [Vector3(0.36, 0.8, 0.45), Vector3(-0.13, 0.95, 0.36)], "uma_mao": [0.12, 0.38]},
+	"sombrio": {"guarda": [Vector3(-0.05, 0.6, 0.8), Vector3(0.0, 1.04, 0.33)], "uma_mao": [-0.22, -0.12]},
+	"orc": {"guarda": [Vector3(0.5, 0.62, 0.6), Vector3(-0.13, 0.92, 0.4)], "uma_mao": [0.12, 0.38]},
 	"goblin": {"guarda": [Vector3(0.3, 0.6, 0.62), Vector3(-0.06, 0.86, 0.34)], "uma_mao": [-0.5, 0.2]},
 	"gigante": {"guarda": [Vector3(0.38, 0.68, 0.6), Vector3(-0.06, 0.84, 0.38)], "uma_mao": [0.18, 0.1]},
 	"anao": {"guarda": [Vector3(0.42, 0.6, 0.68), Vector3(-0.02, 0.8, 0.4)], "uma_mao": [0.1, 0.15]},
