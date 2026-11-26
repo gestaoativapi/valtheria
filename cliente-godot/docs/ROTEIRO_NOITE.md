@@ -114,7 +114,7 @@ dividir em partes no Diário e seguir para o próximo na rodada seguinte.
 ## Madrugada 26/11 (agenda aprovada por Robson às 23:24)
 - [x] Rodada 1 (23:30) — rostos refeitos a partir da imagem de frente (ferramentas/racas/rosto_frontal.py): humano, elfo, elfo sombrio e gigante, nos dois gêneros; textura 2048 só nesses corpos; costuras sem risco escuro. Orc e anão ficam com a textura atual (vêm de outro processo).
 - [x] Rodada 1b (00:10) — rostos refinados: testa e linha do cabelo sem manchas (frente vale até a testa inclinada), laterais da cabeça com pele lisa (mediana), transição suave; orcs M e F também refeitos. Anões ficam (modelos de outra origem, sem a malha da assadura).
-- [ ] Rodada 2 (01:00) — mão no peito: anão (martelo, cajado, arco) e orc/gigante na puxada do arco
+- [x] Rodada 2 (01:00) — mão no peito: guarda de duas mãos do anão mais à frente e arma inclinada (martelo: 73% → 12%, cabeça do martelo saiu da frente do rosto; cajado: 48% → limpo); âncora do arco de orc e gigante mais para o lado da bochecha (gigante 12,5 → 5,6 cm; orc M 4,9 → 0; orc F 9,1 → 5,0 cm). Restante do gigante/orc F é a barba e a gola entrando na cápsula do peito da medição.
 - [ ] Rodada 3 (02:30) — espada do sombrio na cabeça; machado do orc perto do rosto na guarda
 - [ ] Rodada 4 (04:00) — pele esticando (ombro no arco, axila, virilha); colunas de Umbraval no ultra
 - [ ] Rodada 5 (05:30) — versão 41 (exe, exe de teste, APK, SHA256, QR) e resumo com fotos e vídeo

@@ -2153,7 +2153,7 @@ const PEGADA_RACA := {
 	"orc": {"guarda": [Vector3(0.36, 0.8, 0.45), Vector3(-0.13, 0.95, 0.36)], "uma_mao": [0.12, 0.38]},
 	"goblin": {"guarda": [Vector3(0.3, 0.6, 0.62), Vector3(-0.06, 0.86, 0.34)], "uma_mao": [-0.5, 0.2]},
 	"gigante": {"guarda": [Vector3(0.38, 0.68, 0.6), Vector3(-0.06, 0.84, 0.38)], "uma_mao": [0.18, 0.1]},
-	"anao": {"guarda": [Vector3(0.26, 0.8, 0.54), Vector3(-0.02, 0.82, 0.28)], "uma_mao": [0.1, 0.15]},
+	"anao": {"guarda": [Vector3(0.42, 0.6, 0.68), Vector3(-0.02, 0.8, 0.4)], "uma_mao": [0.1, 0.15]},
 	"beastman": {"guarda": [Vector3(0.14, 0.55, 0.82), Vector3(-0.04, 1.0, 0.37)], "uma_mao": [-0.38, 0.1]},
 	"draconato": {"guarda": [Vector3(0.32, 0.84, 0.42), Vector3(-0.07, 1.02, 0.31)], "uma_mao": [0.05, 0.22]},
 }
@@ -2489,6 +2489,7 @@ func _make_sheath(back: bool, small: bool) -> void:
 # Vetores no espaço do personagem para o lado DIREITO (+Z frente, +Y cima, -X direita); o esquerdo é espelhado.
 # mao = direção do ombro até a pegada (vezes k x comprimento do braço); lamina = para onde a arma aponta;
 # polo = para onde vai o cotovelo. Medidas pelo braço de cada raça, então valem para todas.
+const AVANCO_RACA := {"anao": 1.45}
 const ABERTURA_RACA := {"orc": 1.35, "gigante": 1.35, "anao": 1.3, "draconato": 1.2, "beastman": 1.15, "goblin": 1.1, "elfo": 0.95, "sombrio": 0.95}
 const POSE_ARMA := {
 	# espada (24/11 13:40, "mais reta e firme"): lâmina quase em ângulo reto com o antebraço, à frente e um pouco baixa
@@ -2618,6 +2619,8 @@ func _quadro_pose(lado: String, chave: String) -> Array:
 	var pm: Vector3 = p.mao
 	if chave != "normal_machado":  # o machado no ombro não abre (o cabo cruzaria o peito)
 		pm.x *= float(ABERTURA_RACA.get("goblin" if subtipo == "goblin" else race_id, 1.0))
+	# peito largo de armadura (anão M1/M5): a mão sai mais à frente para não afundar no peitoral (26/11, rodada 2)
+	pm.z *= float(AVANCO_RACA.get("goblin" if subtipo == "goblin" else race_id, 1.0))
 	var mao: Vector3 = om + (esp.call(pm) as Vector3).normalized() * braco * float(p.k)
 	var z: Vector3 = (esp.call(p.lamina) as Vector3).normalized()
 	var dica := (om - mao).normalized()

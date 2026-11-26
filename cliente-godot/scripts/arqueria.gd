@@ -183,11 +183,11 @@ const ESTILO := {
 	"humano": {"giro": 1.3, "ancora": [0.0, -0.02, 0.05], "canto": 0.0, "inclina": 3.0, "agacha": 0.0, "tempo": 1.0, "pronto": [0.22, -0.5, 0.84]},
 	"elfo": {"giro": 1.4, "ancora": [0.0, 0.03, 0.05], "canto": 0.22, "inclina": 0.0, "agacha": 0.0, "tempo": 0.8, "pronto": [0.2, -0.4, 0.89]},
 	"sombrio": {"giro": 1.25, "ancora": [-0.02, -0.01, 0.06], "canto": 0.3, "inclina": 9.0, "agacha": 10.0, "tempo": 0.85, "pronto": [0.25, -0.5, 0.83]},
-	"orc": {"giro": 1.1, "ancora": [0.0, -0.03, 0.08], "canto": 0.0, "inclina": 7.0, "agacha": 14.0, "tempo": 1.25, "pronto": [0.05, -0.4, 0.92]},
+	"orc": {"giro": 1.1, "ancora": [-0.05, -0.02, 0.05], "canto": 0.0, "inclina": 7.0, "agacha": 14.0, "tempo": 1.25, "pronto": [0.05, -0.4, 0.92]},
 	"anao": {"giro": 1.15, "ancora": [0.0, -0.04, 0.09], "canto": -0.08, "inclina": 5.0, "agacha": 12.0, "tempo": 1.15, "pronto": [0.05, -0.25, 0.97]},
 	"beastman": {"giro": 1.2, "ancora": [0.0, -0.04, 0.06], "canto": 0.15, "inclina": 12.0, "agacha": 18.0, "tempo": 0.9, "pronto": [0.28, -0.48, 0.83]},
 	"draconato": {"giro": 1.3, "ancora": [0.0, -0.03, 0.05], "canto": 0.0, "inclina": 4.0, "agacha": 0.0, "tempo": 1.05, "pronto": [0.22, -0.48, 0.85]},
-	"gigante": {"giro": 1.15, "ancora": [0.0, -0.02, 0.09], "canto": 0.0, "inclina": 6.0, "agacha": 8.0, "tempo": 1.35, "pronto": [0.05, -0.4, 0.92]},
+	"gigante": {"giro": 1.15, "ancora": [-0.07, -0.01, 0.03], "canto": 0.0, "inclina": 6.0, "agacha": 8.0, "tempo": 1.35, "pronto": [0.05, -0.4, 0.92]},
 }
 var estilo: Dictionary = ESTILO.humano
 var olhar: SkeletonModifier3D
