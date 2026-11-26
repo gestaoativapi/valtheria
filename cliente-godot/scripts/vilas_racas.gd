@@ -9,7 +9,7 @@ const Arq = preload("res://scripts/arquitetura.gd")
 const PALETAS := {
 	# Umbraval, elfos negros (MESA-018.1): pedra vulcânica, obsidiana, prata e cristal violeta
 	"sombrio": {"pedra": "#39343D", "obsidiana": "#211F29", "pedra2": "#514653", "madeira": "#30252F", "metal": "#777786",
-		"prata": "#B7B5C5", "cristal": "#9860D5", "cristal_claro": "#C7A6F2", "tecido": "#392344", "luz": "#A879E8"},
+		"prata": "#8E8B9C", "cristal": "#9860D5", "cristal_claro": "#C7A6F2", "tecido": "#392344", "luz": "#A879E8"},
 	# Clã das Presas, homens-fera (MESA-019.1): pedra, madeira, osso, couro, vegetação
 	"beastman": {"pedra": "#716451", "pedra2": "#393A32", "madeira": "#60432D", "madeira_clara": "#987047", "osso": "#D5C6A0",
 		"couro": "#704A32", "tecido": "#8A573B", "vegetacao": "#3D4F2C", "luz": "#E5A34D"},
@@ -63,6 +63,9 @@ static func _m(raca: String, nome: String) -> Material:
 		"metal", "prata", "bronze", "ouro":
 			m.metallic = 0.75
 			m.roughness = 0.35
+			if nome == "prata" and raca == "sombrio":  # 26/11: colunas de Umbraval estouravam de brilho no ultra
+				m.metallic = 0.6
+				m.roughness = 0.5
 		"tecido":
 			m.cull_mode = BaseMaterial3D.CULL_DISABLED
 		"luz", "cristal", "cristal_claro", "gelo":
