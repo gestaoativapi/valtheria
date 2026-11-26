@@ -208,6 +208,10 @@ const CABECA_ERGUE := {"orc_m": -36.0, "orc_f": -24.0, "anao_m": -6.0, "anao_f":
 const PESCOCO_SOBE := {}
 static var orc_modelo_proprio := true
 const CORPO_PROPRIO_RACAS := ["gigante", "elfo", "sombrio", "humano"]  # padrão novo; anão e orc acima
+# 25/11 (escolha de Robson): raças montadas na base Quaternius CC0 (rosto, olhos e cílios de verdade, mesmo
+# esqueleto oficial de 65 ossos); a raça vem de proporções por osso, cor de pele e peças (orelhas, presas, barba)
+static var BASE_Q := true
+const Q_RACAS := ["humano", "elfo", "sombrio", "orc", "anao", "gigante"]
 static var corpos_proprios := true  # false volta todas essas raças ao V3 (comparação)  # false volta ao orc V3 antigo (teste/comparação)
 # pegada por tipo de arma (medidas em metros para 1,80 m de altura):
 # at = onde a mão principal segura, medido a partir da ponta do cabo; two = onde a segunda mão segura (0 = uma mão só)
@@ -259,7 +263,7 @@ func _setup_medido(o: Dictionary) -> void:
 	if race == "beastman" and V3_HUMANOS:
 		var pel: Array = FERAS.get(str(o.get("subtipo", "leao" if male else "tigre")), FERAS.leao).pelo
 		skin = Color(str(pel[clampi(int(o.get("skin", look.get("skin", 0))), 0, pel.size() - 1)]))
-	if race in ["elfo", "sombrio", "orc", "gigante", "draconato", "anao"] and V3_HUMANOS:
+	if race in ["elfo", "sombrio", "orc", "gigante", "draconato", "anao"] and (V3_HUMANOS or (BASE_Q and race in Q_RACAS)):
 		var pl: Array = (TRACOS[race] as Dictionary).get("peles", [])
 		if not pl.is_empty():
 			skin = Color(str(pl[clampi(int(o.get("skin", look.get("skin", 0))), 0, pl.size() - 1)]))
@@ -298,7 +302,11 @@ func _setup_medido(o: Dictionary) -> void:
 		file = "body_dragonita"
 	elif own != "":
 		file = "body_" + own
-	v3 = V3_HUMANOS and race in V3_RACAS and own == ""
+	var base_q: bool = BASE_Q and race in Q_RACAS and not o.get("sem_roupa", false) and str(o.get("subtipo", "")) != "goblin"
+	if base_q:
+		own = ""
+		file = "body_%s_%s" % [g, outfit]
+	v3 = V3_HUMANOS and race in V3_RACAS and own == "" and not base_q
 	var body: Node3D = cena(DIR_V3 + ("pc_humano_m_rostoA" if male else "pc_humano_f_rostoA") + ".glb").instantiate() if v3 else cena(DIR + file + ".glb").instantiate()
 	body.name = "Corpo"
 	add_child(body)
@@ -352,11 +360,20 @@ func _setup_medido(o: Dictionary) -> void:
 				_tint(m as MeshInstance3D, hair_col.darkened(0.25))
 			elif not (nm.contains("eye") or nm.contains("teeth") or nm.contains("tongue")):
 				_tint(m as MeshInstance3D, Color(skin.r / 0.89, skin.g / 0.71, skin.b / 0.56))
+		if base_q and TRACOS.has(race) and TRACOS[race].has("cabelos"):
+			var cab_q: Array = TRACOS[race].cabelos
+			hair_col = Color(str(cab_q[posmod(hc_i, cab_q.size())]))
+			for m in skel.find_children("*", "MeshInstance3D", true, false):
+				if String(m.name).to_lower().contains("eyebrow"):
+					_tint(m as MeshInstance3D, hair_col.darkened(0.25))
 		_attach("outfit_%s_%s" % [g, outfit])
 		if not rd.get("no_hair", false):
 			_attach((HAIR_M if male else HAIR_F)[hair_i], hair_col)
 		if male and (race in ["anao", "gigante"] or int(look.get("beard", 0)) > 0):
 			_attach("hair_beard", hair_col)
+		if base_q and race != "humano":
+			race_id = race
+			_tracos_raca(race, male, skin, hair_col, true)
 	for m in skel.get_children():
 		if m is MeshInstance3D:
 			# o corpo se mexe muito além da caixa de repouso; amplia para não sumir na borda da tela
@@ -365,7 +382,7 @@ func _setup_medido(o: Dictionary) -> void:
 	var h: float = rd.get("h", 1.0) * (1.0 if male else 0.97)
 	var shape: Dictionary = SHAPE.get("%s:%s" % [race, "m" if male else "f"], {})
 	var chave_prop := "goblin" if (race == "orc" and str(o.get("subtipo", "")) == "goblin") else race
-	var prop: Dictionary = PROPORCOES.get("%s:%s" % [chave_prop, "m" if male else "f"], {}) if v3 else {}
+	var prop: Dictionary = PROPORCOES.get("%s:%s" % [chave_prop, "m" if male else "f"], {}) if (v3 or base_q) else {}
 	if not prop.is_empty():
 		var glob := {}
 		for bn in REGIAO_OSSO:
@@ -1064,7 +1081,10 @@ const TRACOS := {
 }
 
 
-func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3, 0.2, 0.15)) -> void:
+func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3, 0.2, 0.15), q := false) -> void:
+	if q:
+		_tracos_pecas(race, male, skin, cor_cabelo, true)
+		return
 	var tinta := Color(minf(skin.r / TOM_BASE_V3.r, 1.4), minf(skin.g / TOM_BASE_V3.g, 1.4), minf(skin.b / TOM_BASE_V3.b, 1.4))
 	# cor de pele natural: a tinta da raça entra só em parte, sem saturar
 	tinta = Color.WHITE.lerp(tinta, 0.9)
@@ -1074,6 +1094,14 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 			_tint(m as MeshInstance3D, tinta)
 	# rosto próprio da raça (forma da malha em repouso; esqueleto e animações oficiais intactos)
 	RostoRaca.aplicar(skel, "goblin" if (race == "orc" and subtipo == "goblin") else race, male)
+	_tracos_pecas(race, male, skin, cor_cabelo, false)
+
+
+# peças da raça presas ao osso da cabeça. Base V3 (MakeHuman) ou base Q (Quaternius): muda só onde ficam olhos,
+# lateral da cabeça e queixo no corpo de repouso (medido nas malhas: olhos Q a 1,70 m / 1,656 m)
+func _tracos_pecas(race: String, male: bool, skin: Color, cor_cabelo: Color, q: bool) -> void:
+	if q:
+		pele_raca = skin * 0.72
 	var tr: Dictionary = TRACOS.get(race, {})
 	var hb := skel.find_bone("Head")
 	if tr.is_empty() or hb < 0:
@@ -1087,6 +1115,10 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 	var olho_y := 1.69 if male else 1.572
 	var olho_z := 0.075 if male else 0.115
 	var largura := 0.074 if male else 0.068
+	if q:
+		olho_y = 1.70 if male else 1.656
+		olho_z = 0.075 if male else 0.07
+		largura = 0.084 if male else 0.082
 	var pele := StandardMaterial3D.new()
 	pele.albedo_color = pele_raca
 	pele.roughness = 0.75
@@ -1094,20 +1126,17 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 		var o: Array = tr.orelha
 		for lado in [-1.0, 1.0]:
 			var mi := MeshInstance3D.new()
-			var c := CylinderMesh.new()
-			c.top_radius = 0.0015
-			c.bottom_radius = float(o[1])
-			c.height = float(o[0])
-			c.radial_segments = 10
-			c.rings = 1
-			mi.mesh = c
-			mi.material_override = pele
-			# ponta para fora, subindo e indo para trás; achatada como uma folha
+			mi.mesh = _malha_orelha(float(o[0]), float(o[1]) * (1.15 if q else 1.0))
+			var pe := pele.duplicate() as StandardMaterial3D
+			pe.cull_mode = BaseMaterial3D.CULL_DISABLED
+			mi.material_override = pe
+			# folha com concha: comprimento em +Y (ponta subindo e indo para trás), face virada para fora da cabeça
 			var dir := Vector3(lado, float(o[2]), float(o[3])).normalized()
-			var b := Basis(Quaternion(Vector3.UP, dir))
-			b = b * Basis.from_scale(Vector3(1.0, 1.0, 0.38))
-			var base := Vector3(lado * largura, olho_y - 0.01, olho_z - 0.085)
-			mi.transform = rest.affine_inverse() * Transform3D(b, base + dir * float(o[0]) * 0.5)
+			var fora := Vector3(lado, 0.0, 0.15).normalized()
+			var nz := (fora - dir * fora.dot(dir)).normalized()
+			var b := Basis(dir.cross(nz).normalized(), dir, nz)
+			var base := Vector3(lado * (largura - 0.006), olho_y - (0.012 if q else 0.01), olho_z - (0.092 if q else 0.085))
+			mi.transform = rest.affine_inverse() * Transform3D(b, base)
 			att.add_child(mi)
 	if tr.get("presas", false):
 		var marfim := StandardMaterial3D.new()
@@ -1118,28 +1147,39 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 			var c := CylinderMesh.new()
 			c.top_radius = 0.0
 			c.bottom_radius = 0.0085 if subtipo != "goblin" else 0.0045
-			c.height = (0.048 if male else 0.026) if subtipo != "goblin" else 0.014
+			c.height = ((0.048 if male else 0.026) if subtipo != "goblin" else 0.014) * (0.7 if q else 1.0)
 			c.radial_segments = 8
 			c.rings = 1
 			mi.mesh = c
 			mi.material_override = marfim
 			var b := Basis(Quaternion(Vector3.UP, Vector3(lado * 0.25, 1.0, 0.25).normalized()))
-			mi.transform = rest.affine_inverse() * Transform3D(b, Vector3(lado * 0.022, olho_y - 0.082, olho_z + 0.02))
+			mi.transform = rest.affine_inverse() * Transform3D(b, Vector3(lado * 0.022, olho_y - (0.066 if q else 0.082), olho_z + (0.012 if q else 0.02)))
 			att.add_child(mi)
 	if tr.get("barba", false) and male:
 		# barba cheia de anão: uma casca que nasce na linha do queixo, desce até o peito e afina na ponta
 		var pelo := StandardMaterial3D.new()
 		# mesma cor aparente do cabelo V3 (textura escura multiplicada): sem isso a barba saía branca com o cabelo loiro
-		pelo.albedo_color = Color(minf(cor_cabelo.r * 0.95, 1.0), minf(cor_cabelo.g * 0.76, 1.0), minf(cor_cabelo.b * 0.46, 1.0))
+		pelo.albedo_color = Color(minf(cor_cabelo.r * 0.95, 1.0), minf(cor_cabelo.g * 0.76, 1.0), minf(cor_cabelo.b * 0.46, 1.0)) if not q else cor_cabelo * 0.85
 		pelo.roughness = 0.9
 		pelo.vertex_color_use_as_albedo = true
+		if q:
+			# base Q: fios de verdade (textura de cabelo da própria base, projetada nos 3 eixos) em vez de casca lisa
+			pelo.albedo_texture = load("res://assets/chars/hair_beard_T_Hair_1_BaseColor.webp")
+			pelo.normal_enabled = true
+			pelo.normal_texture = load("res://assets/chars/hair_beard_T_Hair_1_Normal.webp")
+			pelo.uv1_triplanar = true
+			pelo.uv1_scale = Vector3(14.0, 4.0, 14.0)  # fios na vertical
+			pelo.albedo_color = cor_cabelo * 1.6
 		pelo.cull_mode = BaseMaterial3D.CULL_DISABLED
 		var mi := MeshInstance3D.new()
 		mi.mesh = _malha_barba()
 		mi.material_override = pelo
 		# barba de anão mais cheia e comprida (larga 15%, desce 35% a mais a partir do queixo)
 		var queixo := Vector3(0.0, 1.6, 0.09)
-		mi.transform = rest.affine_inverse() * Transform3D(Basis.from_scale(Vector3(1.15, 1.35, 1.15)), queixo - Basis.from_scale(Vector3(1.15, 1.35, 1.15)) * queixo)
+		# base Q: a barba curta da própria base cobre o rosto; esta desce do queixo (menor e um pouco mais baixa)
+		var eb := Vector3(1.15, 1.35, 1.15) if not q else Vector3(0.95, 1.0, 1.0)
+		var desloca := Vector3.ZERO if not q else Vector3(0.0, -0.012, -0.004)
+		mi.transform = rest.affine_inverse() * Transform3D(Basis.from_scale(eb), queixo - Basis.from_scale(eb) * queixo + desloca)
 		att.add_child(mi)
 		var cobre := StandardMaterial3D.new()
 		cobre.albedo_color = Color(0.72, 0.42, 0.22)
@@ -1167,9 +1207,9 @@ func _tracos_raca(race: String, male: bool, skin: Color, cor_cabelo := Color(0.3
 	if tr.has("marca"):
 		# marca rúnica leve na testa (elfo negro: prata; gigante: gelo), brilho bem suave
 		var mi := MeshInstance3D.new()
-		var q := QuadMesh.new()
-		q.size = Vector2(0.026, 0.034)
-		mi.mesh = q
+		var qm := QuadMesh.new()
+		qm.size = Vector2(0.026, 0.034)
+		mi.mesh = qm
 		var mm := StandardMaterial3D.new()
 		mm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -1625,6 +1665,47 @@ func _casca_ajustada(mat: Material, folga: float, y0: float, y1: float, z_costas
 	mi.skin = corpo.skin
 	mi.skeleton = NodePath("..")
 
+
+
+static var _orelhas := {}
+# orelha pontuda em folha: larga na base (cobre a orelha humana), afina até a ponta, com concha para dentro e
+# borda levemente enrolada; malha leve (9 x 7 pontos), cacheada por tamanho
+static func _malha_orelha(comp: float, larg: float) -> ArrayMesh:
+	var chave := "%.3f_%.3f" % [comp, larg]
+	if _orelhas.has(chave):
+		return _orelhas[chave]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var nl := 9
+	var nc := 7
+	var pts := []
+	for i in nl:
+		var t := float(i) / float(nl - 1)
+		# perfil: base arredondada, mais larga a 25% e afinando em curva até a ponta
+		var w := larg * (pow(sin(PI * minf(t * 1.6 + 0.12, 1.0) * 0.5), 0.6) * pow(1.0 - t, 0.75))
+		var linha := []
+		for j in nc:
+			var u := float(j) / float(nc - 1) * 2.0 - 1.0
+			var x := u * w
+			# concha: o meio afunda, a borda de trás enrola um pouco para fora; a ponta curva para trás
+			var z := -0.45 * larg * (1.0 - u * u) * (1.0 - t * 0.7) + 0.25 * larg * maxf(u, 0.0) * u
+			var y := t * comp
+			z -= 0.12 * comp * t * t
+			linha.append(Vector3(x, y, z))
+		pts.append(linha)
+	for i in nl - 1:
+		for j in nc - 1:
+			var a: Vector3 = pts[i][j]
+			var b: Vector3 = pts[i][j + 1]
+			var c: Vector3 = pts[i + 1][j + 1]
+			var d: Vector3 = pts[i + 1][j]
+			for v in [a, b, c, a, c, d]:
+				st.set_uv(Vector2((v as Vector3).x / larg * 0.5 + 0.5, (v as Vector3).y / comp))
+				st.add_vertex(v)
+	st.generate_normals()
+	var m := st.commit()
+	_orelhas[chave] = m
+	return m
 
 static var _barba: ArrayMesh
 

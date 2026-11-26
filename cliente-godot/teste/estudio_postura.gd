@@ -21,6 +21,8 @@ func _init() -> void:
 		if a.begins_with("--saida="): saida = a.trim_prefix("--saida=")
 		elif a.begins_with("--lista="): lista = a.trim_prefix("--lista=")
 		elif a == "--lado": lado = true
+		elif a == "--sem-q":
+			load("res://scripts/character.gd").BASE_Q = false
 		elif a == "--sem-proprios" or a == "--antigos":
 			var CH = load("res://scripts/character.gd")
 			CH.corpos_proprios = false

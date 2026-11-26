@@ -137,7 +137,7 @@ static func _congelar_corpo(skel: Skeleton3D, mostra_armadura := false) -> void:
 		var nome := String(mi.name).to_lower()
 		if nome in ["olhos", "sobrancelha", "cilios", "cabelo"] or nome.begins_with("ca_") or nome.contains("hair") or nome.contains("eye"):
 			continue
-		if nome != "corpo":
+		if nome != "corpo" and not nome.begins_with("superhero"):  # base Q: corpo com rosto na mesma malha
 			if not mostra_armadura:
 				mi.material_override = _mat_corpo(null)
 			continue
