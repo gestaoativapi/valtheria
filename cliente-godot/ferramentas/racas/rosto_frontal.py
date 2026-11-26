@@ -33,7 +33,9 @@ def amostra(img, x, y):  # bilinear
     x0 = x.astype(int); y0 = y.astype(int); fx = (x - x0)[:, None]; fy = (y - y0)[:, None]
     return (img[y0, x0] * (1 - fx) * (1 - fy) + img[y0, x0 + 1] * fx * (1 - fy) + img[y0 + 1, x0] * (1 - fx) * fy + img[y0 + 1, x0 + 1] * fx * fy)
 
-m = trimesh.load(f'/home/claude/racas/saida/{chave}_tex.glb', force='mesh', process=False)
+import os
+_orig = next(c for c in [f'/home/claude/racas/saida/{chave}_tex.glb', f'/home/claude/orc/{chave}_tex.glb'] if os.path.exists(c))
+m = trimesh.load(_orig, force='mesh', process=False)
 V = m.vertices.astype(np.float64); Fc = m.faces; N = m.vertex_normals; T = m.visual.uv
 lo, hi = V.min(0), V.max(0); alt = hi[1] - lo[1]
 cor, msk = recorte(Image.open(f'{AQUI}ferramentas/racas/fontes/{chave}_frente.jpg'))
@@ -66,7 +68,7 @@ for f in Fc[fy > lo[1] + 0.80 * alt]:
     u = (pos[:, 0] - lo[0]) / (hi[0] - lo[0]); t = (hi[1] - pos[:, 1]) / alt
     c = amostra(cor, u * (W - 1), t * (H - 1))
     # peso: frente manda; some de lado; borda suave no pescoço
-    w = np.clip((nor[:, 2] - 0.05) / 0.35, 0, 1) * np.clip((pos[:, 1] - (lo[1] + 0.80 * alt)) / (0.06 * alt), 0, 1)
+    w = np.clip((nor[:, 2] + 0.02) / 0.40, 0, 1) * np.clip((pos[:, 1] - (lo[1] + 0.80 * alt)) / (0.06 * alt), 0, 1)
     yy = (gy[k] - 0.5).astype(int); xx = (gx[k] - 0.5).astype(int)
     ilha[yy, xx] = True
     sel = w > peso[yy, xx]
@@ -81,7 +83,12 @@ if mancha.any():
     ok = ilha & ~mancha
     ii = ndimage.distance_transform_edt(~ok, return_distances=False, return_indices=True)
     base[mancha] = base[ii[0][mancha], ii[1][mancha]]
-w3 = ndimage.gaussian_filter(peso, 0.8)[:, :, None]
+# laterais e nuca: a assadura tem pontos escuros/claros soltos; troca pela mediana larga (tira o ponto, mantém
+# a cor e as mechas grandes), só dentro da cabeça e só onde a frente não manda
+lisa = np.stack([ndimage.median_filter(base[:, :, c], size=11) for c in range(3)], 2)
+k_lado = (ilha & (peso < 0.9))[:, :, None] * (1 - np.clip(peso, 0, 1))[:, :, None] * 0.85
+base = base * (1 - k_lado) + lisa * k_lado
+w3 = ndimage.gaussian_filter(peso, 1.6)[:, :, None]
 saida = base * (1 - w3) + novo * w3
 # costura sem risco escuro: todas as ilhas da malha ganham 6 px de borda com a própria cor (o filtro da textura
 # pegava o fundo escuro entre as ilhas e desenhava linhas finas no rosto)
