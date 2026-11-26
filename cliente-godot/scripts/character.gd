@@ -2153,7 +2153,7 @@ const PEGADA_RACA := {
 	"orc": {"guarda": [Vector3(0.5, 0.62, 0.6), Vector3(-0.13, 0.92, 0.4)], "uma_mao": [0.12, 0.38]},
 	"goblin": {"guarda": [Vector3(0.3, 0.6, 0.62), Vector3(-0.06, 0.86, 0.34)], "uma_mao": [-0.5, 0.2]},
 	"gigante": {"guarda": [Vector3(0.38, 0.68, 0.6), Vector3(-0.06, 0.84, 0.38)], "uma_mao": [0.18, 0.1]},
-	"anao": {"guarda": [Vector3(0.42, 0.6, 0.68), Vector3(-0.02, 0.8, 0.4)], "uma_mao": [0.1, 0.15]},
+	"anao": {"guarda": [Vector3(0.42, 0.6, 0.68), Vector3(-0.02, 0.78, 0.5)], "uma_mao": [0.1, 0.15]},
 	"beastman": {"guarda": [Vector3(0.14, 0.55, 0.82), Vector3(-0.04, 1.0, 0.37)], "uma_mao": [-0.38, 0.1]},
 	"draconato": {"guarda": [Vector3(0.32, 0.84, 0.42), Vector3(-0.07, 1.02, 0.31)], "uma_mao": [0.05, 0.22]},
 }

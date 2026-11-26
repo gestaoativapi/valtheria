@@ -49,7 +49,7 @@ base = np.asarray(Image.open(io.BytesIO(bruto)).convert('RGB').resize((tam, tam)
 # região do rosto/cabeça (mesmo critério da assadura) com borda suave para baixo (pescoço)
 y_cab = lo[1] + 0.86 * alt
 PX = T * (tam - 1); PX = PX.copy(); PX[:, 1] = (tam - 1) - PX[:, 1]
-novo = base.copy(); peso = np.zeros((tam, tam), np.float32); ilha = np.zeros((tam, tam), bool)
+novo = base.copy(); peso = np.zeros((tam, tam), np.float32); ilha = np.zeros((tam, tam), bool); altm = np.zeros((tam, tam), np.float32); nzm = np.ones((tam, tam), np.float32)
 fy = V[Fc][:, :, 1].max(1)
 for f in Fc[fy > lo[1] + 0.80 * alt]:
     p = PX[f]
@@ -71,6 +71,8 @@ for f in Fc[fy > lo[1] + 0.80 * alt]:
     w = np.clip((nor[:, 2] + 0.02) / 0.40, 0, 1) * np.clip((pos[:, 1] - (lo[1] + 0.80 * alt)) / (0.06 * alt), 0, 1)
     yy = (gy[k] - 0.5).astype(int); xx = (gx[k] - 0.5).astype(int)
     ilha[yy, xx] = True
+    altm[yy, xx] = (pos[:, 1] - lo[1]) / alt
+    nzm[yy, xx] = nor[:, 2]
     sel = w > peso[yy, xx]
     novo[yy[sel], xx[sel]] = c[sel]; peso[yy[sel], xx[sel]] = w[sel]
 
@@ -90,6 +92,17 @@ k_lado = (ilha & (peso < 0.9))[:, :, None] * (1 - np.clip(peso, 0, 1))[:, :, Non
 base = base * (1 - k_lado) + lisa * k_lado
 w3 = ndimage.gaussian_filter(peso, 1.6)[:, :, None]
 saida = base * (1 - w3) + novo * w3
+# mechas escuras soltas nas laterais do cabelo: a vista de frente esticada de lado e a de lado da assadura
+# desenham listras; acima da orelha, onde a lateral fica bem mais escura que o cabelo visto de frente, puxa
+# para a cor do cabelo (orelhas e pele são mais claras e não entram)
+topo = (nzm > 0.6) & (altm > 0.965) & ilha
+if topo.sum() > 50:
+    H = np.median(saida[topo], axis=0)
+    lado = (ilha & (nzm < 0.5) & (altm > 0.885)).astype(np.float32)
+    lado = ndimage.gaussian_filter(lado, 1.5)
+    escuro = np.clip(((H.mean() - 25) - saida.mean(2)) / 35.0, 0, 1) * lado
+    escuro = ndimage.gaussian_filter(escuro, 1.5)[:, :, None]
+    saida = saida * (1 - 0.85 * escuro) + H[None, None, :] * (0.85 * escuro)
 # costura sem risco escuro: todas as ilhas da malha ganham 6 px de borda com a própria cor (o filtro da textura
 # pegava o fundo escuro entre as ilhas e desenhava linhas finas no rosto)
 todas = np.zeros((tam, tam), bool)

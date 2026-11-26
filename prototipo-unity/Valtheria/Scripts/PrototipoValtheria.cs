@@ -673,8 +673,74 @@ public class PrototipoValtheria : MonoBehaviour
         }
         else if (pegadaFase == cams.Length) { pegadaFase++; Invoke(nameof(Sair), 1.5f); }
     }
+    // foto das raças (26/11): Valtheria.exe -racas C:/caminho/racas (grava _frente.png, _perto.png e _lado.png)
+    // os 12 corpos do Godot (mesmo esqueleto, mesmas texturas), parados em fila, na mesma ordem da foto do Godot
+    static readonly string[] RACAS = { "humano_m", "humano_f", "elfo_m", "elfo_f", "sombrio_m", "sombrio_f", "orc_m", "orc_f", "anao_m", "anao_f", "gigante_m", "gigante_f" };
+    static readonly float[] ALTURAS = { 1.8f, 1.68f, 1.85f, 1.75f, 1.82f, 1.72f, 2.0f, 1.87f, 1.36f, 1.3f, 2.6f, 2.45f };
+    string racasSaida;
+    float racasT;
+    int racasFase;
+    readonly List<Animador> racasAnim = new List<Animador>();
+    void RacasAuto(float dt)
+    {
+        if (racasSaida == null)
+        {
+            var args = System.Environment.GetCommandLineArgs();
+            racasSaida = "";
+            for (int i = 0; i < args.Length - 1; i++) if (args[i] == "-racas") racasSaida = args[i + 1];
+            if (racasSaida == "") return;
+            foreach (var l in lobos) { l.anim.Destruir(); Destroy(l.go); }
+            lobos.Clear();
+            jogador.transform.position = new Vector3(60, 0, 60);
+            // palco limpo, como no estúdio do Godot: some com a natureza e o jogador; chão cinza liso
+            foreach (var go in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
+                if (go != gameObject && go.GetComponentInChildren<Light>() == null && go.GetComponentInChildren<Camera>() == null && go.GetComponentInChildren<Canvas>() == null) go.SetActive(false);
+            jogador.SetActive(false);
+            var chaoR = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            chaoR.transform.localScale = new Vector3(4, 1, 4);
+            if (lit == null) lit = Shader.Find("Universal Render Pipeline/Lit");
+            chaoR.GetComponent<Renderer>().sharedMaterial = new Material(lit) { color = new Color(0.24f, 0.26f, 0.28f) };
+            for (int i = 0; i < RACAS.Length; i++)
+            {
+                var pref = Resources.Load<GameObject>("Valtheria/Racas/" + RACAS[i]);
+                if (pref == null) { Debug.LogWarning("sem raça " + RACAS[i]); continue; }
+                var g = Instantiate(pref, new Vector3((i - (RACAS.Length - 1) * 0.5f) * 1.25f, 0, 0), Quaternion.Euler(0, 180f - 20f, 0));
+                if (lit == null) lit = Shader.Find("Universal Render Pipeline/Lit");
+                var m = new Material(lit) { name = RACAS[i], enableInstancing = true };
+                var t = Resources.Load<Texture2D>("Valtheria/Racas/Texturas/" + RACAS[i] + "_cor");
+                if (t != null) m.SetTexture("_BaseMap", t);
+                m.SetFloat("_Smoothness", 0.25f);
+                foreach (var r in g.GetComponentsInChildren<Renderer>())
+                {
+                    var arr = r.sharedMaterials;
+                    for (int k = 0; k < arr.Length; k++) arr[k] = m;
+                    if (arr.Length == 0) arr = new[] { m };
+                    r.sharedMaterials = arr;
+                    r.shadowCastingMode = ShadowCastingMode.On;
+                }
+                Ajustar(g, ALTURAS[i]);
+                var a = new Animador(g, Resources.LoadAll<AnimationClip>("Valtheria/Racas/" + RACAS[i]));
+                a.Tocar("Idle");
+                racasAnim.Add(a);
+            }
+        }
+        if (racasSaida == "") return;
+        foreach (var a in racasAnim) a.Atualizar(dt);
+        racasT += dt;
+        var cams = new (Vector3 p, Vector3 o, string n)[] {
+            (new Vector3(0, 1.4f, -17.5f), new Vector3(0, 1.1f, 0), "_frente"),
+            (new Vector3(-4.4f, 1.7f, -2.2f), new Vector3(-4.4f, 1.62f, 0), "_perto"),
+            (new Vector3(1.25f, 1.9f, -3.0f), new Vector3(1.25f, 1.7f, 0), "_perto2") };
+        if (racasFase < cams.Length)
+        {
+            cam.position = cams[racasFase].p;
+            cam.rotation = Quaternion.LookRotation(cams[racasFase].o - cam.position);
+            if (racasT > 6f) { ScreenCapture.CaptureScreenshot(racasSaida + cams[racasFase].n + ".png"); racasFase++; racasT = 5.4f; }
+        }
+        else if (racasFase == cams.Length) { racasFase++; Invoke(nameof(Sair), 1.5f); }
+    }
     void Sair() { Application.Quit(); }
-    void LateUpdate() { FotoAuto(Time.deltaTime); PegadaAuto(Time.deltaTime); }
+    void LateUpdate() { FotoAuto(Time.deltaTime); PegadaAuto(Time.deltaTime); RacasAuto(Time.deltaTime); }
 
     void MedirAuto(float dt)
     {

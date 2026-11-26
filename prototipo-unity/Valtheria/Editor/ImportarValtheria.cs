@@ -16,7 +16,7 @@ public class ImportarValtheria : AssetPostprocessor
         {
             ti.textureType = TextureImporterType.NormalMap;
         }
-        ti.maxTextureSize = 1024;
+        ti.maxTextureSize = assetPath.Contains("/Racas/") ? 2048 : 1024;
         if (assetPath.Contains("Leaves") || assetPath.Contains("Leaf") || assetPath.Contains("Flowers"))
             ti.alphaIsTransparency = true;
     }
