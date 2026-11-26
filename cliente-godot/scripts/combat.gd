@@ -612,15 +612,17 @@ func _mob_tick(m: Dictionary, dt: float) -> void:
 	var speed := 0.0
 	if m.aggro:
 		var reach: float = 1.6 + float(m.height) * 0.5
-		# 26/11: folga de 45 cm para voltar a perseguir (antes, na borda do alcance, trocava correr/parado a cada quadro)
-		var folga: float = 0.0 if m.anim in ["run", "walk"] else 0.45
+		# 26/11 (revisado): histerese na borda do alcance (antes trocava correr/parado a cada quadro). Correndo, só
+		# para 15 cm dentro do alcance; parado, só volta a correr 25 cm fora dele. O golpe vale até essa borda.
+		var correndo_m: bool = m.anim in ["run", "walk"]
+		var folga: float = -0.15 if correndo_m else 0.25
 		if d > reach + folga:
 			goal = pp
 			speed = 4.2
 		else:
 			# 26/11: no alcance, vira para o jogador aos poucos (antes girava de uma vez a cada golpe)
 			node.rotation.y = lerp_angle(node.rotation.y, atan2(pp.x - node.position.x, pp.z - node.position.z), minf(1.0, dt * 9.0))
-		if d <= reach + folga and t >= float(m.next_atk):
+		if d <= reach + 0.25 and not (correndo_m and d > reach - 0.15) and t >= float(m.next_atk):
 			m.next_atk = t + 2.0
 			m.anim = ""
 			_mob_anim(m, "attack")

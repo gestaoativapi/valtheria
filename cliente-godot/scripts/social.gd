@@ -95,12 +95,16 @@ func _process_medido(dt: float) -> void:
 		# 26/11: segue a posição prevista (último aviso + velocidade x tempo, no máximo 0,35 s à frente) em ritmo
 		# constante; antes ia em "pulos" (rápido logo após o aviso, quase parando antes do próximo) e trocava
 		# corrida/parado várias vezes por segundo
+		# revisão 26/11: sem prever à frente (o último aviso antes de parar ainda trazia velocidade, e o boneco
+		# passava até 1,8 m do ponto onde o jogador parou e depois voltava andando). Segue o último ponto no ritmo
+		# medido entre avisos (chega junto com o próximo aviso) e só acelera se ficar mais de 1/4 de aviso atrás.
 		var vn: Vector3 = o.get("vnet", Vector3.ZERO)
-		var alvo: Vector3 = (o.pos as Vector3) + vn * clampf(now - float(o.get("t_rx", now)), 0.0, 0.35)
+		var alvo: Vector3 = o.pos
 		var d := cur.distance_to(alvo)
 		var np := alvo
 		if d < 12.0:
-			np = cur.move_toward(alvo, (vn.length() * 1.05 + d * 2.5) * dt)
+			var ritmo := vn.length() + maxf(0.0, d - vn.length() * 0.25) * 2.0
+			np = cur.move_toward(alvo, maxf(ritmo, 0.4) * dt)
 		var vis := (np - cur).length() / maxf(dt, 0.001) if d < 12.0 else 0.0
 		o.vvis = lerpf(float(o.get("vvis", 0.0)), vis, minf(1.0, dt * 6.0))
 		node.position = Vector3(np.x, main.world.height(np.x, np.z), np.z)

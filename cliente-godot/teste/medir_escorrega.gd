@@ -109,6 +109,15 @@ func _fim() -> void:
 	linhas.sort()
 	for l in linhas:
 		print(l)
+	# regressão (testes/regressao.sh): nenhum corpo pode patinar mais de 12 cm por passo
+	var pior := 0.0
+	var qual := ""
+	for chave in out:
+		if float(out[chave].cm_por_passo) > pior:
+			pior = float(out[chave].cm_por_passo)
+			qual = chave
+	print("PIOR %s %.1f cm/passo" % [qual, pior])
+	print("RESULTADO: " + ("PASSOU" if pior <= 12.0 and out.size() >= 40 else "FALHOU"))
 	var fa := FileAccess.open(saida, FileAccess.WRITE)
 	fa.store_string(JSON.stringify(out, "  "))
 	fa.close()

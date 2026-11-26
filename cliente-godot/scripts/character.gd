@@ -215,6 +215,7 @@ const CORPO_PROPRIO_RACAS := ["gigante", "elfo", "sombrio", "humano"]  # padrão
 static var CORRETIVO_ARCO := true  # 26/11: forma corretiva do ombro no tiro de arco (data/corpos/arco_<corpo>.bin)
 static var _malhas_arco := {}
 var corretivo_arco: Array = []  # [MeshInstance3D, índice da forma]
+var _corretivo_tentado := false
 static var BASE_Q := false  # 25/11 22h: Robson preferiu os personagens anteriores; a base Q fica só para teste (--com-q)
 const Q_RACAS := ["humano", "elfo", "sombrio", "orc", "anao", "gigante"]
 static var corpos_proprios := true  # false volta todas essas raças ao V3 (comparação)  # false volta ao orc V3 antigo (teste/comparação)
@@ -325,8 +326,6 @@ func _setup_medido(o: Dictionary) -> void:
 		arm.add_child(skel)
 	if own != "":
 		chave_passada = own
-	if own != "" and CORRETIVO_ARCO:
-		_ligar_corretivo_arco(own)
 	if dragon:
 		for m in skel.find_children("*", "MeshInstance3D", true, false):
 			# a textura da dragonita é avermelhada: limita cada canal para a cor da escama não estourar
@@ -3812,6 +3811,11 @@ func _ligar_corretivo_arco(chave: String) -> void:
 
 
 func set_corretivo_arco(w: float) -> void:
+	# revisão 26/11: a forma só é montada no primeiro tiro (quem nunca usa arco não paga o custo da forma extra
+	# na placa de vídeo, e quem troca para o arco no meio do jogo também recebe)
+	if corretivo_arco.is_empty() and w > 0.0 and not _corretivo_tentado and CORRETIVO_ARCO and chave_passada != "":
+		_corretivo_tentado = true
+		_ligar_corretivo_arco(chave_passada)
 	if corretivo_arco.is_empty() or not is_instance_valid(corretivo_arco[0]):
 		return
 	(corretivo_arco[0] as MeshInstance3D).set_blend_shape_value(0, clampf(w, 0.0, 1.0))
@@ -3865,7 +3869,7 @@ func mover(v: float, modo := "") -> void:
 	if modo == "andar" or (modo == "" and v < 2.6):
 		n = "Walk_Formal" if race_id == "elfo" else "Walk"
 		esc = v / passada(n)
-		if esc > 1.9 and n == "Walk" and anim.has_animation("Walk_Formal"):
+		if esc > (1.75 if current == "Walk_Formal" else 1.9) and n == "Walk" and anim.has_animation("Walk_Formal"):
 			n = "Walk_Formal"  # passo curto demais para a velocidade: troca pela passada mais longa
 			esc = v / passada(n)
 		esc = clampf(esc, 0.45, 2.7)  # anão: perna curta precisa de passo rápido

@@ -75,6 +75,7 @@ var vel_atual := 0.0      # velocidade suavizada do jogador (arranque)
 var ultimo_move := Vector3.ZERO  # 26/11: direção do último passo (freada curta ao soltar a tecla)
 var vinha_teclado := false
 var pulo_anim_ate := 0.0  # 26/11: até quando a animação do pouso manda nas pernas
+var modo_passo := "correr"  # revisão 26/11: decidido pela velocidade-alvo, não pela velocidade da rampa
 var tremor := 0.0         # tremor da câmera (golpe forte, dano recebido); some sozinho
 var inclina_lado := 0.0   # inclinação nas curvas
 var gm_fly := false
@@ -1174,6 +1175,9 @@ func _physics_process(dt: float) -> void:
 		if freando:
 			vel_atual = move_toward(vel_atual, 0.0, 32.0 * dt)
 		else:
+			# a animação segue a velocidade que o jogador quer, não a da rampa: na arrancada (0 -> 5 m/s em 0,15 s)
+			# e na freada não troca para o passo de andar por 2 ou 3 quadros (dava um tranco na perna)
+			modo_passo = "andar" if (walk or speed < 2.6) else "correr"
 			vel_atual = move_toward(vel_atual, speed, maxf(speed, 1.0) * 7.0 * dt)
 		speed = vel_atual
 		var step := speed * dt
@@ -1200,10 +1204,11 @@ func _physics_process(dt: float) -> void:
 		player.rotation.x = lerpf(player.rotation.x, 0.035 * clampf(speed / 6.0, 0.0, 1.3) if not walk else 0.0, minf(1.0, dt * 6.0))
 		if swimming:
 			player.play("Walk", 0.7)
-		elif jumping or Time.get_ticks_msec() * 0.001 < pulo_anim_ate:
-			pass  # no ar e no pouso as pernas são do pulo, não da corrida
+		elif jumping:
+			pass  # no ar as pernas são do pulo, não da corrida
 		else:
-			player.mover(speed, "andar" if walk else ("" if (analogico or freando) else "correr"))  # 26/11: passada sincronizada (pé não patina)
+			pulo_anim_ate = 0.0  # andou depois do pouso: a passada volta na hora (não desliza agachado)
+			player.mover(speed, modo_passo)  # 26/11: passada sincronizada (pé não patina)
 		emote = ""
 	elif not player.is_busy() and not combat.dead and not jumping and Time.get_ticks_msec() * 0.001 >= pulo_anim_ate:
 		if combat.auto:
@@ -1231,7 +1236,7 @@ func _physics_process(dt: float) -> void:
 		var antes_t := jump_t
 		jump_t += dt / 0.62
 		# pouso: agacha ao tocar o chão (parado); correndo, a passada volta direto
-		if antes_t < 0.86 and jump_t >= 0.86 and vel_atual < 0.5:
+		if antes_t < 0.86 and jump_t >= 0.86 and vel_atual < 0.5 and not player.is_busy():
 			player.pulo("pouso")
 			pulo_anim_ate = Time.get_ticks_msec() * 0.001 + 0.55
 		if jump_t >= 1.0:
@@ -1532,7 +1537,8 @@ func _do(id: String) -> void:
 			if not jumping:
 				jumping = true
 				jump_t = 0.0
-				player.pulo("inicio")  # 26/11: impulso e pernas encolhidas no ar (antes subia correndo ou parado)
+				if not player.is_busy():  # no meio de um golpe o corpo segue o golpe
+					player.pulo("inicio")  # 26/11: impulso e pernas encolhidas no ar (antes subia correndo ou parado)
 		"sorrir":
 			combat._float_text(head, "sorri  :)", Color(1.0, 0.92, 0.5))
 			ui.chat_line("", "%s sorri" % str(me.get("name", "Viajante")), "emote")
