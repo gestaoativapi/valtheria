@@ -210,7 +210,7 @@ static var orc_modelo_proprio := true
 const CORPO_PROPRIO_RACAS := ["gigante", "elfo", "sombrio", "humano"]  # padrão novo; anão e orc acima
 # 25/11 (escolha de Robson): raças montadas na base Quaternius CC0 (rosto, olhos e cílios de verdade, mesmo
 # esqueleto oficial de 65 ossos); a raça vem de proporções por osso, cor de pele e peças (orelhas, presas, barba)
-static var BASE_Q := true
+static var BASE_Q := false  # 25/11 22h: Robson preferiu os personagens anteriores; a base Q fica só para teste (--com-q)
 const Q_RACAS := ["humano", "elfo", "sombrio", "orc", "anao", "gigante"]
 static var corpos_proprios := true  # false volta todas essas raças ao V3 (comparação)  # false volta ao orc V3 antigo (teste/comparação)
 # pegada por tipo de arma (medidas em metros para 1,80 m de altura):
@@ -1125,8 +1125,11 @@ func _tracos_pecas(race: String, male: bool, skin: Color, cor_cabelo: Color, q: 
 	if tr.has("orelha"):
 		var o: Array = tr.orelha
 		for lado in [-1.0, 1.0]:
+			if not q:
+				_orelha_cone(att, rest, pele, o, lado, largura, olho_y, olho_z)
+				continue
 			var mi := MeshInstance3D.new()
-			mi.mesh = _malha_orelha(float(o[0]), float(o[1]) * (1.15 if q else 1.0))
+			mi.mesh = _malha_orelha(float(o[0]), float(o[1]) * 1.15)
 			var pe := pele.duplicate() as StandardMaterial3D
 			pe.cull_mode = BaseMaterial3D.CULL_DISABLED
 			mi.material_override = pe
@@ -1666,6 +1669,25 @@ func _casca_ajustada(mat: Material, folga: float, y0: float, y1: float, z_costas
 	mi.skeleton = NodePath("..")
 
 
+
+
+# orelha original (cone achatado) das bases V3 e própria, como estava antes da base Q
+func _orelha_cone(att: Node3D, rest: Transform3D, pele: StandardMaterial3D, o: Array, lado: float, largura: float, olho_y: float, olho_z: float) -> void:
+	var mi := MeshInstance3D.new()
+	var c := CylinderMesh.new()
+	c.top_radius = 0.0015
+	c.bottom_radius = float(o[1])
+	c.height = float(o[0])
+	c.radial_segments = 10
+	c.rings = 1
+	mi.mesh = c
+	mi.material_override = pele
+	var dir := Vector3(lado, float(o[2]), float(o[3])).normalized()
+	var b := Basis(Quaternion(Vector3.UP, dir))
+	b = b * Basis.from_scale(Vector3(1.0, 1.0, 0.38))
+	var base := Vector3(lado * largura, olho_y - 0.01, olho_z - 0.085)
+	mi.transform = rest.affine_inverse() * Transform3D(b, base + dir * float(o[0]) * 0.5)
+	att.add_child(mi)
 
 static var _orelhas := {}
 # orelha pontuda em folha: larga na base (cobre a orelha humana), afina até a ponta, com concha para dentro e

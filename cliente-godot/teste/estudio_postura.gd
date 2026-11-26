@@ -23,6 +23,8 @@ func _init() -> void:
 		elif a == "--lado": lado = true
 		elif a == "--sem-q":
 			load("res://scripts/character.gd").BASE_Q = false
+		elif a == "--com-q":
+			load("res://scripts/character.gd").BASE_Q = true
 		elif a == "--sem-proprios" or a == "--antigos":
 			var CH = load("res://scripts/character.gd")
 			CH.corpos_proprios = false
