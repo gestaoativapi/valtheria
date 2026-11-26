@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bd3pfivbg6owf"
-path="res://.godot/imported/body_gigante_f_gigante_f_cor.jpg-bc87a1c7733ff4063f95b9055dc9dca1.ctex"
+path.s3tc="res://.godot/imported/body_gigante_f_gigante_f_cor.jpg-bc87a1c7733ff4063f95b9055dc9dca1.s3tc.ctex"
+path.etc2="res://.godot/imported/body_gigante_f_gigante_f_cor.jpg-bc87a1c7733ff4063f95b9055dc9dca1.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d266eea727188ee4982e325542d061e6"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/body_gigante_f_gigante_f_cor.jpg"
-dest_files=["res://.godot/imported/body_gigante_f_gigante_f_cor.jpg-bc87a1c7733ff4063f95b9055dc9dca1.ctex"]
+dest_files=["res://.godot/imported/body_gigante_f_gigante_f_cor.jpg-bc87a1c7733ff4063f95b9055dc9dca1.s3tc.ctex", "res://.godot/imported/body_gigante_f_gigante_f_cor.jpg-bc87a1c7733ff4063f95b9055dc9dca1.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

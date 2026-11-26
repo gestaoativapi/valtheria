@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d3xsy1ubrcjvo"
-path="res://.godot/imported/body_elfo_m_elfo_m_cor.jpg-ebe475346a02de5036f9aea2086a2697.ctex"
+path.s3tc="res://.godot/imported/body_elfo_m_elfo_m_cor.jpg-ebe475346a02de5036f9aea2086a2697.s3tc.ctex"
+path.etc2="res://.godot/imported/body_elfo_m_elfo_m_cor.jpg-ebe475346a02de5036f9aea2086a2697.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d3f096b147f4f9550fc3911983d82b86"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/body_elfo_m_elfo_m_cor.jpg"
-dest_files=["res://.godot/imported/body_elfo_m_elfo_m_cor.jpg-ebe475346a02de5036f9aea2086a2697.ctex"]
+dest_files=["res://.godot/imported/body_elfo_m_elfo_m_cor.jpg-ebe475346a02de5036f9aea2086a2697.s3tc.ctex", "res://.godot/imported/body_elfo_m_elfo_m_cor.jpg-ebe475346a02de5036f9aea2086a2697.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

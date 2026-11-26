@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dvlpkirsxdgkb"
-path="res://.godot/imported/body_humano_f_humano_f_cor.jpg-c16f91208be76aa38b33532a4f6531c3.ctex"
+path.s3tc="res://.godot/imported/body_humano_f_humano_f_cor.jpg-c16f91208be76aa38b33532a4f6531c3.s3tc.ctex"
+path.etc2="res://.godot/imported/body_humano_f_humano_f_cor.jpg-c16f91208be76aa38b33532a4f6531c3.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "cbd915ec323a3f19d3e73ff8f0f726fc"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/chars/body_humano_f_humano_f_cor.jpg"
-dest_files=["res://.godot/imported/body_humano_f_humano_f_cor.jpg-c16f91208be76aa38b33532a4f6531c3.ctex"]
+dest_files=["res://.godot/imported/body_humano_f_humano_f_cor.jpg-c16f91208be76aa38b33532a4f6531c3.s3tc.ctex", "res://.godot/imported/body_humano_f_humano_f_cor.jpg-c16f91208be76aa38b33532a4f6531c3.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

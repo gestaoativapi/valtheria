@@ -17,7 +17,7 @@ COMP = {5126: 'f4', 5123: 'u2', 5121: 'u1', 5125: 'u4'}
 NC = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4, 'MAT4': 16}
 
 
-def main(src, dst, passos=30, forca=0.5):
+def main(src, dst, passos=30, forca=0.5, regiao=None):
     raw = bytearray(open(src, 'rb').read())
     n = struct.unpack('<I', raw[12:16])[0]
     js = json.loads(raw[20:20 + n])
@@ -76,6 +76,10 @@ def main(src, dst, passos=30, forca=0.5):
     nomes = [js['nodes'][j]['name'] for j in js['skins'][0]['joints']]
     dedo = np.array([any(k in nm for k in ('index', 'middle', 'ring', 'pinky', 'thumb')) for nm in nomes])
     fixo = D[:, dedo].sum(1) > 0.5
+    if regiao:
+        # só mexe onde os ossos da região pesam (ombro/axila/virilha): o resto, cabeça inclusive, fica como está
+        na_regiao = np.array([any(nm == r or nm.startswith(r) for r in regiao) for nm in nomes])
+        fixo |= D[:, na_regiao].sum(1) < 0.15
     D0 = D.copy()
     for _ in range(passos):
         D = (1 - forca) * D + forca * (Mn @ D)
@@ -97,4 +101,5 @@ if __name__ == '__main__':
     args = sys.argv[1:]
     passos = int(args[args.index('--passos') + 1]) if '--passos' in args else 30
     forca = float(args[args.index('--forca') + 1]) if '--forca' in args else 0.5
-    main(args[0], args[1], passos, forca)
+    regiao = args[args.index('--regiao') + 1].split(',') if '--regiao' in args else None
+    main(args[0], args[1], passos, forca, regiao)
