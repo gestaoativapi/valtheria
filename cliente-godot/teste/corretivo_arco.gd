@@ -299,7 +299,7 @@ func _assar() -> void:
 		dif.append(d)
 		maior = maxf(maior, d.length())
 	var fa := FileAccess.open(saida, FileAccess.WRITE)
-	fa.store_var({"n": n, "i": ids, "d": dif})
+	fa.store_var({"n": n, "i": ids, "d": dif, "assinatura": load("res://scripts/character.gd").assinatura_malha(v)})
 	fa.close()
 	print("CORRETIVO ", corpo, " vertices=", n, " mexidos=", ids.size(), " maior=", snappedf(maior, 0.0001), " -> ", saida)
 	feito = true

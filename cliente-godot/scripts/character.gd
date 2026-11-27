@@ -2304,6 +2304,7 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 		add_child(arqueria)
 		arqueria.montar(self, wnode, s)
 		fist_hands = ["l", "r"]
+		_ombreira_arqueiro()
 	armed = false
 	set_battle(true)
 
@@ -3796,6 +3797,11 @@ func _ligar_corretivo_arco(chave: String) -> void:
 		var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
 		if int(dados.n) != v.size():
 			return
+		# 27/11: o importador do Godot pode reordenar os vértices quando o corpo muda; a forma antiga então
+		# mexeria nos vértices errados (estilhaços no ombro). Sem a mesma assinatura, a forma não é usada.
+		if dados.has("assinatura") and str(dados.assinatura) != assinatura_malha(v):
+			push_warning("forma corretiva do arco desatualizada para %s: refazer com teste/corretivo_arco.gd" % chave)
+			return
 		var bv := v.duplicate()
 		var ids: PackedInt32Array = dados.i
 		var dif: PackedVector3Array = dados.d
@@ -3815,6 +3821,20 @@ func _ligar_corretivo_arco(chave: String) -> void:
 		_malhas_arco[chave] = nova
 	mi.mesh = nova
 	corretivo_arco = [mi, 0]
+
+
+# assinatura curta das posições dos vértices (amostra de 64): muda se o corpo ou a ordem dos vértices mudar
+static func assinatura_malha(v: PackedVector3Array) -> String:
+	var h := HashingContext.new()
+	h.start(HashingContext.HASH_MD5)
+	var passo := maxi(1, v.size() / 64)
+	var amostra := PackedFloat32Array()
+	for i in range(0, v.size(), passo):
+		amostra.append(snappedf(v[i].x, 0.0001))
+		amostra.append(snappedf(v[i].y, 0.0001))
+		amostra.append(snappedf(v[i].z, 0.0001))
+	h.update(amostra.to_byte_array())
+	return h.finish().hex_encode().substr(0, 16)
 
 
 func set_corretivo_arco(w: float) -> void:
@@ -3941,3 +3961,65 @@ func _arco_modo(pronto: bool) -> void:
 		arqueria.ligar(false)
 		(grip_node if empunho != null else sheath).add_child(wnode)
 		wnode.transform = _arco_na_mao() if empunho != null else arco_costas
+
+
+# ---------- ombreira de couro do arqueiro (27/11, escolha de Robson) ----------
+# No tiro, o braço da corda sobe e vai para trás e a manga larga do corpo estufa no ombro (o "balão"). Uma
+# ombreira de couro em duas lâminas presa ao braço da corda cobre essa região e acompanha o braço.
+var _ombreira: Array = []
+
+
+func _ombreira_arqueiro() -> void:
+	for n in _ombreira:
+		if is_instance_valid(n):
+			(n as Node).queue_free()
+	_ombreira.clear()
+	if skel == null or race_id in ["anao", "orc"] or armadura_id.begins_with("pesada"):
+		return  # anão, orc e armadura pesada já têm ombreira própria no modelo
+	var bu := skel.find_bone("upperarm_r")
+	var bc := skel.find_bone("clavicle_r")
+	if bu < 0 or bc < 0:
+		return
+	var E = load("res://scripts/enfeites.gd")
+	var rel: Transform3D = E._rel(self, skel)
+	var ombro: Vector3 = (rel * skel.get_bone_global_rest(bu)).origin
+	var cotovelo: Vector3 = (rel * skel.get_bone_global_rest(skel.find_bone("lowerarm_r"))).origin
+	var k := height_m / 1.8
+	var couro := StandardMaterial3D.new()
+	couro.albedo_color = Color(0.32, 0.2, 0.12)
+	couro.roughness = 0.85
+	var borda := StandardMaterial3D.new()
+	borda.albedo_color = Color(0.2, 0.13, 0.08)
+	borda.roughness = 0.9
+	var fora := Vector3(ombro.x - 0.0, 0.0, 0.0).normalized() if absf(ombro.x) > 0.01 else Vector3(-1, 0, 0)
+	var eixo := (cotovelo - ombro).normalized()
+	# duas lâminas em cúpula sobrepostas: a de cima abraça a ponta do ombro, a de baixo desce pelo braço
+	for i in 2:
+		var centro := ombro + eixo * (0.075 * i) * k + fora * 0.012 * k
+		var no: Node3D = E._preso(self, skel, "upperarm_r", centro)
+		if no == null:
+			continue
+		var r := (0.118 - 0.016 * i) * k
+		var casca := SphereMesh.new()
+		casca.radius = r
+		casca.height = r
+		casca.is_hemisphere = true
+		casca.radial_segments = 16
+		casca.rings = 6
+		var yv := (fora * (0.55 + 0.45 * i) + Vector3.UP * (1.0 - 0.6 * i)).normalized()  # eixo da cúpula
+		var xv := eixo.cross(yv)
+		if xv.length() < 0.01:
+			xv = Vector3.FORWARD.cross(yv)
+		xv = xv.normalized()
+		var zv := xv.cross(yv).normalized()
+		var base := Basis(xv, yv, zv)
+		var m: MeshInstance3D = E._peca(no, casca, couro, Vector3.ZERO, base)
+		m.scale = Vector3(1.08, 0.85, 1.22)
+		var aro := TorusMesh.new()
+		aro.inner_radius = r * 0.95
+		aro.outer_radius = r * 1.05
+		aro.rings = 16
+		aro.ring_segments = 4
+		var anel: MeshInstance3D = E._peca(no, aro, borda, Vector3.ZERO, base)
+		anel.scale = Vector3(1.08, 0.5, 1.22)
+		_ombreira.append(no.get_parent())

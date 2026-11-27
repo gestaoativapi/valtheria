@@ -12,6 +12,8 @@ ok=1
 out=$(timeout 300 "$G" --headless --path . --fixed-fps 60 -s teste/medir_escorrega.gd -- --saida="$TMP/escorrega.json" 2>&1)
 echo "$out" | grep -E "^PIOR"
 echo "$out" | grep -q "RESULTADO: PASSOU" || { echo "FALHOU: pé patinando"; ok=0; }
+timeout 300 "$G" --headless --path . -s testes/test_corretivo.gd 2>&1 | grep -E "DESATUALIZADA|RESULTADO" | tee "$TMP/corretivo.txt"
+grep -q "RESULTADO: PASSOU" "$TMP/corretivo.txt" || { echo "FALHOU: forma corretiva do arco desatualizada"; ok=0; }
 CORPOS="humano:m humano:f elfo:m elfo:f sombrio:m sombrio:f orc:m orc:f anao:m anao:f gigante:m gigante:f"
 for arma in espada_ng:escudo_ng espada_ng: espadao_ng: lanca_ng: martelo_ng: machado_ng: cajado_ng: arco_ng: adaga_ng:; do
   a=${arma%%:*}; e=${arma#*:}
