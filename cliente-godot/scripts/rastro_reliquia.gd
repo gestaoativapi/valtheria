@@ -3,6 +3,8 @@ extends MeshInstance3D
 # do fim para o começo. Uma malha imediata por golpe, sem luz dinâmica (só aditivo sem sombra).
 
 const AMOSTRAS := 18
+const SUB := 4
+const VIDA := 0.3
 
 var arma: Node3D
 var base_l := Vector3.ZERO   # pontos no espaço local da arma
@@ -37,21 +39,37 @@ func _process(dt: float) -> void:
 		_pts.push_front([g * base_l, g * ponta_l, 0.0])
 	for p in _pts:
 		p[2] += dt
-	while _pts.size() > AMOSTRAS or (_pts.size() > 0 and float(_pts[-1][2]) > 0.3):
+	while _pts.size() > AMOSTRAS or (_pts.size() > 0 and float(_pts[-1][2]) > VIDA):
 		_pts.pop_back()
 	_im.clear_surfaces()
-	if _pts.size() >= 2:
+	var n := _pts.size()
+	if n >= 2:
+		# curva suave entre as amostras (Catmull-Rom), para o arco do golpe não sair em placas retas
 		_im.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
-		for i in _pts.size():
-			var f := 1.0 - float(i) / float(_pts.size() - 1)
-			var a := f * clampf(1.0 - float(_pts[i][2]) / 0.3, 0.0, 1.0)
-			var b: Vector3 = _pts[i][0]
-			var pt: Vector3 = _pts[i][1]
-			# a parte de dentro (perto do cabo) é mais fraca; a ponta é quase branca
-			_im.surface_set_color(Color(cor.r, cor.g, cor.b, a * 0.45))
-			_im.surface_add_vertex(b.lerp(pt, 0.35))
-			_im.surface_set_color(Color(brilho.r, brilho.g, brilho.b, a * 0.9))
-			_im.surface_add_vertex(pt)
+		var tot := float((n - 1) * SUB)
+		for i in n - 1:
+			for k in SUB:
+				var u := float(k) / float(SUB)
+				var b := _cr(i, 0, u)
+				var pt := _cr(i, 1, u)
+				var idade: float = lerpf(float(_pts[i][2]), float(_pts[i + 1][2]), u)
+				var f := 1.0 - float(i * SUB + k) / tot
+				var a := f * clampf(1.0 - idade / VIDA, 0.0, 1.0)
+				_im.surface_set_color(Color(cor.r, cor.g, cor.b, a * 0.4))
+				_im.surface_add_vertex(b.lerp(pt, 0.4))
+				_im.surface_set_color(Color(brilho.r, brilho.g, brilho.b, a * 0.95))
+				_im.surface_add_vertex(pt)
 		_im.surface_end()
 	if _t >= dura and _pts.is_empty():
 		queue_free()
+
+
+func _cr(i: int, lado: int, u: float) -> Vector3:
+	var n := _pts.size()
+	var p0: Vector3 = _pts[maxi(i - 1, 0)][lado]
+	var p1: Vector3 = _pts[i][lado]
+	var p2: Vector3 = _pts[i + 1][lado]
+	var p3: Vector3 = _pts[mini(i + 2, n - 1)][lado]
+	var u2 := u * u
+	var u3 := u2 * u
+	return 0.5 * ((2.0 * p1) + (p2 - p0) * u + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * u2 + (3.0 * p1 - p0 - 3.0 * p2 + p3) * u3)

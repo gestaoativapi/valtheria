@@ -103,26 +103,26 @@ def M(cores):
 
 
 def dragao(m):
-    # crânio -> focinho -> narinas; pescoço curto atrás
-    esqueleto('cranio', [(0, 0.02, -0.45), (0, 0.06, -0.1), (0, 0.06, 0.25), (0, 0.04, 0.6), (0, 0.0, 0.92)], [(0, 1), (1, 2), (2, 3), (3, 4)],
-              [(0.36, 0.3), (0.42, 0.36), (0.33, 0.27), (0.24, 0.18), (0.15, 0.1)], m['metal'])
-    # mandíbula aberta
-    esqueleto('mandibula', [(0, -0.12, -0.05), (0, -0.26, 0.35), (0, -0.36, 0.78)], [(0, 1), (1, 2)],
-              [(0.3, 0.14), (0.22, 0.09), (0.12, 0.05)], m['escuro'])
+    # crânio alongado -> focinho fino; mandíbula aberta; chifres longos que varrem para trás e se abrem para fora
+    esqueleto('cranio', [(0, 0.04, -0.45), (0, 0.08, -0.12), (0, 0.06, 0.25), (0, 0.03, 0.62), (0, -0.01, 0.98)], [(0, 1), (1, 2), (2, 3), (3, 4)],
+              [(0.34, 0.28), (0.4, 0.33), (0.3, 0.24), (0.2, 0.15), (0.12, 0.09)], m['metal'])
+    esqueleto('mandibula', [(0, -0.12, -0.08), (0, -0.28, 0.35), (0, -0.4, 0.8)], [(0, 1), (1, 2)],
+              [(0.28, 0.13), (0.2, 0.08), (0.1, 0.045)], m['escuro'])
     for s in (-1, 1):
-        # sobrancelha marcada e chifres longos para trás
-        esqueleto(f'sobr{s}', [(0.18 * s, 0.26, 0.05), (0.22 * s, 0.3, 0.32)], [(0, 1)], [0.09, 0.05], m['escuro'], sub=1)
-        chifre(f'chifre{s}', (0.24 * s, 0.32, -0.12), [(0.36 * s, 0.55, -0.45), (0.44 * s, 0.7, -0.85), (0.42 * s, 0.68, -1.25)], 0.13, m['escuro'])
-        chifre(f'chifre2{s}', (0.32 * s, 0.12, -0.25), [(0.55 * s, 0.18, -0.5), (0.7 * s, 0.12, -0.75)], 0.08, m['escuro'])
-        for i, z in enumerate((-0.35, -0.5, -0.65)):
-            chifre(f'espinho{s}{i}', (0.3 * s, -0.05, z), [(0.5 * s, -0.12, z - 0.18)], 0.06, m['escuro'])
-        esfera(f'olho{s}', (0.21 * s, 0.2, 0.3), 0.06, m['olho'], (1, 0.7, 1.3))
-        esfera(f'narina{s}', (0.07 * s, 0.05, 0.9), 0.025, m['brilho'])
+        esqueleto(f'sobr{s}', [(0.15 * s, 0.27, 0.02), (0.2 * s, 0.31, 0.34)], [(0, 1)], [0.09, 0.05], m['escuro'], sub=1)
+        # chifre principal: sobe e abre, depois varre para trás com a ponta virando para cima
+        chifre(f'chifre{s}', (0.2 * s, 0.34, -0.1), [(0.34 * s, 0.62, -0.38), (0.52 * s, 0.78, -0.78), (0.6 * s, 0.98, -1.15)], 0.12, m['escuro'])
+        chifre(f'chifre2{s}', (0.3 * s, 0.16, -0.25), [(0.58 * s, 0.32, -0.5), (0.78 * s, 0.46, -0.72)], 0.07, m['escuro'])
+        # leque de espinhos na bochecha, abrindo para os lados (não para baixo)
+        for i, z in enumerate((-0.3, -0.45, -0.6)):
+            chifre(f'espinho{s}{i}', (0.3 * s, 0.02 - 0.03 * i, z), [(0.62 * s, 0.08 - 0.06 * i, z - 0.2)], 0.055, m['escuro'])
+        esfera(f'olho{s}', (0.2 * s, 0.22, 0.3), 0.065, m['olho'], (1, 0.65, 1.35))
+        esfera(f'narina{s}', (0.06 * s, 0.06, 0.95), 0.028, m['brilho'])
         for i in range(4):
-            cone(f'dente{s}{i}', (0.1 * s, -0.04, 0.42 + 0.13 * i), (0.1 * s, -0.17, 0.44 + 0.13 * i), 0.025, m['dente'], 6)
-            cone(f'dentei{s}{i}', (0.09 * s, -0.27, 0.4 + 0.12 * i), (0.09 * s, -0.16, 0.42 + 0.12 * i), 0.02, m['dente'], 6)
-    esqueleto('crista', [(0, 0.3, 0.1), (0, 0.42, -0.25), (0, 0.38, -0.6)], [(0, 1), (1, 2)], [(0.04, 0.12), (0.03, 0.09), (0.01, 0.03)], m['escuro'], sub=1)
-    esfera('brasa', (0, -0.12, 0.45), 0.1, m['brilho'], (1.4, 0.6, 2.2))
+            cone(f'dente{s}{i}', (0.09 * s, -0.03, 0.42 + 0.14 * i), (0.09 * s, -0.17, 0.44 + 0.14 * i), 0.026, m['dente'], 6)
+            cone(f'dentei{s}{i}', (0.08 * s, -0.3, 0.4 + 0.13 * i), (0.08 * s, -0.17, 0.42 + 0.13 * i), 0.021, m['dente'], 6)
+    esqueleto('crista', [(0, 0.32, 0.12), (0, 0.46, -0.25), (0, 0.44, -0.65)], [(0, 1), (1, 2)], [(0.035, 0.13), (0.03, 0.1), (0.01, 0.04)], m['escuro'], sub=1)
+    esfera('brasa', (0, -0.14, 0.45), 0.1, m['brilho'], (1.3, 0.6, 2.2))
 
 
 def lobo(m):
@@ -139,33 +139,21 @@ def lobo(m):
 
 
 def golem(m):
-    import bmesh
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 0))
-    cab = bpy.context.active_object
-    cab.name = 'bloco'
-    cab.scale = (0.9, 0.75, 0.8)  # Blender: x, y(=-z godot), z(=y godot)
-    bev = cab.modifiers.new('bev', 'BEVEL')
-    bev.width = 0.08
-    bev.segments = 2
-    cab.data.materials.append(m['metal'])
-    # mandíbula de pedra
-    bpy.ops.mesh.primitive_cube_add(size=1, location=g2b((0, -0.42, 0.08)))
-    q = bpy.context.active_object
-    q.scale = (0.7, 0.55, 0.22)
-    q.modifiers.new('bev', 'BEVEL').width = 0.05
-    q.data.materials.append(m['escuro'])
-    # fenda dos olhos e boca acesas
-    for nome, c, e in (('olhos', (0, 0.1, 0.39), (0.62, 0.04, 0.1)), ('boca', (0, -0.36, 0.42), (0.36, 0.04, 0.05))):
-        bpy.ops.mesh.primitive_cube_add(size=1, location=g2b(c))
-        o = bpy.context.active_object
-        o.scale = e
-        o.data.materials.append(m['olho' if nome == 'olhos' else 'brilho'])
-    # coroa de rocha e ombreiras de pedra
-    for i, x in enumerate((-0.32, -0.16, 0.0, 0.16, 0.32)):
-        h = 0.55 - abs(x) * 0.8
-        cone(f'coroa{i}', (x, 0.35, -0.05), (x * 1.3, 0.35 + h, -0.1), 0.11, m['escuro'], 5)
+    # crânio de pedra esculpido: testa pesada, maçãs largas, queixo quadrado, olhos fundos acesos e uma runa na testa
+    esqueleto('cranio', [(0, 0.0, -0.3), (0, 0.08, 0.0), (0, 0.04, 0.3)], [(0, 1), (1, 2)],
+              [(0.42, 0.4), (0.48, 0.44), (0.36, 0.3)], m['metal'], sub=1)
+    esqueleto('testa', [(-0.36, 0.26, 0.3), (0, 0.32, 0.38), (0.36, 0.26, 0.3)], [(0, 1), (1, 2)], [(0.1, 0.11), (0.12, 0.12), (0.1, 0.11)], m['escuro'], sub=1)
+    esqueleto('queixo', [(0, -0.28, 0.05), (0, -0.4, 0.3)], [(0, 1)], [(0.34, 0.14), (0.26, 0.12)], m['escuro'], sub=1)
     for s in (-1, 1):
-        cone(f'chifre{s}', (0.42 * s, 0.1, 0.0), (0.75 * s, 0.35, -0.15), 0.12, m['escuro'], 5)
+        esqueleto(f'maca{s}', [(0.32 * s, -0.02, 0.1), (0.3 * s, -0.08, 0.34)], [(0, 1)], [(0.14, 0.12), (0.1, 0.09)], m['escuro'], sub=1)
+        esfera(f'olho{s}', (0.17 * s, 0.13, 0.4), 0.07, m['olho'], (1.3, 0.55, 0.6))
+        # placas de rocha e chifres curtos e grossos
+        chifre(f'chifre{s}', (0.38 * s, 0.25, -0.05), [(0.62 * s, 0.45, -0.15), (0.72 * s, 0.7, -0.2)], 0.14, m['escuro'])
+        chifre(f'placa{s}', (0.24 * s, 0.38, -0.1), [(0.32 * s, 0.6, -0.3)], 0.1, m['escuro'])
+    for i, x in enumerate((-0.16, 0.0, 0.16)):
+        cone(f'dente{i}', (x, -0.22, 0.42), (x, -0.32, 0.44), 0.05, m['dente'], 5)
+    esfera('runa', (0, 0.3, 0.47), 0.05, m['brilho'], (0.6, 1.6, 0.4))
+    esfera('boca', (0, -0.18, 0.4), 0.05, m['brilho'], (3.0, 0.5, 0.6))
 
 
 def serpente(m):

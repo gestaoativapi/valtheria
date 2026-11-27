@@ -104,7 +104,7 @@ static func cabeca(tipo: String, t: float, cores: Array, ss: bool) -> Node3D:
 	if ResourceLoader.exists(arq):
 		var cena := (load(arq) as PackedScene).instantiate() as Node3D
 		var mats := {
-			"metal": _m("r_metal_%s" % tipo, (cores[3] as Color), 0.85, 0.32),
+			"metal": _m("r_metal_%s" % tipo, (cores[3] as Color).lerp(Color(0.5, 0.47, 0.42), 0.4), 0.1, 0.85) if tipo == "golem" else _m("r_metal_%s" % tipo, (cores[3] as Color), 0.85, 0.32),
 			"escuro": _m("r_esc_%s" % tipo, (cores[2] as Color).lerp(Color(0.05, 0.05, 0.06), 0.4), 0.6, 0.45),
 			"olho": _m("r_olho_%s_%s" % [tipo, ss], cores[0], 0.0, 0.2, 6.0 if ss else 3.5),
 			"brilho": _m("r_bri_%s" % tipo, cores[1], 0.2, 0.3, 2.4),
@@ -398,32 +398,30 @@ static func aplicar(w: Node3D, n: int, kind: String) -> bool:
 	var olha_ponta := Basis(giro.x, giro.y, -giro.z)
 	# tamanho da cabeça em fração do comprimento da arma (os modelos vêm em escalas locais diferentes)
 	var fr: float = {"espada": 0.16, "espadao": 0.15, "adaga": 0.24, "punhal": 0.24, "duplas": 0.22, "lanca": 0.11,
-		"cajado": 0.14, "cetro": 0.2, "martelo": 0.17, "machado": 0.17, "arco": 0.2}.get(kind, 0.0)
+		"cajado": 0.14, "cetro": 0.2, "martelo": 0.14, "machado": 0.13, "arco": 0.2}.get(kind, 0.0)
 	var t := (L * fr if fr > 0.0 else larg * 0.45) * (1.15 if ss else 1.0)
 	var foco: Vector3
 	var b_cab: Basis = olha_ponta
 	match kind:
 		"espada", "espadao", "adaga", "punhal", "duplas":
-			foco = base_c + eixo * (L * (0.2 if kind == "espadao" else 0.14))  # guarda: a lâmina sai da boca
+			foco = base_c + eixo * (L * (0.2 if kind == "espadao" else 0.14))  # guarda: rosto da criatura de frente, a lâmina sai de cima da cabeça
+			b_cab = Basis.looking_at(-(face * 0.9 + eixo * 0.45).normalized(), eixo)
 		"lanca", "cajado", "cetro":
 			foco = ponta - eixo * L * (0.16 if kind == "lanca" else 0.1)
 		"martelo", "machado":
 			# rosto da criatura cravado na face larga da cabeça da arma, olhando para fora
-			foco = ponta - eixo * L * 0.12 + face * (esp * 0.5 + t * 0.15)
-			b_cab = Basis.looking_at(face, eixo)
-			b_cab = Basis(b_cab.x, b_cab.y, -b_cab.z)
+			foco = ponta - eixo * L * (0.12 if kind == "martelo" else 0.26) + face * (esp * 0.5 + t * 0.2)
+			b_cab = Basis.looking_at(-face, eixo)  # rosto para fora da face
 		"arco":
 			foco = base_c + face * esp * 0.4
-			b_cab = Basis.looking_at(face, eixo)
-			b_cab = Basis(b_cab.x, b_cab.y, -b_cab.z)
+			b_cab = Basis.looking_at(-face, eixo)  # rosto para fora da face
 		_:  # escudo
 			foco = base_c + face * esp * 0.6
-			b_cab = Basis.looking_at(face, eixo)
-			b_cab = Basis(b_cab.x, b_cab.y, -b_cab.z)
+			b_cab = Basis.looking_at(-face, eixo)  # rosto para fora da face
 	if OS.has_environment("RELIQUIA_DEBUG"): print("RELIQ ", kind, " L=", L, " larg=", larg, " lam=", larg_lamina, " t=", t)
 	var u := t / 0.2  # 1 "centímetro" na escala local da arma
 	var cab := cabeca(tipo, t, cores, ss)
-	cab.transform = Transform3D(b_cab, foco - (b_cab.z * t * 0.25 if lamina else Vector3.ZERO))
+	cab.transform = Transform3D(b_cab, foco)
 	cab.set_meta("reliquia_peca", true)
 	w.add_child(cab)
 	# emblema gravado dos dois lados (lâmina: logo acima da guarda; haste: abaixo da cabeça; escudo: no centro)
@@ -431,8 +429,8 @@ static func aplicar(w: Node3D, n: int, kind: String) -> bool:
 	var lado_emb := (minf(larg_lamina * 1.3, t * 0.7) if lamina else t * 0.7)
 	var p_emb := foco + eixo * (t * 0.75 + lado_emb * 0.6) if lamina else (foco - eixo * L * 0.12 if haste else foco)
 	if kind == "escudo":
-		lado_emb = clampf(larg * 0.55, 0.15, 0.4)
-		p_emb = foco + face * esp * 0.05
+		lado_emb = t * 0.6
+		p_emb = foco - eixo * t * 0.95 - face * esp * 0.55
 	if kind != "arco":
 		for s in ([-1.0, 1.0] if kind != "escudo" else [1.0]):
 			_emblema(w, tipo, p_emb + face * s * (esp * 0.5 + 0.004 * u), b_face if s > 0 else Basis(b_face.x * -1.0, b_face.y, b_face.z * -1.0), lado_emb)
