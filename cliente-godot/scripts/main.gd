@@ -1276,10 +1276,19 @@ var abertura: CanvasLayer  # cena 3D da história na tela de login (abertura.gd)
 
 
 # câmera treme um pouco no impacto (crítico, golpe pesado, dano recebido); decai em ~0,25 s
+# tremor por "trauma" (skill game-feel): cada golpe SOMA trauma (0..1); o deslocamento é trauma², então
+# golpe leve quase não mexe e golpe forte sacode; decai em tempo real para não congelar torto no hitstop.
+# As chamadas antigas passam a força em metros (0,015..0,13); 8× vira trauma.
+const TREMOR_MAX := 0.35      # metros de deslocamento com trauma 1
+const TREMOR_DECAI := 1.6     # trauma perdido por segundo real
+var _tremor_t := 0.0
+var _sh := Vector2.ZERO  # deslocamento que o tremor está somando agora
+
+
 func tremer(forca: float) -> void:
 	if not Config_get_tremor():
 		return
-	tremor = maxf(tremor, forca)
+	tremor = clampf(tremor + forca * 8.0, 0.0, 1.0)
 
 
 func Config_get_tremor() -> bool:
@@ -1289,17 +1298,38 @@ func Config_get_tremor() -> bool:
 func _tremor_passo(dt: float) -> void:
 	if cam == null:
 		return
-	if tremor <= 0.001:
-		if cam.v_offset != 0.0:
-			cam.v_offset = 0.0
+	if tremor <= 0.0:
+		if _sh != Vector2.ZERO:  # devolve só o que o tremor somou (a abertura usa h_offset próprio)
+			cam.h_offset -= _sh.x
+			cam.v_offset -= _sh.y
+			_sh = Vector2.ZERO
 		return
-	var t := Time.get_ticks_msec() * 0.001
-	cam.v_offset = sin(t * 61.0) * tremor * 0.6 + sin(t * 37.0) * tremor * 0.4
-	tremor = move_toward(tremor, 0.0, dt * 0.35)
+	var real := dt / maxf(Engine.time_scale, 0.0001)
+	tremor = maxf(tremor - TREMOR_DECAI * real, 0.0)
+	_tremor_t += real * 30.0
+	# senos em ritmos sem relação: tremor liso, sem o "chiado" de um número aleatório por quadro
+	var k := tremor * tremor * TREMOR_MAX
+	var novo := Vector2(k * 0.7 * sin(_tremor_t * 1.7), k * sin(_tremor_t * 2.3))
+	cam.h_offset += novo.x - _sh.x
+	cam.v_offset += novo.y - _sh.y
+	_sh = novo
+
+
+var _reliq_t := 0.0
+var _reliq_quente := false
 
 
 func _process(dt: float) -> void:
 	_tremor_passo(dt)
+	_reliq_t += dt
+	if _reliq_t >= 0.5 and cam != null:  # Relíquias: LOD das auras e aquecimento dos efeitos de acerto
+		_reliq_t = 0.0
+		Reliquias.lod(cam.global_position, get_tree())
+		if not _reliq_quente and player != null:
+			var w: Node3D = player.get("wnode")
+			if w != null and w.has_meta("reliquia"):
+				_reliq_quente = true
+				Reliquias.aquecer(self, cam.global_position - cam.global_transform.basis.z * 2.0)
 	Character.recolher()
 	world.recolher()
 	# abertura: só na tela de login; enquanto ela aparece o mundo do jogo não é desenhado (economia de placa)

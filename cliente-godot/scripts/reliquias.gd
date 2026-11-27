@@ -234,16 +234,24 @@ static func _emblema(pai: Node3D, tipo: String, pos: Vector3, base: Basis, lado:
 	_p(pai, q, m, pos, base)
 
 
+static var _cache_aura := {}
+
+
 static func _aura(pai: Node3D, elemento: String, cores: Array, pos: Vector3, caixa: Vector3, qtd: int) -> CPUParticles3D:
 	var p := CPUParticles3D.new()
-	p.amount = qtd
+	# celular: metade das partículas; longe da câmera a aura para de emitir (ver lod())
+	p.amount = maxi(4, qtd / 2) if OS.has_feature("mobile") else qtd
+	p.add_to_group("reliquia_aura")
 	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
 	p.emission_box_extents = caixa
 	p.local_coords = false
 	p.position = pos
 	p.visibility_range_end = 40.0
 	var q := QuadMesh.new()
-	var m := StandardMaterial3D.new()
+	# um material por elemento, compartilhado por todas as auras (menos trocas de estado no desenho)
+	var chave_m := "aura_" + elemento
+	var m: StandardMaterial3D = _cache_aura.get(chave_m, StandardMaterial3D.new())
+	_cache_aura[chave_m] = m
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	m.vertex_color_use_as_albedo = true
@@ -606,3 +614,32 @@ static func espirito(pai: Node, tipo: String, de: Vector3, ate: Vector3, cor: Co
 	tw.tween_property(s, "scale", Vector3.ONE * 1.35, 0.42)
 	tw.chain().tween_property(s, "modulate:a", 0.0, 0.18)
 	tw.chain().tween_callback(s.queue_free)
+
+
+
+# LOD das auras: chamado pelo main a cada meio segundo; aura a mais de 22 m da câmera para de emitir
+static func lod(cam_pos: Vector3, arvore: SceneTree) -> void:
+	for p in arvore.get_nodes_in_group("reliquia_aura"):
+		var cp := p as CPUParticles3D
+		if cp.is_inside_tree():
+			var perto := cp.global_position.distance_squared_to(cam_pos) < 22.0 * 22.0
+			if cp.emitting != perto:
+				cp.emitting = perto
+
+
+# aquecimento: desenha uma vez, quase invisível, os materiais dos efeitos de acerto para o
+# compilador de shader (OpenGL/celular) não travar o primeiro golpe
+static func aquecer(pai: Node3D, diante: Vector3) -> void:
+	_anel(pai, diante, Color(1, 1, 1, 0.004), 0.05)
+	var s := Sprite3D.new()
+	s.texture = load("res://assets/emblemas/espirito_dragao.png") if ResourceLoader.exists("res://assets/emblemas/espirito_dragao.png") else null
+	s.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	s.shaded = false
+	s.modulate = Color(1, 1, 1, 0.004)
+	s.pixel_size = 0.0001
+	pai.add_child(s)
+	s.global_position = diante
+	var tr := RASTRO.new()
+	tr.dura = 0.05
+	pai.add_child(tr)
+	pai.get_tree().create_timer(0.3).timeout.connect(s.queue_free)

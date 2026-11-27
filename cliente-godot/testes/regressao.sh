@@ -37,5 +37,8 @@ echo "== 7. Grupo (convite, aceite, fala, expulsão, liderança)"
 if timeout 60 "$G" --headless --path . --script testes/test_grupo.gd 2>&1 | grep -q "RESULTADO: PASSOU"; then echo "ok: grupo"; else echo "FALHOU: grupo"; falhas=$((falhas+1)); fi
 echo "== 8. Movimentação (pé não patina; armas não passam a atravessar o corpo)"
 if timeout 900 bash testes/test_movimento.sh "$G" 2>&1 | tee /tmp/test_movimento.log | grep -q "RESULTADO: PASSOU"; then echo "ok: movimentação"; else echo "FALHOU: movimentação"; grep -E "piorou|PIOR|FALHOU" /tmp/test_movimento.log | head -8; falhas=$((falhas+1)); fi
+echo "== 9. Sensação de golpe e projeto (tremor por trauma, caminhos res:// e uids)"
+if timeout 120 "$G" --headless --path . -s testes/test_sensacao.gd 2>&1 | grep -q "sensação: ok"; then echo "ok: sensação de golpe"; else echo "FALHOU: sensação de golpe"; falhas=$((falhas+1)); fi
+if python3 -I ../.claude/skills/godot-nodes-scenes/scripts/check_godot_project.py . 2>&1 | grep -q "0 errors"; then echo "ok: caminhos do projeto"; else echo "FALHOU: caminhos do projeto"; falhas=$((falhas+1)); fi
 echo "== Resultado: $falhas falha(s)"
 [ "$falhas" -eq 0 ]
