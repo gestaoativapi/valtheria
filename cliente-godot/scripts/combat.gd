@@ -461,7 +461,7 @@ func _spawn_medido(x: float, z: float, boss := false, boss_lvl := 0, spot := "",
 
 # 26/11: passada natural (m/s) de cada modelo de bicho com 1 m de altura, ritmo 1 (teste/medir_passada_mob.gd).
 # O ritmo da animação acompanha a velocidade real e o tamanho, para a pata não patinar no chão.
-const PASSADA_MOB := {"m_wolf": {"walk": 0.85, "run": 2.37}, "e_spider": {"walk": 1.0, "run": 1.0}, "golem": {"walk": 0.87, "run": 2.2}}
+const PASSADA_MOB := {"m_wolf": {"walk": 0.85, "run": 2.37}, "e_spider": {"walk": 1.0, "run": 1.0}, "golem": {"walk": 0.87, "run": 2.2}, "z_raptor": {"walk": 0.53, "run": 5.36}}
 
 
 func _ritmo_patas(m: Dictionary, speed: float) -> void:
