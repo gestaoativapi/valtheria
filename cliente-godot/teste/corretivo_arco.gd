@@ -14,6 +14,7 @@ var LIMIAR := 0.02
 var RAIO := 0.33
 var TRONCO := 1.0
 var DESTINO := "spine_03"
+var MODO := ""  # "dqs" testado em 27/11: pior (pontas de tecido); fica o método original
 var saida := ""
 var q := 0
 var c: Node3D
@@ -26,6 +27,7 @@ func _init() -> void:
 		elif a.begins_with("--passos="): passos = int(a.trim_prefix("--passos="))
 		elif a.begins_with("--forca="): forca = float(a.trim_prefix("--forca="))
 		elif a.begins_with("--raio="): RAIO = float(a.trim_prefix("--raio="))
+		elif a.begins_with("--modo="): MODO = a.trim_prefix("--modo=")
 		elif a.begins_with("--destino="): DESTINO = a.trim_prefix("--destino=")
 		elif a.begins_with("--tronco="): TRONCO = float(a.trim_prefix("--tronco="))
 		elif a.begins_with("--limiar="): LIMIAR = float(a.trim_prefix("--limiar="))
@@ -56,7 +58,6 @@ func _process(_d: float) -> bool:
 
 func _assar() -> void:
 	var sk: Skeleton3D = c.skel
-	for bn in ["Head", "hand_r", "lowerarm_r", "upperarm_r", "clavicle_r", "spine_03", "hand_l"]:
 	var mi: MeshInstance3D = null
 	for m in sk.find_children("*", "MeshInstance3D", true, false):
 		if (m as MeshInstance3D).skin != null and (m as MeshInstance3D).mesh.get_surface_count() == 1:
@@ -162,9 +163,57 @@ func _assar() -> void:
 	for g in ng:
 		if mascara[g] > 0.01:
 			ativos.append(g)
-	# esvazia o balão: na pose de tiro, a manga não pode ficar mais longe do osso do braço do que fica em descanso
 	var p := pos.duplicate()
-	for lado in lados:
+	if MODO == "dqs":
+		# 27/11: deformação que preserva volume (dual quaternions) na região do ombro; a deformação linear padrão
+		# mistura as matrizes dos ossos e a pele "incha"/dobra quando o braço gira muito (o balão do tiro)
+		var dq_r: Array = []
+		var dq_d: Array = []
+		var esc_b: Array = []
+		for m in mats:
+			var mt: Transform3D = m
+			var sc := mt.basis.get_scale().x
+			var qr := Quaternion(mt.basis.orthonormalized())
+			var tq := Quaternion(mt.origin.x, mt.origin.y, mt.origin.z, 0.0)
+			dq_r.append(qr)
+			dq_d.append((tq * qr) * 0.5)
+			esc_b.append(sc)
+		var mexidos := 0
+		for g in ativos:
+			var i := rep[g]
+			var r0: Quaternion = Quaternion(0, 0, 0, 0)
+			var d0: Quaternion = Quaternion(0, 0, 0, 0)
+			var sc := 0.0
+			var ref: Quaternion = Quaternion()
+			var tem := false
+			for j in 4:
+				var w := ow[i * 4 + j]
+				if w <= 0.0:
+					continue
+				var b := ob[i * 4 + j]
+				var qr: Quaternion = dq_r[b]
+				var qd: Quaternion = dq_d[b]
+				if not tem:
+					ref = qr
+					tem = true
+				elif ref.dot(qr) < 0.0:
+					qr = -qr
+					qd = -qd
+				r0 += qr * w
+				d0 += qd * w
+				sc += float(esc_b[b]) * w
+			var nr := r0.length()
+			if nr < 1e-8:
+				continue
+			r0 = r0 / nr
+			d0 = d0 / nr
+			var tr: Quaternion = (d0 * 2.0) * r0.inverse()
+			var x := v[i]
+			var y := r0 * (x * sc) + Vector3(tr.x, tr.y, tr.z)
+			p[g] = pos[g].lerp(y, mascara[g])
+			mexidos += 1
+		print("DQS mexidos ", mexidos)
+	for lado in (lados if MODO != "dqs" else ""):
 		var bu := sk.find_bone("upperarm_" + lado)
 		var bl := sk.find_bone("lowerarm_" + lado)
 		var ru := Vector3.ZERO

@@ -7,7 +7,7 @@ G="${1:-godot}"
 falhas=0
 "$G" --headless --path . --import >/dev/null 2>&1 || true
 echo "== 1. Sintaxe dos scripts"
-for f in scripts/*.gd; do
+for f in scripts/*.gd teste/*.gd testes/*.gd; do
   out=$("$G" --headless --path . --check-only --script "$f" 2>&1)
   if echo "$out" | grep -qE "SCRIPT ERROR|Parse Error|Compile Error"; then
     echo "FALHOU: $f"; echo "$out" | grep -E "ERROR|Error" | head -5; falhas=$((falhas+1))
