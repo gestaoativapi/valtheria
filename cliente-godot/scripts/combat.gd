@@ -902,6 +902,11 @@ func _impacto(m: Dictionary, dmg: float, crit: bool) -> void:
 	# faíscas no ponto do golpe (altura do peito, do lado de quem bateu)
 	var ponto := no.position + Vector3(0, float(m.get("height", 1.8)) * 0.62, 0) - dir.normalized() * 0.3
 	FX.flare(main, ponto, Color(1.0, 0.85, 0.55) if not crit else Color(1.0, 0.6, 0.2), 0.55 if not forte else 0.95, 0.16, 1.2)
+	var arma_j: Node3D = main.player.get("wnode") if main.player != null else null
+	if arma_j != null and arma_j.has_meta("reliquia"):  # Relíquia S/SS: clarão do elemento, anel e espírito (SS)
+		Reliquias.impacto(main, arma_j, ponto, de, forte)
+		if not forte and bool(arma_j.get_meta("reliquia").ss):
+			main.tremer(0.025)
 	if forte:
 		main.tremer(0.06 if crit else 0.04)
 		_segura(0.06)

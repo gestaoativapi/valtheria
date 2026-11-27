@@ -2201,7 +2201,9 @@ func _weapon(kind: String, s: float, has_shield: bool, item_id := "", shield_id 
 	var at := float(g.at) * s if float(g.at) >= 0.0 else -1.0
 	wnode = _model(item_id, kind, str(g.file), float(g.len) * s, at, s)
 	cor_grau_metal(wnode, grau_do_item(item_id))
-	Enfeites.arma(wnode, Enfeites.indice(item_id), kind)
+	# 27/11: S e SS são Relíquias de Criaturas (reliquias.gd); os outros graus seguem com os enfeites
+	if not Reliquias.aplicar(wnode, Enfeites.indice(item_id), kind):
+		Enfeites.arma(wnode, Enfeites.indice(item_id), kind)
 	load("res://scripts/inscricoes.gd").lamina(wnode, kind)
 	if kind == "arco":
 		arco_costas = wnode.transform
@@ -2358,7 +2360,8 @@ func _make_shield(s: float, shield_id := "") -> void:
 			break
 	shield = cena(sfile).instantiate()
 	cor_grau_metal(shield, grau_do_item(shield_id))
-	Enfeites.arma(shield, Enfeites.indice(shield_id), "escudo")
+	if not Reliquias.aplicar(shield, Enfeites.indice(shield_id), "escudo"):
+		Enfeites.arma(shield, Enfeites.indice(shield_id), "escudo")
 	var bb := AABB()
 	var first := true
 	for m in shield.find_children("*", "MeshInstance3D", true, false):
@@ -3071,6 +3074,8 @@ func action(n: String) -> float:
 	anim.seek(0.0)
 	var len := anim.get_animation(n).length / vel
 	busy_until = Time.get_ticks_msec() * 0.001 + len * 0.9
+	if wnode != null and wnode.has_meta("reliquia") and Reliquias.e_golpe(n):
+		Reliquias.rastro(wnode, len * 0.85)  # rastro de luz do elemento (Relíquias S/SS)
 	return len
 
 
