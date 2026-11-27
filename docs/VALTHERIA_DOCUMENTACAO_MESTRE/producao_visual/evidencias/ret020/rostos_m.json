@@ -1,0 +1,68 @@
+[
+ {
+  "chave": "atual",
+  "rotulo": "Atual (marco 1)",
+  "alvos": {},
+  "pintura": 0.0
+ },
+ {
+  "chave": "A",
+  "rotulo": "A - realista pintado",
+  "alvos": {},
+  "pintura": 0.6
+ },
+ {
+  "chave": "B1",
+  "rotulo": "B1 - herói",
+  "alvos": {
+   "eyes/l-eye-height2-incr": 0.4,
+   "eyes/r-eye-height2-incr": 0.4,
+   "eyes/l-eye-eyefold-up": 0.24,
+   "eyes/r-eye-eyefold-up": 0.24,
+   "cheek/l-cheek-bones-incr": 0.8,
+   "cheek/r-cheek-bones-incr": 0.8,
+   "chin/chin-prominent-incr": 0.5,
+   "chin/chin-width-incr": 0.35,
+   "nose/nose-scale-horiz-decr": 0.4,
+   "nose/nose-point-width-decr": 0.4,
+   "head/head-oval": 0.5
+  },
+  "pintura": 1.0
+ },
+ {
+  "chave": "B2",
+  "rotulo": "B2 - veterano",
+  "alvos": {
+   "eyes/l-eye-height2-incr": 0.2,
+   "eyes/r-eye-height2-incr": 0.2,
+   "eyes/l-eye-eyefold-up": 0.12,
+   "eyes/r-eye-eyefold-up": 0.12,
+   "cheek/l-cheek-bones-incr": 0.9,
+   "cheek/r-cheek-bones-incr": 0.9,
+   "chin/chin-width-incr": 0.7,
+   "chin/chin-height-incr": 0.3,
+   "nose/nose-hump-incr": 0.6,
+   "head/head-square": 0.6,
+   "eyebrows/eyebrows-angle-down": 0.6,
+   "eyebrows/eyebrows-trans-down": 0.3
+  },
+  "pintura": 1.0
+ },
+ {
+  "chave": "B3",
+  "rotulo": "B3 - jovem",
+  "alvos": {
+   "eyes/l-eye-height2-incr": 0.6,
+   "eyes/r-eye-height2-incr": 0.6,
+   "eyes/l-eye-eyefold-up": 0.36,
+   "eyes/r-eye-eyefold-up": 0.36,
+   "head/head-round": 0.5,
+   "chin/chin-width-decr": 0.5,
+   "nose/nose-scale-vert-decr": 0.4,
+   "nose/nose-point-up": 0.3,
+   "cheek/l-cheek-volume-incr": 0.4,
+   "cheek/r-cheek-volume-incr": 0.4
+  },
+  "pintura": 1.0
+ }
+]

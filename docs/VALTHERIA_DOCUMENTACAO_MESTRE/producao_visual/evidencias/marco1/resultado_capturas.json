@@ -1,0 +1,37 @@
+{
+ "animacoes": [
+  "Consume",
+  "Dance",
+  "Death01",
+  "Farm_Harvest",
+  "Hit_Chest",
+  "Idle",
+  "Idle_FoldArms",
+  "Idle_Shield",
+  "Idle_Talking",
+  "Interact",
+  "Jog_Fwd",
+  "OverhandThrow",
+  "PickUp_Table",
+  "Punch_Cross",
+  "Punch_Jab",
+  "Shield_OneShot",
+  "Sitting_Idle",
+  "Spell_Simple_Idle",
+  "Spell_Simple_Shoot",
+  "Sprint",
+  "Sword_Attack",
+  "Sword_Block",
+  "Sword_Regular_A",
+  "Sword_Regular_B",
+  "Sword_Regular_C",
+  "TreeChopping",
+  "Walk",
+  "Yes"
+ ],
+ "espada_graus": [
+  "d",
+  "b",
+  "s"
+ ]
+}

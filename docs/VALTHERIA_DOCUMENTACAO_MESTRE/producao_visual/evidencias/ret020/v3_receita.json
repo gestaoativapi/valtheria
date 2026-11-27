@@ -1,0 +1,71 @@
+{
+ "descricao": "Receita de reconstrução dos protótipos V3 (P1, P2, P5). Os scripts em cliente-godot/ferramentas/v3 são a fonte principal; os .blend em fontes/personagens servem para conferência e retoque manual.",
+ "data": "2026-11-15",
+ "ferramentas": {
+  "blender": {
+   "versao": "5.3.0",
+   "build": "02f0899d78e3",
+   "licenca": "GPL",
+   "uso": "módulo bpy (pip) em Python 3; motor Cycles na CPU para assar texturas, com 1 linha de processamento (determinístico)"
+  },
+  "mpfb2": {
+   "versao": "2.0.18",
+   "origem": "https://github.com/makehumancommunity/mpfb2",
+   "licenca_codigo": "GPL 3.0 (só ferramenta, nada entra no jogo)",
+   "licenca_assets": "CC0 1.0 (alvos, malha-base, rigs)",
+   "instalacao": "extensão do Blender bl_ext.user_default.mpfb em $BLENDER_USER_RESOURCES"
+  },
+  "makehuman_system_assets": {
+   "arquivo": "makehuman_system_assets_cc0.zip",
+   "sha256": "b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107",
+   "origem": "https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip",
+   "licenca": "CC0 1.0",
+   "evidencia": "fontes/makehuman_system_assets_LICENCA.txt",
+   "pasta_esperada": "/home/claude/v2/mh_assets/pacote (constante A em vestir_v3.py e rosto_ab.py)"
+  },
+  "python": {
+   "numpy": "2.5.4"
+  },
+  "godot": {
+   "versao": "4.7.2-stable",
+   "uso": "importação dos .glb e testes em testes/prototipos"
+  }
+ },
+ "comandos": [
+  "export BLENDER_USER_RESOURCES=<pasta com a extensão MPFB2 e os assets MakeHuman ligados em mpfb/data>",
+  "cd cliente-godot/ferramentas/v3",
+  "python vestir_v3.py m <saida>/m        # P1 (opcional: V3_BLEND=<arquivo.blend> grava a fonte editável)",
+  "python vestir_v3.py f <saida>/f        # P2 (gera também a trança LOD cabelo_lod)",
+  "python espada_v3.py <saida>/espada      # P5: graus d, b, s + espada_longa.json (pegada e bainha de cintura)",
+  "cd ../..",
+  "PYTHONPATH=ferramentas/v3 python ferramentas/v3/ligar_pecas.py assets/chars/body_male_peasant.glb <saida>/m/mpfb_m.glb <saida>/lig_m '{\"pc_humano_m\":[\"corpo\",\"olhos\",\"sobrancelha\",\"cilios\"],\"rp_aldeao_tunica_m\":[\"tunica\"],\"rp_aldeao_calca_m\":[\"calca\"],\"rp_botas_couro_m\":[\"botas\"],\"ca_curto_01\":[\"cabelo\"]}'",
+  "PYTHONPATH=ferramentas/v3 python ferramentas/v3/ligar_pecas.py assets/chars/body_female_peasant.glb <saida>/f/mpfb_f.glb <saida>/lig_f '{\"pc_humano_f\":[\"corpo\",\"olhos\",\"sobrancelha\",\"cilios\"],\"rp_aldeao_tunica_f\":[\"tunica\"],\"rp_aldeao_calca_f\":[\"calca\"],\"rp_botas_couro_f\":[\"botas\"],\"ca_tranca_longa\":[\"cabelo\"],\"ca_tranca_longa_lod1\":[\"cabelo_lod\"]}'",
+  "copiar <saida>/lig_*/*.glb e ligacao_*.json para assets_v3/personagens; <saida>/espada/*.glb, tx_*.png e espada_longa.json para assets_v3/equipamentos",
+  "godot --headless --path . --import   # recria os *_0.png extraídos e os .import",
+  "testes: ferramentas/v3/testar_animacoes.py, testar_bainha.py; cena testes/prototipos/marco1_correcoes.tscn"
+ ],
+ "determinismo": "Duas reconstruções independentes (sementes de hash do Python diferentes) produziram os mesmos bytes em 34 de 34 arquivos (malhas, pesos, UVs, texturas e .glb). Ver o relatório RET-020.",
+ "sha256_saidas": {
+  "cliente-godot/assets_v3/equipamentos/tx_espada_longa_b.png": "57535571a30731dfbbf5fc2577a7db3d8f3d64b1d84c00760cc4034d473290af",
+  "cliente-godot/assets_v3/equipamentos/tx_espada_longa_b_metal.png": "52aed2dbc07d1b489b1cab94a83e5d3d523b23180b163d27308fd2b38d58906f",
+  "cliente-godot/assets_v3/equipamentos/tx_espada_longa_d.png": "6b6a7cf178f14c493eee581050e13968ae3b8402a9dc88555b3b1ab4e016090d",
+  "cliente-godot/assets_v3/equipamentos/tx_espada_longa_d_metal.png": "33198fddd6a5713610e0eb529589d97bb3c9a0e8c664cc84bee50a39aa8801b3",
+  "cliente-godot/assets_v3/equipamentos/tx_espada_longa_s.png": "f6fef9bdac0ad322fe0f1bce75f9d3f8f9bd71e49fc3cd5264f31097c6cf16cb",
+  "cliente-godot/assets_v3/equipamentos/tx_espada_longa_s_emissao.png": "85d23bd9e0f19874dee75616032f10cbd97697e3c1cc43c26165fb3c68aa5c52",
+  "cliente-godot/assets_v3/equipamentos/tx_espada_longa_s_metal.png": "ca8fa375474fb99497deb03ba3db23a4559e88ccd100191d9ef54b10314515e2",
+  "cliente-godot/assets_v3/equipamentos/wp_espada_longa_b.glb": "f8388b7a1803435a049093a0bbf5cf163ca1a198b70082ff2c53ede782f5ac91",
+  "cliente-godot/assets_v3/equipamentos/wp_espada_longa_d.glb": "176a7c0a3606c53b2a656dc57da490e75c33966c93930fa2436fe87d2be68f49",
+  "cliente-godot/assets_v3/equipamentos/wp_espada_longa_s.glb": "fc771c02953f40a5886aac081ab1c3f8ac6bac500a5cbb44489cace6a363a9d9",
+  "cliente-godot/assets_v3/personagens/ca_curto_01.glb": "974949f00290749517b5184dbc6014dac1e09693bf880324ae8967feeee2e0da",
+  "cliente-godot/assets_v3/personagens/ca_tranca_longa.glb": "3dcfb6d07dba98f5cfef5da296c9b7b228282d5f20f58231b12cfb90e099d299",
+  "cliente-godot/assets_v3/personagens/ca_tranca_longa_lod1.glb": "5d132c93442af02727ec0fc076dd8140bb0544a41e70db38310fa0f8627660dd",
+  "cliente-godot/assets_v3/personagens/pc_humano_f.glb": "61e2c08cb4cf9f1987da374a1e42b995c082cbfaad00683512a1ee0e78663122",
+  "cliente-godot/assets_v3/personagens/pc_humano_m.glb": "9b774415b9d6b67989f0fc0ba027da1acc22026bf978add1ada9108939419709",
+  "cliente-godot/assets_v3/personagens/rp_aldeao_calca_f.glb": "caf55d5118d26693c247ebdbe2c8e6443e680c0810cd89439f86d85c800ab43e",
+  "cliente-godot/assets_v3/personagens/rp_aldeao_calca_m.glb": "5aa47f9bdda7232bfb2097aa4c8731cf568b346c74f8f425abc0ea24c7a442bb",
+  "cliente-godot/assets_v3/personagens/rp_aldeao_tunica_f.glb": "0a72ce80e1070ddf302b3c036e4800ceafc7710c16c2ea0a86d60c19e9868729",
+  "cliente-godot/assets_v3/personagens/rp_aldeao_tunica_m.glb": "11dd30deace9c03c50f4c12f79c326bbe0ec13a63217ca8231afa0cb3e1ddfbf",
+  "cliente-godot/assets_v3/personagens/rp_botas_couro_f.glb": "2b12a3155cb37aa02a41ad667e5d5d92ce5bd4cb54b07d54bcea4ef937fd1be5",
+  "cliente-godot/assets_v3/personagens/rp_botas_couro_m.glb": "c0e02db61f4082087865ca04d627b2c9018274ec57ca56578ef859a4acdf9d06"
+ }
+}

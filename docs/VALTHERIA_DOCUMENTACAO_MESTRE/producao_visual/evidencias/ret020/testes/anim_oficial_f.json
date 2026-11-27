@@ -1,0 +1,1770 @@
+{
+ "hip": 1.0,
+ "pares": [],
+ "poses": [
+  {
+   "anim": "Dance_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 19.079,
+     "max": 41.338
+    },
+    "outfit_female_peasant": {
+     "p99": 1.581,
+     "max": 3.853
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Dance_Loop",
+   "quadro": "meio",
+   "tempo": 0.625,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 18.387,
+     "max": 37.094
+    },
+    "outfit_female_peasant": {
+     "p99": 1.697,
+     "max": 5.749
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Dance_Loop",
+   "quadro": "fim",
+   "tempo": 1.25,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 19.079,
+     "max": 41.338
+    },
+    "outfit_female_peasant": {
+     "p99": 1.581,
+     "max": 3.853
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Death01",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 21.434,
+     "max": 46.482
+    },
+    "outfit_female_peasant": {
+     "p99": 1.618,
+     "max": 3.196
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Death01",
+   "quadro": "meio",
+   "tempo": 1.5,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 38.436,
+     "max": 80.685
+    },
+    "outfit_female_peasant": {
+     "p99": 2.134,
+     "max": 7.448
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Death01",
+   "quadro": "fim",
+   "tempo": 3.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 44.191,
+     "max": 95.211
+    },
+    "outfit_female_peasant": {
+     "p99": 1.783,
+     "max": 3.574
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Hit_Chest",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 24.414,
+     "max": 59.397
+    },
+    "outfit_female_peasant": {
+     "p99": 1.604,
+     "max": 4.766
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Hit_Chest",
+   "quadro": "meio",
+   "tempo": 0.208,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 23.268,
+     "max": 54.022
+    },
+    "outfit_female_peasant": {
+     "p99": 1.597,
+     "max": 3.897
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Hit_Chest",
+   "quadro": "fim",
+   "tempo": 0.417,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.727,
+     "max": 49.578
+    },
+    "outfit_female_peasant": {
+     "p99": 1.618,
+     "max": 3.147
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.618,
+     "max": 3.161
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_Loop",
+   "quadro": "meio",
+   "tempo": 1.562,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.089,
+     "max": 47.9
+    },
+    "outfit_female_peasant": {
+     "p99": 1.608,
+     "max": 3.1
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_Loop",
+   "quadro": "fim",
+   "tempo": 3.125,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.015,
+     "max": 47.768
+    },
+    "outfit_female_peasant": {
+     "p99": 1.618,
+     "max": 3.149
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_Talking_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.727,
+     "max": 49.578
+    },
+    "outfit_female_peasant": {
+     "p99": 1.531,
+     "max": 3.088
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_Talking_Loop",
+   "quadro": "meio",
+   "tempo": 1.833,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.854,
+     "max": 49.278
+    },
+    "outfit_female_peasant": {
+     "p99": 1.545,
+     "max": 3.091
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_Talking_Loop",
+   "quadro": "fim",
+   "tempo": 3.667,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.727,
+     "max": 49.578
+    },
+    "outfit_female_peasant": {
+     "p99": 1.531,
+     "max": 3.088
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Interact",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.727,
+     "max": 49.578
+    },
+    "outfit_female_peasant": {
+     "p99": 1.613,
+     "max": 3.147
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Interact",
+   "quadro": "meio",
+   "tempo": 1.25,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.61,
+     "max": 49.303
+    },
+    "outfit_female_peasant": {
+     "p99": 1.591,
+     "max": 3.08
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Interact",
+   "quadro": "fim",
+   "tempo": 2.5,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.727,
+     "max": 49.578
+    },
+    "outfit_female_peasant": {
+     "p99": 1.613,
+     "max": 3.147
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Jog_Fwd_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 28.297,
+     "max": 63.882
+    },
+    "outfit_female_peasant": {
+     "p99": 2.009,
+     "max": 5.922
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Jog_Fwd_Loop",
+   "quadro": "meio",
+   "tempo": 0.583,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 27.208,
+     "max": 61.759
+    },
+    "outfit_female_peasant": {
+     "p99": 2.009,
+     "max": 5.91
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Jog_Fwd_Loop",
+   "quadro": "fim",
+   "tempo": 1.167,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 28.297,
+     "max": 63.882
+    },
+    "outfit_female_peasant": {
+     "p99": 2.009,
+     "max": 5.922
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "PickUp_Table",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.368,
+     "max": 49.578
+    },
+    "outfit_female_peasant": {
+     "p99": 1.617,
+     "max": 3.147
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "PickUp_Table",
+   "quadro": "meio",
+   "tempo": 0.521,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 24.204,
+     "max": 47.59
+    },
+    "outfit_female_peasant": {
+     "p99": 1.626,
+     "max": 3.066
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "PickUp_Table",
+   "quadro": "fim",
+   "tempo": 1.042,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.368,
+     "max": 49.578
+    },
+    "outfit_female_peasant": {
+     "p99": 1.617,
+     "max": 3.147
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Punch_Cross",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 19.721,
+     "max": 40.264
+    },
+    "outfit_female_peasant": {
+     "p99": 1.65,
+     "max": 5.812
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Punch_Cross",
+   "quadro": "meio",
+   "tempo": 0.625,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.557,
+     "max": 47.231
+    },
+    "outfit_female_peasant": {
+     "p99": 1.675,
+     "max": 4.31
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Punch_Cross",
+   "quadro": "fim",
+   "tempo": 1.25,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 19.721,
+     "max": 40.264
+    },
+    "outfit_female_peasant": {
+     "p99": 1.65,
+     "max": 5.812
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Punch_Jab",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 19.721,
+     "max": 40.264
+    },
+    "outfit_female_peasant": {
+     "p99": 1.65,
+     "max": 5.812
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Punch_Jab",
+   "quadro": "meio",
+   "tempo": 0.542,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 18.605,
+     "max": 37.524
+    },
+    "outfit_female_peasant": {
+     "p99": 1.586,
+     "max": 5.325
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Punch_Jab",
+   "quadro": "fim",
+   "tempo": 1.083,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 19.721,
+     "max": 40.264
+    },
+    "outfit_female_peasant": {
+     "p99": 1.65,
+     "max": 5.812
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sitting_Idle_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 20.139,
+     "max": 48.134
+    },
+    "outfit_female_peasant": {
+     "p99": 2.69,
+     "max": 11.804
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sitting_Idle_Loop",
+   "quadro": "meio",
+   "tempo": 1.042,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 19.249,
+     "max": 48.134
+    },
+    "outfit_female_peasant": {
+     "p99": 2.69,
+     "max": 11.804
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sitting_Idle_Loop",
+   "quadro": "fim",
+   "tempo": 2.083,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 20.139,
+     "max": 48.134
+    },
+    "outfit_female_peasant": {
+     "p99": 2.69,
+     "max": 11.804
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Spell_Simple_Idle_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 24.519,
+     "max": 47.131
+    },
+    "outfit_female_peasant": {
+     "p99": 1.536,
+     "max": 3.011
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Spell_Simple_Idle_Loop",
+   "quadro": "meio",
+   "tempo": 1.312,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 24.29,
+     "max": 47.131
+    },
+    "outfit_female_peasant": {
+     "p99": 1.538,
+     "max": 3.011
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Spell_Simple_Idle_Loop",
+   "quadro": "fim",
+   "tempo": 2.625,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 24.519,
+     "max": 47.131
+    },
+    "outfit_female_peasant": {
+     "p99": 1.536,
+     "max": 3.011
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Spell_Simple_Shoot",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.954,
+     "max": 45.006
+    },
+    "outfit_female_peasant": {
+     "p99": 1.538,
+     "max": 3.016
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Spell_Simple_Shoot",
+   "quadro": "meio",
+   "tempo": 0.312,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 23.476,
+     "max": 45.978
+    },
+    "outfit_female_peasant": {
+     "p99": 1.524,
+     "max": 3.136
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Spell_Simple_Shoot",
+   "quadro": "fim",
+   "tempo": 0.625,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.954,
+     "max": 45.006
+    },
+    "outfit_female_peasant": {
+     "p99": 1.538,
+     "max": 3.016
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sprint_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 24.999,
+     "max": 56.226
+    },
+    "outfit_female_peasant": {
+     "p99": 1.942,
+     "max": 6.75
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sprint_Loop",
+   "quadro": "meio",
+   "tempo": 0.417,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 23.956,
+     "max": 54.125
+    },
+    "outfit_female_peasant": {
+     "p99": 2.051,
+     "max": 8.22
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sprint_Loop",
+   "quadro": "fim",
+   "tempo": 0.833,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 24.999,
+     "max": 56.226
+    },
+    "outfit_female_peasant": {
+     "p99": 1.942,
+     "max": 6.75
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Attack",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 27.979,
+     "max": 62.602
+    },
+    "outfit_female_peasant": {
+     "p99": 1.784,
+     "max": 5.203
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Attack",
+   "quadro": "meio",
+   "tempo": 0.958,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 28.718,
+     "max": 65.354
+    },
+    "outfit_female_peasant": {
+     "p99": 2.491,
+     "max": 10.73
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Attack",
+   "quadro": "fim",
+   "tempo": 1.917,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 27.979,
+     "max": 62.602
+    },
+    "outfit_female_peasant": {
+     "p99": 1.784,
+     "max": 5.203
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Walk_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 20.905,
+     "max": 45.864
+    },
+    "outfit_female_peasant": {
+     "p99": 1.727,
+     "max": 4.016
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Walk_Loop",
+   "quadro": "meio",
+   "tempo": 0.833,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 20.955,
+     "max": 46.041
+    },
+    "outfit_female_peasant": {
+     "p99": 1.648,
+     "max": 3.894
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Walk_Loop",
+   "quadro": "fim",
+   "tempo": 1.667,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 20.905,
+     "max": 45.864
+    },
+    "outfit_female_peasant": {
+     "p99": 1.727,
+     "max": 4.016
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Consume",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.619,
+     "max": 3.161
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Consume",
+   "quadro": "meio",
+   "tempo": 0.667,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.566,
+     "max": 52.013
+    },
+    "outfit_female_peasant": {
+     "p99": 1.608,
+     "max": 2.974
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Consume",
+   "quadro": "fim",
+   "tempo": 1.333,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.619,
+     "max": 3.161
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Farm_Harvest",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 20.11,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.618,
+     "max": 3.161
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Farm_Harvest",
+   "quadro": "meio",
+   "tempo": 1.25,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 21.695,
+     "max": 51.749
+    },
+    "outfit_female_peasant": {
+     "p99": 3.042,
+     "max": 15.657
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Farm_Harvest",
+   "quadro": "fim",
+   "tempo": 2.5,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 20.11,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.618,
+     "max": 3.161
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_FoldArms_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 20.733,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.608,
+     "max": 3.161
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_FoldArms_Loop",
+   "quadro": "meio",
+   "tempo": 1.25,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 20.848,
+     "max": 47.9
+    },
+    "outfit_female_peasant": {
+     "p99": 1.586,
+     "max": 3.101
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_FoldArms_Loop",
+   "quadro": "fim",
+   "tempo": 2.5,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 21.146,
+     "max": 47.768
+    },
+    "outfit_female_peasant": {
+     "p99": 1.608,
+     "max": 3.149
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_Shield_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 23.079,
+     "max": 48.562
+    },
+    "outfit_female_peasant": {
+     "p99": 1.6,
+     "max": 3.197
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_Shield_Loop",
+   "quadro": "meio",
+   "tempo": 1.25,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.997,
+     "max": 48.431
+    },
+    "outfit_female_peasant": {
+     "p99": 1.591,
+     "max": 3.137
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Idle_Shield_Loop",
+   "quadro": "fim",
+   "tempo": 2.5,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.916,
+     "max": 48.299
+    },
+    "outfit_female_peasant": {
+     "p99": 1.599,
+     "max": 3.185
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "OverhandThrow",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.633,
+     "max": 3.837
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "OverhandThrow",
+   "quadro": "meio",
+   "tempo": 0.667,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 39.082,
+     "max": 89.555
+    },
+    "outfit_female_peasant": {
+     "p99": 2.754,
+     "max": 12.963
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "OverhandThrow",
+   "quadro": "fim",
+   "tempo": 1.333,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.646,
+     "max": 3.837
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Shield_OneShot",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.618,
+     "max": 3.161
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Shield_OneShot",
+   "quadro": "meio",
+   "tempo": 0.417,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 19.851,
+     "max": 46.549
+    },
+    "outfit_female_peasant": {
+     "p99": 1.636,
+     "max": 4.005
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Shield_OneShot",
+   "quadro": "fim",
+   "tempo": 0.833,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.618,
+     "max": 3.161
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Block",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.6,
+     "max": 3.036
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Block",
+   "quadro": "meio",
+   "tempo": 0.617,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 23.05,
+     "max": 56.57
+    },
+    "outfit_female_peasant": {
+     "p99": 2.361,
+     "max": 9.307
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Block",
+   "quadro": "fim",
+   "tempo": 1.233,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.6,
+     "max": 3.036
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Regular_A",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.6,
+     "max": 3.036
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Regular_A",
+   "quadro": "meio",
+   "tempo": 0.217,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 18.453,
+     "max": 41.277
+    },
+    "outfit_female_peasant": {
+     "p99": 2.539,
+     "max": 10.962
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Regular_A",
+   "quadro": "fim",
+   "tempo": 0.433,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 32.144,
+     "max": 68.656
+    },
+    "outfit_female_peasant": {
+     "p99": 2.806,
+     "max": 8.144
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Regular_B",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 31.55,
+     "max": 68.889
+    },
+    "outfit_female_peasant": {
+     "p99": 2.773,
+     "max": 8.295
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Regular_B",
+   "quadro": "meio",
+   "tempo": 0.267,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 25.176,
+     "max": 58.974
+    },
+    "outfit_female_peasant": {
+     "p99": 3.069,
+     "max": 13.933
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Regular_B",
+   "quadro": "fim",
+   "tempo": 0.533,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 24.215,
+     "max": 55.357
+    },
+    "outfit_female_peasant": {
+     "p99": 2.841,
+     "max": 14.369
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Regular_C",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 24.76,
+     "max": 56.211
+    },
+    "outfit_female_peasant": {
+     "p99": 2.852,
+     "max": 13.798
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Regular_C",
+   "quadro": "meio",
+   "tempo": 1.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 19.312,
+     "max": 43.631
+    },
+    "outfit_female_peasant": {
+     "p99": 2.885,
+     "max": 15.261
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Sword_Regular_C",
+   "quadro": "fim",
+   "tempo": 2.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.63,
+     "max": 3.198
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "TreeChopping_Loop",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 21.947,
+     "max": 44.147
+    },
+    "outfit_female_peasant": {
+     "p99": 1.68,
+     "max": 5.068
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "TreeChopping_Loop",
+   "quadro": "meio",
+   "tempo": 0.483,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 25.253,
+     "max": 60.731
+    },
+    "outfit_female_peasant": {
+     "p99": 1.801,
+     "max": 5.041
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "TreeChopping_Loop",
+   "quadro": "fim",
+   "tempo": 0.967,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 21.947,
+     "max": 44.147
+    },
+    "outfit_female_peasant": {
+     "p99": 1.68,
+     "max": 5.068
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Yes",
+   "quadro": "início",
+   "tempo": 0.0,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.164,
+     "max": 48.032
+    },
+    "outfit_female_peasant": {
+     "p99": 1.618,
+     "max": 3.161
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Yes",
+   "quadro": "meio",
+   "tempo": 1.25,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.106,
+     "max": 47.903
+    },
+    "outfit_female_peasant": {
+     "p99": 1.603,
+     "max": 3.233
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  },
+  {
+   "anim": "Yes",
+   "quadro": "fim",
+   "tempo": 2.5,
+   "deformacao": {
+    "body_female_peasant": {
+     "p99": 22.021,
+     "max": 47.775
+    },
+    "outfit_female_peasant": {
+     "p99": 1.618,
+     "max": 3.163
+    },
+    "hair_long": {
+     "p99": 1.0,
+     "max": 1.0
+    }
+   },
+   "atravessamento_pct": {},
+   "atravessamento_abs": {}
+  }
+ ]
+}

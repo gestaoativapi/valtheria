@@ -1,0 +1,3578 @@
+{
+ "configuracoes": [
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.015,
+    "cabeca": 0.087,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.08,
+    "tronco": 0.023
+   },
+   "item": "espada_ng",
+   "motivo": "comprimento:1.00 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [
+     "Walk"
+    ],
+    "cabeca": [],
+    "chao": [
+     "Sitting_Idle"
+    ],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": -0.036,
+    "cabeca": 0.375,
+    "chao": -0.13,
+    "escudo": 9.0,
+    "pernas": 0.053,
+    "tronco": 0.113
+   },
+   "item": "espada_ng",
+   "motivo": "comprimento:1.00 m+escudo",
+   "ponto": "cintura_com_escudo",
+   "pontos_usados": [
+    "cintura_com_escudo",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.013,
+    "cabeca": 0.086,
+    "chao": 0.011,
+    "escudo": 9.0,
+    "pernas": 0.356,
+    "tronco": 0.054
+   },
+   "item": "espada_longa",
+   "motivo": "item:espada_longa",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [
+     "Jog_Fwd"
+    ],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": 0.022,
+    "cabeca": 0.503,
+    "chao": 0.011,
+    "escudo": 9.0,
+    "pernas": -0.026,
+    "tronco": 0.052
+   },
+   "item": "espada_longa",
+   "motivo": "item:espada_longa+escudo",
+   "ponto": "cintura_com_escudo",
+   "pontos_usados": [
+    "cintura_com_escudo",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [
+     "Walk"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.039,
+    "cabeca": 0.416,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.032,
+    "tronco": 0.142
+   },
+   "item": "adaga_ng",
+   "motivo": "tipo:adaga",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [
+     "Walk"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": -0.039,
+    "cabeca": 0.416,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.032,
+    "tronco": 0.142
+   },
+   "item": "adaga_ng",
+   "motivo": "tipo:adaga",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [
+     "Walk"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.037,
+    "cabeca": 0.427,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.039,
+    "tronco": 0.146
+   },
+   "item": "punhal_ng",
+   "motivo": "tipo:punhal",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [
+     "Walk"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": -0.037,
+    "cabeca": 0.427,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.039,
+    "tronco": 0.146
+   },
+   "item": "punhal_ng",
+   "motivo": "tipo:punhal",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 3,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.008,
+    "cabeca": 0.184,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.034,
+    "tronco": 0.103
+   },
+   "item": "machado_ng",
+   "motivo": "tipo:machado",
+   "ponto": "cintura_machado",
+   "pontos_usados": [
+    "cintura_machado",
+    "chao",
+    "costas_diagonal"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [
+     "Sitting_Idle"
+    ],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": -0.008,
+    "cabeca": 0.334,
+    "chao": -0.095,
+    "escudo": 9.0,
+    "pernas": 0.03,
+    "tronco": 0.14
+   },
+   "item": "machado_ng",
+   "motivo": "tipo:machado",
+   "ponto": "cintura_machado",
+   "pontos_usados": [
+    "cintura_machado",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [
+     "Dance"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.016,
+    "cabeca": 0.091,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.019,
+    "tronco": 0.004
+   },
+   "item": "martelo_ng",
+   "motivo": "comprimento:1.10 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.018,
+    "cabeca": 0.124,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.062,
+    "tronco": 0.052
+   },
+   "item": "cajado_ng",
+   "motivo": "comprimento:1.70 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.059,
+    "cabeca": 0.131,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.061,
+    "tronco": 0.054
+   },
+   "item": "lanca_ng",
+   "motivo": "comprimento:1.90 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [
+     "Consume",
+     "Interact",
+     "Yes"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [
+     "Death01"
+    ],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.039,
+    "cabeca": -0.011,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": -0.057,
+    "tronco": 0.024
+   },
+   "item": "arco_ng",
+   "motivo": "comprimento:1.30 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.01,
+    "cabeca": 0.043,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.083,
+    "tronco": 0.011
+   },
+   "item": "espadao_ng",
+   "motivo": "comprimento:1.45 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 3,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.029,
+    "cabeca": 0.124,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": -0.003,
+    "tronco": 0.068
+   },
+   "item": "cetro_ng",
+   "motivo": "comprimento:0.75 m",
+   "ponto": "cintura_esq",
+   "pontos_usados": [
+    "cintura_esq",
+    "chao",
+    "costas_diagonal"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": 0.029,
+    "cabeca": 0.354,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": -0.003,
+    "tronco": 0.068
+   },
+   "item": "cetro_ng",
+   "motivo": "comprimento:0.75 m",
+   "ponto": "cintura_esq",
+   "pontos_usados": [
+    "cintura_esq",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.8,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.019,
+    "cabeca": 0.081,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.081,
+    "tronco": 0.029
+   },
+   "item": "duplas_ng",
+   "motivo": "tipo:duplas",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "humano"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.078,
+    "cabeca": 0.082,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.078,
+    "tronco": 0.022
+   },
+   "item": "espada_ng",
+   "motivo": "comprimento:1.00 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [
+     "Consume",
+     "Dance",
+     "Idle",
+     "Idle_FoldArms",
+     "Idle_Talking",
+     "Interact",
+     "OverhandThrow",
+     "PickUp_Table",
+     "Sitting_Idle",
+     "Yes"
+    ],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": 0.054,
+    "cabeca": 0.284,
+    "chao": -0.196,
+    "escudo": 9.0,
+    "pernas": 0.007,
+    "tronco": 0.054
+   },
+   "item": "espada_ng",
+   "motivo": "comprimento:1.00 m+escudo",
+   "ponto": "cintura_com_escudo",
+   "pontos_usados": [
+    "cintura_com_escudo",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.086,
+    "cabeca": 0.086,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.351,
+    "tronco": 0.016
+   },
+   "item": "espada_longa",
+   "motivo": "item:espada_longa",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": 0.099,
+    "cabeca": 0.401,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.026,
+    "tronco": 0.025
+   },
+   "item": "espada_longa",
+   "motivo": "item:espada_longa+escudo",
+   "ponto": "cintura_com_escudo",
+   "pontos_usados": [
+    "cintura_com_escudo",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.074,
+    "cabeca": 0.323,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": -0.008,
+    "tronco": 0.076
+   },
+   "item": "adaga_ng",
+   "motivo": "tipo:adaga",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": 0.074,
+    "cabeca": 0.323,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": -0.008,
+    "tronco": 0.076
+   },
+   "item": "adaga_ng",
+   "motivo": "tipo:adaga",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.077,
+    "cabeca": 0.33,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": -0.001,
+    "tronco": 0.079
+   },
+   "item": "punhal_ng",
+   "motivo": "tipo:punhal",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": 0.077,
+    "cabeca": 0.33,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": -0.001,
+    "tronco": 0.079
+   },
+   "item": "punhal_ng",
+   "motivo": "tipo:punhal",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 3,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [
+     "Dance",
+     "OverhandThrow"
+    ],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.047,
+    "cabeca": 0.154,
+    "chao": -0.084,
+    "escudo": 9.0,
+    "pernas": -0.014,
+    "tronco": 0.057
+   },
+   "item": "machado_ng",
+   "motivo": "tipo:machado",
+   "ponto": "cintura_machado",
+   "pontos_usados": [
+    "cintura_machado",
+    "chao",
+    "costas_diagonal"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [
+     "Dance",
+     "OverhandThrow",
+     "Sitting_Idle"
+    ],
+    "escudo": [],
+    "pernas": [
+     "Sitting_Idle"
+    ],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": 0.063,
+    "cabeca": 0.245,
+    "chao": -0.168,
+    "escudo": 9.0,
+    "pernas": -0.016,
+    "tronco": 0.083
+   },
+   "item": "machado_ng",
+   "motivo": "tipo:machado",
+   "ponto": "cintura_machado",
+   "pontos_usados": [
+    "cintura_machado",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.043,
+    "cabeca": 0.085,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.064,
+    "tronco": 0.002
+   },
+   "item": "martelo_ng",
+   "motivo": "comprimento:1.10 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.082,
+    "cabeca": 0.117,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.076,
+    "tronco": 0.036
+   },
+   "item": "cajado_ng",
+   "motivo": "comprimento:1.70 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.1,
+    "cabeca": 0.102,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.06,
+    "tronco": 0.043
+   },
+   "item": "lanca_ng",
+   "motivo": "comprimento:1.90 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.008,
+    "cabeca": 0.025,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.074,
+    "tronco": 0.023
+   },
+   "item": "arco_ng",
+   "motivo": "comprimento:1.30 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.037,
+    "cabeca": 0.084,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.075,
+    "tronco": 0.018
+   },
+   "item": "espadao_ng",
+   "motivo": "comprimento:1.45 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 3,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [
+     "Jog_Fwd"
+    ],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.114,
+    "cabeca": 0.12,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": -0.059,
+    "tronco": 0.021
+   },
+   "item": "cetro_ng",
+   "motivo": "comprimento:0.75 m",
+   "ponto": "cintura_esq",
+   "pontos_usados": [
+    "cintura_esq",
+    "chao",
+    "costas_diagonal"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [
+     "Sitting_Idle"
+    ],
+    "escudo": [],
+    "pernas": [
+     "Jog_Fwd"
+    ],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": 0.114,
+    "cabeca": 0.273,
+    "chao": -0.056,
+    "escudo": 9.0,
+    "pernas": -0.059,
+    "tronco": 0.021
+   },
+   "item": "cetro_ng",
+   "motivo": "comprimento:0.75 m",
+   "ponto": "cintura_esq",
+   "pontos_usados": [
+    "cintura_esq",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 1.36,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.072,
+    "cabeca": 0.087,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.095,
+    "tronco": 0.025
+   },
+   "item": "duplas_ng",
+   "motivo": "tipo:duplas",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "anao"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.1,
+    "cabeca": 0.166,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.228,
+    "tronco": 0.128
+   },
+   "item": "espada_ng",
+   "motivo": "comprimento:1.00 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [
+     "Consume",
+     "Idle",
+     "Interact",
+     "OverhandThrow",
+     "PickUp_Table",
+     "Walk",
+     "Yes"
+    ],
+    "cabeca": [],
+    "chao": [
+     "Consume",
+     "Dance",
+     "Idle",
+     "Idle_FoldArms",
+     "Idle_Talking",
+     "Interact",
+     "Jog_Fwd",
+     "OverhandThrow",
+     "PickUp_Table",
+     "Sitting_Idle",
+     "Walk",
+     "Yes"
+    ],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": -0.059,
+    "cabeca": 0.541,
+    "chao": -0.476,
+    "escudo": 9.0,
+    "pernas": 0.207,
+    "tronco": 0.283
+   },
+   "item": "espada_ng",
+   "motivo": "comprimento:1.00 m+escudo",
+   "ponto": "cintura_com_escudo",
+   "pontos_usados": [
+    "cintura_com_escudo",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.015,
+    "cabeca": 0.175,
+    "chao": 0.011,
+    "escudo": 9.0,
+    "pernas": 0.54,
+    "tronco": 0.198
+   },
+   "item": "espada_longa",
+   "motivo": "item:espada_longa",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": 0.049,
+    "cabeca": 0.749,
+    "chao": 0.011,
+    "escudo": 9.0,
+    "pernas": -0.008,
+    "tronco": 0.113
+   },
+   "item": "espada_longa",
+   "motivo": "item:espada_longa+escudo",
+   "ponto": "cintura_com_escudo",
+   "pontos_usados": [
+    "cintura_com_escudo",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [
+     "Farm_Harvest"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.027,
+    "cabeca": 0.612,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.16,
+    "tronco": 0.335
+   },
+   "item": "adaga_ng",
+   "motivo": "tipo:adaga",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [
+     "Farm_Harvest"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": -0.027,
+    "cabeca": 0.612,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.16,
+    "tronco": 0.335
+   },
+   "item": "adaga_ng",
+   "motivo": "tipo:adaga",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [
+     "Farm_Harvest"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.02,
+    "cabeca": 0.63,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.173,
+    "tronco": 0.342
+   },
+   "item": "punhal_ng",
+   "motivo": "tipo:punhal",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [
+     "Farm_Harvest"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": -0.02,
+    "cabeca": 0.63,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.173,
+    "tronco": 0.342
+   },
+   "item": "punhal_ng",
+   "motivo": "tipo:punhal",
+   "ponto": "cintura_curta",
+   "pontos_usados": [
+    "cintura_curta",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 3,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [
+     "Dance",
+     "Interact",
+     "Walk"
+    ],
+    "cabeca": [],
+    "chao": [
+     "Dance",
+     "Jog_Fwd",
+     "OverhandThrow",
+     "Yes"
+    ],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.033,
+    "cabeca": 0.392,
+    "chao": -0.228,
+    "escudo": 9.0,
+    "pernas": 0.173,
+    "tronco": 0.277
+   },
+   "item": "machado_ng",
+   "motivo": "tipo:machado",
+   "ponto": "cintura_machado",
+   "pontos_usados": [
+    "cintura_machado",
+    "chao",
+    "costas_diagonal"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [
+     "Dance",
+     "Interact",
+     "Walk"
+    ],
+    "cabeca": [],
+    "chao": [
+     "Dance",
+     "Jog_Fwd",
+     "OverhandThrow",
+     "Sitting_Idle",
+     "Yes"
+    ],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": -0.033,
+    "cabeca": 0.47,
+    "chao": -0.412,
+    "escudo": 9.0,
+    "pernas": 0.161,
+    "tronco": 0.331
+   },
+   "item": "machado_ng",
+   "motivo": "tipo:machado",
+   "ponto": "cintura_machado",
+   "pontos_usados": [
+    "cintura_machado",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.057,
+    "cabeca": 0.216,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.112,
+    "tronco": 0.07
+   },
+   "item": "martelo_ng",
+   "motivo": "comprimento:1.10 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.129,
+    "cabeca": 0.256,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.206,
+    "tronco": 0.159
+   },
+   "item": "cajado_ng",
+   "motivo": "comprimento:1.70 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [
+     "Sitting_Idle"
+    ],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.125,
+    "cabeca": 0.297,
+    "chao": -0.018,
+    "escudo": 9.0,
+    "pernas": 0.226,
+    "tronco": 0.205
+   },
+   "item": "lanca_ng",
+   "motivo": "comprimento:1.90 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [
+     "Consume",
+     "Interact"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [
+     "Death01"
+    ],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.049,
+    "cabeca": 0.126,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": -0.066,
+    "tronco": 0.214
+   },
+   "item": "arco_ng",
+   "motivo": "comprimento:1.30 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "oculta",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "oculta",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.104,
+    "cabeca": 0.09,
+    "chao": -0.013,
+    "escudo": 9.0,
+    "pernas": 0.298,
+    "tronco": 0.111
+   },
+   "item": "espadao_ng",
+   "motivo": "comprimento:1.45 m",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 3,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [
+     "Walk"
+    ],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": -0.05,
+    "cabeca": 0.281,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.103,
+    "tronco": 0.193
+   },
+   "item": "cetro_ng",
+   "motivo": "comprimento:0.75 m",
+   "ponto": "cintura_esq",
+   "pontos_usados": [
+    "cintura_esq",
+    "chao",
+    "costas_diagonal"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [
+     "Walk"
+    ],
+    "cabeca": [],
+    "chao": [
+     "Sitting_Idle"
+    ],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": false,
+   "escudo": true,
+   "folga_min_m": {
+    "bracos": -0.05,
+    "cabeca": 0.485,
+    "chao": -0.153,
+    "escudo": 9.0,
+    "pernas": 0.103,
+    "tronco": 0.193
+   },
+   "item": "cetro_ng",
+   "motivo": "comprimento:0.75 m",
+   "ponto": "cintura_esq",
+   "pontos_usados": [
+    "cintura_esq",
+    "chao"
+   ],
+   "raca": "gigante"
+  },
+  {
+   "acao_por_animacao": {
+    "Consume": "porte",
+    "Dance": "porte",
+    "Death01": "chao",
+    "Farm_Harvest": "porte",
+    "Hit_Chest": "mao",
+    "Idle": "porte",
+    "Idle_FoldArms": "porte",
+    "Idle_Shield": "mao",
+    "Idle_Talking": "porte",
+    "Interact": "porte",
+    "Jog_Fwd": "porte",
+    "OverhandThrow": "porte",
+    "PickUp_Table": "porte",
+    "Punch_Cross": "mao",
+    "Punch_Jab": "mao",
+    "Shield_OneShot": "mao",
+    "Sitting_Idle": "porte",
+    "Spell_Simple_Idle": "mao",
+    "Spell_Simple_Shoot": "mao",
+    "Sprint": "porte",
+    "Sword_Attack": "mao",
+    "Sword_Block": "mao",
+    "Sword_Regular_A": "mao",
+    "Sword_Regular_B": "mao",
+    "Sword_Regular_C": "mao",
+    "TreeChopping": "porte",
+    "Walk": "porte",
+    "Yes": "porte"
+   },
+   "alternancias": {
+    "falhas": 0,
+    "suportes_criados": 2,
+    "vezes": 100
+   },
+   "altura_m": 2.48,
+   "animacoes_criticas": {
+    "bracos": [],
+    "cabeca": [],
+    "chao": [],
+    "escudo": [],
+    "pernas": [],
+    "tronco": []
+   },
+   "aprovado": true,
+   "escudo": false,
+   "folga_min_m": {
+    "bracos": 0.115,
+    "cabeca": 0.158,
+    "chao": 0.01,
+    "escudo": 9.0,
+    "pernas": 0.23,
+    "tronco": 0.142
+   },
+   "item": "duplas_ng",
+   "motivo": "tipo:duplas",
+   "ponto": "costas_diagonal",
+   "pontos_usados": [
+    "costas_diagonal",
+    "chao"
+   ],
+   "raca": "gigante"
+  }
+ ],
+ "criterio_critico_m": 0.015
+}

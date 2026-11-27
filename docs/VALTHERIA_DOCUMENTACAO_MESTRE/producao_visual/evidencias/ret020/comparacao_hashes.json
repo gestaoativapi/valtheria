@@ -1,0 +1,206 @@
+[
+ {
+  "arquivo": "espada/espada_longa.json",
+  "sha256_r1": "4c87d3feae71c1bf",
+  "sha256_r2": "4c87d3feae71c1bf",
+  "igual": true
+ },
+ {
+  "arquivo": "espada/tx_espada_longa_b.png",
+  "sha256_r1": "57535571a30731df",
+  "sha256_r2": "57535571a30731df",
+  "igual": true
+ },
+ {
+  "arquivo": "espada/tx_espada_longa_b_metal.png",
+  "sha256_r1": "52aed2dbc07d1b48",
+  "sha256_r2": "52aed2dbc07d1b48",
+  "igual": true
+ },
+ {
+  "arquivo": "espada/tx_espada_longa_d.png",
+  "sha256_r1": "6b6a7cf178f14c49",
+  "sha256_r2": "6b6a7cf178f14c49",
+  "igual": true
+ },
+ {
+  "arquivo": "espada/tx_espada_longa_d_metal.png",
+  "sha256_r1": "33198fddd6a57136",
+  "sha256_r2": "33198fddd6a57136",
+  "igual": true
+ },
+ {
+  "arquivo": "espada/tx_espada_longa_s.png",
+  "sha256_r1": "f6fef9bdac0ad322",
+  "sha256_r2": "f6fef9bdac0ad322",
+  "igual": true
+ },
+ {
+  "arquivo": "espada/tx_espada_longa_s_emissao.png",
+  "sha256_r1": "85d23bd9e0f19874",
+  "sha256_r2": "85d23bd9e0f19874",
+  "igual": true
+ },
+ {
+  "arquivo": "espada/tx_espada_longa_s_metal.png",
+  "sha256_r1": "ca8fa375474fb994",
+  "sha256_r2": "ca8fa375474fb994",
+  "igual": true
+ },
+ {
+  "arquivo": "espada/wp_espada_longa_b.glb",
+  "sha256_r1": "f8388b7a1803435a",
+  "sha256_r2": "f8388b7a1803435a",
+  "igual": true
+ },
+ {
+  "arquivo": "espada/wp_espada_longa_d.glb",
+  "sha256_r1": "176a7c0a3606c53b",
+  "sha256_r2": "176a7c0a3606c53b",
+  "igual": true
+ },
+ {
+  "arquivo": "espada/wp_espada_longa_s.glb",
+  "sha256_r1": "fc771c02953f40a5",
+  "sha256_r2": "fc771c02953f40a5",
+  "igual": true
+ },
+ {
+  "arquivo": "f/mpfb_f.glb",
+  "sha256_r1": "e60dcf4bf43c37a6",
+  "sha256_r2": "e60dcf4bf43c37a6",
+  "igual": true
+ },
+ {
+  "arquivo": "f/mpfb_f.json",
+  "sha256_r1": "10eea4b9d935d969",
+  "sha256_r2": "10eea4b9d935d969",
+  "igual": true
+ },
+ {
+  "arquivo": "f/tx_botas_f.png",
+  "sha256_r1": "124be610759294e3",
+  "sha256_r2": "124be610759294e3",
+  "igual": true
+ },
+ {
+  "arquivo": "f/tx_calca_f.png",
+  "sha256_r1": "06a4366e8909a1ad",
+  "sha256_r2": "06a4366e8909a1ad",
+  "igual": true
+ },
+ {
+  "arquivo": "f/tx_tunica_f.png",
+  "sha256_r1": "af7d76d9656ef839",
+  "sha256_r2": "af7d76d9656ef839",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_f/ca_tranca_longa.glb",
+  "sha256_r1": "3dcfb6d07dba98f5",
+  "sha256_r2": "3dcfb6d07dba98f5",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_f/ca_tranca_longa_lod1.glb",
+  "sha256_r1": "5d132c93442af027",
+  "sha256_r2": "5d132c93442af027",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_f/ligacao_pc_humano_f.json",
+  "sha256_r1": "267ac54d0e3383d0",
+  "sha256_r2": "267ac54d0e3383d0",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_f/pc_humano_f.glb",
+  "sha256_r1": "61e2c08cb4cf9f19",
+  "sha256_r2": "61e2c08cb4cf9f19",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_f/rp_aldeao_calca_f.glb",
+  "sha256_r1": "caf55d5118d26693",
+  "sha256_r2": "caf55d5118d26693",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_f/rp_aldeao_tunica_f.glb",
+  "sha256_r1": "0a72ce80e1070ddf",
+  "sha256_r2": "0a72ce80e1070ddf",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_f/rp_botas_couro_f.glb",
+  "sha256_r1": "2b12a3155cb37aa0",
+  "sha256_r2": "2b12a3155cb37aa0",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_m/ca_curto_01.glb",
+  "sha256_r1": "974949f002907495",
+  "sha256_r2": "974949f002907495",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_m/ligacao_pc_humano_m.json",
+  "sha256_r1": "7ffea610452e9191",
+  "sha256_r2": "7ffea610452e9191",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_m/pc_humano_m.glb",
+  "sha256_r1": "9b774415b9d6b679",
+  "sha256_r2": "9b774415b9d6b679",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_m/rp_aldeao_calca_m.glb",
+  "sha256_r1": "5aa47f9bdda7232b",
+  "sha256_r2": "5aa47f9bdda7232b",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_m/rp_aldeao_tunica_m.glb",
+  "sha256_r1": "11dd30deace9c03c",
+  "sha256_r2": "11dd30deace9c03c",
+  "igual": true
+ },
+ {
+  "arquivo": "lig_m/rp_botas_couro_m.glb",
+  "sha256_r1": "c0e02db61f408208",
+  "sha256_r2": "c0e02db61f408208",
+  "igual": true
+ },
+ {
+  "arquivo": "m/mpfb_m.glb",
+  "sha256_r1": "63fcd218adb34001",
+  "sha256_r2": "63fcd218adb34001",
+  "igual": true
+ },
+ {
+  "arquivo": "m/mpfb_m.json",
+  "sha256_r1": "d8abfb31b0b336f9",
+  "sha256_r2": "d8abfb31b0b336f9",
+  "igual": true
+ },
+ {
+  "arquivo": "m/tx_botas_m.png",
+  "sha256_r1": "68c3ed7af2f2a545",
+  "sha256_r2": "68c3ed7af2f2a545",
+  "igual": true
+ },
+ {
+  "arquivo": "m/tx_calca_m.png",
+  "sha256_r1": "200a56518b83c0b5",
+  "sha256_r2": "200a56518b83c0b5",
+  "igual": true
+ },
+ {
+  "arquivo": "m/tx_tunica_m.png",
+  "sha256_r1": "17dfd5ecb5d3477c",
+  "sha256_r2": "17dfd5ecb5d3477c",
+  "igual": true
+ }
+]

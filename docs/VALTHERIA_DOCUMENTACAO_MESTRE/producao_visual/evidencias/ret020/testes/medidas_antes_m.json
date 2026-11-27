@@ -1,0 +1,54 @@
+{
+ "antes_m": {
+  "15.0m_sem_sombra": {
+   "chamadas_sombra": 0,
+   "chamadas_visivel": 8,
+   "sombra_tri": 0,
+   "visivel_tri": 6752
+  },
+  "15.0m_sombra": {
+   "chamadas_sombra": 0,
+   "chamadas_visivel": 24,
+   "sombra_tri": 13504,
+   "visivel_tri": 6752
+  },
+  "2.5m_sem_sombra": {
+   "chamadas_sombra": 0,
+   "chamadas_visivel": 8,
+   "sombra_tri": 0,
+   "visivel_tri": 26870
+  },
+  "2.5m_sombra": {
+   "chamadas_sombra": 0,
+   "chamadas_visivel": 16,
+   "sombra_tri": 26870,
+   "visivel_tri": 26870
+  },
+  "30.0m_sem_sombra": {
+   "chamadas_sombra": 0,
+   "chamadas_visivel": 8,
+   "sombra_tri": 0,
+   "visivel_tri": 3704
+  },
+  "30.0m_sombra": {
+   "chamadas_sombra": 0,
+   "chamadas_visivel": 16,
+   "sombra_tri": 3704,
+   "visivel_tri": 3704
+  },
+  "6.0m_sem_sombra": {
+   "chamadas_sombra": 0,
+   "chamadas_visivel": 8,
+   "sombra_tri": 0,
+   "visivel_tri": 13364
+  },
+  "6.0m_sombra": {
+   "chamadas_sombra": 0,
+   "chamadas_visivel": 22,
+   "sombra_tri": 24328,
+   "visivel_tri": 13364
+  },
+  "memoria_texturas_mb": 29.4,
+  "triangulos_arquivo": 27150
+ }
+}

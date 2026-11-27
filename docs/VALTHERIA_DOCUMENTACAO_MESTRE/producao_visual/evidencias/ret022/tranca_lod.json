@@ -1,0 +1,87 @@
+{
+ "detecao": "triângulos do quadro menos a cena sem cabelo (LOD automático de malha desligado nos trajetos)",
+ "distancias": [
+  {
+   "d": 5.0,
+   "draw": 21,
+   "draw_sombra": 0,
+   "malha": "completa",
+   "tri_se_completa": 22684,
+   "tri_se_lod": 17965,
+   "tri_sombra": 22690,
+   "tri_sombra_se_completa": 22690,
+   "tri_sombra_se_lod": 17971,
+   "tri_total": 22684
+  },
+  {
+   "d": 15.0,
+   "draw": 28,
+   "draw_sombra": 0,
+   "malha": "lod",
+   "tri_se_completa": 12214,
+   "tri_se_lod": 7495,
+   "tri_sombra": 14482,
+   "tri_sombra_se_completa": 23920,
+   "tri_sombra_se_lod": 14482,
+   "tri_total": 7495
+  },
+  {
+   "d": 30.0,
+   "draw": 21,
+   "draw_sombra": 0,
+   "malha": "lod",
+   "tri_se_completa": 9114,
+   "tri_se_lod": 4395,
+   "tri_sombra": 4401,
+   "tri_sombra_se_completa": 9120,
+   "tri_sombra_se_lod": 4401,
+   "tri_total": 4395
+  }
+ ],
+ "margem_m": 1.0,
+ "trajetos": {
+  "afastando": {
+   "final": "lod",
+   "quadros": 101,
+   "quadros_com_as_duas": 0,
+   "quadros_sombra_com_as_duas": 14,
+   "trocas": [
+    {
+     "de": "completa",
+     "em_m": 13.25,
+     "para": "lod"
+    }
+   ]
+  },
+  "aproximando": {
+   "final": "completa",
+   "quadros": 101,
+   "quadros_com_as_duas": 0,
+   "quadros_sombra_com_as_duas": 14,
+   "trocas": [
+    {
+     "de": "lod",
+     "em_m": 11.0,
+     "para": "completa"
+    }
+   ]
+  },
+  "oscilando_11_5_12_5": {
+   "final": "lod",
+   "quadros": 60,
+   "quadros_com_as_duas": 0,
+   "quadros_sombra_com_as_duas": 0,
+   "trocas": []
+  },
+  "parado_12m": {
+   "final": "lod",
+   "quadros": 120,
+   "quadros_com_as_duas": 0,
+   "quadros_sombra_com_as_duas": 0,
+   "trocas": []
+  }
+ },
+ "tri_completa": 5518,
+ "tri_lod": 799,
+ "troca_m": 12.0
+}
