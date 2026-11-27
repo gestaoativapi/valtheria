@@ -2161,7 +2161,7 @@ const PEGADA_RACA := {
 	"orc": {"guarda": [Vector3(0.5, 0.62, 0.6), Vector3(-0.13, 0.92, 0.4)], "uma_mao": [0.12, 0.38]},
 	"goblin": {"guarda": [Vector3(0.3, 0.6, 0.62), Vector3(-0.06, 0.86, 0.34)], "uma_mao": [-0.5, 0.2]},
 	"gigante": {"guarda": [Vector3(0.38, 0.68, 0.6), Vector3(-0.06, 0.84, 0.38)], "uma_mao": [0.18, 0.1]},
-	"anao": {"guarda": [Vector3(0.42, 0.6, 0.68), Vector3(-0.02, 0.82, 0.6)], "uma_mao": [0.1, 0.15]},
+	"anao": {"guarda": [Vector3(0.42, 0.6, 0.68), Vector3(-0.02, 0.82, 0.6)], "guarda_martelo": [Vector3(0.38, 0.48, 0.86), Vector3(-0.02, 0.82, 0.6)], "guarda_machado": [Vector3(0.38, 0.48, 0.86), Vector3(-0.02, 0.82, 0.6)], "uma_mao": [0.1, 0.15]},
 	"beastman": {"guarda": [Vector3(0.14, 0.55, 0.82), Vector3(-0.04, 1.0, 0.37)], "uma_mao": [-0.38, 0.1]},
 	"draconato": {"guarda": [Vector3(0.32, 0.84, 0.42), Vector3(-0.07, 1.02, 0.31)], "uma_mao": [0.05, 0.22]},
 }
@@ -2172,6 +2172,8 @@ func _pegada() -> Dictionary:
 	if race_id == "orc" and subtipo == "goblin":
 		k = "goblin"
 	var base: Dictionary = PEGADA_RACA.get(k, PEGADA_RACA.humano)
+	if base.has("guarda_" + arma_kind):  # 27/11: guarda própria de uma arma nesta raça
+		base = {"guarda": base["guarda_" + arma_kind], "uma_mao": base.uma_mao}
 	var e: Dictionary = POSE_ESTILO.get(estilo, {})
 	if e.has("guarda"):
 		return {"guarda": e.guarda, "uma_mao": base.uma_mao}
@@ -2925,6 +2927,7 @@ func set_battle(on: bool) -> void:
 		armed = on
 		return
 	armed = on
+	_arco_baixo = false  # a troca abaixo já põe o arco no lugar certo
 	if empunho != null and arqueria == null:
 		_arma_na_mao(on)
 		return
@@ -3129,6 +3132,7 @@ func vestir_cabeca(item: Node3D, esconde_cabelo := false) -> void:
 func disparar_arco() -> float:
 	if arqueria == null:
 		return action("Sword_Attack")
+	_arco_modo(true)
 	play("Idle")
 	var d: float = arqueria.disparar()
 	busy_until = Time.get_ticks_msec() * 0.001 + d * 0.9
@@ -3202,6 +3206,7 @@ func _ready() -> void:
 # Corrige o corpo flutuando em descidas e o pé afundando em subidas; suaviza para não tremer.
 func _process(dt: float) -> void:
 	var __t := Time.get_ticks_usec()
+	_arco_corrida()
 	_process_corpo(dt)
 	Perfil.soma("boneco_quadro", Time.get_ticks_usec() - __t)
 
@@ -3248,7 +3253,9 @@ func _guarda_no_peito() -> void:
 		for p_char in pts:
 			# 26/11: correndo, a coxa avança vários cm por quadro e a guarda era calculada com a perna do quadro
 			# anterior: folga maior nas pernas só na corrida (o cabo cruzava a coxa direita em 10-30% da corrida)
-			var sa := _saida_corpo(p_char, 0.04, (0.09 * k) if current in ["Jog_Fwd", "Sprint"] else 0.0)
+			# 27/11: e 5 cm a mais do peito: a palma fica entre o cabo e o peito (anão com martelo: mão no peito em 24%)
+			var corre_g := current in ["Jog_Fwd", "Sprint"]
+			var sa := _saida_corpo(p_char, 0.04, (0.09 * k) if corre_g else 0.0, (0.05 * k) if corre_g else 0.0)
 			if sa.length() > pior.length():
 				pior = sa
 		if pior.length() < 1e-5:
@@ -3286,7 +3293,7 @@ func _osso_pos(nome: String) -> Transform3D:
 
 
 # saída do corpo para um ponto no espaço do personagem (cápsulas com a pose final)
-func _saida_corpo(p: Vector3, folga: float, extra_pernas := 0.0) -> Vector3:
+func _saida_corpo(p: Vector3, folga: float, extra_pernas := 0.0, extra_tronco := 0.0) -> Vector3:
 	var caps := _capsulas(_chave_capsulas())
 	var esc := _rel_self(skel).basis.get_scale().x
 	var melhor := Vector3.ZERO
@@ -3294,7 +3301,7 @@ func _saida_corpo(p: Vector3, folga: float, extra_pernas := 0.0) -> Vector3:
 	var ci := -1
 	for c in caps:
 		ci += 1
-		var fo := folga + (extra_pernas if ci >= i_perna else 0.0)
+		var fo := folga + (extra_pernas if ci >= i_perna else (extra_tronco if ci < 2 else 0.0))
 		var a: Vector3 = _osso_pos(skel.get_bone_name(c[0])).origin
 		var b: Vector3 = _osso_pos(skel.get_bone_name(c[1])).origin
 		if float(c[3]) > 0.0:  # cabeça: a cápsula vai até o alto do crânio
@@ -3899,3 +3906,38 @@ func pulo(fase: String) -> void:
 	anim.play(n, 0.08 if fase == "inicio" else 0.06)
 	anim.seek(0.12 if fase == "inicio" else 0.04, true)
 	anim.speed_scale = 1.5 if fase == "inicio" else 1.35
+
+
+# ---------- arco na corrida (27/11) ----------
+# Correndo em combate o arqueiro leva o arco em pé na mão esquerda (como fora do combate) e encaixa a flecha ao
+# parar ou ao atirar. Antes corria com a flecha encaixada cruzando o peito: no anão, mão na barba em 96% da
+# corrida e arco na barriga em 42%.
+var _arco_baixo := false
+
+
+func _arco_corrida() -> void:
+	if arqueria == null or not armed or wnode == null:
+		return
+	var correndo := current in ["Jog_Fwd", "Sprint"]
+	if correndo and not _arco_baixo and arqueria.t < 0.0:
+		_arco_modo(false)
+	elif not correndo and _arco_baixo:
+		_arco_modo(true)
+
+
+func _arco_modo(pronto: bool) -> void:
+	if arqueria == null or wnode == null or not armed:
+		return
+	if pronto == (not _arco_baixo):
+		return
+	_arco_baixo = not pronto
+	wnode.get_parent().remove_child(wnode)
+	if pronto:
+		arqueria.mira.add_child(wnode)
+		arqueria.mira.remove_child(wnode)
+		arqueria.montar_arco(wnode)
+		arqueria.ligar(true)
+	else:
+		arqueria.ligar(false)
+		(grip_node if empunho != null else sheath).add_child(wnode)
+		wnode.transform = _arco_na_mao() if empunho != null else arco_costas
